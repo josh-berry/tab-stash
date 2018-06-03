@@ -188,32 +188,3 @@ Vue.component('editable-label', {
         },
     },
 });
-
-async function restoreTabs(urls) {
-    // Remove duplicate URLs so we only try to restore each URL once.
-    urls = Array.from(new Set(urls));
-
-    // See which tabs are already open and remove them from the list
-    let open = await browser.tabs.query({currentWindow: true, url: urls});
-    urls = urls.filter(url => ! open.some(tab => tab.url === url));
-
-    // For each URL that we're going to restore, figure out how--are we
-    // restoring by reopening a closed tab, or by creating a new tab?
-    let sessions = await browser.sessions.getRecentlyClosed();
-    let strategies = urls.map(url => [
-        url, sessions.find(sess => sess.tab && sess.tab.url === url)]);
-
-    // Now restore tabs.  Done serially so we always restore in the same
-    // positions.
-    let ps = [];
-    for (let [url, sess] of strategies) {
-        console.log('restoring', url, sess);
-        let p = sess
-            ? browser.sessions.restore(sess.tab.sessionId).then(
-                sess => browser.tabs.move([sess.tab.id], {index: 0xffffff}))
-            : browser.tabs.create({active: false, url, index: 0xffffff});
-        ps.push(p);
-    }
-
-    for (let p of ps) await p;
-}

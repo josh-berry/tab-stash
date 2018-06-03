@@ -112,23 +112,58 @@ async function hideAndDiscardTabs(tabs) {
 }
 
 function showStashedTabsTab() {
-    return openOrSwitchToTab(browser.extension.getURL('stash-list.html'));
-}
-
-async function openOrSwitchToTab(url) {
-    let open = (await browser.tabs.query({url}))[0];
-    if (! open) {
-        open = await browser.tabs.create({
-            active: true,
-            url,
-        });
-    }
-    await browser.tabs.update(open.id, {active: true});
-    await browser.windows.update(open.windowId, {focused: true});
+    return restoreTabs([browser.extension.getURL('stash-list.html')]);
 }
 
 function asyncEvent(async_fn) {
     return function() {
         async_fn.apply(this, arguments).then((x) => x);
     };
+}
+
+async function restoreTabs(urls) {
+    // Remove duplicate URLs so we only try to restore each URL once.
+    urls = Array.from(new Set(urls));
+
+    // See which tabs are already open and remove them from the list
+    let open = await browser.tabs.query({currentWindow: true, url: urls});
+    let to_open = urls.filter(url => ! open.some(tab => tab.url === url));
+
+    // Special case: If we were asked to open only one tab AND that tab is
+    // already open, just switch to it.
+    if (urls.length == 1 && to_open.length == 0) {
+        await browser.tabs.update(open[0].id, {active: true});
+        return;
+    }
+
+    // For each URL that we're going to restore, figure out how--are we
+    // restoring by reopening a closed tab, or by creating a new tab?
+    let sessions = await browser.sessions.getRecentlyClosed();
+    let strategies = to_open.map(url => [
+        url, sessions.find(sess => sess.tab && sess.tab.url === url)]);
+
+    // Now restore tabs.  Done serially so we always restore in the same
+    // positions.
+    let ps = [];
+    for (let [url, sess] of strategies) {
+        console.log('restoring', url, sess);
+        let p = sess
+            ? browser.sessions.restore(sess.tab.sessionId).then(
+                sess => browser.tabs.move([sess.tab.id], {index: 0xffffff}))
+            : browser.tabs.create({active: false, url, index: 0xffffff});
+        ps.push(p);
+    }
+
+    // NOTE: Can't do this with .map() since await doesn't work in a nested
+    // function context. :/
+    let tabs = [];
+    for (let p in ps) tabs.push(await p);
+
+    // Special case: If only one tab was restored, switch to it.  (This is
+    // different from the special case above, in which NO tabs are restored.)
+    if (tabs.length == 1) {
+        let tab = tabs[0];
+        if (tab instanceof browser.sessions.Session) tab = tab.tab;
+        await browser.tabs.update(tab.id, {active: true});
+    }
 }
