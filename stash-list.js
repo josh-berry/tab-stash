@@ -5,9 +5,13 @@
 window.addEventListener('load', () => {
     renderStashedTabs().then((tabs) => {
         let vue = new Vue({
-            el: '#app',
+            template: `
+              <folder-list :folders="folders">
+              </folder-list>`,
+
             data: {folders: tabs},
         });
+        vue.$mount('#app');
 
         let update = () => {
             // XXX Probably very inefficient to regenerate the whole tree on
@@ -49,6 +53,8 @@ async function renderStashedTabs() {
 
 Vue.component('folder-list', {
     props: {folders: Array},
+    data: () => ({}),
+    computed: {},
     template: `
         <div>
           <div v-for="f in folders" :key="f.title">
@@ -56,17 +62,23 @@ Vue.component('folder-list', {
           </div>
         </div>
     `,
-    computed: {},
     methods: {},
 });
 
 Vue.component('folder', {
-    props: {title: String, children: Array, id: [String, Number]},
+    props: {
+        title: String,
+        children: Array,
+        id: [String, Number],
+    },
+
+    computed: {},
 
     template: `
         <div>
           <div class="panel-section-header">
-            <h4>{{title}}</h4>
+            <editable-label classes="folder" :value="title"
+                            @update:value="rename"></editable-label>
             <nav>
               <a @click.prevent="restoreAll" title="Restore All">R</a>
               <a @click.prevent="restoreAndDiscard" title="Restore and Discard">RD</a>
@@ -78,8 +90,6 @@ Vue.component('folder', {
           </saved-tab>
         </div>
         </div>`,
-
-    computed: {},
 
     methods: {
         restoreAll: asyncEvent(async function() {
@@ -112,6 +122,11 @@ Vue.component('folder', {
             // popup), close the tab so the user doesn't have to.
             if (curtab) await browser.tabs.remove([curtab.id]);
         }),
+
+        rename: function(title, resolve) {
+            browser.bookmarks.update(this.id, {title})
+                .then(resolve);
+        },
     },
 });
 
@@ -145,6 +160,32 @@ Vue.component('saved-tab', {
         open: asyncEvent(async function() {
             await restoreTabs([this.url]);
         }),
+    },
+});
+
+Vue.component('editable-label', {
+    props: {classes: [Object, String], value: String},
+    data: () => ({editing: false}),
+    computed: {},
+    template: `
+      <input v-if="editing" type="text" :class="classes" :value="value"
+             ref="input"
+             @blur="commit" @keyup.enter.prevent="commit"
+             @keyup.esc.prevent="editing = false">
+      <span v-else :class="classes" @click="editing = true">{{value}}</span>
+    `,
+    updated: function() {
+        if (this.$refs.input) this.$refs.input.focus();
+    },
+    methods: {
+        commit: function() {
+            if (this.$refs.input.value === this.value) {
+                this.editing = false;
+                return;
+            }
+            this.$emit('update:value', this.$refs.input.value,
+                       () => {this.editing = false});
+        },
     },
 });
 
