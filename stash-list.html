@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Stashed Tabs</title>
+    <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="vue.js"></script>
+    <script type="text/javascript" src="stash-list.js"></script>
+    <link rel="shortcut icon" href="../icons/logo.svg">
+    <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
+    <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension-mac.css">
+    <style type="text/css">
+      #app {
+          width: 100%;
+          margin: 0;
+          padding: 0;
+      }
+      .panel-list-item:hover {
+          cursor: pointer;
+      }
+      .panel-list-item a {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+      }
+      .panel-list-item img {
+          vertical-align: bottom;
+      }
+      a { text-decoration: none; }
+
+      nav a {
+          background-color: #e0e0e0;
+          padding: 0.5ex 1ex;
+          border-radius: 0.5ex;
+      }
+      nav a:hover {
+          background-color: #f0f0f0;
+          color: #0000ff;
+      }
+    </style>
+  </head>
+
+  <body class="stash-list">
+    <div id="app"><folder-list :folders="folders"></folder-list></div>
+  </body>
+</html>

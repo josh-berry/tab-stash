@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="svg10"
+   version="1.1"
+   viewBox="0 0 16 16"
+   height="16"
+   width="16"
+   sodipodi:docname="icon-dark.svg"
+   inkscape:version="0.92.2 5c3e80d, 2017-08-06">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="987"
+     inkscape:window-height="741"
+     id="namedview9"
+     showgrid="false"
+     inkscape:zoom="14.75"
+     inkscape:cx="8"
+     inkscape:cy="8"
+     inkscape:window-x="493"
+     inkscape:window-y="222"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg10" />
+  <metadata
+     id="metadata16">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs14" />
+  <path
+     id="path8"
+     d="m 4.5,10 a 0.5,0.5 0 1 0 0,1 h 7 a 0.5,0.5 0 1 0 0,-1 z"
+     fill="context-fill"
+     style="fill:#f9f9fa;fill-opacity:0.80000001" />
+  <path
+     id="path10"
+     d="m 1,8 v 5 c 0,2 1,2 2,2 h 10 c 1,0 2,0 2,-2 V 8 c 0,0 0,-1 -1,-1 -1,0 -1,1 -1,1 v 6 H 3 V 8 C 3,8 3,7 2,7 1,7 1,8 1,8 Z"
+     fill="context-fill"
+     style="fill:#f9f9fa;fill-opacity:0.80000001" />
+  <path
+     d="m 4.5,12 a 0.5,0.5 0 1 0 0,1 h 7 a 0.5,0.5 0 1 0 0,-1 z"
+     fill="context-fill"
+     id="path3702"
+     style="fill:#f9f9fa;fill-opacity:0.80000001" />
+  <path
+     id="path822"
+     d="M 13.390625,1 A 0.62990783,0.62990783 0 0 0 12.945312,1.1640625 L 8,5.5292969 3.0527344,1.1640625 A 0.63030661,0.63030661 0 1 0 2.21875,2.109375 l 5.3632812,4.7324219 a 0.62990783,0.62990783 0 0 0 0.8339844,0 L 13.779297,2.109375 A 0.62990783,0.62990783 0 0 0 13.390625,1 Z"
+     fill="context-fill"
+     style="fill:#f9f9fa;fill-opacity:0.80000001" />
+</svg>

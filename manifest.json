@@ -1,0 +1,55 @@
+{
+    "manifest_version": 2,
+    "name": "Tab Stash",
+    "version": "0.1",
+    "description": "A no-fuss way to save and restore batches of tabs in bookmarks.",
+    "homepage_url": "https://www.condordes.net/",
+    "icons": {
+        "48": "icons/logo.svg",
+        "96": "icons/logo.svg"
+    },
+    "applications": {
+        "gecko": {
+            "id": "tab-stash@condordes.net",
+            "strict_min_version": "52.0"
+        }
+    },
+    "permissions": [
+        "sessions",
+        "tabs",
+        "tabHide",
+        "bookmarks",
+        "menus"
+    ],
+    "content_security_policy":
+        "script-src 'self' 'unsafe-eval'; object-src 'self';",
+    "background": {
+        "scripts": ["index.js"]
+    },
+    "browser_action": {
+        "default_title": "Stash Open Tabs",
+        "default_icon": {
+            "16": "icons/stash-dark.svg",
+            "32": "icons/stash-dark.svg"
+        },
+        "theme_icons": [{
+            "light": "icons/stash-light.svg",
+            "dark": "icons/stash-dark.svg",
+            "size": 16
+        }, {
+            "light": "icons/stash-light.svg",
+            "dark": "icons/stash-dark.svg",
+            "size": 32
+        }],
+        "browser_style": true
+    },
+    "sidebar_action": {
+        "default_title": "Stashed Tabs",
+        "default_icon": {
+            "16": "icons/logo.svg",
+            "32": "icons/logo.svg"
+        },
+        "default_panel": "stash-list.html",
+        "browser_style": true
+    }
+}
