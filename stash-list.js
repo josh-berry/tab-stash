@@ -134,12 +134,13 @@ Vue.component('saved-tab', {
     props: {title: String, url: String, id: [String, Number]},
 
     template: `
-        <div class="panel-list-item" @click.prevent="open">
-          <a target="_blank" :href="url">
-            <img class="icon" :src="favicon" v-if="favicon">
-            <span class="text">{{title}}</span>
-          </a>
-        </div>`,
+        <a class="panel-list-item saved-tab"
+           target="_blank" :href="url"
+           @click.prevent="open">
+          <img class="icon" :src="favicon" v-if="favicon">
+          <span class="text">{{title}}</span>
+          <span class="remove" @click.prevent.stop="remove">X</span>
+        </a>`,
 
     computed: {
         favicon: function() {
@@ -159,6 +160,9 @@ Vue.component('saved-tab', {
     methods: {
         open: asyncEvent(async function() {
             await restoreTabs([this.url]);
+        }),
+        remove: asyncEvent(async function() {
+            await browser.bookmarks.remove(this.id);
         }),
     },
 });

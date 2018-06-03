@@ -18,14 +18,6 @@
       .panel-list-item:hover {
           cursor: pointer;
       }
-      .panel-list-item a {
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-      }
-      .panel-list-item img {
-          vertical-align: bottom;
-      }
       a { text-decoration: none; }
 
       nav a {
@@ -44,6 +36,52 @@
           font-size: 13pt;
           width: -moz-available;
           margin: 1em 0;
+      }
+
+      /* Saved-tab entries */
+      .saved-tab { display: block; }
+      .saved-tab > * {
+          vertical-align: center;
+      }
+      .saved-tab > .icon {
+          width: 22px;
+          height: 16px;
+          padding: 0 3px;
+      }
+      .saved-tab > .text {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+      }
+      .saved-tab > .remove {
+          background-color: #ffc0c0;
+          border-radius: 0.5ex;
+          padding: 0 0.5ex;
+          color: red;
+          display: none;
+      }
+      .saved-tab:hover > .remove {
+          display: inline-block;
+      }
+
+      /* Saved-tab entries - Large grid */
+      .saved-tab {
+          display: grid;
+          grid-template-columns: 16px 22px 1fr;
+      }
+      .saved-tab > .remove { grid-row: 1; grid-column: 1; }
+      .saved-tab > .icon { grid-row: 1; grid-column: 2; }
+      .saved-tab > .text { grid-row: 1; grid-column: 3; }
+
+      @media all and (max-width: 20rem) {
+          .saved-tab {
+              display: grid;
+              grid-template-columns: 22px 1fr 16px;
+          }
+          .saved-tab > .icon { grid-row: 1; grid-column: 1; }
+          .saved-tab > .text { grid-row: 1; grid-column: 2 / 4; }
+          .saved-tab:hover > .text { grid-row: 1; grid-column: 2; }
+          .saved-tab > .remove { grid-row: 1; grid-column: 3; }
       }
     </style>
   </head>
