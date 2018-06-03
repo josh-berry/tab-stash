@@ -80,9 +80,13 @@ Vue.component('folder', {
             <editable-label classes="folder" :value="title"
                             @update:value="rename"></editable-label>
             <nav>
-              <a @click.prevent="restoreAll" title="Restore All">R</a>
-              <a @click.prevent="restoreAndDiscard" title="Restore and Discard">RD</a>
-              <a @click.prevent="discard" title="Discard">D</a>
+              <span class="action restore" @click.prevent="restoreAll"
+                    title="Restore All">R</span>
+              <span class="action restore-remove"
+                    @click.prevent="restoreAndDiscard"
+                    title="Restore and Discard">RD</span>
+              <span class="action remove" @click.prevent="discard"
+                    title="Discard">D</span>
             </nav>
           </div>
         <div class="panel-section-list">
@@ -139,7 +143,7 @@ Vue.component('saved-tab', {
            @click.prevent="open">
           <img class="icon" :src="favicon" v-if="favicon">
           <span class="text">{{title}}</span>
-          <span class="remove" @click.prevent.stop="remove">X</span>
+          <span class="action remove" @click.prevent.stop="remove">X</span>
         </a>`,
 
     computed: {

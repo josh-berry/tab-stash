@@ -20,16 +20,51 @@
       }
       a { text-decoration: none; }
 
-      nav a {
-          background-color: #e0e0e0;
-          padding: 0.5ex 1ex;
+      /* Actions */
+      .action {
+          padding: 0 1ex;
           border-radius: 0.5ex;
       }
-      nav a:hover {
-          background-color: #f0f0f0;
-          color: #0000ff;
+      .action.restore {
+          background-color: #c0ffe0;
+          color: #007038;
+      }
+      .action.restore:hover {
+          background-color: #00ffc0;
+          color: #000000;
+      }
+      .action.restore:active {
+          background-color: #00d080;
+          color: #000000;
+      }
+      .action.restore-remove {
+          background-color: #f0f0c0;
+          color: #707000;
+      }
+      .action.restore-remove:hover {
+          background-color: #f0f000;
+          color: #000000;
+      }
+      .action.restore-remove:active {
+          background-color: #d0d000;
+          color: #000000;
+      }
+      .action.remove {
+          background-color: #ffc0c0;
+          border-radius: 0.5ex;
+          padding: 0 0.5ex;
+          color: #c00000;
+      }
+      .action.remove:hover {
+          background-color: #ff0000;
+          color: #ffffff;
+      }
+      .action.remove:active {
+          background-color: #c00000;
+          color: #ffffff;
       }
 
+      /* Folder headings */
       .folder {
           display: block;
           font-weight: bold;
@@ -53,16 +88,8 @@
           white-space: nowrap;
           text-overflow: ellipsis;
       }
-      .saved-tab > .remove {
-          background-color: #ffc0c0;
-          border-radius: 0.5ex;
-          padding: 0 0.5ex;
-          color: red;
-          display: none;
-      }
-      .saved-tab:hover > .remove {
-          display: inline-block;
-      }
+      .saved-tab > .remove { display: none; }
+      .saved-tab:hover > .remove { display: inline-block; }
 
       /* Saved-tab entries - Large grid */
       .saved-tab {
