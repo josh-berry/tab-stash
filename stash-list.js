@@ -93,15 +93,16 @@ Vue.component('folder', {
                             :isDefaultValue="isTitleDefault"
                             @update:value="rename"></editable-label>
             <nav>
-              <span class="action stash" @click.prevent="stash"
-                    title="Close and add all open tabs to this group">Stash</span>
+              <span class="action stash"
+                    title="Save all open tabs to this group and close them"
+                    @click.prevent="stash">Stash</span>
               <span class="action restore" @click.prevent="restoreAll"
                     title="Open all tabs in this group">Restore</span>
               <span class="action restore-remove"
-                    @click.prevent="restoreAndDiscard"
-                    title="Restore and then delete this tab group">Restore/Del.</span>
+                    title="Open all tabs in the group and delete the group"
+                    @click.prevent="restoreAndDiscard">Restore/Del.</span>
               <span class="action remove" @click.prevent="discard"
-                    title="Delete this tab group">Delete</span>
+                    title="Delete this group">Delete</span>
             </nav>
           </div>
         <div class="panel-section-list">
@@ -174,10 +175,10 @@ Vue.component('saved-tab', {
           <img class="icon" :src="favicon" v-if="favicon">
           <span class="text">{{title}}</span>
           <span class="action remove"
-                title="Remove this tab from the group"
+                title="Delete this tab from the group"
                 @click.prevent.stop="remove">X</span>
           <span class="action restore-remove"
-                title="Open this tab and remove it from the group"
+                title="Open this tab and delete it from the group"
                 @click.prevent.stop="openRemove">&raquo;</span>
         </a>`,
 
