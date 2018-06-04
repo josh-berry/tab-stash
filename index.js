@@ -37,54 +37,58 @@ async function browserAction() {
 }
 
 async function bookmarkOpenTabs() {
-    let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0];
-    if (! root) {
-        root = await browser.bookmarks.create({
-            title: STASH_FOLDER,
-            type: 'folder',
-        });
-    }
+    // First figure out which of the open tabs to save, and make sure they are
+    // sorted by their actual position in the tab bar.  We ignore tabs with
+    // unparseable URLs or which look like extensions and internal browser
+    // things.
+    let tabs = (await browser.tabs.query({currentWindow: true}))
+        .filter(tab => {
+            try {
+                let url = new URL(tab.url);
+                switch (url.protocol) {
+                case 'moz-extension:':
+                case 'about:':
+                case 'chrome:':
+                    return false;
+                }
+            } catch (e) {
+                console.warn('Tab with unparseable URL:', tab, tab.url);
+                return false;
+            }
 
-    // XXX Nicer date format
-    let title = (new Date()).toISOString();
+            if (tab.pinned) return false;
+            if (tab.hidden) return false;
+            return true;
+        });
+    tabs.sort((a, b) => a.index - b.index);
+
+    // If there are no tabs to save, early-exit here so we don't unnecessarily
+    // create bookmark folders we don't need.
+    if (tabs.length == 0) return [];
+
+    // Create the bookmarks folders (including the root folder if it doesn't
+    // exist yet).
+    let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0]
+            || (await browser.bookmarks.create({
+                    title: STASH_FOLDER,
+                    type: 'folder',
+               }));
     let folder = await browser.bookmarks.create({
         parentId: root.id,
-        title: title,
+        title: (new Date()).toISOString(), // XXX nicer date format
         type: 'folder',
         index: 0, // Newest folders should show up on top
     });
 
+    // Now save each tab as a bookmark.
+    //
     // This can't be parallelized because otherwise the bookmarks will get saved
     // in the wrong order.  Specifying the index is ALSO necessary because
     // again, bookmarks should be inserted in order--and if you leave it off,
     // the browser may do all kinds of random nonsense.
-
-    let tabs = await browser.tabs.query({currentWindow: true});
-    tabs.sort((a, b) => a.index - b.index);
-
-    console.log(tabs);
-
     let saved_tabs = [];
     let index = 0;
     for (let tab of tabs) {
-        // Ignore tabs with unparseable URLs or which look like extensions and
-        // internal browser things.
-        try {
-            let url = new URL(tab.url);
-            switch (url.protocol) {
-            case 'moz-extension:':
-            case 'about:':
-            case 'chrome:':
-                continue;
-            }
-        } catch (e) {
-            console.warn('Tab with unparseable URL:', tab, tab.url);
-            continue;
-        }
-
-        if (tab.pinned) continue;
-        if (tab.hidden) continue;
-
         await browser.bookmarks.create({
             parentId: folder.id,
             title: tab.title,
