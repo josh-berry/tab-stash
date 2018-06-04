@@ -77,11 +77,11 @@ Vue.component('folder', {
 
     computed: {
         isTitleDefault: function() {
-            return getFolderNameISODate(this.title);
+            return getFolderNameISODate(this.title) !== null;
         },
         userTitle: function() {
             return this.isTitleDefault
-                ? `Saved ${(new Date(this.isTitleDefault)).toLocaleString()}`
+                ? `Saved ${(new Date(getFolderNameISODate(this.title))).toLocaleString()}`
                 : this.title;
         },
     },
@@ -94,14 +94,14 @@ Vue.component('folder', {
                             @update:value="rename"></editable-label>
             <nav>
               <span class="action stash" @click.prevent="stash"
-                    title="Stash all open tabs in this group">S</span>
+                    title="Close and add all open tabs to this group">Stash</span>
               <span class="action restore" @click.prevent="restoreAll"
-                    title="Restore All">R</span>
+                    title="Open all tabs in this group">Restore</span>
               <span class="action restore-remove"
                     @click.prevent="restoreAndDiscard"
-                    title="Restore and Discard">RD</span>
+                    title="Restore and then delete this tab group">Restore/Del.</span>
               <span class="action remove" @click.prevent="discard"
-                    title="Discard">D</span>
+                    title="Delete this tab group">Delete</span>
             </nav>
           </div>
         <div class="panel-section-list">
@@ -149,13 +149,12 @@ Vue.component('folder', {
             if (curtab) await browser.tabs.remove([curtab.id]);
         }),
 
-        rename: function(title, resolve) {
+        rename: function(title) {
             if (title === '') {
                 // Give it a default name based on when the folder was created
                 title = genDefaultFolderName(new Date(this.dateAdded));
             }
-            browser.bookmarks.update(this.id, {title})
-                .then(resolve);
+            browser.bookmarks.update(this.id, {title}).then(() => {});
         },
     },
 });
@@ -174,7 +173,12 @@ Vue.component('saved-tab', {
            @click.prevent="open">
           <img class="icon" :src="favicon" v-if="favicon">
           <span class="text">{{title}}</span>
-          <span class="action remove" @click.prevent.stop="remove">X</span>
+          <span class="action remove"
+                title="Remove this tab from the group"
+                @click.prevent.stop="remove">X</span>
+          <span class="action restore-remove"
+                title="Open this tab and remove it from the group"
+                @click.prevent.stop="openRemove">&raquo;</span>
         </a>`,
 
     computed: {
@@ -213,28 +217,96 @@ Vue.component('saved-tab', {
 });
 
 Vue.component('editable-label', {
-    props: {classes: [Object, String], value: String, isDefaultValue: Boolean},
-    data: () => ({editing: false}),
-    computed: {},
+    props: {
+        // CSS classes to apply to the editable label, which is either a <span>
+        // or <input> element.
+        classes: [Object, String],
+
+        // The value to show
+        value: String,
+
+        // If true, we show the user an empty text box instead of whatever is in
+        // /value/.
+        isDefaultValue: Boolean,
+    },
+
+    data: () => ({
+        editing: false,
+        oldValue: undefined,
+        newValue: undefined,
+    }),
+
+    computed: {
+        editValue: function() {
+            // The value to populate in the text box.  (If the user has
+            // specified a value already, we just use that.)
+            if (this.newValue !== undefined) return this.newValue;
+            if (this.isDefaultValue) return '';
+            return this.value;
+        },
+
+        disabled: function() {
+            // We disable the text box if we're in the middle of an update
+            // operation...
+            return this.oldValue !== undefined
+                // ...and we haven't seen a change in the model yet.
+                && this.value === this.oldValue;
+        }
+    },
+
     template: `
       <input v-if="editing" type="text" :class="classes"
-             :value="isDefaultValue ? '' : value"
+             :value="editValue" :disabled="disabled"
              ref="input"
              @blur="commit" @keyup.enter.prevent="commit"
              @keyup.esc.prevent="editing = false">
-      <span v-else :class="classes" @click="editing = true">{{value}}</span>
+      <span v-else :class="classes" @click="begin">{{value}}</span>
     `,
+
     updated: function() {
-        if (this.$refs.input) this.$refs.input.focus();
+        // If we are just now showing the text box, make sure it's focused so
+        // the user can start typing.
+        if (this.$refs.input && ! this.disabled) this.$refs.input.focus();
+
+        // All of this convoluted logic is to prevent the user from seeing a
+        // momentary switch back to the "old" value before the model has
+        // actually been updated.  Basically we save and show the user the new
+        // value they entered (/newValue/), but with the text box disabled,
+        // until we see SOME change to the actual model value (regardless of
+        // what it is).
+        //
+        // At that point, we discard the old and new values and use whatever the
+        // model provides, resetting our state to "not editing".
+        if (this.editing
+            && this.oldValue !== undefined
+            && this.oldValue !== this.value)
+        {
+            this.editing = false;
+            this.oldValue = undefined;
+            this.newValue = undefined;
+        }
     },
     methods: {
+        begin: function() {
+            this.editing = true;
+        },
         commit: function() {
             if (this.$refs.input.value === this.value) {
                 this.editing = false;
                 return;
             }
-            this.$emit('update:value', this.$refs.input.value,
-                       () => {this.editing = false});
+
+            // This convoluted logic saves the old value (so we know when the
+            // model has been changed), and the new value (so we can continue to
+            // display it to the user), and then disables the text box and fires
+            // the event.  At some time later, we expect something to magically
+            // update the model, and the logic in "upddated" above will kick in
+            // and move us back to not-editing state.
+            //
+            // If that doesn't happen, it probably means the user 
+            this.oldValue = this.value;
+            this.newValue = this.$refs.input.value;
+            this.$emit('update:value', this.newValue);
         },
     },
 });

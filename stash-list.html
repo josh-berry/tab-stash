@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension-mac.css">
     <style type="text/css">
+      /* NOTE: box-sizing: border-box is in effect in extension.css */
       #app {
           width: 100%;
           margin: 0;
@@ -22,57 +23,60 @@
 
       /* Actions */
       .action {
-          padding: 0 1ex;
+          display: inline-block;
           border-radius: 0.5ex;
+          text-align: center;
+          vertical-align: middle;
+          padding: 0 1ex;
       }
       .action.stash {
-          background-color: #e0e0ff;
+          background-color: #e4e4ff;
           color: #000070;
       }
       .action.stash:hover {
-          background-color: #c0c0ff;
-          color: #000000;
+          background-color: #4040ff;
+          color: #ffffff;
       }
       .action.stash:active {
-          background-color: #8080d0;
-          color: #000000;
+          background-color: #0000d0;
+          color: #ffffff;
       }
       .action.restore {
           background-color: #c0ffe0;
-          color: #007038;
+          color: #006030;
       }
       .action.restore:hover {
-          background-color: #00ffc0;
-          color: #000000;
+          background-color: #008020;
+          color: #ffffff;
       }
       .action.restore:active {
-          background-color: #00d080;
-          color: #000000;
+          background-color: #006018;
+          color: #ffffff;
       }
       .action.restore-remove {
-          background-color: #f0f0c0;
-          color: #707000;
+          background-color: #f0f070;
+          color: #606000;
       }
       .action.restore-remove:hover {
-          background-color: #f0f000;
-          color: #000000;
+          background-color: #a0a010;
+          color: #ffffff;
       }
       .action.restore-remove:active {
-          background-color: #d0d000;
-          color: #000000;
+          background-color: #808020;
+          color: #ffffff;
       }
       .action.remove {
           background-color: #ffc0c0;
           border-radius: 0.5ex;
           padding: 0 0.5ex;
-          color: #c00000;
+          color: #a00000;
       }
       .action.remove:hover {
-          background-color: #ff0000;
+          background-color: #c00000;
           color: #ffffff;
       }
       .action.remove:active {
-          background-color: #c00000;
+          background-color: #a00000;
           color: #ffffff;
       }
 
@@ -82,18 +86,31 @@
           font-weight: bold;
           font-size: 13pt;
           width: -moz-available;
-          margin: 1em 0;
+          margin: 0.5em -5px;
+          padding: 3px 3px;
+          border: 2px solid rgba(0, 0, 0, 0);
+          border-radius: 2px;
+      }
+      input.folder {
+          border: 2px solid rgba(128, 128, 128, 0.8);
       }
 
       /* Saved-tab entries */
       .saved-tab { display: block; }
       .saved-tab > * {
-          vertical-align: center;
+          vertical-align: middle;
+          margin: 0 3px;
+          padding: 0;
       }
-      .saved-tab > .icon {
-          width: 22px;
+      .saved-tab > .action {
+          height: 22px;
+          line-height: 22px;
+          border-radius: 0;
+          margin: 0;
+      }
+      .saved-tab > img {
+          width: 16px;
           height: 16px;
-          padding: 0 3px;
       }
       .saved-tab > .text {
           overflow: hidden;
@@ -101,26 +118,30 @@
           text-overflow: ellipsis;
       }
       .saved-tab > .remove { display: none; }
+      .saved-tab > .restore-remove { display: none; }
       .saved-tab:hover > .remove { display: inline-block; }
+      .saved-tab:hover > .restore-remove { display: inline-block; }
 
       /* Saved-tab entries - Large grid */
       .saved-tab {
           display: grid;
-          grid-template-columns: 16px 22px 1fr;
+          grid-template-columns: 22px 22px 22px 1fr;
       }
       .saved-tab > .remove { grid-row: 1; grid-column: 1; }
-      .saved-tab > .icon { grid-row: 1; grid-column: 2; }
-      .saved-tab > .text { grid-row: 1; grid-column: 3; }
+      .saved-tab > .restore-remove { grid-row: 1; grid-column: 2; }
+      .saved-tab > .icon { grid-row: 1; grid-column: 3; }
+      .saved-tab > .text { grid-row: 1; grid-column: 4; }
 
-      @media all and (max-width: 20rem) {
+      @media all and (max-width: 27rem) {
           .saved-tab {
               display: grid;
-              grid-template-columns: 22px 1fr 16px;
+              grid-template-columns: 22px 1fr 22px 22px;
           }
           .saved-tab > .icon { grid-row: 1; grid-column: 1; }
-          .saved-tab > .text { grid-row: 1; grid-column: 2 / 4; }
+          .saved-tab > .text { grid-row: 1; grid-column: 2 / 5; }
           .saved-tab:hover > .text { grid-row: 1; grid-column: 2; }
-          .saved-tab > .remove { grid-row: 1; grid-column: 3; }
+          .saved-tab > .restore-remove { grid-row: 1; grid-column: 3; }
+          .saved-tab > .remove { grid-row: 1; grid-column: 4; }
       }
     </style>
   </head>
