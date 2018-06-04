@@ -292,7 +292,7 @@ Vue.component('editable-label', {
             this.editing = true;
         },
         commit: function() {
-            if (this.$refs.input.value === this.value) {
+            if (this.$refs.input.value === this.editValue) {
                 this.editing = false;
                 return;
             }
