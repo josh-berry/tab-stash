@@ -153,7 +153,8 @@ async function restoreTabs(urls) {
         console.log('restoring', url, sess);
         let p = sess
             ? browser.sessions.restore(sess.tab.sessionId).then(
-                sess => browser.tabs.move([sess.tab.id], {index: 0xffffff}))
+                sess => browser.tabs.move([sess.tab.id], {index: 0xffffff})
+                    .then(() => sess))
             : browser.tabs.create({active: false, url, index: 0xffffff});
         ps.push(p);
     }
