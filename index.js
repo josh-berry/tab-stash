@@ -163,7 +163,10 @@ async function restoreTabs(urls) {
     // different from the special case above, in which NO tabs are restored.)
     if (tabs.length == 1) {
         let tab = tabs[0];
-        if (tab instanceof browser.sessions.Session) tab = tab.tab;
+        // It's actually a Session, but instanceof doesn't work here because
+        // Session isn't a constructor (you can't create your own, you can only
+        // get them from the browser).  So we have to do some true duck-typing.
+        if (tab.tab) tab = tab.tab;
         await browser.tabs.update(tab.id, {active: true});
     }
 }
