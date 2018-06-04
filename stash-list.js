@@ -94,7 +94,7 @@ Vue.component('folder', {
                             @update:value="rename"></editable-label>
             <nav>
               <span class="action stash"
-                    title="Save all open tabs to this group and close them"
+                    title="Close and save all open tabs to this group"
                     @click.prevent="stash">Stash</span>
               <span class="action restore" @click.prevent="restoreAll"
                     title="Open all tabs in this group">Restore</span>
