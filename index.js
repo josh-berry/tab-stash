@@ -42,7 +42,7 @@ async function browserAction() {
     await hideAndDiscardTabs(saved_tabs);
 }
 
-async function bookmarkOpenTabs() {
+async function bookmarkOpenTabs(folderId, startIndex) {
     // First figure out which of the open tabs to save, and make sure they are
     // sorted by their actual position in the tab bar.  We ignore tabs with
     // unparseable URLs or which look like extensions and internal browser
@@ -74,17 +74,20 @@ async function bookmarkOpenTabs() {
 
     // Create the bookmarks folders (including the root folder if it doesn't
     // exist yet).
-    let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0]
+    if (folderId === undefined) {
+        let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0]
             || (await browser.bookmarks.create({
-                    title: STASH_FOLDER,
-                    type: 'folder',
-               }));
-    let folder = await browser.bookmarks.create({
-        parentId: root.id,
-        title: genDefaultFolderName(new Date()),
-        type: 'folder',
-        index: 0, // Newest folders should show up on top
-    });
+                title: STASH_FOLDER,
+                type: 'folder',
+            }));
+        let folder = await browser.bookmarks.create({
+            parentId: root.id,
+            title: genDefaultFolderName(new Date()),
+            type: 'folder',
+            index: 0, // Newest folders should show up on top
+        });
+        folderId = folder.id;
+    }
 
     // Now save each tab as a bookmark.
     //
@@ -92,10 +95,10 @@ async function bookmarkOpenTabs() {
     // in the wrong order.  Specifying the index is ALSO necessary because
     // again, bookmarks should be inserted in order--and if you leave it off,
     // the browser may do all kinds of random nonsense.
-    let index = 0;
+    let index = startIndex ? startIndex : 0;
     for (let tab of tabs) {
         await browser.bookmarks.create({
-            parentId: folder.id,
+            parentId: folderId,
             title: tab.title,
             url: tab.url,
             index,

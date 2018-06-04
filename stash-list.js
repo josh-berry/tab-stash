@@ -93,6 +93,8 @@ Vue.component('folder', {
                             :isDefaultValue="isTitleDefault"
                             @update:value="rename"></editable-label>
             <nav>
+              <span class="action stash" @click.prevent="stash"
+                    title="Stash all open tabs in this group">S</span>
               <span class="action restore" @click.prevent="restoreAll"
                     title="Restore All">R</span>
               <span class="action restore-remove"
@@ -109,6 +111,13 @@ Vue.component('folder', {
         </div>`,
 
     methods: {
+        stash: asyncEvent(async function() {
+            // Very similar to the browser action, sans showing the stashed-tabs
+            // view, which the user is already looking at.
+            let saved_tabs = await bookmarkOpenTabs(this.id);
+            await hideAndDiscardTabs(saved_tabs);
+        }),
+
         restoreAll: asyncEvent(async function() {
             // Figure out which tab WE are.  Do this before opening new tabs,
             // since that will disturb the browser's focus.
