@@ -4,6 +4,9 @@
 
 const STASH_FOLDER = 'Tab Stash';
 
+const isDefaultFolderName = n => n.match(/saved-\d+-\d+-\d+T\d+:\d+:\d+Z/);
+const genDefaultFolderName = () => 'saved-' + (new Date()).toISOString();
+
 window.addEventListener('load', () => {
     if (! document.body.className) {
         // Background page
@@ -75,7 +78,7 @@ async function bookmarkOpenTabs() {
                }));
     let folder = await browser.bookmarks.create({
         parentId: root.id,
-        title: (new Date()).toISOString(), // XXX nicer date format
+        title: genDefaultFolderName(),
         type: 'folder',
         index: 0, // Newest folders should show up on top
     });
@@ -86,7 +89,6 @@ async function bookmarkOpenTabs() {
     // in the wrong order.  Specifying the index is ALSO necessary because
     // again, bookmarks should be inserted in order--and if you leave it off,
     // the browser may do all kinds of random nonsense.
-    let saved_tabs = [];
     let index = 0;
     for (let tab of tabs) {
         await browser.bookmarks.create({
@@ -96,11 +98,46 @@ async function bookmarkOpenTabs() {
             index,
         });
         ++index;
-
-        saved_tabs.push(tab);
     }
 
-    return saved_tabs;
+    // In the background, remove duplicate bookmarks, since we just added a
+    // bunch of new ones.
+    gcDuplicateBookmarks().then(() => {});
+
+    return tabs;
+}
+
+async function gcDuplicateBookmarks() {
+    let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0];
+    let folders = (await browser.bookmarks.getSubTree(root.id))[0].children;
+
+    let seen_urls = new Set();
+    let ps = [];
+    for (let f of folders) {
+        let rmcount = 0;
+        for (let b of f.children) {
+            if (seen_urls.has(b.url)) {
+                ps.push(browser.bookmarks.remove(b.id));
+                ++rmcount;
+            }
+            seen_urls.add(b.url);
+        }
+        if (rmcount == f.children.length && isDefaultFolderName(f.title)) {
+            // This folder should be empty, and it's a temporary/unnamed folder.
+            // Remove it (using regular remove() so if it's not actually empty,
+            // the remove will fail).
+            //
+            // First, however, wait for outstanding removes so we don't try to
+            // remove a folder that has stuff that's still in the process of
+            // being removed.
+            for (let p of ps) try {await p} catch(e) {console.log(e)}
+
+            ps = [];
+            ps.push(browser.bookmarks.remove(f.id));
+        }
+    }
+
+    for (let p of ps) try {await p} catch(e) {console.log(e)}
 }
 
 async function hideAndDiscardTabs(tabs) {
