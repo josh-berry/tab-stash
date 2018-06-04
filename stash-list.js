@@ -214,6 +214,10 @@ Vue.component('saved-tab', {
         remove: asyncEvent(async function() {
             await browser.bookmarks.remove(this.id);
         }),
+        openRemove: asyncEvent(async function() {
+            await restoreTabs([this.url]);
+            await browser.bookmarks.remove(this.id);
+        }),
     },
 });
 
