@@ -4,8 +4,11 @@
 
 const STASH_FOLDER = 'Tab Stash';
 
-const isDefaultFolderName = n => n.match(/saved-\d+-\d+-\d+T\d+:\d+:\d+Z/);
-const genDefaultFolderName = () => 'saved-' + (new Date()).toISOString();
+function getFolderNameISODate(n) {
+    let m = n.match(/saved-([-0-9:.T]+Z)/);
+    return m ? m[1] : null;
+}
+const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
 
 window.addEventListener('load', () => {
     if (! document.body.className) {
@@ -78,7 +81,7 @@ async function bookmarkOpenTabs() {
                }));
     let folder = await browser.bookmarks.create({
         parentId: root.id,
-        title: genDefaultFolderName(),
+        title: genDefaultFolderName(new Date()),
         type: 'folder',
         index: 0, // Newest folders should show up on top
     });
@@ -116,13 +119,13 @@ async function gcDuplicateBookmarks() {
     for (let f of folders) {
         let rmcount = 0;
         for (let b of f.children) {
-            if (seen_urls.has(b.url) && isDefaultFolderName(f.title)) {
+            if (seen_urls.has(b.url) && getFolderNameISODate(f.title)) {
                 ps.push(browser.bookmarks.remove(b.id));
                 ++rmcount;
             }
             seen_urls.add(b.url);
         }
-        if (rmcount == f.children.length && isDefaultFolderName(f.title)) {
+        if (rmcount == f.children.length && getFolderNameISODate(f.title)) {
             // This folder should be empty, and it's a temporary/unnamed folder.
             // Remove it (using regular remove() so if it's not actually empty,
             // the remove will fail).

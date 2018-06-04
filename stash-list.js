@@ -41,11 +41,13 @@ async function renderStashedTabs() {
         .map((c) => ({
             id: c.id,
             title: c.title,
+            dateAdded: c.dateAdded,
             children: c.children
                 .filter((l) => l.type !== 'folder')
                 .map((l) => ({
                     id: l.id,
                     title: l.title,
+                    dateAdded: l.dateAdded,
                     url: l.url,
                 })),
         }));
@@ -70,14 +72,25 @@ Vue.component('folder', {
         title: String,
         children: Array,
         id: [String, Number],
+        dateAdded: Number,
     },
 
-    computed: {},
+    computed: {
+        isTitleDefault: function() {
+            return getFolderNameISODate(this.title);
+        },
+        userTitle: function() {
+            return this.isTitleDefault
+                ? `Saved ${(new Date(this.isTitleDefault)).toLocaleString()}`
+                : this.title;
+        },
+    },
 
     template: `
         <div>
           <div class="panel-section-header">
-            <editable-label classes="folder" :value="title"
+            <editable-label classes="folder" :value="userTitle"
+                            :isDefaultValue="isTitleDefault"
                             @update:value="rename"></editable-label>
             <nav>
               <span class="action restore" @click.prevent="restoreAll"
@@ -128,6 +141,10 @@ Vue.component('folder', {
         }),
 
         rename: function(title, resolve) {
+            if (title === '') {
+                // Give it a default name based on when the folder was created
+                title = genDefaultFolderName(new Date(this.dateAdded));
+            }
             browser.bookmarks.update(this.id, {title})
                 .then(resolve);
         },
@@ -135,7 +152,12 @@ Vue.component('folder', {
 });
 
 Vue.component('saved-tab', {
-    props: {title: String, url: String, id: [String, Number]},
+    props: {
+        title: String,
+        url: String,
+        id: [String, Number],
+        dateAdded: Number,
+    },
 
     template: `
         <a class="panel-list-item saved-tab"
@@ -182,11 +204,12 @@ Vue.component('saved-tab', {
 });
 
 Vue.component('editable-label', {
-    props: {classes: [Object, String], value: String},
+    props: {classes: [Object, String], value: String, isDefaultValue: Boolean},
     data: () => ({editing: false}),
     computed: {},
     template: `
-      <input v-if="editing" type="text" :class="classes" :value="value"
+      <input v-if="editing" type="text" :class="classes"
+             :value="isDefaultValue ? '' : value"
              ref="input"
              @blur="commit" @keyup.enter.prevent="commit"
              @keyup.esc.prevent="editing = false">
