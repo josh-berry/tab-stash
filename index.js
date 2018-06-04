@@ -116,7 +116,7 @@ async function gcDuplicateBookmarks() {
     for (let f of folders) {
         let rmcount = 0;
         for (let b of f.children) {
-            if (seen_urls.has(b.url)) {
+            if (seen_urls.has(b.url) && isDefaultFolderName(f.title)) {
                 ps.push(browser.bookmarks.remove(b.id));
                 ++rmcount;
             }
