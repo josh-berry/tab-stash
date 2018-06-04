@@ -153,7 +153,17 @@ Vue.component('saved-tab', {
                 // happy hitting Google for favicons since it leaks info about
                 // what domains are in use :/
                 let url = new URL(this.url);
-                if (url.host) return `https://www.google.com/s2/favicons?domain=${url.host}`;
+
+                // Blacklist a bunch of things Google will have no idea about
+                if (! url.host) return '';
+                if (url.host.startsWith('127.')) return '';
+                if (url.host.startsWith('192.168.')) return '';
+                if (url.host.startsWith('10.')) return '';
+                if (url.host.startsWith('172.16.')) return '';
+                if (url.hostname === 'localhost') return '';
+                if (url.hostname.endsWith('.local')) return '';
+
+                return `https://www.google.com/s2/favicons?domain=${url.host}`;
             } catch (e) {
                 console.warn("Failed to parse URL: ", this.url, e);
             }
