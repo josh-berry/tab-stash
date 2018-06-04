@@ -162,7 +162,7 @@ async function restoreTabs(urls) {
     // NOTE: Can't do this with .map() since await doesn't work in a nested
     // function context. :/
     let tabs = [];
-    for (let p in ps) tabs.push(await p);
+    for (let p of ps) tabs.push(await p);
 
     // Special case: If only one tab was restored, switch to it.  (This is
     // different from the special case above, in which NO tabs are restored.)
