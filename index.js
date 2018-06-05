@@ -40,12 +40,14 @@ async function browserAction() {
 
     let [saved_tabs, remaining_tabs] = await bookmarkOpenTabs();
 
-    if (remaining_tabs.length == 0) {
-        // We are about to close all tabs in this window.  To keep the window
-        // itself open, we need to open a fresh tab so that there is always at
-        // least one visible tab in the window.
-        await browser.tabs.create({active: true});
-    }
+    // Unconditionally create a new tab here, since we are about to close a
+    // bunch of tabs in this window.  Technically there may still be some tabs
+    // leftover (e.g. pinned and extension tabs, which are ignored for different
+    // reasons), but typically the browser action is invoked when the user is
+    // about to switch contexts.  So giving them a fresh new tab is probably a
+    // good idea.
+    await browser.tabs.create({active: true});
+
     await hideAndDiscardTabs(saved_tabs);
 }
 
