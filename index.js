@@ -26,29 +26,42 @@ window.addEventListener('load', () => {
         });
 
         browser.browserAction.onClicked.addListener(() => {
-            browserAction().then(() => {});
+            stashAllTabs(undefined).then(() => {});
         });
     }
 });
 
 
 
-async function browserAction() {
+async function stashAllTabs(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
     browser.sidebarAction.open().then(() => {});
 
-    let [saved_tabs, remaining_tabs] = await bookmarkOpenTabs();
+    let [saved_tabs, remaining_tabs] = await bookmarkOpenTabs(folder_id);
 
-    // Unconditionally create a new tab here, since we are about to close a
-    // bunch of tabs in this window.  Technically there may still be some tabs
-    // leftover (e.g. pinned and extension tabs, which are ignored for different
-    // reasons), but typically the browser action is invoked when the user is
-    // about to switch contexts.  So giving them a fresh new tab is probably a
-    // good idea.
-    await browser.tabs.create({active: true});
+    // Create a new tab here (if we're not already looking at one), since we are
+    // about to close a bunch of tabs in this window.  Technically there may
+    // still be some tabs leftover (e.g. pinned and extension tabs, which are
+    // ignored for different reasons), but typically the browser action is
+    // invoked when the user is about to switch contexts.  So giving them a
+    // fresh new tab is probably a good idea.
+    if (! await lookingAtNewTab()) await browser.tabs.create({active: true});
 
     await hideAndDiscardTabs(saved_tabs);
+}
+
+// Determine if the currently-focused tab is the new-tab page.  If so, return
+// the tab (presumably because we may want to close it).  Otherwise, return
+// undefined.
+async function lookingAtNewTab() {
+    let curtabs_p = browser.tabs.query({active: true, currentWindow: true});
+    let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
+    let curtab = (await curtabs_p)[0];
+    let newtab_url = (await newtab_url_p).value;
+
+    if (curtab && curtab.url === newtab_url) return curtab;
+    return undefined;
 }
 
 async function bookmarkOpenTabs(folderId, startIndex) {
@@ -179,20 +192,14 @@ async function restoreTabs(urls) {
     // Remove duplicate URLs so we only try to restore each URL once.
     urls = Array.from(new Set(urls));
 
+    // Try to determine if the currently-focused tab is a new tab.  If so, we
+    // should close it once we've opened the tabs we are restoring, so the user
+    // doesn't have an errant "empty" tab floating around.
+    let tab_to_close = await lookingAtNewTab();
+
     // See which tabs are already open and remove them from the list
     let open = await browser.tabs.query({currentWindow: true, url: urls});
     let to_open = urls.filter(url => ! open.some(tab => tab.url === url));
-
-    // Special case: If we were asked to open only one tab AND that tab is
-    // already open, just switch to it.
-    if (urls.length == 1 && to_open.length == 0) {
-        await browser.tabs.update(open[0].id, {active: true});
-        return;
-    }
-
-    // Figure out which window the tab needs to go to.  Only needed for
-    // restoring recently-closed tabs.
-    let win = await browser.windows.getCurrent({windowTypes: ['normal']});
 
     // For each URL that we're going to restore, figure out how--are we
     // restoring by reopening a closed tab, or by creating a new tab?
@@ -202,6 +209,7 @@ async function restoreTabs(urls) {
 
     // Now restore tabs.  Done serially so we always restore in the same
     // positions.
+    let win = (await browser.windows.getCurrent({windowTypes: ['normal']}));
     let ps = [];
     for (let [url, sess] of strategies) {
         console.log('restoring', url, sess);
@@ -219,6 +227,12 @@ async function restoreTabs(urls) {
     let tabs = [];
     for (let p of ps) tabs.push(await p);
 
+    // Special case: If we were asked to open only one tab AND that tab is
+    // already open, just switch to it.
+    if (urls.length == 1 && tabs.length == 0) {
+        await browser.tabs.update(open[0].id, {active: true});
+    }
+
     // Special case: If only one tab was restored, switch to it.  (This is
     // different from the special case above, in which NO tabs are restored.)
     if (tabs.length == 1) {
@@ -228,5 +242,11 @@ async function restoreTabs(urls) {
         // get them from the browser).  So we have to do some true duck-typing.
         if (tab.tab) tab = tab.tab;
         await browser.tabs.update(tab.id, {active: true});
+    }
+
+    // Finally, if opened at least one tab, AND the current tab is looking at
+    // the new-tab page, close the current tab in the background.
+    if (tabs.length > 0 && tab_to_close) {
+        browser.tabs.remove([tab_to_close.id]).then(() => {});
     }
 }

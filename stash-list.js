@@ -112,12 +112,8 @@ Vue.component('folder', {
         </div>`,
 
     methods: {
-        stash: asyncEvent(async function() {
-            // Very similar to the browser action, sans showing the stashed-tabs
-            // view, which the user is already looking at.
-            let [saved_tabs, remaining_tabs] = await bookmarkOpenTabs(this.id);
-            await browser.tabs.create({active: true});
-            await hideAndDiscardTabs(saved_tabs);
+        stash: asyncEvent(function() {
+            return stashAllTabs(this.id);
         }),
 
         restoreAll: asyncEvent(async function() {
