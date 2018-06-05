@@ -21,7 +21,7 @@ window.addEventListener('load', () => {
 
         browser.menus.onClicked.addListener((info, tab) => {
             if (info.menuItemId == 'show-stashed-tabs') {
-                showStashedTabsTab().then(() => {});
+                browser.sidebarAction.open().then(() => {});
             }
         });
 
@@ -34,11 +34,18 @@ window.addEventListener('load', () => {
 
 
 async function browserAction() {
-    let saved_tabs = await bookmarkOpenTabs();
+    // We have to open the sidebar before the first "await" call, otherwise we
+    // won't actually have permission to do so per Firefox's API rules.
+    browser.sidebarAction.open().then(() => {});
 
-    // Show stashed tabs FIRST so there is no time window in which the current
-    // browser window has no tabs.
-    await showStashedTabsTab();
+    let [saved_tabs, remaining_tabs] = await bookmarkOpenTabs();
+
+    if (remaining_tabs.length == 0) {
+        // We are about to close all tabs in this window.  To keep the window
+        // itself open, we need to open a fresh tab so that there is always at
+        // least one visible tab in the window.
+        await browser.tabs.create({active: true});
+    }
     await hideAndDiscardTabs(saved_tabs);
 }
 
@@ -47,30 +54,32 @@ async function bookmarkOpenTabs(folderId, startIndex) {
     // sorted by their actual position in the tab bar.  We ignore tabs with
     // unparseable URLs or which look like extensions and internal browser
     // things.
-    let tabs = (await browser.tabs.query({currentWindow: true}))
-        .filter(tab => {
-            try {
-                let url = new URL(tab.url);
-                switch (url.protocol) {
-                case 'moz-extension:':
-                case 'about:':
-                case 'chrome:':
-                    return false;
-                }
-            } catch (e) {
-                console.warn('Tab with unparseable URL:', tab, tab.url);
+    let is_normal_tab = tab => {
+        try {
+            let url = new URL(tab.url);
+            switch (url.protocol) {
+            case 'moz-extension:':
+            case 'about:':
+            case 'chrome:':
                 return false;
             }
+        } catch (e) {
+            console.warn('Tab with unparseable URL:', tab, tab.url);
+            return false;
+        }
 
-            if (tab.pinned) return false;
-            if (tab.hidden) return false;
-            return true;
-        });
+        if (tab.pinned) return false;
+        if (tab.hidden) return false;
+        return true;
+    };
+    let all_tabs = await browser.tabs.query({currentWindow: true});
+    let tabs = all_tabs.filter(is_normal_tab);
+    let unsaved_tabs = all_tabs.filter(t => ! is_normal_tab(t));
     tabs.sort((a, b) => a.index - b.index);
 
     // If there are no tabs to save, early-exit here so we don't unnecessarily
     // create bookmark folders we don't need.
-    if (tabs.length == 0) return [];
+    if (tabs.length == 0) return [tabs, unsaved_tabs];
 
     // Create the bookmarks folders (including the root folder if it doesn't
     // exist yet).
@@ -110,7 +119,7 @@ async function bookmarkOpenTabs(folderId, startIndex) {
     // bunch of new ones.
     gcDuplicateBookmarks().then(() => {});
 
-    return tabs;
+    return [tabs, unsaved_tabs];
 }
 
 async function gcDuplicateBookmarks() {
@@ -156,10 +165,6 @@ async function hideAndDiscardTabs(tabs) {
     let hide_p = browser.tabs.remove(tids);
     await discard_p;
     await hide_p;
-}
-
-function showStashedTabsTab() {
-    return restoreTabs([browser.extension.getURL('stash-list.html')]);
 }
 
 function asyncEvent(async_fn) {
