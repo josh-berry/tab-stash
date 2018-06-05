@@ -183,6 +183,10 @@ async function restoreTabs(urls) {
         return;
     }
 
+    // Figure out which window the tab needs to go to.  Only needed for
+    // restoring recently-closed tabs.
+    let win = await browser.windows.getCurrent({windowTypes: ['normal']});
+
     // For each URL that we're going to restore, figure out how--are we
     // restoring by reopening a closed tab, or by creating a new tab?
     let sessions = await browser.sessions.getRecentlyClosed();
@@ -195,9 +199,10 @@ async function restoreTabs(urls) {
     for (let [url, sess] of strategies) {
         console.log('restoring', url, sess);
         let p = sess
-            ? browser.sessions.restore(sess.tab.sessionId).then(
-                sess => browser.tabs.move([sess.tab.id], {index: 0xffffff})
-                    .then(() => sess))
+            ? browser.sessions.restore(sess.tab.sessionId)
+              .then(sess => browser.tabs.move(
+                            [sess.tab.id], {windowId: win.id, index: 0xffffff})
+                        .then(() => sess))
             : browser.tabs.create({active: false, url, index: 0xffffff});
         ps.push(p);
     }
