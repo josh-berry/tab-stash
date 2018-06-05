@@ -11,7 +11,7 @@
     "applications": {
         "gecko": {
             "id": "tab-stash@condordes.net",
-            "strict_min_version": "52.0"
+            "strict_min_version": "54.0"
         }
     },
     "permissions": [
@@ -51,5 +51,19 @@
         },
         "default_panel": "stash-list.html",
         "browser_style": true
+    },
+    "commands": {
+        "_execute_browser_action": {
+            "suggested_key": {
+                "default": "Alt+T",
+                "mac": "MacCtrl+Shift+T"
+            }
+        },
+        "_execute_sidebar_action": {
+            "suggested_key": {
+                "default": "Alt+S",
+                "mac": "MacCtrl+Shift+S"
+            }
+        }
     }
 }
