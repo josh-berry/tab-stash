@@ -1,0 +1,18 @@
+{
+  "name": "tab-stash",
+  "version": "0.1.0",
+  "description": "Tab Stash",
+  "author": "Joshua J. Berry <des@condordes.net>",
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "css-loader": "^0.28.11",
+    "vue": "^2.5.16",
+    "vue-loader": "^15.2.4",
+    "vue-template-compiler": "^2.5.16",
+    "webpack": "^4.11.1",
+    "webpack-cli": "^3.0.3"
+  },
+  "scripts": {
+    "build": "webpack"
+  }
+}

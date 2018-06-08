@@ -1,39 +1,16 @@
 "use strict";
 
-// Tab Stash - Unified source for everything
+export const STASH_FOLDER = 'Tab Stash';
 
-const STASH_FOLDER = 'Tab Stash';
-
-function getFolderNameISODate(n) {
+export function getFolderNameISODate(n) {
     let m = n.match(/saved-([-0-9:.T]+Z)/);
     return m ? m[1] : null;
 }
-const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
-
-window.addEventListener('load', () => {
-    if (! document.body.className) {
-        // Background page
-        browser.menus.create({
-            contexts: ['browser_action', 'tab', 'tools_menu'],
-            title: 'Show Stashed Tabs',
-            id: 'show-stashed-tabs'
-        });
-
-        browser.menus.onClicked.addListener((info, tab) => {
-            if (info.menuItemId == 'show-stashed-tabs') {
-                browser.sidebarAction.open().then(() => {});
-            }
-        });
-
-        browser.browserAction.onClicked.addListener(() => {
-            stashAllTabs(undefined).then(() => {});
-        });
-    }
-});
+export const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
 
 
 
-async function stashAllTabs(folder_id) {
+export async function stashAllTabs(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
     browser.sidebarAction.open().then(() => {});
@@ -54,7 +31,7 @@ async function stashAllTabs(folder_id) {
 // Determine if the currently-focused tab is the new-tab page.  If so, return
 // the tab (presumably because we may want to close it).  Otherwise, return
 // undefined.
-async function lookingAtNewTab() {
+export async function lookingAtNewTab() {
     let curtabs_p = browser.tabs.query({active: true, currentWindow: true});
     let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
     let curtab = (await curtabs_p)[0];
@@ -64,7 +41,7 @@ async function lookingAtNewTab() {
     return undefined;
 }
 
-async function bookmarkOpenTabs(folderId) {
+export async function bookmarkOpenTabs(folderId) {
     // First figure out which of the open tabs to save, and make sure they are
     // sorted by their actual position in the tab bar.  We ignore tabs with
     // unparseable URLs or which look like extensions and internal browser
@@ -182,7 +159,9 @@ async function bookmarkOpenTabs(folderId) {
     return [tabs, unsaved_tabs];
 }
 
-async function gcDuplicateBookmarks(root_id, ignore_folder_ids, urls_to_check) {
+export async function gcDuplicateBookmarks(
+    root_id, ignore_folder_ids, urls_to_check)
+{
     let folders = (await browser.bookmarks.getSubTree(root_id))[0].children;
 
     // We want to preserve/ignore duplicates in folders which are ignored
@@ -250,7 +229,7 @@ async function gcDuplicateBookmarks(root_id, ignore_folder_ids, urls_to_check) {
     for (let p of ps) try {await p} catch(e) {console.log(e)};
 }
 
-async function hideAndDiscardTabs(tabs) {
+export async function hideAndDiscardTabs(tabs) {
     let tids = tabs.map((t) => t.id);
     // XXX Hide is presently experimental; once it's ready, we can use this
     // instead to preserve tab state.
@@ -259,13 +238,13 @@ async function hideAndDiscardTabs(tabs) {
     await hide_p;
 }
 
-function asyncEvent(async_fn) {
+export function asyncEvent(async_fn) {
     return function() {
         async_fn.apply(this, arguments).then((x) => x);
     };
 }
 
-async function restoreTabs(urls) {
+export async function restoreTabs(urls) {
     // Remove duplicate URLs so we only try to restore each URL once.
     urls = Array.from(new Set(urls));
 
