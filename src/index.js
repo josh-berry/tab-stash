@@ -1,6 +1,6 @@
 "use strict";
 
-import {stashAllTabs, restoreTabs} from 'stash';
+import {stashOpenTabs, stashFrontTab, restoreTabs} from 'stash';
 
 browser.menus.create({
     contexts: ['browser_action', 'tab', 'tools_menu'],
@@ -24,5 +24,9 @@ browser.menus.onClicked.addListener((info, tab) => {
 });
 
 browser.browserAction.onClicked.addListener(() => {
-    stashAllTabs(undefined).then(() => {});
+    stashOpenTabs(undefined).then(() => {});
+});
+
+browser.pageAction.onClicked.addListener(() => {
+    stashFrontTab(undefined).then(() => {});
 });

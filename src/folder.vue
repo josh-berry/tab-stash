@@ -8,11 +8,14 @@
       <span class="action stash"
             title="Close and save all open tabs to this group"
             @click.prevent="stash">Stash</span>
+      <span class="action stash"
+            title="Close and save the active tab to this group"
+            @click.prevent="stashOne">S1</span>
       <span class="action restore" @click.prevent="restoreAll"
-            title="Open all tabs in this group">Restore</span>
+            title="Open all tabs in this group">Open</span>
       <span class="action restore-remove"
             title="Open all tabs in the group and delete the group"
-            @click.prevent="restoreAndDiscard">Restore/Del.</span>
+            @click.prevent="restoreAndDiscard">Open/Del.</span>
       <span class="action remove" @click.prevent="discard"
             title="Delete this group">Delete</span>
     </nav>
@@ -33,7 +36,7 @@
 import {
     asyncEvent,
     getFolderNameISODate, genDefaultFolderName,
-    stashAllTabs, restoreTabs,
+    stashOpenTabs, stashFrontTab, restoreTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
@@ -63,7 +66,11 @@ export default {
 
     methods: {
         stash: asyncEvent(function() {
-            return stashAllTabs(this.id);
+            return stashOpenTabs(this.id);
+        }),
+
+        stashOne: asyncEvent(function() {
+            return stashFrontTab(this.id);
         }),
 
         restoreAll: asyncEvent(async function() {

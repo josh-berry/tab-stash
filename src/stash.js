@@ -10,19 +10,56 @@ export const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
 
 
 
-export async function stashAllTabs(folder_id) {
+export async function stashFrontTab(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
     browser.sidebarAction.open().then(() => {});
 
-    let [saved_tabs, remaining_tabs] = await bookmarkOpenTabs(folder_id);
+    if (folder_id === undefined) {
+        // To avoid creating a bunch of folders with only one bookmark, we
+        // should append stashed tabs to the topmost folder, but only if it's
+        // not named--since we don't exactly know the user's intentions, we
+        // shouldn't mess with their named folders.
+        let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0];
+        if (root) {
+            let topmost = (await browser.bookmarks.getChildren(root.id))[0];
+            console.log(topmost);
+            if (topmost
+                && topmost.type === 'folder'
+                && getFolderNameISODate(topmost.title))
+            {
+                folder_id = topmost.id;
+            }
+        }
+    }
+
+    let tabs = await browser.tabs.query({currentWindow: true});
+    let front_tabs = tabs.filter(t => t.active);
+    let [saved_tabs, _] = await bookmarkTabs(folder_id, front_tabs);
+
+    if (saved_tabs.length >= tabs.length) {
+        // If we are about to close all tabs in the window, we should open a new
+        // one so that the window doesn't close.
+        await browser.tabs.create({active: true});
+    }
+
+    await hideAndDiscardTabs(saved_tabs);
+}
+
+export async function stashOpenTabs(folder_id) {
+    // We have to open the sidebar before the first "await" call, otherwise we
+    // won't actually have permission to do so per Firefox's API rules.
+    browser.sidebarAction.open().then(() => {});
+
+    let tabs = await browser.tabs.query({currentWindow: true});
+    let [saved_tabs, remaining_tabs] = await bookmarkTabs(folder_id, tabs);
 
     // Create a new tab here (if we're not already looking at one), since we are
     // about to close a bunch of tabs in this window.  Technically there may
     // still be some tabs leftover (e.g. pinned and extension tabs, which are
-    // ignored for different reasons), but typically the browser action is
-    // invoked when the user is about to switch contexts.  So giving them a
-    // fresh new tab is probably a good idea.
+    // ignored for different reasons), but typically the user will stash all
+    // open tabs when they're about to switch contexts.  So giving them a fresh
+    // new tab is probably a good idea.
     if (! await lookingAtNewTab()) await browser.tabs.create({active: true});
 
     await hideAndDiscardTabs(saved_tabs);
@@ -41,11 +78,10 @@ export async function lookingAtNewTab() {
     return undefined;
 }
 
-export async function bookmarkOpenTabs(folderId) {
-    // First figure out which of the open tabs to save, and make sure they are
-    // sorted by their actual position in the tab bar.  We ignore tabs with
-    // unparseable URLs or which look like extensions and internal browser
-    // things.
+export async function bookmarkTabs(folderId, all_tabs) {
+    // First figure out which of the tabs to save, and make sure they are sorted
+    // by their actual position in the tab bar.  We ignore tabs with unparseable
+    // URLs or which look like extensions and internal browser things.
     let is_normal_tab = tab => {
         try {
             let url = new URL(tab.url);
@@ -64,7 +100,6 @@ export async function bookmarkOpenTabs(folderId) {
         if (tab.hidden) return false;
         return true;
     };
-    let all_tabs = await browser.tabs.query({currentWindow: true});
     let tabs = all_tabs.filter(is_normal_tab);
     let unsaved_tabs = all_tabs.filter(t => ! is_normal_tab(t));
     tabs.sort((a, b) => a.index - b.index);
@@ -111,8 +146,7 @@ export async function bookmarkOpenTabs(folderId) {
         // purposes of this function, because the already appear in the folder.
         // So it's okay for callers to assume that we saved them--that's why we
         // use a separate /tabs_to_actually_save/ array here.
-        let existing_bms = (await browser.bookmarks.getSubTree(folderId))[0]
-            .children
+        let existing_bms = (await browser.bookmarks.getChildren(folderId))
             .map(bm => bm.url);
 
         tabs_to_actually_save = tabs_to_actually_save.filter(

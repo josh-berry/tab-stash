@@ -44,6 +44,15 @@
         }],
         "browser_style": true
     },
+    "page_action": {
+        "default_title": "Stash This Tab",
+        "default_icon": {
+            "16": "icons/stash-dark.svg",
+            "32": "icons/stash-dark.svg"
+        },
+        "browser_style": true,
+        "show_matches": ["<all_urls>"]
+    },
     "sidebar_action": {
         "default_title": "Stashed Tabs",
         "default_icon": {
