@@ -18,8 +18,11 @@
     </nav>
   </div>
   <div class="panel-section-list">
-    <saved-tab v-for="item of children" :key="item.id" v-bind="item">
-    </saved-tab>
+    <draggable v-model="children" @sort="move" :data-id="id">
+      <saved-tab v-for="item of children" :key="item.id" v-bind="item"
+                 :data-id="item.id">
+      </saved-tab>
+    </draggable>
   </div>
 </div>
 </template>
@@ -31,11 +34,12 @@ import {
     stashAllTabs, restoreTabs,
 } from 'stash';
 
+import Draggable from 'vuedraggable';
 import EditableLabel from 'editable-label.vue';
 import SavedTab from 'saved-tab.vue';
 
 export default {
-    components: {EditableLabel, SavedTab},
+    components: {Draggable, EditableLabel, SavedTab},
 
     props: {
         title: String,
@@ -97,6 +101,18 @@ export default {
                 title = genDefaultFolderName(new Date(this.dateAdded));
             }
             browser.bookmarks.update(this.id, {title}).then(() => {});
+        },
+
+        move: function(ev) {
+            //console.log('move tab', ev);
+            //console.log('item', ev.item.dataset.id);
+            //console.log('from', ev.oldIndex, ev.from.dataset.id);
+            //console.log('to', ev.newIndex, ev.to.dataset.id);
+
+            browser.bookmarks.move(ev.item.dataset.id, {
+                parentId: ev.to.dataset.id,
+                index: ev.newIndex,
+            }).then(() => {});
         },
     },
 };
