@@ -26,56 +26,51 @@
           text-align: center;
           vertical-align: middle;
           padding: 0 1ex;
-          background-color: rgba(0, 0, 0, 0.06);
+          background-color: rgba(0, 0, 0, 0);
           color: #404040;
+          cursor: default;
+      }
+      img.action {
+          width: 24px;
+          height: 24px;
+          padding: 4px 4px;
+          border-radius: 5px;
       }
       .action-container:hover .action.stash {
-          background-color: #e4e4ff;
-          color: #000070;
+          background-color: #e0e0ff;
       }
       .action-container:hover .action.stash:hover {
-          background-color: #4040ff;
-          color: #ffffff;
+          background-color: #c9c9e5;
       }
       .action-container:hover .action.stash:active {
-          background-color: #0000d0;
-          color: #ffffff;
+          background-color: #b3b3cc;
       }
       .action-container:hover .action.restore {
-          background-color: #c0ffe0;
-          color: #006030;
+          background-color: #b0ffc0;
       }
       .action-container:hover .action.restore:hover {
-          background-color: #008020;
-          color: #ffffff;
+          background-color: #9ee5ac;
       }
       .action-container:hover .action.restore:active {
-          background-color: #006018;
-          color: #ffffff;
+          background-color: #8ccc99;
       }
       .action-container:hover .action.restore-remove {
-          background-color: #f0f070;
-          color: #606000;
+          background-color: #f0f090;
       }
       .action-container:hover .action.restore-remove:hover {
-          background-color: #a0a010;
-          color: #ffffff;
+          background-color: #d6d680;
       }
       .action-container:hover .action.restore-remove:active {
-          background-color: #808020;
-          color: #ffffff;
+          background-color: #bcbc71;
       }
       .action-container:hover .action.remove {
-          background-color: #ffc0c0;
-          color: #a00000;
+          background-color: #ffe0e0;
       }
       .action-container:hover .action.remove:hover {
-          background-color: #c00000;
-          color: #ffffff;
+          background-color: #e5c9c9;
       }
       .action-container:hover .action.remove:active {
-          background-color: #a00000;
-          color: #ffffff;
+          background-color: #ccb3b3;
       }
 
       /* Folder headings */
@@ -84,7 +79,7 @@
           font-weight: bold;
           font-size: 13pt;
           width: -moz-available;
-          margin: 0.5em -5px;
+          margin: 0.5em -5px 0;
           padding: 3px 3px;
           border: 2px solid rgba(0, 0, 0, 0);
           border-radius: 2px;
@@ -101,12 +96,14 @@
           padding: 0;
       }
       .saved-tab > .action {
+          width: 22px;
           height: 22px;
           line-height: 22px;
           border-radius: 0;
           margin: 0;
+          padding: 3px 3px;
       }
-      .saved-tab > img {
+      .saved-tab > .icon {
           width: 16px;
           height: 16px;
       }

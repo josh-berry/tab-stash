@@ -4,12 +4,12 @@
    @click.prevent="open">
   <img class="icon" :src="favicon" v-if="favicon">
   <span class="text">{{title}}</span>
-  <span class="action remove"
-        title="Delete this tab from the group"
-        @click.prevent.stop="remove">X</span>
-  <span class="action restore-remove"
-        title="Open this tab and delete it from the group"
-        @click.prevent.stop="openRemove">&raquo;</span>
+  <img src="icons/delete.svg" class="action remove"
+       title="Delete this tab from the group"
+       @click.prevent.stop="remove">
+  <img src="icons/restore-del.svg" class="action restore-remove"
+       title="Open this tab and delete it from the group"
+       @click.prevent.stop="openRemove">
 </a>
 </template>
 

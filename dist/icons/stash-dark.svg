@@ -7,12 +7,12 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   id="svg10"
+   width="96"
+   height="96"
+   viewBox="0 0 96 96"
    version="1.1"
-   viewBox="0 0 16 16"
-   height="16"
-   width="16"
-   sodipodi:docname="icon.svg"
+   id="svg10"
+   sodipodi:docname="stash-dark.svg"
    inkscape:version="0.92.2 5c3e80d, 2017-08-06">
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -23,17 +23,25 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="987"
-     inkscape:window-height="741"
-     id="namedview9"
-     showgrid="false"
-     inkscape:zoom="14.75"
-     inkscape:cx="8"
-     inkscape:cy="8"
-     inkscape:window-x="493"
-     inkscape:window-y="222"
+     inkscape:window-width="1078"
+     inkscape:window-height="764"
+     id="namedview5971"
+     showgrid="true"
+     inkscape:zoom="5.5520833"
+     inkscape:cx="48"
+     inkscape:cy="48"
+     inkscape:window-x="727"
+     inkscape:window-y="320"
      inkscape:window-maximized="0"
-     inkscape:current-layer="svg10" />
+     inkscape:current-layer="svg10">
+    <inkscape:grid
+       type="xygrid"
+       id="grid6516"
+       dotted="false"
+       empspacing="2"
+       spacingy="3"
+       spacingx="3" />
+  </sodipodi:namedview>
   <metadata
      id="metadata16">
     <rdf:RDF>
@@ -42,30 +50,30 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <defs
      id="defs14" />
   <path
-     id="path8"
-     d="m 4.5,10 a 0.5,0.5 0 1 0 0,1 h 7 a 0.5,0.5 0 1 0 0,-1 z"
-     fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
+     d="m 27,60 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     id="path8" />
   <path
-     id="path10"
-     d="m 1,8 v 5 c 0,2 1,2 2,2 h 10 c 1,0 2,0 2,-2 V 8 c 0,0 0,-1 -1,-1 -1,0 -1,1 -1,1 v 6 H 3 V 8 C 3,8 3,7 2,7 1,7 1,8 1,8 Z"
-     fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
+     d="m 6,48 v 30 c 0,12 6,12 12,12 h 60 c 6,0 12,0 12,-12 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
+     id="path10" />
   <path
-     d="m 4.5,12 a 0.5,0.5 0 1 0 0,1 h 7 a 0.5,0.5 0 1 0 0,-1 z"
-     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
      id="path3702"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+     d="m 27,72 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z" />
   <path
-     id="path822"
-     d="M 13.390625,1 A 0.62990783,0.62990783 0 0 0 12.945312,1.1640625 L 8,5.5292969 3.0527344,1.1640625 A 0.63030661,0.63030661 0 1 0 2.21875,2.109375 l 5.3632812,4.7324219 a 0.62990783,0.62990783 0 0 0 0.8339844,0 L 13.779297,2.109375 A 0.62990783,0.62990783 0 0 0 13.390625,1 Z"
-     fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+     id="path832"
+     d="m 27,48 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6" />
+  <path
+     id="path917"
+     d="M 21.770637,9.6338683 48,33 74.229363,9.6338683"
+     style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:7.4269166;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:6;stroke-dasharray:none;stroke-opacity:0.8" />
 </svg>

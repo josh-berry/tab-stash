@@ -12,7 +12,7 @@
    viewBox="0 0 96 96"
    version="1.1"
    id="svg10"
-   sodipodi:docname="stash-light.svg"
+   sodipodi:docname="restore.svg"
    inkscape:version="0.92.2 5c3e80d, 2017-08-06">
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -23,23 +23,24 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="781"
-     inkscape:window-height="480"
-     id="namedview7118"
+     inkscape:window-width="1078"
+     inkscape:window-height="764"
+     id="namedview5971"
      showgrid="true"
-     inkscape:zoom="2.4583333"
+     inkscape:zoom="5.5520833"
      inkscape:cx="48"
      inkscape:cy="48"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-x="412"
+     inkscape:window-y="431"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10">
     <inkscape:grid
        type="xygrid"
-       id="grid7663"
-       spacingx="3"
+       id="grid6516"
+       dotted="false"
+       empspacing="2"
        spacingy="3"
-       empspacing="2" />
+       spacingx="3" />
   </sodipodi:namedview>
   <metadata
      id="metadata16">
@@ -49,30 +50,25 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <defs
      id="defs14" />
   <path
-     style="fill:#f9f9fa;fill-opacity:0.80000001;stroke-width:6"
-     d="m 27,60 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
-     id="path8" />
-  <path
-     style="fill:#f9f9fa;fill-opacity:0.80000001;stroke-width:6"
-     d="m 6,48 v 30 c 0,12 6,12 12,12 h 60 c 6,0 12,0 12,-12 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
-     id="path10" />
-  <path
-     style="fill:#f9f9fa;fill-opacity:0.80000001;stroke-width:6"
-     id="path3702"
-     d="m 27,72 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z" />
-  <path
-     id="path832"
-     d="m 27,48 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
-     style="fill:#f9f9fa;fill-opacity:0.80000001;stroke-width:6" />
+     d="M 74.25,30 H 70.5 V 12 A 7.5,6 0 0 0 63,6 H 33 a 7.5,6 0 0 0 -7.5,6 v 18 h -3.75 a 3.75,3 0 0 0 0,6 h 52.5 a 3.75,3 0 1 0 0,-6 z"
+     id="path5"
+     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:3.35410261"
+     inkscape:connector-curvature="0" />
   <path
      id="path917"
-     d="M 21.770637,9.6338683 48,33 74.229363,9.6338683"
-     style="fill:none;fill-rule:evenodd;stroke:#f9f9fa;stroke-width:7.4269166;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:6;stroke-dasharray:none;stroke-opacity:0.80000001" />
+     d="M 21.732819,68.271937 48,45.193093 74.267181,68.271937"
+     style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:7.38643789;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:6;stroke-dasharray:none;stroke-opacity:0.8"
+     inkscape:connector-curvature="0" />
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:7.38643789;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:6;stroke-dasharray:none;stroke-opacity:0.8"
+     d="M 21.732819,86.271937 48,63.193093 74.267181,86.271937"
+     id="path2002" />
 </svg>

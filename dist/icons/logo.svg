@@ -28,7 +28,7 @@
      id="namedview9"
      showgrid="true"
      inkscape:zoom="8.0208333"
-     inkscape:cx="48"
+     inkscape:cx="25.246753"
      inkscape:cy="48"
      inkscape:window-x="593"
      inkscape:window-y="294"
@@ -37,7 +37,9 @@
     <inkscape:grid
        type="xygrid"
        id="grid817"
-       empspacing="6" />
+       empspacing="2"
+       spacingx="3"
+       spacingy="3" />
   </sodipodi:namedview>
   <metadata
      id="metadata16">
