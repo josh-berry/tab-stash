@@ -74,7 +74,15 @@
       }
 
       /* Folder headings */
-      .folder {
+      .folder-header {
+          /* To align with saved tab actions */
+          padding: 0;
+          margin: 0;
+          margin-left: 44px;
+          display: flex;
+          flex-direction: column;
+      }
+      .folder-name {
           display: block;
           font-weight: bold;
           font-size: 13pt;
@@ -84,7 +92,7 @@
           border: 2px solid rgba(0, 0, 0, 0);
           border-radius: 2px;
       }
-      input.folder {
+      input.folder-name {
           border: 2px solid rgba(128, 128, 128, 0.8);
       }
 
@@ -127,7 +135,9 @@
       .saved-tab > .icon { grid-row: 1; grid-column: 3; }
       .saved-tab > .text { grid-row: 1; grid-column: 4; }
 
-      @media all and (max-width: 27rem) {
+      /* Sidebar mods */
+      @media all and (max-width: 30rem) {
+          .folder-header { margin-left: 0; }
           .saved-tab {
               display: grid;
               grid-template-columns: 22px 1fr 22px 22px;

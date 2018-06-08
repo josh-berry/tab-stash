@@ -1,26 +1,28 @@
 <template>
 <div class="action-container">
   <div class="panel-section-header">
-    <editable-label classes="folder" :value="userTitle"
-                    :isDefaultValue="isTitleDefault"
-                    @update:value="rename"></editable-label>
-    <nav>
-      <img src="icons/stash-dark.svg" class="action stash"
-           title="Close and save all open tabs to this group"
-           @click.prevent="stash">
-      <img src="icons/stash-one-dark.svg" class="action stash"
-           title="Close and save the active tab to this group"
-           @click.prevent="stashOne">
-      <img src="icons/restore.svg" class="action restore"
-           title="Open all tabs in this group"
-           @click.prevent="restoreAll">
-      <img src="icons/restore-del.svg" class="action restore-remove"
-           title="Open all tabs in the group and delete the group"
-           @click.prevent="restoreAndDiscard">
-      <img src="icons/delete.svg" class="action remove"
-           title="Delete this group"
-           @click.prevent="discard">
-    </nav>
+    <div class="folder-header">
+      <editable-label classes="folder-name" :value="userTitle"
+                      :isDefaultValue="isTitleDefault"
+                      @update:value="rename"></editable-label>
+      <nav>
+        <img src="icons/stash-dark.svg" class="action stash"
+             title="Close and save all open tabs to this group"
+             @click.prevent="stash">
+        <img src="icons/stash-one-dark.svg" class="action stash"
+             title="Close and save the active tab to this group"
+             @click.prevent="stashOne">
+        <img src="icons/restore.svg" class="action restore"
+             title="Open all tabs in this group"
+             @click.prevent="restoreAll">
+        <img src="icons/restore-del.svg" class="action restore-remove"
+             title="Open all tabs in the group and delete the group"
+             @click.prevent="restoreAndDiscard">
+        <img src="icons/delete.svg" class="action remove"
+             title="Delete this group"
+             @click.prevent="discard">
+      </nav>
+    </div>
   </div>
   <div class="panel-section-list">
     <draggable v-model="children" :data-id="id"
