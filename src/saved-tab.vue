@@ -1,5 +1,5 @@
 <template>
-<a class="panel-list-item saved-tab"
+<a class="panel-list-item saved-tab action-container"
    target="_blank" :href="url"
    @click.prevent="open">
   <img class="icon" :src="favicon" v-if="favicon">

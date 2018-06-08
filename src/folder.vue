@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="action-container">
   <div class="panel-section-header">
     <editable-label classes="folder" :value="userTitle"
                     :isDefaultValue="isTitleDefault"
