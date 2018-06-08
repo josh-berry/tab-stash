@@ -18,7 +18,9 @@
     </nav>
   </div>
   <div class="panel-section-list">
-    <draggable v-model="children" @sort="move" :data-id="id">
+    <draggable v-model="children" :data-id="id"
+               :options="{group: 'saved-tab'}"
+               @sort="move">
       <saved-tab v-for="item of children" :key="item.id" v-bind="item"
                  :data-id="item.id">
       </saved-tab>
