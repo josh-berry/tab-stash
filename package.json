@@ -10,10 +10,14 @@
     "vue-loader": "^15.2.4",
     "vue-template-compiler": "^2.5.16",
     "vuedraggable": "^2.16.0",
+    "web-ext": "^2.7.0",
     "webpack": "^4.11.1",
     "webpack-cli": "^3.0.3"
   },
   "scripts": {
-    "build": "webpack"
+      "build": "webpack",
+      "clean": "git status -s dist |grep '^[?]' |cut -d' ' -f2 |xargs rm",
+      "build-rel": "npm run clean && webpack --mode production",
+      "pkg": "npm run build-rel && web-ext build -s dist -a . -v"
   }
 }
