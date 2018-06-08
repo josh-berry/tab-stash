@@ -124,34 +124,42 @@ export async function bookmarkOpenTabs(folderId) {
 
     // Now save each tab as a bookmark.
     //
-    // This can't be parallelized because otherwise the bookmarks will get saved
-    // in the wrong order.  Specifying the index is ALSO necessary because
-    // again, bookmarks should be inserted in order--and if you leave it off,
-    // the browser may do all kinds of random nonsense.
-    //
-    // I really wish Firefox would give us a way to add a bunch of bookmarks at
-    // once as a single transaction... this is probably the slowest operation in
-    // the whole extension. :/
+    // Unfortunately, Firefox doesn't have an API to save multiple bookmarks in
+    // a single transaction, so to avoid this being unbearably slow, we do this
+    // in two passes--save everything in parallel, and then reorder everything
+    // in parallel (since bookmarks might be created in arbitrary order).
+    let ps_and_indexes = [];
     for (let tab of tabs_to_actually_save) {
-        await browser.bookmarks.create({
+        ps_and_indexes.push([browser.bookmarks.create({
             parentId: folderId,
             title: tab.title,
             url: tab.url,
             index,
-        });
-        ++index;
+        }), ++index]);
     }
 
-    // In the background, remove duplicate bookmarks, since we just added a
-    // bunch of new ones.  gcDuplicateBookmarks() prefers to keep bookmarks that
-    // appear earlier in the tree over those that appear later.  We purposefully
+    let bms_and_indexes = [];
+    for (let [p, idx] of ps_and_indexes) bms_and_indexes.push([await p, idx]);
+
+    // Now reorder everything, again in parallel.
+    let ps = [];
+    for (let [bm, idx] of bms_and_indexes) {
+        ps.push(browser.bookmarks.move(bm.id, {index: idx}));
+    }
+    for (let p of ps) await p;
+
+    // In the background, remove any duplicate bookmarks in other tab-stash
+    // folders.  gcDuplicateBookmarks() prefers to keep bookmarks that appear
+    // earlier in the tree over those that appear later.  We purposefully
     // exclude the folder we just created/added to, since the user expressed a
     // preference to have open tabs saved to this folder (and not other
     // folders).  So it's better to remove from OTHER folders even if they
     // appear first.
     //
     // We also avoid toucing URLs that weren't explicitly saved, since that may
-    // be surprising to users.
+    // be surprising to users (there are corner cases where we might have
+    // duplicates if the user decides to rename a named folder to have a
+    // default/temporary name once again).
     gcDuplicateBookmarks(root.id, new Set([folderId]),
                          new Set(tabs.map(t => t.url)))
         .then(() => {});
