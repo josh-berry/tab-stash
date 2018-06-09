@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Tab Stash",
   "author": "Joshua J. Berry <des@condordes.net>",
+  "repository": "https://github.com/josh-berry/tab-stash",
   "license": "MPL-2.0",
   "devDependencies": {
     "css-loader": "^0.28.11",
@@ -15,9 +16,9 @@
     "webpack-cli": "^3.0.3"
   },
   "scripts": {
-      "build": "webpack",
-      "clean": "git status -s dist |grep '^[?]' |cut -d' ' -f2 |xargs rm",
-      "build-rel": "npm run clean && webpack --mode production",
-      "pkg": "npm run build-rel && web-ext build -s dist -a . -v"
+    "build": "webpack",
+    "clean": "git status -s dist |grep '^[?]' |cut -d' ' -f2 |xargs rm",
+    "build-rel": "npm run clean && webpack --mode production",
+    "pkg": "npm run build-rel && web-ext build -s dist -a . -v"
   }
 }
