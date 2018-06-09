@@ -1,6 +1,6 @@
 "use strict";
 
-import Vue from 'vue';
+import Vue from 'vue/dist/vue.runtime.esm';
 
 import {
     STASH_FOLDER,
