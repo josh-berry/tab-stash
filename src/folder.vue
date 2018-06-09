@@ -1,10 +1,14 @@
 <template>
-<div class="action-container">
+<div :class="{folder: true, 'action-container': true, collapsed: collapsed}">
   <div class="panel-section-header">
-    <div class="folder-header">
+    <div class="header">
       <editable-label classes="folder-name" :value="userTitle"
                       :isDefaultValue="isTitleDefault"
                       @update:value="rename"></editable-label>
+      <img src="icons/collapse.svg"
+           :class="{action: true, collapse: true, toggled: collapsed}"
+           title="Hide the tabs for this group"
+           @click.prevent="collapsed = ! collapsed">
       <nav>
         <img src="icons/stash-dark.svg" class="action stash"
              title="Close and save all open tabs to this group"
@@ -24,7 +28,7 @@
       </nav>
     </div>
   </div>
-  <div class="panel-section-list">
+  <div class="panel-section-list contents">
     <draggable v-model="children" :data-id="id"
                :options="{group: 'saved-tab'}"
                @sort="move">
@@ -56,6 +60,10 @@ export default {
         id: [String, Number],
         dateAdded: Number,
     },
+
+    data: () => ({
+        collapsed: false,
+    }),
 
     computed: {
         isTitleDefault: function() {
