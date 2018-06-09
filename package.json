@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "webpack",
-    "clean": "git status -s dist |grep '^[?]' |cut -d' ' -f2 |xargs rm",
+    "clean": "git status --ignored -s dist |grep '^[?!]' |cut -d' ' -f2 |xargs rm",
     "build-rel": "npm run clean && webpack --mode production",
     "pkg": "npm run build-rel && web-ext build -o -s dist -a . -v"
   }
