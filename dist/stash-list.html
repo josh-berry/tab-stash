@@ -99,7 +99,7 @@
       .header {
           /* To align with saved tab actions */
           padding: 0;
-          margin: 0 44px 0;
+          margin: 0 0 0 44px;
       }
       .folder .header {
           display: grid;
@@ -108,11 +108,10 @@
       }
       .folder-name {
           grid-row: 1;
-          grid-column: 1;
+          grid-column: 1 / 3;
           display: block;
           font-weight: bold;
           font-size: 13pt;
-          width: -moz-available;
           margin: 0 3px 0 -5px;
           padding: 3px 3px;
           border: 2px solid rgba(0, 0, 0, 0);
@@ -131,8 +130,12 @@
           display: none;
       }
       .folder .header:hover .action.collapse,
-      .folder .header .action.collapse.toggled {
+      .collapsed.folder .header .action.collapse {
           display: inline-block;
+      }
+      .collapsed.folder .header .folder-name,
+      .folder .header:hover .folder-name {
+          grid-column: 1;
       }
       .folder .contents {
           margin-bottom: 1em;
@@ -160,7 +163,7 @@
           width: 16px;
           height: 16px;
       }
-      .saved-tab > .text {
+      span.folder-name, .saved-tab > .text {
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
@@ -184,6 +187,7 @@
       .collapsed nav { display: none; }
       .collapsed .panel-section-header { padding-bottom: 4px; }
       .collapsed.folder .contents { display: none; }
+      .collapsed.folder .action.collapse { display: inline-block; }
 
       /* Sidebar mods */
       @media all and (max-width: 30rem) {
