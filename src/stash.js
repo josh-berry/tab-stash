@@ -160,25 +160,36 @@ export async function bookmarkTabs(folderId, all_tabs) {
     //
     // Unfortunately, Firefox doesn't have an API to save multiple bookmarks in
     // a single transaction, so to avoid this being unbearably slow, we do this
-    // in two passes--save everything in parallel, and then reorder everything
-    // in parallel (since bookmarks might be created in arbitrary order).
-    let ps_and_indexes = [];
-    for (let tab of tabs_to_actually_save) {
-        ps_and_indexes.push([browser.bookmarks.create({
-            parentId: folderId,
-            title: tab.title,
-            url: tab.url,
-            index,
-        }), ++index]);
-    }
-
-    let bms_and_indexes = [];
-    for (let [p, idx] of ps_and_indexes) bms_and_indexes.push([await p, idx]);
-
-    // Now reorder everything, again in parallel.
+    // in two passes--create a bunch of empty bookmarks in parallel, and then
+    // fill them in with the right values (again in parallel).
     let ps = [];
-    for (let [bm, idx] of bms_and_indexes) {
-        ps.push(browser.bookmarks.move(bm.id, {index: idx}));
+    let created_bm_ids = new Set();
+    for (let tab of tabs_to_actually_save) {
+        ps.push(browser.bookmarks.create({
+            parentId: folderId,
+            title: 'Stashing...',
+            url: 'about:blank',
+            index,
+        }));
+        ++index;
+    }
+    for (let p of ps) created_bm_ids.add((await p).id);
+    ps = [];
+
+    // We now read the folder back to determine the order of the created
+    // bookmarks, so we can fill each of them in in the correct order.
+    let child_bms = (await browser.bookmarks.getSubTree(folderId))[0].children;
+
+    // Now fill everything in.
+    let tab_index = 0;
+    for (let bm of child_bms) {
+        if (! created_bm_ids.has(bm.id)) continue;
+        created_bm_ids.delete(bm.id);
+        ps.push(browser.bookmarks.update(bm.id, {
+            title: tabs_to_actually_save[tab_index].title,
+            url: tabs_to_actually_save[tab_index].url,
+        }));
+        ++tab_index;
     }
     for (let p of ps) await p;
 
@@ -190,7 +201,7 @@ export async function bookmarkTabs(folderId, all_tabs) {
     // folders).  So it's better to remove from OTHER folders even if they
     // appear first.
     //
-    // We also avoid toucing URLs that weren't explicitly saved, since that may
+    // We also avoid touching URLs that weren't explicitly saved, since that may
     // be surprising to users (there are corner cases where we might have
     // duplicates if the user decides to rename a named folder to have a
     // default/temporary name once again).
