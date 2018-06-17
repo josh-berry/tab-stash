@@ -1,6 +1,6 @@
 <template>
 <a class="panel-list-item saved-tab action-container"
-   target="_blank" :href="url"
+   target="_blank" :href="url" :title="title"
    @click.prevent="open">
   <img class="icon" :src="favicon" v-if="favicon">
   <span class="text">{{title}}</span>
