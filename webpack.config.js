@@ -7,6 +7,7 @@ module.exports = {
         "stash-list": "./src/stash-list.js"
     },
     mode: "development",
+    devtool: "eval-source-map",
     module: {
         rules: [
             {test: /\.vue$/, loader: 'vue-loader'},
