@@ -16,17 +16,17 @@ browser.menus.create({
 
 browser.menus.onClicked.addListener((info, tab) => {
     if (info.menuItemId == 'show-stashed-tabs-sidebar') {
-        browser.sidebarAction.open().then(() => {});
+        browser.sidebarAction.open().catch(console.log);
     } else if (info.menuItemId == 'show-stashed-tabs-tab') {
         restoreTabs([browser.extension.getURL('stash-list.html')])
-            .then(() => {});
+            .catch(console.log);
     }
 });
 
 browser.browserAction.onClicked.addListener(() => {
-    stashOpenTabs(undefined).then(() => {});
+    stashOpenTabs(undefined).catch(console.log);
 });
 
 browser.pageAction.onClicked.addListener(() => {
-    stashFrontTab(undefined).then(() => {});
+    stashFrontTab(undefined).catch(console.log);
 });

@@ -48,7 +48,7 @@ export default {
 
             browser.bookmarks.move(ev.item.dataset.id, {
                 index: ev.newIndex,
-            }).then(() => {});
+            }).catch(console.log);
         },
 
         collapseAll: function(ev) {

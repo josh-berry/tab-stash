@@ -13,7 +13,7 @@ export const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
 export async function stashFrontTab(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
-    browser.sidebarAction.open().then(() => {});
+    browser.sidebarAction.open().catch(console.log);
 
     if (folder_id === undefined) {
         // To avoid creating a bunch of folders with only one bookmark, we
@@ -49,7 +49,7 @@ export async function stashFrontTab(folder_id) {
 export async function stashOpenTabs(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
-    browser.sidebarAction.open().then(() => {});
+    browser.sidebarAction.open().catch(console.log);
 
     let tabs = await browser.tabs.query({currentWindow: true});
     let [saved_tabs, remaining_tabs] = await bookmarkTabs(folder_id, tabs);
@@ -206,8 +206,7 @@ export async function bookmarkTabs(folderId, all_tabs) {
     // duplicates if the user decides to rename a named folder to have a
     // default/temporary name once again).
     gcDuplicateBookmarks(root.id, new Set([folderId]),
-                         new Set(tabs.map(t => t.url)))
-        .then(() => {});
+                         new Set(tabs.map(t => t.url))).catch(console.log);
 
     return [tabs, unsaved_tabs];
 }
@@ -290,7 +289,7 @@ export async function hideAndDiscardTabs(tabs) {
 
 export function asyncEvent(async_fn) {
     return function() {
-        async_fn.apply(this, arguments).then((x) => x);
+        async_fn.apply(this, arguments).catch(console.log);
     };
 }
 
@@ -385,6 +384,6 @@ export async function restoreTabs(urls) {
     // Finally, if we opened at least one tab, AND the current tab is looking at
     // the new-tab page, close the current tab in the background.
     if (tabs.length > 0 && tab_to_close) {
-        browser.tabs.remove([tab_to_close.id]).then(() => {});
+        browser.tabs.remove([tab_to_close.id]).catch(console.log);
     }
 }

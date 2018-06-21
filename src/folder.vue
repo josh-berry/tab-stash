@@ -121,7 +121,7 @@ export default {
                 // Give it a default name based on when the folder was created
                 title = genDefaultFolderName(new Date(this.dateAdded));
             }
-            browser.bookmarks.update(this.id, {title}).then(() => {});
+            browser.bookmarks.update(this.id, {title}).catch(console.log);
         },
 
         move: function(ev) {
@@ -133,7 +133,7 @@ export default {
             browser.bookmarks.move(ev.item.dataset.id, {
                 parentId: ev.to.dataset.id,
                 index: ev.newIndex,
-            }).then(() => {});
+            }).catch(console.log);
         },
     },
 };
