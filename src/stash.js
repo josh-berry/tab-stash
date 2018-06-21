@@ -284,11 +284,8 @@ export async function gcDuplicateBookmarks(
 
 export async function hideAndDiscardTabs(tabs) {
     let tids = tabs.map((t) => t.id);
-    // XXX Hide is presently experimental; once it's ready, we can use this
-    // instead to preserve tab state.
-    //let hide_p = browser.tabs.hide(tids);
-    let hide_p = browser.tabs.remove(tids);
-    await hide_p;
+    await browser.tabs.hide(tids);
+    await browser.tabs.discard(tids);
 }
 
 export function asyncEvent(async_fn) {
@@ -301,34 +298,67 @@ export async function restoreTabs(urls) {
     // Remove duplicate URLs so we only try to restore each URL once.
     urls = Array.from(new Set(urls));
 
-    // Try to determine if the currently-focused tab is a new tab.  If so, we
-    // should close it once we've opened the tabs we are restoring, so the user
-    // doesn't have an errant "empty" tab floating around.
-    let tab_to_close = await lookingAtNewTab();
+    // First collect some info from the browser; done in parallel to reduce
+    // latency.
 
-    // See which tabs are already open and remove them from the list
-    let open = await browser.tabs.query({currentWindow: true, url: urls});
-    let to_open = urls.filter(url => ! open.some(tab => tab.url === url));
+    // We want to know which tab the user is currently looking at so
+    // we can close it if it's just the new-tab page.
+    let tab_to_close_p = lookingAtNewTab();
 
-    // For each URL that we're going to restore, figure out how--are we
-    // restoring by reopening a closed tab, or by creating a new tab?
-    let sessions = await browser.sessions.getRecentlyClosed();
-    let strategies = to_open.map(url => [
-        url, sessions.find(sess => sess.tab && sess.tab.url === url)]);
+    // We also want to know what tabs were recently closed, so we can
+    // restore/un-hide tabs as appropriate.
+    let closed_tabs_p = browser.sessions.getRecentlyClosed();
 
-    // Now restore tabs.  Done serially so we always restore in the same
-    // positions.
-    let win = (await browser.windows.getCurrent({windowTypes: ['normal']}));
+    // We also need to know which window to restore tabs to, and what tabs are
+    // presently open in that window.
+    let win_p = browser.windows.getCurrent({
+        windowTypes: ['normal'], populate: true});
+
+    let tab_to_close = await tab_to_close_p;
+    let closed_tabs = await closed_tabs_p;
+    let win = await win_p;
+
+    // We can restore a tab in one of four(!) ways:
+    //
+    // 1. Do nothing (because the tab is already open).
+    // 2. Un-hide() it, if it was previously hidden and is still open.
+    // 3. Re-open a recently-closed tab with the same URL.
+    // 4. Open a new tab.
+    //
+    // Let's figure out which strategy to use for each tab, and kick it off.
     let ps = [];
-    for (let [url, sess] of strategies) {
-        console.log('restoring', url, sess);
-        let p = sess
-            ? browser.sessions.restore(sess.tab.sessionId)
-              .then(sess => browser.tabs.move(
-                            [sess.tab.id], {windowId: win.id, index: 0xffffff})
-                        .then(() => sess))
-            : browser.tabs.create({active: false, url, index: 0xffffff});
-        ps.push(p);
+    let index = win.tabs.length;
+    for (let url of urls) {
+        let open = win.tabs.find(tab => (tab.url === url));
+        if (open) {
+            // Tab is already open.  If it was hidden, un-hide it and move it to
+            // the right location in the tab bar.
+            if (open.hidden) {
+                ps.push(browser.tabs.show([open.id])
+                        .then(() => browser.tabs.move(
+                            [open.id], {windowId: win.id, index}))
+                        .then(() => open));
+                ++index;
+            }
+            continue;
+        }
+
+        let closed = closed_tabs.find(
+            sess => (sess.tab && sess.tab.url === url));
+        if (closed) {
+            // Tab was recently-closed.  Re-open it, and move it to the right
+            // location in the tab bar.
+            ps.push(browser.sessions.restore(closed.tab.sessionId)
+                    .then(sess => browser.tabs.move(
+                        [sess.tab.id], {windowId: win.id, index})
+                          .then(() => sess.tab)));
+            ++index;
+            continue;
+        }
+
+        // Tab was never open in the first place.
+        ps.push(browser.tabs.create({active: false, url, index}));
+        ++index;
     }
 
     // NOTE: Can't do this with .map() since await doesn't work in a nested
@@ -349,11 +379,10 @@ export async function restoreTabs(urls) {
         // It's actually a Session, but instanceof doesn't work here because
         // Session isn't a constructor (you can't create your own, you can only
         // get them from the browser).  So we have to do some true duck-typing.
-        if (tab.tab) tab = tab.tab;
         await browser.tabs.update(tab.id, {active: true});
     }
 
-    // Finally, if opened at least one tab, AND the current tab is looking at
+    // Finally, if we opened at least one tab, AND the current tab is looking at
     // the new-tab page, close the current tab in the background.
     if (tabs.length > 0 && tab_to_close) {
         browser.tabs.remove([tab_to_close.id]).then(() => {});

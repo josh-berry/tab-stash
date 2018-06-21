@@ -11,7 +11,7 @@
     "applications": {
         "gecko": {
             "id": "tab-stash@condordes.net",
-            "strict_min_version": "54.0"
+            "strict_min_version": "61.0"
         }
     },
     "permissions": [
