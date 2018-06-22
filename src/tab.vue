@@ -1,9 +1,12 @@
 <template>
-<a class="panel-list-item saved-tab action-container"
-   target="_blank" :href="url" :title="title"
+<a :class="{'panel-list-item': true,
+            'action-container': true,
+            'tab': true,
+            'open': tab && ! tab.hidden}"
+   target="_blank" :href="url" :title="tabTitle"
    @click.prevent="open">
   <img class="icon" :src="favicon" v-if="favicon">
-  <span class="text">{{title}}</span>
+  <span class="text">{{tabTitle}}</span>
   <img src="icons/delete.svg" class="action remove"
        title="Delete this tab from the group"
        @click.prevent.stop="remove">
@@ -23,11 +26,25 @@ export default {
         url: String,
         id: [String, Number],
         dateAdded: Number,
+        tab: Object,
     },
 
     computed: {
+        tabTitle: function() {
+            if (this.tab && this.tab.title) return this.tab.title;
+            return this.title;
+        },
+
         favicon: function() {
             try {
+                // See if we have an open tab and a favicon URL we can use.
+                if (this.tab && this.tab.favIconUrl) {
+                    return this.tab.favIconUrl;
+                }
+
+                // Fallback to Google if we can't pull a favicon URL from an
+                // open tab.
+                //
                 // XXX use firefox internal for this if possible... not super
                 // happy hitting Google for favicons since it leaks info about
                 // what domains are in use :/

@@ -30,11 +30,10 @@
   </div>
   <div class="panel-section-list contents">
     <draggable v-model="children" :data-id="id"
-               :options="{group: 'saved-tab'}"
+               :options="{group: 'tab'}"
                @sort="move">
-      <saved-tab v-for="item of children" :key="item.id" v-bind="item"
-                 :data-id="item.id">
-      </saved-tab>
+      <tab v-for="item of children" :key="item.id" v-bind="item"
+           :data-id="item.id"></tab>
     </draggable>
   </div>
 </div>
@@ -49,10 +48,10 @@ import {
 
 import Draggable from 'vuedraggable';
 import EditableLabel from './editable-label.vue';
-import SavedTab from './saved-tab.vue';
+import Tab from './tab.vue';
 
 export default {
-    components: {Draggable, EditableLabel, SavedTab},
+    components: {Draggable, EditableLabel, Tab},
 
     props: {
         title: String,

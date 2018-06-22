@@ -1,6 +1,6 @@
 "use strict";
 
-import {asyncEvent, urlsInTree, IdleWorker} from './util';
+import {asyncEvent, urlsInTree, whenIdle} from './util';
 import {
     stashOpenTabs, stashFrontTab, restoreTabs, tabStashTree,
     getFolderNameISODate,
@@ -57,7 +57,7 @@ browser.pageAction.onClicked.addListener(() => {
 tabStashTree().then(t => {
     let old_urls = new Set(urlsInTree(t));
 
-    const w = new IdleWorker(async function() {
+    const update = whenIdle(async function() {
         let tree = await tabStashTree();
 
         // Garbage-collect empty, unnamed folders.
@@ -97,9 +97,7 @@ tabStashTree().then(t => {
         old_urls = new_urls;
     });
 
-    const queue_update = () => w.trigger();
-
-    browser.bookmarks.onRemoved.addListener(queue_update);
-    browser.bookmarks.onChanged.addListener(queue_update);
-    browser.bookmarks.onMoved.addListener(queue_update);
+    browser.bookmarks.onRemoved.addListener(update);
+    browser.bookmarks.onChanged.addListener(update);
+    browser.bookmarks.onMoved.addListener(update);
 });

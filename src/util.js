@@ -19,40 +19,36 @@ export function asyncEvent(async_fn) {
     };
 }
 
-// A class which wraps an async function that is to be run only while the
-// browser is idle, and ensures that only one instance of the function is
-// running at a time.  If the function is requested to be run before the
-// previous instance has finished running, the request will be queued and the
-// function will be re-run again.
+// Returns a function which, when called, arranges to call the async function
+// /fn/ when the browser has some idle time.
 //
-// The async function is always called with no arguments, and if it is a
-// classical function (not an arrow function), it will be called with `this` as
-// the IdleWorker.  The return value from its promise is ignored.
+// We ensure that only one instance of the function is running at a time.  If
+// the function is requested to be run before the previous call has finished
+// running, the request will be queued and the function will be re-run again.
+//
+// The async function is always called with no arguments.  The return value from
+// its promise is ignored.
 //
 // Since this is ostensibly a background task, exceptions which bubble out of
 // the function are caught and logged to the console.
-export class IdleWorker {
-    constructor(fn) {
-        this.fn = fn;
-        this._triggered = false;
-        this._pending = null;
-    }
+export function whenIdle(fn) {
+    let triggered = false;
+    let pending = null;
 
-    trigger() {
-        this._triggered = true;
-        if (this._pending) return;
+    return () => {
+        triggered = true;
+        if (pending) return;
 
-        const self = this;
-        this._pending = window.requestIdleCallback(async function() {
-            while (self._triggered) {
-                self._triggered = false;
+        pending = window.requestIdleCallback(async function() {
+            while (triggered) {
+                triggered = false;
                 try {
-                    await self.fn();
+                    await fn();
                 } catch (e) {
                     console.log(e);
                 }
             }
-            self._pending = null;
+            pending = null;
         });
-    }
+    };
 }

@@ -16,7 +16,8 @@
           padding: 0;
       }
       .panel-list-item:hover { cursor: pointer; }
-      a, a:visited { color: #194c7f; text-decoration: none; }
+      a, a:visited { color: #44484c; text-decoration: none; }
+      a.open, a.open:visited { color: #1e5b99; }
 
       .page.header {
           padding: 4px 16px;
@@ -144,14 +145,14 @@
           padding-bottom: 6px;
       }
 
-      /* Saved-tab entries */
-      .saved-tab { display: block; }
-      .saved-tab > * {
+      /* Tab entries */
+      .tab { display: block; }
+      .tab > * {
           vertical-align: middle;
           margin: 0 3px;
           padding: 0;
       }
-      .saved-tab > .action {
+      .tab > .action {
           width: 22px;
           height: 22px;
           line-height: 22px;
@@ -159,29 +160,29 @@
           margin: 0;
           padding: 3px 3px;
       }
-      .saved-tab > .icon {
+      .tab > .icon {
           width: 16px;
           height: 16px;
       }
-      span.folder-name, .saved-tab > .text {
+      span.folder-name, .tab > .text {
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
       }
-      .saved-tab > .remove { display: none; }
-      .saved-tab > .restore-remove { display: none; }
-      .saved-tab:hover > .remove { display: inline-block; }
-      .saved-tab:hover > .restore-remove { display: inline-block; }
+      .tab > .remove { display: none; }
+      .tab > .restore-remove { display: none; }
+      .tab:hover > .remove { display: inline-block; }
+      .tab:hover > .restore-remove { display: inline-block; }
 
       /* Saved-tab entries - Large grid */
-      .saved-tab {
+      .tab {
           display: grid;
           grid-template-columns: 22px 22px 22px 1fr;
       }
-      .saved-tab > .remove { grid-row: 1; grid-column: 1; }
-      .saved-tab > .restore-remove { grid-row: 1; grid-column: 2; }
-      .saved-tab > .icon { grid-row: 1; grid-column: 3; }
-      .saved-tab > .text { grid-row: 1; grid-column: 4; }
+      .tab > .remove { grid-row: 1; grid-column: 1; }
+      .tab > .restore-remove { grid-row: 1; grid-column: 2; }
+      .tab > .icon { grid-row: 1; grid-column: 3; }
+      .tab > .text { grid-row: 1; grid-column: 4; }
 
       /* Collapsing folders */
       .collapsed nav { display: none; }
@@ -192,15 +193,15 @@
       /* Sidebar mods */
       @media all and (max-width: 30rem) {
           .header { margin-left: 0; margin-right: 0; }
-          .saved-tab {
+          .tab {
               display: grid;
               grid-template-columns: 22px 1fr 22px 22px;
           }
-          .saved-tab > .icon { grid-row: 1; grid-column: 1; }
-          .saved-tab > .text { grid-row: 1; grid-column: 2 / 5; }
-          .saved-tab:hover > .text { grid-row: 1; grid-column: 2; }
-          .saved-tab > .restore-remove { grid-row: 1; grid-column: 3; }
-          .saved-tab > .remove { grid-row: 1; grid-column: 4; }
+          .tab > .icon { grid-row: 1; grid-column: 1; }
+          .tab > .text { grid-row: 1; grid-column: 2 / 5; }
+          .tab:hover > .text { grid-row: 1; grid-column: 2; }
+          .tab > .restore-remove { grid-row: 1; grid-column: 3; }
+          .tab > .remove { grid-row: 1; grid-column: 4; }
       }
     </style>
   </head>
