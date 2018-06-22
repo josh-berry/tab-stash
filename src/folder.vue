@@ -15,10 +15,10 @@
            @click.prevent="collapsed = ! collapsed">
       <nav v-if="id">
         <img src="icons/stash-dark.svg" class="action stash"
-             title="Stash all open tabs in this group"
+             title="Stash all open tabs to this group"
              @click.prevent="stash">
         <img src="icons/stash-one-dark.svg" class="action stash"
-             title="Stash the active tab in this group"
+             title="Stash the active tab to this group"
              @click.prevent="stashOne">
         <img src="icons/restore.svg" class="action restore"
              title="Open all tabs in this group"
@@ -37,6 +37,9 @@
         <img src="icons/delete.svg" class="action remove"
              title="Close all unstashed tabs"
              @click.prevent="remove">
+        <img src="icons/delete-opened.svg" class="action remove"
+             title="Close all open tabs"
+             @click.prevent="removeOpen">
       </nav>
     </div>
   </div>
@@ -128,6 +131,14 @@ export default {
                 await refocusAwayFromTabs(tabs);
                 await browser.tabs.remove(tabs.map(t => t.id));
             }
+        }),
+
+        removeOpen: asyncEvent(async function() {
+            console.assert(! this.id);
+            let tabs = await browser.tabs.query(
+                {currentWindow: true, hidden: false, pinned: false});
+            await refocusAwayFromTabs(tabs);
+            await browser.tabs.remove(tabs.map(t => t.id));
         }),
 
         restoreAndRemove: asyncEvent(async function() {

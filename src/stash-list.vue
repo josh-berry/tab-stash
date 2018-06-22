@@ -10,8 +10,7 @@
          title="Hide all tabs so only group names are showing"
          @click.prevent="collapseAll">
   </div>
-  <folder v-if="unstashed_tabs.length"
-          id="" title="Unstashed Tabs" :dateAdded="0"
+  <folder id="" title="Unstashed Tabs" :dateAdded="0"
           ref="unstashed" :children="unstashed_tabs"></folder>
   <folder-list ref="stashed" :folders="stashed_tabs"></folder-list>
 </div>
