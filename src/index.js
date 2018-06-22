@@ -1,9 +1,9 @@
 "use strict";
 
-import {asyncEvent, urlsInTree} from 'util';
+import {asyncEvent, urlsInTree} from './util';
 import {
     stashOpenTabs, stashFrontTab, restoreTabs, tabStashTree,
-} from 'stash';
+} from './stash';
 
 browser.menus.create({
     contexts: ['browser_action', 'tab', 'tools_menu'],

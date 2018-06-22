@@ -2,15 +2,10 @@
 
 import Vue from 'vue/dist/vue.runtime.esm';
 
-import {
-    tabStashTree,
-} from 'stash';
+import {IdleWorker} from './util';
+import {tabStashTree} from './stash';
 
-import StashList from 'stash-list.vue';
-import 'folder-list.vue';
-import 'folder.vue';
-import 'saved-tab.vue';
-import 'editable-label.vue';
+import StashList from './stash-list.vue';
 
 // GUI stuff.  Depends on both Vue and index.js already being loaded.
 

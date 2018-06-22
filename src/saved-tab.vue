@@ -14,8 +14,8 @@
 </template>
 
 <script>
-import {asyncEvent} from 'util';
-import {restoreTabs} from 'stash';
+import {asyncEvent} from './util';
+import {restoreTabs} from './stash';
 
 export default {
     props: {

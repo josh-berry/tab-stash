@@ -21,7 +21,7 @@
 
 <script>
 import Draggable from 'vuedraggable';
-import Folder from 'folder.vue';
+import Folder from './folder.vue';
 
 export default {
     components: {Draggable, Folder},

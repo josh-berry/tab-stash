@@ -41,15 +41,15 @@
 </template>
 
 <script>
-import {asyncEvent} from 'util';
+import {asyncEvent} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName,
     stashOpenTabs, stashFrontTab, restoreTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
-import EditableLabel from 'editable-label.vue';
-import SavedTab from 'saved-tab.vue';
+import EditableLabel from './editable-label.vue';
+import SavedTab from './saved-tab.vue';
 
 export default {
     components: {Draggable, EditableLabel, SavedTab},

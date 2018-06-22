@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import FolderList from 'folder-list.vue';
+import FolderList from './folder-list.vue';
 export default {
     components: {
         FolderList,
