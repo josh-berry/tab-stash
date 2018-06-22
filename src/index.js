@@ -3,6 +3,7 @@
 import {asyncEvent, urlsInTree, IdleWorker} from './util';
 import {
     stashOpenTabs, stashFrontTab, restoreTabs, tabStashTree,
+    getFolderNameISODate,
 } from './stash';
 
 browser.menus.create({
@@ -36,10 +37,12 @@ browser.pageAction.onClicked.addListener(() => {
 
 
 
-// These events garbage-collect hidden tabs when their corresponding bookmarks
-// are removed from the tab stash.  Unfortunately, because Firefox doesn't
-// provide a comprehensive accounting of all bookmarks that are removed (in
-// particular, if a subtree is removed, we only get one notification for the
+// Various garbage-collection tasks are handled here.
+//
+// Most importantly, we garbage-collect hidden tabs when their corresponding
+// bookmarks are removed from the tab stash.  Unfortunately, because Firefox
+// doesn't provide a comprehensive accounting of all bookmarks that are removed
+// (in particular, if a subtree is removed, we only get one notification for the
 // top-level folder and NO information about the children that were deleted),
 // the only way we can reliably identify which hidden tabs to throw away is by
 // diffing the bookmark trees.
@@ -48,12 +51,29 @@ browser.pageAction.onClicked.addListener(() => {
 // manage hidden tabs, but there's unfortunately not much we can do about this.
 // The alternative is to allow hidden tabs which belong to deleted folders to
 // pile up, which will cause browser slowdowns over time.
+//
+// We also garbage-collect empty, unnamed folders.
 
 tabStashTree().then(t => {
     let old_urls = new Set(urlsInTree(t));
 
     const w = new IdleWorker(async function() {
-        let new_urls = new Set(urlsInTree(await tabStashTree()));
+        let tree = await tabStashTree();
+
+        // Garbage-collect empty, unnamed folders.
+        //
+        // If there are any such folders, this may trigger another GC run, but
+        // that's okay because we will converge on the second iteration.
+        for (let f of tree.children) {
+            if (f.type !== 'folder') continue;
+            if (! getFolderNameISODate(f.title)) continue;
+            if (f.children.length > 0) continue;
+            browser.bookmarks.remove(f.id).catch(console.log);
+        }
+
+        // Garbage-collect hidden tabs by diffing the old and new sets of URLs
+        // in the tree.
+        let new_urls = new Set(urlsInTree(tree));
         let windows = await browser.windows.getAll(
             {windowTypes: ['normal'], populate: true});
 
