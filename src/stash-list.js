@@ -14,13 +14,12 @@ window.addEventListener('load', () => {
         let vue = new (Vue.extend(StashList))({data: {folders: tabs}});
         vue.$mount('#app');
 
-        let update = () => {
-            // XXX Probably very inefficient to regenerate the whole tree on
-            // every update, but this is OK for now...
-            renderStashedTabs().then((tabs) => {
-                vue.folders = tabs;
-            });
-        };
+        const w = new IdleWorker(async function() {
+            let tabs = await renderStashedTabs();
+            vue.folders = tabs;
+        });
+
+        const update = () => w.trigger();
 
         browser.bookmarks.onChanged.addListener(update);
         //browser.bookmarks.onChildrenReordered.addListener(update);

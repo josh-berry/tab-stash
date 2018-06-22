@@ -1,6 +1,6 @@
 "use strict";
 
-import {asyncEvent, urlsInTree} from './util';
+import {asyncEvent, urlsInTree, IdleWorker} from './util';
 import {
     stashOpenTabs, stashFrontTab, restoreTabs, tabStashTree,
 } from './stash';
@@ -51,54 +51,33 @@ browser.pageAction.onClicked.addListener(() => {
 
 tabStashTree().then(t => {
     let old_urls = new Set(urlsInTree(t));
-    let update_running = false;
-    let update_requested = false;
 
-    const update = async function() {
-        try {
-            // NOTE: We yield to the event loop every time we `await` something.
-            // So we check for updates in a loop and make sure the rest of the
-            // system knows when we are mid-update.
-            while (update_requested) {
-                let new_urls = new Set(urlsInTree(await tabStashTree()));
-                let windows = await browser.windows.getAll(
-                    {windowTypes: ['normal'], populate: true});
+    const w = new IdleWorker(async function() {
+        let new_urls = new Set(urlsInTree(await tabStashTree()));
+        let windows = await browser.windows.getAll(
+            {windowTypes: ['normal'], populate: true});
 
-                // Ugh, why am I open-coding a set-difference operation?  This
-                // should be built-in!
-                let removed_urls = new Set();
-                for (let url of old_urls) {
-                    if (! new_urls.has(url)) removed_urls.add(url);
-                }
-
-                let tids = [];
-                for (let w of windows) {
-                    for (let t of w.tabs) {
-                        if (! t.hidden) continue;
-                        if (removed_urls.has(t.url)) tids.push(t.id);
-                    }
-                }
-
-                await browser.tabs.remove(tids);
-
-                old_urls = new_urls;
-                update_requested = false;
-                // DO NOT `await` AFTER SETTING update_requested ABOVE.
-            }
-        } finally {
-            update_running = false;
+        // Ugh, why am I open-coding a set-difference operation?  This
+        // should be built-in!
+        let removed_urls = new Set();
+        for (let url of old_urls) {
+            if (! new_urls.has(url)) removed_urls.add(url);
         }
-    };
 
-    const queue_update = () => {
-        update_requested = true;
-        if (update_running) return;
-        update_running = true;
+        let tids = [];
+        for (let w of windows) {
+            for (let t of w.tabs) {
+                if (! t.hidden) continue;
+                if (removed_urls.has(t.url)) tids.push(t.id);
+            }
+        }
 
-        // Not specifying a timeout since we are just garbage-collecting tabs in
-        // the background.
-        window.requestIdleCallback(asyncEvent(update));
-    };
+        await browser.tabs.remove(tids);
+
+        old_urls = new_urls;
+    });
+
+    const queue_update = () => w.trigger();
 
     browser.bookmarks.onRemoved.addListener(queue_update);
     browser.bookmarks.onChanged.addListener(queue_update);
