@@ -13,7 +13,7 @@
     "vuedraggable": "^2.16.0",
     "web-ext": "^2.7.0",
     "webpack": "^4.11.1",
-    "webpack-cli": "^3.0.3"
+    "webpack-cli": "^3.0.8"
   },
   "scripts": {
     "build": "webpack",
