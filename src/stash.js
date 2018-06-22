@@ -41,7 +41,7 @@ export async function stashFrontTab(folder_id) {
         }
     }
 
-    let tabs = await browser.tabs.query({currentWindow: true});
+    let tabs = await browser.tabs.query({currentWindow: true, hidden: false});
     let front_tabs = tabs.filter(t => t.active);
     let [saved_tabs, _] = await bookmarkTabs(folder_id, front_tabs);
 
@@ -49,6 +49,16 @@ export async function stashFrontTab(folder_id) {
         // If we are about to close all tabs in the window, we should open a new
         // one so that the window doesn't close.
         await browser.tabs.create({active: true});
+    } else {
+        // We need to activate another tab, since we're about to hide() the
+        // active tab, and the browser won't actually let you do that.
+        let idx = tabs.indexOf(front_tabs[0]) + 1;
+
+        // This may be the last tab, in which case we should activate the tab
+        // before it.
+        if (idx >= tabs.length) idx = tabs.length - 2;
+
+        await browser.tabs.update(tabs[idx].id, {active: true});
     }
 
     await hideAndDiscardTabs(saved_tabs);
@@ -59,16 +69,25 @@ export async function stashOpenTabs(folder_id) {
     // won't actually have permission to do so per Firefox's API rules.
     browser.sidebarAction.open().catch(console.log);
 
-    let tabs = await browser.tabs.query({currentWindow: true});
+    let tabs = await browser.tabs.query({currentWindow: true, hidden: false});
     let [saved_tabs, remaining_tabs] = await bookmarkTabs(folder_id, tabs);
 
-    // Create a new tab here (if we're not already looking at one), since we are
-    // about to close a bunch of tabs in this window.  Technically there may
-    // still be some tabs leftover (e.g. pinned and extension tabs, which are
-    // ignored for different reasons), but typically the user will stash all
-    // open tabs when they're about to switch contexts.  So giving them a fresh
-    // new tab is probably a good idea.
-    if (! await lookingAtNewTab()) await browser.tabs.create({active: true});
+    // Typically the user will stash all open tabs when they're about to switch
+    // contexts, so we should give them a fresh new tab to help them get
+    // started.  (If they decide to restore a different group of tabs, we can
+    // always close the new tab we just created.)  If there's a new tab already
+    // open (which we are not about to close), switch to it.  If there is no
+    // such new tab, create one.
+    let newtab_url =
+        (await browser.browserSettings.newTabPageOverride.get({})).value;
+    let open_newtabs = remaining_tabs.filter(t => t.url === newtab_url);
+
+    if (open_newtabs.length == 0) {
+        await browser.tabs.create({active: true});
+    } else {
+        await browser.tabs.update(open_newtabs[open_newtabs.length-1].id,
+                                  {active: true});
+    }
 
     await hideAndDiscardTabs(saved_tabs);
 }
