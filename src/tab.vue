@@ -2,37 +2,48 @@
 <a :class="{'panel-list-item': true,
             'action-container': true,
             'tab': true,
+            'saved': !!bm,
             'open': tab && ! tab.hidden}"
-   target="_blank" :href="url" :title="tabTitle"
+   target="_blank" :href="url" :title="title"
+   :data-bmid="bm && bm.id" :data-tabid="tab && tab.id"
    @click.prevent="open">
   <img class="icon" :src="favicon" v-if="favicon">
-  <span class="text">{{tabTitle}}</span>
+  <span class="text">{{title}}</span>
   <img src="icons/delete.svg" class="action remove"
-       title="Delete this tab from the group"
+       :title="bm ? 'Delete this tab from the group' : 'Close this tab'"
        @click.prevent.stop="remove">
-  <img src="icons/restore-del.svg" class="action restore-remove"
+  <img v-if="bm" src="icons/restore-del.svg" class="action restore-remove"
        title="Open this tab and delete it from the group"
        @click.prevent.stop="openRemove">
+  <img v-else src="icons/stash-one-dark.svg" class="action stash"
+       title="Stash this tab"
+       @click.prevent.stop="stash">
 </a>
 </template>
 
 <script>
 import {asyncEvent} from './util';
-import {restoreTabs} from './stash';
+import {
+    mostRecentUnnamedFolder, restoreTabs, stashTabs,
+    refocusAwayFromTabs,
+} from './stash';
 
 export default {
     props: {
-        title: String,
-        url: String,
         id: [String, Number],
-        dateAdded: Number,
         tab: Object,
+        bm: Object,
     },
 
     computed: {
-        tabTitle: function() {
-            if (this.tab && this.tab.title) return this.tab.title;
-            return this.title;
+        title: function() {
+            if (this.tab) return this.tab.title;
+            return this.bm.title;
+        },
+
+        url: function() {
+            if (this.tab) return this.tab.url;
+            return this.bm.url;
         },
 
         favicon: function() {
@@ -64,19 +75,33 @@ export default {
                 console.warn("Failed to parse URL: ", this.url, e);
             }
             return '';
-        }
+        },
     },
 
     methods: {
+        stash: asyncEvent(async function() {
+            console.assert(! this.bm);
+            await stashTabs(await mostRecentUnnamedFolder(), [this.tab]);
+        }),
         open: asyncEvent(async function() {
             await restoreTabs([this.url]);
         }),
         remove: asyncEvent(async function() {
-            await browser.bookmarks.remove(this.id);
+            if (this.bm) {
+                await browser.bookmarks.remove(this.bm.id);
+            } else {
+                await refocusAwayFromTabs([this.tab]);
+                await browser.tabs.remove(this.tab.id);
+            }
         }),
         openRemove: asyncEvent(async function() {
             await restoreTabs([this.url]);
-            await browser.bookmarks.remove(this.id);
+            if (this.bm) {
+                await browser.bookmarks.remove(this.bm.id);
+            }
+            // If this is just a tab and not a bookmark, we don't remove the
+            // tab, since openRemove indicates the user wanted to switch to the
+            // tab.
         }),
     },
 };

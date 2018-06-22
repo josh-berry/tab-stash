@@ -22,6 +22,35 @@ export async function tabStashTree() {
     return (await browser.bookmarks.getSubTree((await rootFolder()).id))[0];
 }
 
+export async function mostRecentUnnamedFolder() {
+    let root = await rootFolder();
+    let topmost = (await browser.bookmarks.getChildren(root.id))[0];
+    if (topmost && topmost.type === 'folder'
+        && getFolderNameISODate(topmost.title))
+    {
+        return topmost.id;
+    }
+    return undefined;
+}
+
+export function isTabStashable(tab) {
+    try {
+        let url = new URL(tab.url);
+        switch (url.protocol) {
+        case 'moz-extension:':
+        case 'about:':
+        case 'chrome:':
+            return false;
+        }
+    } catch (e) {
+        console.warn('Tab with unparseable URL:', tab, tab.url);
+        return false;
+    }
+
+    if (tab.pinned) return false;
+    return true;
+}
+
 export async function stashFrontTab(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
@@ -32,36 +61,12 @@ export async function stashFrontTab(folder_id) {
         // should append stashed tabs to the topmost folder, but only if it's
         // not named--since we don't exactly know the user's intentions, we
         // shouldn't mess with their named folders.
-        let root = await rootFolder();
-        let topmost = (await browser.bookmarks.getChildren(root.id))[0];
-        if (topmost && topmost.type === 'folder'
-            && getFolderNameISODate(topmost.title))
-        {
-            folder_id = topmost.id;
-        }
+        folder_id = mostRecentUnnamedFolder();
     }
 
-    let tabs = await browser.tabs.query({currentWindow: true, hidden: false});
-    let front_tabs = tabs.filter(t => t.active);
-    let [saved_tabs, _] = await bookmarkTabs(folder_id, front_tabs);
-
-    if (saved_tabs.length >= tabs.length) {
-        // If we are about to close all tabs in the window, we should open a new
-        // one so that the window doesn't close.
-        await browser.tabs.create({active: true});
-    } else {
-        // We need to activate another tab, since we're about to hide() the
-        // active tab, and the browser won't actually let you do that.
-        let idx = tabs.indexOf(front_tabs[0]) + 1;
-
-        // This may be the last tab, in which case we should activate the tab
-        // before it.
-        if (idx >= tabs.length) idx = tabs.length - 2;
-
-        await browser.tabs.update(tabs[idx].id, {active: true});
-    }
-
-    await hideAndDiscardTabs(saved_tabs);
+    let tabs = await browser.tabs.query({currentWindow: true, hidden: false,
+                                         active: true});
+    return await stashTabs(folder_id, tabs);
 }
 
 export async function stashOpenTabs(folder_id) {
@@ -69,27 +74,51 @@ export async function stashOpenTabs(folder_id) {
     // won't actually have permission to do so per Firefox's API rules.
     browser.sidebarAction.open().catch(console.log);
 
-    let tabs = await browser.tabs.query({currentWindow: true, hidden: false});
-    let [saved_tabs, remaining_tabs] = await bookmarkTabs(folder_id, tabs);
+    let tabs = await browser.tabs.query(
+        {currentWindow: true, hidden: false, pinned: false});
+    return await stashTabs(folder_id, tabs);
+}
 
-    // Typically the user will stash all open tabs when they're about to switch
-    // contexts, so we should give them a fresh new tab to help them get
-    // started.  (If they decide to restore a different group of tabs, we can
-    // always close the new tab we just created.)  If there's a new tab already
-    // open (which we are not about to close), switch to it.  If there is no
-    // such new tab, create one.
-    let newtab_url =
-        (await browser.browserSettings.newTabPageOverride.get({})).value;
-    let open_newtabs = remaining_tabs.filter(t => t.url === newtab_url);
+export async function stashTabs(folder_id, tabs) {
+    // BIG WARNING: This function assumes that all passed-in tabs are in the
+    // current window.  It WILL DO WEIRD THINGS if that's not the case.
 
-    if (open_newtabs.length == 0) {
+    let saved_tabs = await bookmarkTabs(folder_id, tabs);
+
+    await refocusAwayFromTabs(saved_tabs);
+
+    let tids = saved_tabs.map((t) => t.id);
+    await browser.tabs.hide(tids);
+    await browser.tabs.discard(tids);
+
+    return saved_tabs;
+}
+
+export async function refocusAwayFromTabs(tabs) {
+    let all_tabs = await browser.tabs.query(
+        {currentWindow: true, hidden: false, pinned: false});
+
+    if (tabs.length >= all_tabs.length) {
+        // If we are about to close all visible tabs in the window, we should
+        // open a new tab so the window doesn't close.
         await browser.tabs.create({active: true});
+
     } else {
-        await browser.tabs.update(open_newtabs[open_newtabs.length-1].id,
-                                  {active: true});
+        // Otherwise we should make sure the currently-active tab isn't a tab we
+        // are about to hide/discard.  The browser won't let us hide the active
+        // tab, so we'll have to activate a different tab first.
+        let front_tabs = tabs.filter(t => t.active);
+        if (front_tabs.length > 0) {
+            let idx = all_tabs.findIndex(t => t.id === front_tabs[0].id) + 1;
+
+            // This may be the last tab, in which case we should activate the
+            // tab before it.
+            if (idx >= all_tabs.length) idx = all_tabs.length - 2;
+
+            await browser.tabs.update(all_tabs[idx].id, {active: true});
+        }
     }
 
-    await hideAndDiscardTabs(saved_tabs);
 }
 
 // Determine if the currently-focused tab is the new-tab page.  If so, return
@@ -109,31 +138,12 @@ export async function bookmarkTabs(folderId, all_tabs) {
     // First figure out which of the tabs to save, and make sure they are sorted
     // by their actual position in the tab bar.  We ignore tabs with unparseable
     // URLs or which look like extensions and internal browser things.
-    let is_normal_tab = tab => {
-        try {
-            let url = new URL(tab.url);
-            switch (url.protocol) {
-            case 'moz-extension:':
-            case 'about:':
-            case 'chrome:':
-                return false;
-            }
-        } catch (e) {
-            console.warn('Tab with unparseable URL:', tab, tab.url);
-            return false;
-        }
-
-        if (tab.pinned) return false;
-        if (tab.hidden) return false;
-        return true;
-    };
-    let tabs = all_tabs.filter(is_normal_tab);
-    let unsaved_tabs = all_tabs.filter(t => ! is_normal_tab(t));
+    let tabs = all_tabs.filter(isTabStashable);
     tabs.sort((a, b) => a.index - b.index);
 
     // If there are no tabs to save, early-exit here so we don't unnecessarily
     // create bookmark folders we don't need.
-    if (tabs.length == 0) return [tabs, unsaved_tabs];
+    if (tabs.length == 0) return tabs;
 
     // Find or create the root of the stash.
     let root = await rootFolder();
@@ -212,6 +222,9 @@ export async function bookmarkTabs(folderId, all_tabs) {
             title: tabs_to_actually_save[tab_index].title,
             url: tabs_to_actually_save[tab_index].url,
         }));
+        // Put a reference to the bookmark into the tab object, so callers can
+        // find the bookmark we just created.
+        tabs_to_actually_save[tab_index].bm = bm;
         ++tab_index;
     }
     for (let p of ps) await p;
@@ -231,7 +244,7 @@ export async function bookmarkTabs(folderId, all_tabs) {
     gcDuplicateBookmarks(root.id, new Set([folderId]),
                          new Set(tabs.map(t => t.url))).catch(console.log);
 
-    return [tabs, unsaved_tabs];
+    return tabs;
 }
 
 export async function gcDuplicateBookmarks(
@@ -304,12 +317,6 @@ export async function gcDuplicateBookmarks(
     for (let p of ps) try {await p} catch(e) {console.log(e)};
 }
 
-export async function hideAndDiscardTabs(tabs) {
-    let tids = tabs.map((t) => t.id);
-    await browser.tabs.hide(tids);
-    await browser.tabs.discard(tids);
-}
-
 export async function restoreTabs(urls) {
     // Remove duplicate URLs so we only try to restore each URL once.
     urls = Array.from(new Set(urls));
@@ -351,7 +358,7 @@ export async function restoreTabs(urls) {
             if (open.hidden) {
                 ps.push(browser.tabs.show([open.id])
                         .then(() => browser.tabs.move(
-                            [open.id], {windowId: win.id, index}))
+                            open.id, {windowId: win.id, index}))
                         .then(() => open));
                 ++index;
             }
@@ -365,7 +372,7 @@ export async function restoreTabs(urls) {
             // location in the tab bar.
             ps.push(browser.sessions.restore(closed.tab.sessionId)
                     .then(sess => browser.tabs.move(
-                        [sess.tab.id], {windowId: win.id, index})
+                        sess.tab.id, {windowId: win.id, index})
                           .then(() => sess.tab)));
             ++index;
             continue;
@@ -403,4 +410,6 @@ export async function restoreTabs(urls) {
     if (tabs.length > 0 && tab_to_close) {
         browser.tabs.remove([tab_to_close.id]).catch(console.log);
     }
+
+    return tabs;
 }

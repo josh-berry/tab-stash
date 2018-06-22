@@ -10,15 +10,20 @@
          title="Hide all tabs so only group names are showing"
          @click.prevent="collapseAll">
   </div>
+  <folder v-if="unstashed_tabs.length"
+          id="" title="Unstashed Tabs" :dateAdded="0"
+          ref="unstashed" :children="unstashed_tabs"></folder>
   <folder-list ref="stashed" :folders="stashed_tabs"></folder-list>
 </div>
 </template>
 
 <script>
 import FolderList from './folder-list.vue';
+import Folder from './folder.vue';
 export default {
     components: {
         FolderList,
+        Folder,
     },
 
     data: () => ({
@@ -36,6 +41,7 @@ export default {
     methods: {
         collapseAll: function(ev) {
             this.collapsed = ! this.collapsed;
+            this.$refs.unstashed.collapsed = this.collapsed;
             this.$refs.stashed.setCollapsed(this.collapsed);
         },
     },

@@ -10,6 +10,9 @@
 <script>
 export default {
     props: {
+        // Whether to allow editing or not
+        enabled: Boolean,
+
         // CSS classes to apply to the editable label, which is either a <span>
         // or <input> element.
         classes: [Object, String],
@@ -71,6 +74,7 @@ export default {
     },
     methods: {
         begin: function() {
+            if (! this.enabled) return;
             this.editing = true;
         },
         commit: function() {

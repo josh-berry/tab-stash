@@ -117,6 +117,7 @@
           border: 2px solid rgba(0, 0, 0, 0);
           border-radius: 2px;
       }
+      .virtual .folder-name { color: rgba(128, 128, 128); }
       input.folder-name {
           border: 2px solid rgba(128, 128, 128, 0.8);
           min-width: 5em;
@@ -169,10 +170,8 @@
           white-space: nowrap;
           text-overflow: ellipsis;
       }
-      .tab > .remove { display: none; }
-      .tab > .restore-remove { display: none; }
-      .tab:hover > .remove { display: inline-block; }
-      .tab:hover > .restore-remove { display: inline-block; }
+      .tab > .action { display: none; }
+      .tab:hover > .action { display: inline-block; }
 
       /* Saved-tab entries - Large grid */
       .tab {
@@ -201,6 +200,7 @@
           .tab > .text { grid-row: 1; grid-column: 2 / 5; }
           .tab:hover > .text { grid-row: 1; grid-column: 2; }
           .tab > .restore-remove { grid-row: 1; grid-column: 3; }
+          .tab > .stash { grid-row: 1; grid-column: 3; }
           .tab > .remove { grid-row: 1; grid-column: 4; }
       }
     </style>
