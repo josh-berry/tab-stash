@@ -3,7 +3,7 @@
 import Vue from 'vue/dist/vue.runtime.esm';
 
 import {
-    STASH_FOLDER,
+    tabStashTree,
 } from 'stash';
 
 import StashList from 'stash-list.vue';
@@ -37,10 +37,7 @@ window.addEventListener('load', () => {
 });
 
 async function renderStashedTabs() {
-    let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0];
-    if (! root) return [];
-
-    let [tree] = await browser.bookmarks.getSubTree(root.id);
+    let tree = await tabStashTree();
 
     return tree.children
         .filter((c) => c.type === 'folder')

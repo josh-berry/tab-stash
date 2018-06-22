@@ -10,6 +10,31 @@ export const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
 
 
 
+export async function rootFolder() {
+    return (await browser.bookmarks.search({title: STASH_FOLDER}))[0]
+        || (await browser.bookmarks.create({
+            title: STASH_FOLDER,
+            type: 'folder',
+        }));
+}
+
+export async function tabStashTree() {
+    return (await browser.bookmarks.getSubTree((await rootFolder()).id))[0];
+}
+
+export function urlsInTree(bm_tree) {
+    let urls = [];
+    function collect(bm) {
+        if (bm.type === 'folder') {
+            if (bm.children) for (let c of bm.children) collect(c);
+        } else if (bm.url) {
+            urls.push(bm.url);
+        }
+    }
+    collect(bm_tree);
+    return urls;
+}
+
 export async function stashFrontTab(folder_id) {
     // We have to open the sidebar before the first "await" call, otherwise we
     // won't actually have permission to do so per Firefox's API rules.
@@ -20,16 +45,12 @@ export async function stashFrontTab(folder_id) {
         // should append stashed tabs to the topmost folder, but only if it's
         // not named--since we don't exactly know the user's intentions, we
         // shouldn't mess with their named folders.
-        let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0];
-        if (root) {
-            let topmost = (await browser.bookmarks.getChildren(root.id))[0];
-            console.log(topmost);
-            if (topmost
-                && topmost.type === 'folder'
-                && getFolderNameISODate(topmost.title))
-            {
-                folder_id = topmost.id;
-            }
+        let root = await rootFolder();
+        let topmost = (await browser.bookmarks.getChildren(root.id))[0];
+        if (topmost && topmost.type === 'folder'
+            && getFolderNameISODate(topmost.title))
+        {
+            folder_id = topmost.id;
         }
     }
 
@@ -109,11 +130,7 @@ export async function bookmarkTabs(folderId, all_tabs) {
     if (tabs.length == 0) return [tabs, unsaved_tabs];
 
     // Find or create the root of the stash.
-    let root = (await browser.bookmarks.search({title: STASH_FOLDER}))[0]
-        || (await browser.bookmarks.create({
-            title: STASH_FOLDER,
-            type: 'folder',
-        }));
+    let root = await rootFolder();
 
     // Keep track of which tabs to actually save (we filter below based on what
     // we already have), and where in the folder to save them (we want to
@@ -310,8 +327,7 @@ export async function restoreTabs(urls) {
 
     // We also need to know which window to restore tabs to, and what tabs are
     // presently open in that window.
-    let win_p = browser.windows.getCurrent({
-        windowTypes: ['normal'], populate: true});
+    let win_p = browser.windows.getCurrent({populate: true});
 
     let tab_to_close = await tab_to_close_p;
     let closed_tabs = await closed_tabs_p;
