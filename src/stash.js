@@ -368,7 +368,8 @@ export async function restoreTabs(urls) {
     // Special case: If we were asked to open only one tab AND that tab is
     // already open, just switch to it.
     if (urls.length == 1 && tabs.length == 0) {
-        await browser.tabs.update(open[0].id, {active: true});
+        await browser.tabs.update(win.tabs.find(t => t.url === urls[0]).id,
+                                  {active: true});
     }
 
     // Special case: If only one tab was restored, switch to it.  (This is
