@@ -41,8 +41,8 @@
 </template>
 
 <script>
+import {asyncEvent} from 'util';
 import {
-    asyncEvent,
     getFolderNameISODate, genDefaultFolderName,
     stashOpenTabs, stashFrontTab, restoreTabs,
 } from 'stash';
