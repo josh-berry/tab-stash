@@ -1,6 +1,6 @@
 "use strict";
 
-import {asyncEvent, urlsInTree, whenIdle} from './util';
+import {asyncEvent, urlsInTree, nonReentrant} from './util';
 import {
     stashOpenTabs, stashFrontTab, restoreTabs, tabStashTree,
     getFolderNameISODate,
@@ -57,7 +57,7 @@ browser.pageAction.onClicked.addListener(() => {
 tabStashTree().then(t => {
     let old_urls = new Set(urlsInTree(t));
 
-    const update = whenIdle(async function() {
+    const update = nonReentrant(async function() {
         let tree = await tabStashTree();
 
         // Garbage-collect empty, unnamed folders.

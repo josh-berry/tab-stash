@@ -20,7 +20,7 @@ export function asyncEvent(async_fn) {
 }
 
 // Returns a function which, when called, arranges to call the async function
-// /fn/ when the browser has some idle time.
+// /fn/ immediately, but only if it's not already running.
 //
 // We ensure that only one instance of the function is running at a time.  If
 // the function is requested to be run before the previous call has finished
@@ -31,24 +31,21 @@ export function asyncEvent(async_fn) {
 //
 // Since this is ostensibly a background task, exceptions which bubble out of
 // the function are caught and logged to the console.
-export function whenIdle(fn) {
+export function nonReentrant(fn) {
     let triggered = false;
-    let pending = null;
+    let pending = false;
 
-    return () => {
+    const inner = () => {
         triggered = true;
         if (pending) return;
 
-        pending = window.requestIdleCallback(async function() {
-            while (triggered) {
-                triggered = false;
-                try {
-                    await fn();
-                } catch (e) {
-                    console.log(e);
-                }
-            }
-            pending = null;
-        });
+        pending = true;
+        triggered = false;
+        fn().finally(() => {
+            pending = false;
+            if (triggered) inner();
+        }).catch(console.log);
     };
+
+    return inner;
 }

@@ -2,7 +2,7 @@
 
 import Vue from 'vue/dist/vue.runtime.esm';
 
-import {whenIdle, asyncEvent} from './util';
+import {nonReentrant, asyncEvent} from './util';
 import {tabStashTree, isTabStashable} from './stash';
 
 import StashList from './stash-list.vue';
@@ -79,11 +79,11 @@ window.addEventListener('load', asyncEvent(async function() {
         (await browser.windows.getCurrent({populate: true}))
             .tabs.map(t => t.id));
 
-    const update = whenIdle(async function() {
+    const update = nonReentrant(async function() {
         let [stashed, unstashed] = await renderStashedTabs(known_tab_ids);
         vue.stashed_tabs = stashed;
         vue.unstashed_tabs = unstashed;
-    });
+    }, {timeout: 50});
 
     const tabAdd = id => {
         known_tab_ids.add(id);
