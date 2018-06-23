@@ -10,6 +10,18 @@ import StashList from './stash-list.vue';
 async function renderStashedTabs(known_tab_ids) {
     let tree_p = tabStashTree();
 
+    // NOTE: We make fresh new deep-copied objects for Vue because it likes to
+    // modify objects in-place, and then browser APIs start returning those
+    // modified Vue objects sometimes, which makes me really nervous...
+    const clone_tab = t => ({
+        id: t.id,
+        title: t.title,
+        url: t.url,
+        favIconUrl: t.favIconUrl,
+        hidden: t.hidden,
+        active: t.active,
+    });
+
     // Look at what tabs are open in the current window, and index them by URL
     // so we can match bookmarks to tabs later.  We only care about the current
     // window, since restoreTabs() also only looks at the current window.
@@ -17,18 +29,9 @@ async function renderStashedTabs(known_tab_ids) {
     let tabs_by_url = new Map();
     for (let t of win.tabs) {
         if (! known_tab_ids.has(t.id)) continue;
-        tabs_by_url.set(t.url, {
-            id: t.id,
-            title: t.title,
-            url: t.url,
-            favIconUrl: t.favIconUrl,
-            hidden: t.hidden,
-        });
+        tabs_by_url.set(t.url, clone_tab(t));
     }
 
-    // NOTE: We make fresh new deep-copied objects for Vue because it likes to
-    // modify objects in-place, and then browser APIs start returning those
-    // modified Vue objects sometimes, which makes me really nervous...
     let stashed_tabs = (await tree_p).children
         .filter((c) => c.type === 'folder')
         .map((c) => ({
@@ -55,12 +58,7 @@ async function renderStashedTabs(known_tab_ids) {
     let unstashed_tabs = win.tabs
         .filter(t => known_tab_ids.has(t.id) && tabs_by_url.has(t.url)
                   && isTabStashable(t))
-        .map(t => ({id: t.id, tab: {
-            id: t.id,
-            title: t.title,
-            url: t.url,
-            favIconUrl: t.favIconUrl,
-        }}));
+        .map(t => ({id: t.id, tab: clone_tab(t)}));
     return [stashed_tabs, unstashed_tabs];
 }
 

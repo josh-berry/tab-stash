@@ -121,19 +121,32 @@ export default {
         }),
 
         remove: asyncEvent(async function() {
+            let tabs = this.children.filter(t => t.tab).map(t => t.tab);
+
             if (this.id) {
+                // If we have any hidden tabs stored for these bookmarks, we
+                // should remove them first.  We do this explicitly to avoid the
+                // momentary reshuffling of hidden tabs into the "Unstashed
+                // Tabs" list which would happen if this was left to the garbage
+                // collector in index.js.
+                tabs = tabs.filter(t => t.hidden);
+                await browser.tabs.remove(tabs.map(t => t.id));
+
                 await browser.bookmarks.removeTree(this.id);
+
             } else {
                 // This is the "open-tabs" folder; user has asked us to close
                 // all unstashed tabs.  Open a new tab for them and close all
                 // the existing ones.
-                let tabs = this.children.map(t => t.tab);
                 await refocusAwayFromTabs(tabs);
                 await browser.tabs.remove(tabs.map(t => t.id));
             }
+
         }),
 
         removeOpen: asyncEvent(async function() {
+            // Closes ALL open tabs (stashed and unstashed).  This is just a
+            // convenience button for the "Unstashed Tabs" view.
             console.assert(! this.id);
             let tabs = await browser.tabs.query(
                 {currentWindow: true, hidden: false, pinned: false});

@@ -83,17 +83,28 @@ export default {
             console.assert(! this.bm);
             await stashTabs(await mostRecentUnnamedFolder(), [this.tab]);
         }),
+
         open: asyncEvent(async function() {
             await restoreTabs([this.url]);
         }),
+
         remove: asyncEvent(async function() {
             if (this.bm) {
+                if (this.tab && this.tab.hidden) {
+                    // So we don't momentarily put this tab into "Unstashed
+                    // Tabs" after it's removed and before the garbage collector
+                    // gets to it.
+                    await browser.tabs.remove(this.tab.id);
+                }
                 await browser.bookmarks.remove(this.bm.id);
+
             } else {
+                // This is an unstashed open tab.  Just close it.
                 await refocusAwayFromTabs([this.tab]);
                 await browser.tabs.remove(this.tab.id);
             }
         }),
+
         openRemove: asyncEvent(async function() {
             await restoreTabs([this.url]);
             if (this.bm) {

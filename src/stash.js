@@ -95,6 +95,11 @@ export async function stashTabs(folder_id, tabs) {
 }
 
 export async function refocusAwayFromTabs(tabs) {
+    let front_tabs = tabs.filter(t => t.active);
+
+    // If we're not closing an active tab, there's nothing to do.
+    if (front_tabs.length == 0) return;
+
     let all_tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false, pinned: false});
 
@@ -107,18 +112,14 @@ export async function refocusAwayFromTabs(tabs) {
         // Otherwise we should make sure the currently-active tab isn't a tab we
         // are about to hide/discard.  The browser won't let us hide the active
         // tab, so we'll have to activate a different tab first.
-        let front_tabs = tabs.filter(t => t.active);
-        if (front_tabs.length > 0) {
-            let idx = all_tabs.findIndex(t => t.id === front_tabs[0].id) + 1;
+        let idx = all_tabs.findIndex(t => t.id === front_tabs[0].id) + 1;
 
-            // This may be the last tab, in which case we should activate the
-            // tab before it.
-            if (idx >= all_tabs.length) idx = all_tabs.length - 2;
+        // This may be the last tab, in which case we should activate the
+        // tab before it.
+        if (idx >= all_tabs.length) idx = all_tabs.length - 2;
 
-            await browser.tabs.update(all_tabs[idx].id, {active: true});
-        }
+        await browser.tabs.update(all_tabs[idx].id, {active: true});
     }
-
 }
 
 // Determine if the currently-focused tab is the new-tab page.  If so, return
