@@ -96,61 +96,83 @@ function clone_bm(bm) {
 // See module documentation
 export class StashState {
     static async make() {
-        let state = new StashState(
-            (await browser.bookmarks.getSubTree(""))[0],
-            await browser.windows.getAll(
-                {populate: true, windowTypes: ['normal']}));
+        let defer_queue = [];
 
-        browser.bookmarks.onCreated.addListener((id, bm) => {
+        // We register event handlers immediately, so that we are collecting
+        // events even as we are waiting for the entire tree to get built.  We
+        // need to do this to avoid missing events that come in while we are
+        // building the tree--the end result will be a tree that's out of date.
+        const maybe_defer = (fn) => {
+            return (...args) => {
+                if (defer_queue) {
+                    defer_queue.push([fn, args]);
+                } else {
+                    fn(...args);
+                }
+            };
+        };
+
+        browser.bookmarks.onCreated.addListener(maybe_defer((id, bm) => {
             state._update_bm(bm);
-        });
-        browser.bookmarks.onChanged.addListener((id, info) => {
+        }));
+        browser.bookmarks.onChanged.addListener(maybe_defer((id, info) => {
             // info: {title, url}
             state._update_bm({id, title: info.title, url: info.url});
-        });
-        browser.bookmarks.onMoved.addListener((id, info) => {
+        }));
+        browser.bookmarks.onMoved.addListener(maybe_defer((id, info) => {
             // info: {parentId, index, oldParentId, oldIndex}
             state._update_bm({id, parentId: info.parentId, index: info.index});
-        });
-        browser.bookmarks.onRemoved.addListener((id, info) => {
+        }));
+        browser.bookmarks.onRemoved.addListener(maybe_defer((id, info) => {
             // info: {parentId, index, node [sans children]}
             state._drop_bm(id);
-        });
+        }));
 
-        browser.windows.onCreated.addListener(win => {
+        browser.windows.onCreated.addListener(maybe_defer(win => {
             state._update_win(win);
-        });
-        browser.windows.onRemoved.addListener(winid => {
+        }));
+        browser.windows.onRemoved.addListener(maybe_defer(winid => {
             state._drop_win(winid);
-        });
+        }));
 
-        browser.tabs.onCreated.addListener(tab => {
+        browser.tabs.onCreated.addListener(maybe_defer(tab => {
             state._update_tab(tab);
-        });
-        browser.tabs.onAttached.addListener((id, info) => {
+        }));
+        browser.tabs.onAttached.addListener(maybe_defer((id, info) => {
             // info: {newWindowId, newPosition}
             state._update_tab(
                 {id, windowId: info.newWindowId, index: info.newPosition});
-        });
-        browser.tabs.onMoved.addListener((id, info) => {
+        }));
+        browser.tabs.onMoved.addListener(maybe_defer((id, info) => {
             // info: {windowId, fromIndex, toIndex}
             state._update_tab(
                 {id, windowId: info.windowId, index: info.toIndex});
-        });
-        browser.tabs.onRemoved.addListener((id, info) => {
+        }));
+        browser.tabs.onRemoved.addListener(maybe_defer((id, info) => {
             // info: {windowId, isWindowClosing}
             state._drop_tab(id);
-        });
-        browser.tabs.onReplaced.addListener((new_id, old_id) => {
+        }));
+        browser.tabs.onReplaced.addListener(maybe_defer((new_id, old_id) => {
             state._replace_tab(new_id, old_id);
-        });
-        browser.tabs.onUpdated.addListener((id, info, tab) => {
+        }));
+        browser.tabs.onUpdated.addListener(maybe_defer((id, info, tab) => {
             // info: {audible, discarded, favIconUrl, hidden, isArticle,
             //        mutedInfo, pinned, status, title, url}
             // all optional, all representing the updated state.
             // /tab/ is the Tab object with the updated state.
             state._update_tab(tab);
-        });
+        }));
+
+        let state = new StashState(
+            (await browser.bookmarks.getSubTree(""))[0],
+            await browser.windows.getAll(
+                {populate: true, windowTypes: ['normal']}));
+
+        // Once we have finished buildin the state object, bring it up-to-date
+        // with any events that were delivered while we were querying the
+        // browser.
+        for (let [fn, args] of defer_queue) fn(...args);
+        defer_queue = undefined;
 
         return state;
     }
