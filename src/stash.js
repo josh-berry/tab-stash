@@ -22,7 +22,7 @@ export async function tabStashTree() {
     return (await browser.bookmarks.getSubTree((await rootFolder()).id))[0];
 }
 
-export async function mostRecentUnnamedFolder() {
+export async function mostRecentUnnamedFolderId() {
     let root = await rootFolder();
     let topmost = (await browser.bookmarks.getChildren(root.id))[0];
     if (topmost && topmost.type === 'folder'
@@ -51,43 +51,19 @@ export function isTabStashable(tab) {
     return true;
 }
 
-export async function stashFrontTab(folder_id) {
-    // We have to open the sidebar before the first "await" call, otherwise we
-    // won't actually have permission to do so per Firefox's API rules.
-    browser.sidebarAction.open().catch(console.log);
-
-    if (folder_id === undefined) {
-        // To avoid creating a bunch of folders with only one bookmark, we
-        // should append stashed tabs to the topmost folder, but only if it's
-        // not named--since we don't exactly know the user's intentions, we
-        // shouldn't mess with their named folders.
-        folder_id = mostRecentUnnamedFolder();
-    }
-
-    let tabs = await browser.tabs.query({currentWindow: true, hidden: false,
-                                         active: true});
-    await stashTabs(folder_id, tabs);
-}
-
-export async function stashOpenTabs(folder_id) {
-    // We have to open the sidebar before the first "await" call, otherwise we
-    // won't actually have permission to do so per Firefox's API rules.
-    browser.sidebarAction.open().catch(console.log);
-
-    let tabs = await browser.tabs.query(
-        {currentWindow: true, hidden: false, pinned: false});
-    await stashTabs(folder_id, tabs);
-}
-
 export async function stashTabs(folder_id, tabs) {
     // BIG WARNING: This function assumes that all passed-in tabs are in the
     // current window.  It WILL DO WEIRD THINGS if that's not the case.
 
     let saved_tabs = await bookmarkTabs(folder_id, tabs);
 
-    await refocusAwayFromTabs(saved_tabs);
+    await hideTabs(saved_tabs);
+}
 
-    let tids = saved_tabs.map((t) => t.id);
+export async function hideTabs(tabs) {
+    await refocusAwayFromTabs(tabs);
+
+    let tids = tabs.map((t) => t.id);
     await browser.tabs.hide(tids);
     await browser.tabs.discard(tids);
 }

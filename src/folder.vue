@@ -58,8 +58,7 @@
 import {asyncEvent} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName,
-    stashOpenTabs, stashFrontTab, stashTabs, restoreTabs,
-    refocusAwayFromTabs,
+    stashTabs, restoreTabs, refocusAwayFromTabs, hideTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
@@ -105,7 +104,8 @@ export default {
     methods: {
         stash: asyncEvent(async function() {
             if (this.id) {
-                await stashOpenTabs(this.id);
+                await stashTabs(this.id, await browser.tabs.query(
+                    {currentWindow: true, hidden: false, pinned: false}));
             } else {
                 await stashTabs(undefined, this.visibleChildren);
             }
@@ -115,7 +115,8 @@ export default {
             // Stashing the front tab to the unstashed-tabs group doesn't make
             // sense
             console.assert(this.id);
-            await stashFrontTab(this.id);
+            await stashTabs(this.id, await browser.tabs.query(
+                {currentWindow: true, hidden: false, active: true}));
         }),
 
         restoreAll: asyncEvent(async function() {
@@ -269,15 +270,14 @@ export default {
 
             } else if (! this.isWindow) {
                 console.assert(item.isTab);
-                // Save a single tab at a specific location, but don't close it.
-                // Dragging out of the "unstashed tabs" view doesn't actually
-                // imply the user wants to close the tab.
+                // Save a single tab at a specific location.
                 await browser.bookmarks.create({
                     parentId: this.id,
                     title: item.title,
                     url: item.url,
                     index: new_model_idx,
                 });
+                await hideTabs([item]);
 
             } else {
                 // Placing a tab at a particular location in the open window

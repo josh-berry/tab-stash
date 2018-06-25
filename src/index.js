@@ -2,8 +2,8 @@
 
 import {asyncEvent, urlsInTree, nonReentrant} from './util';
 import {
-    stashOpenTabs, stashFrontTab, restoreTabs, tabStashTree,
-    getFolderNameISODate,
+    stashTabs, restoreTabs, tabStashTree,
+    getFolderNameISODate, mostRecentUnnamedFolderId,
 } from './stash';
 
 browser.menus.create({
@@ -27,13 +27,23 @@ browser.menus.onClicked.addListener((info, tab) => {
     }
 });
 
-browser.browserAction.onClicked.addListener(() => {
-    stashOpenTabs(undefined).catch(console.log);
-});
+browser.browserAction.onClicked.addListener(asyncEvent(async function() {
+    // We have to open the sidebar before the first "await" call, otherwise we
+    // won't actually have permission to do so per Firefox's API rules.
+    browser.sidebarAction.open().catch(console.log);
 
-browser.pageAction.onClicked.addListener(() => {
-    stashFrontTab(undefined).catch(console.log);
-});
+    await stashTabs(undefined, await browser.tabs.query(
+        {currentWindow: true, hidden: false, pinned: false}));
+}));
+
+browser.pageAction.onClicked.addListener(asyncEvent(async function() {
+    // We have to open the sidebar before the first "await" call, otherwise we
+    // won't actually have permission to do so per Firefox's API rules.
+    browser.sidebarAction.open().catch(console.log);
+
+    await stashTabs(await mostRecentUnnamedFolderId(), await browser.tabs.query(
+        {currentWindow: true, hidden: false, active: true}));
+}));
 
 
 
