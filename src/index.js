@@ -2,7 +2,7 @@
 
 import {asyncEvent, urlsInTree, nonReentrant} from './util';
 import {
-    stashTabs, restoreTabs, tabStashTree,
+    stashTabs, bookmarkTabs, restoreTabs, tabStashTree,
     getFolderNameISODate, mostRecentUnnamedFolderId,
 } from './stash';
 
@@ -13,19 +13,37 @@ import {
 // correspond to field names in the commands object.
 //
 
+const menu_contexts = ['browser_action', 'page_action', 'tab', 'tools_menu'];
 browser.menus.create({
-    contexts: ['browser_action', 'page_action', 'tab', 'tools_menu'],
+    contexts: menu_contexts,
+    title: 'Copy All Tabs to Stash',
+    id: 'copy_all'
+});
+browser.menus.create({
+    contexts: menu_contexts,
+    title: 'Copy Tab to Stash',
+    id: 'copy_one'
+});
+browser.menus.create({
+    contexts: menu_contexts,
+    type: 'separator', enabled: false,
+});
+browser.menus.create({
+    contexts: menu_contexts,
     title: 'Show Stashed Tabs (Sidebar)',
     id: 'show_sidebar'
 });
-
 browser.menus.create({
-    contexts: ['browser_action', 'page_action', 'tab', 'tools_menu'],
+    contexts: menu_contexts,
     title: 'Show Stashed Tabs (New Tab)',
     id: 'show_tab'
 });
 
 const commands = {
+    // NOTE: Several of these commands open the sidebar.  We have to open the
+    // sidebar before the first "await" call, otherwise we won't actually have
+    // permission to do so per Firefox's API rules.
+
     show_sidebar: async function(tab) {
         browser.sidebarAction.open().catch(console.log);
     },
@@ -35,8 +53,6 @@ const commands = {
     },
 
     stash_all: async function() {
-        // We have to open the sidebar before the first "await" call, otherwise
-        // we won't actually have permission to do so per Firefox's API rules.
         browser.sidebarAction.open().catch(console.log);
 
         await stashTabs(undefined, await browser.tabs.query(
@@ -44,11 +60,19 @@ const commands = {
     },
 
     stash_one: async function(tab) {
-        // We have to open the sidebar before the first "await" call, otherwise
-        // we won't actually have permission to do so per Firefox's API rules.
         browser.sidebarAction.open().catch(console.log);
-
         await stashTabs(await mostRecentUnnamedFolderId(), [tab]);
+    },
+
+    copy_all: async function() {
+        browser.sidebarAction.open().catch(console.log);
+        await bookmarkTabs(undefined, await browser.tabs.query(
+            {currentWindow: true, hidden: false, pinned: false}));
+    },
+
+    copy_one: async function(tab) {
+        browser.sidebarAction.open().catch(console.log);
+        await bookmarkTabs(await mostRecentUnnamedFolderId(), [tab]);
     },
 };
 
