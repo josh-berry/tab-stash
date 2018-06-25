@@ -24,7 +24,7 @@
 <script>
 import {asyncEvent} from './util';
 import {
-    mostRecentUnnamedFolderId, restoreTabs, stashTabs,
+    mostRecentUnnamedFolderId, restoreTabs, stashTabs, bookmarkTabs,
     refocusAwayFromTabs,
 } from './stash';
 
@@ -95,9 +95,14 @@ export default {
     },
 
     methods: {
-        stash: asyncEvent(async function() {
+        stash: asyncEvent(async function(ev) {
             console.assert(this.tab);
-            await stashTabs(await mostRecentUnnamedFolderId(), [this.tab]);
+            if (ev.altKey) {
+                await bookmarkTabs(await mostRecentUnnamedFolderId(),
+                                   [this.tab]);
+            } else {
+                await stashTabs(await mostRecentUnnamedFolderId(), [this.tab]);
+            }
         }),
 
         open: asyncEvent(async function() {

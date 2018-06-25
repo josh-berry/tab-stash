@@ -58,7 +58,7 @@
 import {asyncEvent} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName,
-    stashTabs, restoreTabs, refocusAwayFromTabs, hideTabs,
+    stashTabs, bookmarkTabs, restoreTabs, refocusAwayFromTabs, hideTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
@@ -102,21 +102,31 @@ export default {
     },
 
     methods: {
-        stash: asyncEvent(async function() {
-            if (this.id) {
-                await stashTabs(this.id, await browser.tabs.query(
-                    {currentWindow: true, hidden: false, pinned: false}));
+        stash: asyncEvent(async function(ev) {
+            let tabs = this.id
+                ? await browser.tabs.query(
+                    {currentWindow: true, hidden: false, pinned: false})
+                : this.visibleChildren;
+
+            if (ev.altKey) {
+                await bookmarkTabs(this.id, tabs);
             } else {
-                await stashTabs(undefined, this.visibleChildren);
+                await stashTabs(this.id, tabs);
             }
         }),
 
-        stashOne: asyncEvent(async function() {
+        stashOne: asyncEvent(async function(ev) {
             // Stashing the front tab to the unstashed-tabs group doesn't make
             // sense
             console.assert(this.id);
-            await stashTabs(this.id, await browser.tabs.query(
-                {currentWindow: true, hidden: false, active: true}));
+            let tabs = await browser.tabs.query(
+                {currentWindow: true, hidden: false, active: true});
+
+            if (ev.altKey) {
+                await bookmarkTabs(this.id, tabs);
+            } else {
+                await stashTabs(this.id, tabs);
+            }
         }),
 
         restoreAll: asyncEvent(async function() {
