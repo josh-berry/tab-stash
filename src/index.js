@@ -6,44 +6,65 @@ import {
     getFolderNameISODate, mostRecentUnnamedFolderId,
 } from './stash';
 
+
+
+//
+// User-triggered commands thru menu items, etc.  IDs in the menu items
+// correspond to field names in the commands object.
+//
+
 browser.menus.create({
-    contexts: ['browser_action', 'tab', 'tools_menu'],
-    title: 'Stashed Tabs (Sidebar)',
-    id: 'show-stashed-tabs-sidebar'
+    contexts: ['browser_action', 'page_action', 'tab', 'tools_menu'],
+    title: 'Show Stashed Tabs (Sidebar)',
+    id: 'show_sidebar'
 });
 
 browser.menus.create({
-    contexts: ['browser_action', 'tab', 'tools_menu'],
-    title: 'Stashed Tabs (New Tab)',
-    id: 'show-stashed-tabs-tab'
+    contexts: ['browser_action', 'page_action', 'tab', 'tools_menu'],
+    title: 'Show Stashed Tabs (New Tab)',
+    id: 'show_tab'
 });
+
+const commands = {
+    show_sidebar: async function(tab) {
+        browser.sidebarAction.open().catch(console.log);
+    },
+
+    show_tab: async function(tab) {
+        await restoreTabs([browser.extension.getURL('stash-list.html')]);
+    },
+
+    stash_all: async function() {
+        // We have to open the sidebar before the first "await" call, otherwise
+        // we won't actually have permission to do so per Firefox's API rules.
+        browser.sidebarAction.open().catch(console.log);
+
+        await stashTabs(undefined, await browser.tabs.query(
+            {currentWindow: true, hidden: false, pinned: false}));
+    },
+
+    stash_one: async function(tab) {
+        // We have to open the sidebar before the first "await" call, otherwise
+        // we won't actually have permission to do so per Firefox's API rules.
+        browser.sidebarAction.open().catch(console.log);
+
+        await stashTabs(await mostRecentUnnamedFolderId(), [tab]);
+    },
+};
+
+
+
+//
+// Top-level/user facing event bindings, which mostly just call commands.
+//
 
 browser.menus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId == 'show-stashed-tabs-sidebar') {
-        browser.sidebarAction.open().catch(console.log);
-    } else if (info.menuItemId == 'show-stashed-tabs-tab') {
-        restoreTabs([browser.extension.getURL('stash-list.html')])
-            .catch(console.log);
-    }
+    console.assert(commands[info.menuItemId]);
+    commands[info.menuItemId](tab).catch(console.log);
 });
 
-browser.browserAction.onClicked.addListener(asyncEvent(async function() {
-    // We have to open the sidebar before the first "await" call, otherwise we
-    // won't actually have permission to do so per Firefox's API rules.
-    browser.sidebarAction.open().catch(console.log);
-
-    await stashTabs(undefined, await browser.tabs.query(
-        {currentWindow: true, hidden: false, pinned: false}));
-}));
-
-browser.pageAction.onClicked.addListener(asyncEvent(async function() {
-    // We have to open the sidebar before the first "await" call, otherwise we
-    // won't actually have permission to do so per Firefox's API rules.
-    browser.sidebarAction.open().catch(console.log);
-
-    await stashTabs(await mostRecentUnnamedFolderId(), await browser.tabs.query(
-        {currentWindow: true, hidden: false, active: true}));
-}));
+browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
+browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 
 
 
