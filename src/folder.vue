@@ -45,6 +45,7 @@
   </div>
   <div class="panel-section-list contents">
     <draggable :options="{group: 'tab'}" ref="drag"
+               class="sortable-list"
                @add="move" @update="move">
       <tab v-for="item of visibleChildren"
            :key="item.id" v-bind="item"></tab>
@@ -235,12 +236,19 @@ export default {
                 // restore a tab and then remove the bookmark.  In this case,
                 // however, we can't rely on oldIndex to tell us which way we're
                 // rotating, so we have to infer based on our neighbors.
-                let prev_idx = ev.newIndex > 0
-                    ? ev.to.children[ev.newIndex - 1].__vue__.index
-                    : ev.to.children[1].__vue__.index - 1;
-                new_model_idx = tab.index < prev_idx
-                    ? prev_idx
-                    : prev_idx + 1;
+                if (ev.to.children.length > 1) {
+                    let prev_idx = ev.newIndex > 0
+                        ? ev.to.children[ev.newIndex - 1].__vue__.index
+                        : ev.to.children[1].__vue__.index - 1;
+                    new_model_idx = tab.index < prev_idx
+                        ? prev_idx
+                        : prev_idx + 1;
+                } else {
+                    // The destination doesn't have any unfiltered children, so
+                    // we have nothing whatsoever to go on, so just don't have
+                    // an opinion because it doesn't matter.
+                    new_model_idx = -1;
+                }
 
             } else {
                 // Moving from another folder, so this is strictly an insertion.
