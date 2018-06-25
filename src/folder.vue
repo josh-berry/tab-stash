@@ -242,9 +242,6 @@ export default {
                     ? prev_idx
                     : prev_idx + 1;
 
-                console.log('prev_idx', prev_idx);
-                console.log('tab', tab.index);
-
             } else {
                 // Moving from another folder, so this is strictly an insertion.
                 // Pick the model index based on neighboring items, assuming
@@ -253,16 +250,6 @@ export default {
                     ? ev.to.children[ev.newIndex + 1].__vue__.index
                     : ev.to.children[ev.newIndex - 1].__vue__.index + 1;
             }
-
-            console.log(ev.oldIndex, ev.newIndex);
-            console.log('from_folder', from_folder.isWindow, from_folder.id,
-                        Array.map(ev.from.children, c => [
-                            c.__vue__.id, c.__vue__.index, c.__vue__.title]));
-            console.log('to_folder', this.isWindow, this.id,
-                        Array.map(ev.to.children, c => [
-                            c.__vue__.id, c.__vue__.index, c.__vue__.title]));
-            console.log('item', item.title);
-            console.log('new_model_idx', new_model_idx);
 
             if (! from_folder.isWindow && ! this.isWindow) {
                 console.assert(item.isBookmark);
