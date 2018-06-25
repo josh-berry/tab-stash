@@ -34,6 +34,9 @@
         <img src="icons/stash-dark.svg" class="action stash"
              title="Stash only the unstashed tabs to a new group"
              @click.prevent="stash">
+        <img src="icons/new-empty-group.svg" class="action stash"
+             title="Create a new empty group"
+             @click.prevent="newGroup">
         <img src="icons/delete.svg" class="action remove"
              title="Close all unstashed tabs"
              @click.prevent="remove">
@@ -57,7 +60,7 @@
 <script>
 import {asyncEvent} from './util';
 import {
-    getFolderNameISODate, genDefaultFolderName,
+    getFolderNameISODate, genDefaultFolderName, rootFolder,
     stashTabs, bookmarkTabs, restoreTabs, refocusAwayFromTabs, hideTabs,
 } from 'stash';
 
@@ -102,6 +105,15 @@ export default {
     },
 
     methods: {
+        newGroup: asyncEvent(async function(ev) {
+            await browser.bookmarks.create({
+                parentId: (await rootFolder()).id,
+                title: genDefaultFolderName(new Date()),
+                type: 'folder',
+                index: 0, // Newest folders should show up on top
+            });
+        }),
+
         stash: asyncEvent(async function(ev) {
             let tabs = this.id
                 ? await browser.tabs.query(
