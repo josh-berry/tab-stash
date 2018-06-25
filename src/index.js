@@ -13,14 +13,35 @@ import {
 // correspond to field names in the commands object.
 //
 
-const menu_contexts = ['browser_action', 'page_action', 'tab', 'tools_menu'];
+const menu_buttons = ['browser_action', 'page_action',
+                      'tab', 'page', 'tools_menu'];
+const menu_contexts = ['tab', 'page', 'tools_menu'];
 browser.menus.create({
-    contexts: menu_contexts,
+    contexts: menu_buttons,
+    title: 'Stash All Tabs',
+    id: 'stash_all'
+});
+browser.menus.create({
+    contexts: menu_buttons,
+    title: 'Stash This Tab',
+    id: 'stash_one'
+});
+browser.menus.create({
+    contexts: menu_buttons,
+    title: 'Stash This Tab to a New Group',
+    id: 'stash_one_newgroup'
+});
+browser.menus.create({
+    contexts: menu_buttons,
+    type: 'separator', enabled: false,
+});
+browser.menus.create({
+    contexts: menu_buttons,
     title: 'Copy All Tabs to Stash',
     id: 'copy_all'
 });
 browser.menus.create({
-    contexts: menu_contexts,
+    contexts: menu_buttons,
     title: 'Copy Tab to Stash',
     id: 'copy_one'
 });
@@ -62,6 +83,11 @@ const commands = {
     stash_one: async function(tab) {
         browser.sidebarAction.open().catch(console.log);
         await stashTabs(await mostRecentUnnamedFolderId(), [tab]);
+    },
+
+    stash_one_newgroup: async function(tab) {
+        browser.sidebarAction.open().catch(console.log);
+        await stashTabs(undefined, [tab]);
     },
 
     copy_all: async function() {
