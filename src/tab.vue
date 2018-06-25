@@ -4,15 +4,15 @@
             'tab': true,
             'saved': !!bm,
             'open': tab && ! tab.hidden}"
-   target="_blank" :href="url" :title="title"
-   :data-bmid="bm && bm.id" :data-tabid="tab && tab.id"
+   target="_blank" :href="url" :title="bestTitle"
    @click.prevent="open">
   <img class="icon" :src="favicon" v-if="favicon">
-  <span class="text">{{title}}</span>
+  <span class="text">{{bestTitle}}</span>
   <img src="icons/delete.svg" class="action remove"
-       :title="bm ? 'Delete this tab from the group' : 'Close this tab'"
+       :title="isBookmark ? 'Delete this tab from the group' : 'Close this tab'"
        @click.prevent.stop="remove">
-  <img v-if="bm" src="icons/restore-del.svg" class="action restore-remove"
+  <img v-if="isBookmark" src="icons/restore-del.svg"
+       class="action restore-remove"
        title="Open this tab and delete it from the group"
        @click.prevent.stop="openRemove">
   <img v-else src="icons/stash-one-dark.svg" class="action stash"
@@ -30,28 +30,44 @@ import {
 
 export default {
     props: {
+        // Common
         id: [String, Number],
-        tab: Object,
-        bm: Object,
+        parentId: [String, Number],
+        index: Number,
+        title: String,
+        url: String,
+        related: Array,
+
+        // Tabs only
+        isTab: Boolean,
+        hidden: Boolean,
+        pinned: Boolean,
+        active: Boolean,
+
+        // Bookmarks only
+        isBookmark: Boolean,
     },
 
     computed: {
-        title: function() {
-            if (this.tab) return this.tab.title;
-            return this.bm.title;
+        tab: function() {
+            if (this.isTab) return this;
+            return this.related.find(t => t.isTab);
         },
 
-        url: function() {
-            if (this.tab) return this.tab.url;
-            return this.bm.url;
+        bm: function() {
+            if (this.isBookmark) return this;
+            return this.related.find(t => t.isBookmark);
+        },
+
+        bestTitle: function() {
+            if (this.tab && this.tab.title) return this.tab.title;
+            return this.title;
         },
 
         favicon: function() {
             try {
                 // See if we have an open tab and a favicon URL we can use.
-                if (this.tab && this.tab.favIconUrl) {
-                    return this.tab.favIconUrl;
-                }
+                if (this.tab && this.tab.favIconUrl) return this.tab.favIconUrl;
 
                 // Fallback to Google if we can't pull a favicon URL from an
                 // open tab.
@@ -80,7 +96,7 @@ export default {
 
     methods: {
         stash: asyncEvent(async function() {
-            console.assert(! this.bm);
+            console.assert(this.tab);
             await stashTabs(await mostRecentUnnamedFolder(), [this.tab]);
         }),
 
@@ -89,26 +105,27 @@ export default {
         }),
 
         remove: asyncEvent(async function() {
-            if (this.bm) {
-                if (this.tab && this.tab.hidden) {
+            let tab = this.tab;
+            if (this.isBookmark) {
+                if (tab && tab.hidden) {
                     // So we don't momentarily put this tab into "Unstashed
                     // Tabs" after it's removed and before the garbage collector
                     // gets to it.
-                    await browser.tabs.remove(this.tab.id);
+                    await browser.tabs.remove(tab.id);
                 }
-                await browser.bookmarks.remove(this.bm.id);
+                await browser.bookmarks.remove(this.id);
 
             } else {
                 // This is an unstashed open tab.  Just close it.
-                await refocusAwayFromTabs([this.tab]);
-                await browser.tabs.remove(this.tab.id);
+                await refocusAwayFromTabs([tab]);
+                await browser.tabs.remove(tab.id);
             }
         }),
 
         openRemove: asyncEvent(async function() {
             await restoreTabs([this.url]);
-            if (this.bm) {
-                await browser.bookmarks.remove(this.bm.id);
+            if (this.isBookmark) {
+                await browser.bookmarks.remove(this.id);
             }
             // If this is just a tab and not a bookmark, we don't remove the
             // tab, since openRemove indicates the user wanted to switch to the

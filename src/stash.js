@@ -66,7 +66,7 @@ export async function stashFrontTab(folder_id) {
 
     let tabs = await browser.tabs.query({currentWindow: true, hidden: false,
                                          active: true});
-    return await stashTabs(folder_id, tabs);
+    await stashTabs(folder_id, tabs);
 }
 
 export async function stashOpenTabs(folder_id) {
@@ -76,7 +76,7 @@ export async function stashOpenTabs(folder_id) {
 
     let tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false, pinned: false});
-    return await stashTabs(folder_id, tabs);
+    await stashTabs(folder_id, tabs);
 }
 
 export async function stashTabs(folder_id, tabs) {
@@ -90,15 +90,13 @@ export async function stashTabs(folder_id, tabs) {
     let tids = saved_tabs.map((t) => t.id);
     await browser.tabs.hide(tids);
     await browser.tabs.discard(tids);
-
-    return saved_tabs;
 }
 
 export async function refocusAwayFromTabs(tabs) {
-    let front_tabs = tabs.filter(t => t.active);
+    let front_idx = tabs.findIndex(t => t.active);
 
     // If we're not closing an active tab, there's nothing to do.
-    if (front_tabs.length == 0) return;
+    if (front_idx === -1) return;
 
     let all_tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false, pinned: false});
@@ -112,13 +110,18 @@ export async function refocusAwayFromTabs(tabs) {
         // Otherwise we should make sure the currently-active tab isn't a tab we
         // are about to hide/discard.  The browser won't let us hide the active
         // tab, so we'll have to activate a different tab first.
-        let idx = all_tabs.findIndex(t => t.id === front_tabs[0].id) + 1;
+        front_idx = all_tabs.findIndex(t => t.active);
+        let front_tab = all_tabs[front_idx];
 
-        // This may be the last tab, in which case we should activate the
-        // tab before it.
-        if (idx >= all_tabs.length) idx = all_tabs.length - 2;
+        let candidates = all_tabs.slice(front_idx + 1);
+        let focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
+        if (! focus_tab) {
+            candidates = all_tabs.slice(0, front_idx);
+            focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
+        }
+        console.assert(focus_tab);
 
-        await browser.tabs.update(all_tabs[idx].id, {active: true});
+        await browser.tabs.update(focus_tab.id, {active: true});
     }
 }
 
@@ -223,9 +226,6 @@ export async function bookmarkTabs(folderId, all_tabs) {
             title: tabs_to_actually_save[tab_index].title,
             url: tabs_to_actually_save[tab_index].url,
         }));
-        // Put a reference to the bookmark into the tab object, so callers can
-        // find the bookmark we just created.
-        tabs_to_actually_save[tab_index].bm = bm;
         ++tab_index;
     }
     for (let p of ps) await p;

@@ -44,10 +44,10 @@
     </div>
   </div>
   <div class="panel-section-list contents">
-    <draggable v-model="children" :data-id="id"
-               :options="{group: 'tab'}"
+    <draggable :options="{group: 'tab'}" ref="drag"
                @add="move" @update="move">
-      <tab v-for="item of children" :key="item.id" v-bind="item"></tab>
+      <tab v-for="item of visibleChildren"
+           :key="item.id" v-bind="item"></tab>
     </draggable>
   </div>
 </div>
@@ -69,10 +69,17 @@ export default {
     components: {Draggable, EditableLabel, Tab},
 
     props: {
-        title: String,
-        children: Array,
+        // Common
         id: [String, Number],
+        filter: Function,
+        children: Array,
+        title: String,
+
+        // Bookmark folder
         dateAdded: Number,
+
+        // Window
+        isWindow: Boolean,
     },
 
     data: () => ({
@@ -88,22 +95,26 @@ export default {
                 ? `Saved ${(new Date(getFolderNameISODate(this.title))).toLocaleString()}`
                 : this.title;
         },
+        visibleChildren: function() {
+            return this.children.filter(
+                c => c.url && (! this.filter || this.filter(c)));
+        },
     },
 
     methods: {
-        stash: asyncEvent(function() {
+        stash: asyncEvent(async function() {
             if (this.id) {
-                return stashOpenTabs(this.id);
+                await stashOpenTabs(this.id);
             } else {
-                return stashTabs(undefined, this.children.map(t => t.tab));
+                await stashTabs(undefined, this.visibleChildren);
             }
         }),
 
-        stashOne: asyncEvent(function() {
+        stashOne: asyncEvent(async function() {
             // Stashing the front tab to the unstashed-tabs group doesn't make
             // sense
             console.assert(this.id);
-            return stashFrontTab(this.id);
+            await stashFrontTab(this.id);
         }),
 
         restoreAll: asyncEvent(async function() {
@@ -113,7 +124,7 @@ export default {
             // since that will disturb the browser's focus.
             let curtab = await browser.tabs.getCurrent();
 
-            await restoreTabs(this.children.map(item => item.bm.url));
+            await restoreTabs(this.children.map(item => item.url));
 
             // If we ourselves are open in a tab (and not the sidebar or a
             // popup), close the tab so the user doesn't have to.
@@ -121,8 +132,6 @@ export default {
         }),
 
         remove: asyncEvent(async function() {
-            let tabs = this.children.filter(t => t.tab).map(t => t.tab);
-
             if (this.id) {
                 // If we have any hidden tabs stored for these bookmarks, we
                 // should remove them first.  We do this explicitly to avoid the
@@ -138,10 +147,9 @@ export default {
                 // This is the "open-tabs" folder; user has asked us to close
                 // all unstashed tabs.  Open a new tab for them and close all
                 // the existing ones.
-                await refocusAwayFromTabs(tabs);
-                await browser.tabs.remove(tabs.map(t => t.id));
+                await refocusAwayFromTabs(this.visibleChildren);
+                await browser.tabs.remove(this.visibleChildren.map(t => t.id));
             }
-
         }),
 
         removeOpen: asyncEvent(async function() {
@@ -161,7 +169,7 @@ export default {
             // since that will disturb the browser's focus.
             let curtab = await browser.tabs.getCurrent();
 
-            await restoreTabs(this.children.map(item => item.bm.url));
+            await restoreTabs(this.children.map(item => item.url));
 
             // Discard opened tabs as requested.
             await browser.bookmarks.removeTree(this.id);
@@ -181,70 +189,127 @@ export default {
 
         move: asyncEvent(async function(ev) {
             // Move is somewhat complicated, since we can have a combination of
-            // different types of folders, and each needs to be handled
-            // differently.
+            // different types of tabs (open tabs vs bookmarks) and folders
+            // (folder of open tabs vs folder of bookmarks), and each needs to
+            // be handled differently.
             //
             // Note that because of the way the events are bound, if we are
             // dragging between two folders, move is always triggered only on
             // the destination folder.
+            //
+            // One other critical thing to keep in mind--we have to calculate
+            // indexes based on our children's .index values, and NOT the
+            // positions as reported by ev.newIndex etc.  This is because the
+            // children array might be filtered.
 
-            if (ev.to.dataset.id && ev.from.dataset.id) {
+            // XXX All this nonsense with __vue__ is *totally documented*
+            // (StackOverflow counts as documentation, right? :D), and super
+            // #$*&ing janky because we're reaching into HTML to find out what
+            // the heck Vue.Draggable is doing, but it seems to work...
+            //
+            // Note that ev.from is the <draggable>, so we want the parent
+            // <folder>.
+            const from_folder = ev.from.__vue__.$parent;
+            const item = ev.item.__vue__;
+            const tab = item.tab;
+
+            // Note that ev.to.children ALREADY reflects the updated state of
+            // the list post-move, so we have to do some weird black-magic math
+            // to determine which item got replaced, and thus the final index at
+            // which to place the moved item in the model.
+            let new_model_idx;
+            if (this === from_folder) {
+                // Moving within the same folder, so this is a rotation.  The
+                // item was previously removed from oldIndex, so subsequent
+                // items would have rotated upwards, and then when it was
+                // reinserted, items after the new position would have rotated
+                // downwards again.
+                new_model_idx = ev.newIndex < ev.oldIndex
+                    ? ev.to.children[ev.newIndex + 1].__vue__.index
+                    : ev.to.children[ev.newIndex - 1].__vue__.index;
+
+            } else if (this.isWindow && tab) {
+                // Moving a bookmark with an open tab from a bookmark folder to
+                // the window folder.  This is ALSO a rotation, though it
+                // doesn't much look like it--it's the case below where we
+                // restore a tab and then remove the bookmark.  In this case,
+                // however, we can't rely on oldIndex to tell us which way we're
+                // rotating, so we have to infer based on our neighbors.
+                let prev_idx = ev.newIndex > 0
+                    ? ev.to.children[ev.newIndex - 1].__vue__.index
+                    : ev.to.children[1].__vue__.index - 1;
+                new_model_idx = tab.index < prev_idx
+                    ? prev_idx
+                    : prev_idx + 1;
+
+                console.log('prev_idx', prev_idx);
+                console.log('tab', tab.index);
+
+            } else {
+                // Moving from another folder, so this is strictly an insertion.
+                // Pick the model index based on neighboring items, assuming
+                // that the insertion would have shifted everything else down.
+                new_model_idx = ev.newIndex < ev.to.children.length - 1
+                    ? ev.to.children[ev.newIndex + 1].__vue__.index
+                    : ev.to.children[ev.newIndex - 1].__vue__.index + 1;
+            }
+
+            console.log(ev.oldIndex, ev.newIndex);
+            console.log('from_folder', from_folder.isWindow, from_folder.id,
+                        Array.map(ev.from.children, c => [
+                            c.__vue__.id, c.__vue__.index, c.__vue__.title]));
+            console.log('to_folder', this.isWindow, this.id,
+                        Array.map(ev.to.children, c => [
+                            c.__vue__.id, c.__vue__.index, c.__vue__.title]));
+            console.log('item', item.title);
+            console.log('new_model_idx', new_model_idx);
+
+            if (! from_folder.isWindow && ! this.isWindow) {
+                console.assert(item.isBookmark);
                 // Moving a stashed tab from one place to another.
-                browser.bookmarks.move(ev.item.dataset.bmid, {
-                    parentId: ev.to.dataset.id,
-                    index: ev.newIndex,
+                browser.bookmarks.move(item.id, {
+                    parentId: this.id,
+                    index: new_model_idx,
                 }).catch(console.log);
 
-            } else if (ev.to.dataset.id) {
-                // Stashing a single tab at a specific location.
-                let tabs = await stashTabs(
-                    ev.to.dataset.id,
-                    [await browser.tabs.get(ev.item.dataset.tabid|0)]);
-
-                if (tabs[0].bm) {
-                    await browser.bookmarks.move(
-                        tabs[0].bm.id, {index: ev.newIndex});
-                }
+            } else if (! this.isWindow) {
+                console.assert(item.isTab);
+                // Save a single tab at a specific location, but don't close it.
+                // Dragging out of the "unstashed tabs" view doesn't actually
+                // imply the user wants to close the tab.
+                await browser.bookmarks.create({
+                    parentId: this.id,
+                    title: item.title,
+                    url: item.url,
+                    index: new_model_idx,
+                });
 
             } else {
                 // Placing a tab at a particular location in the open window
                 // (and possibly restoring it from the stash if necessary).
-                let tid = ev.item.dataset.tabid | 0;
+                let tid = tab ? tab.id : undefined;
 
-                if (ev.item.dataset.bmid) {
+                if (! tid) {
                     // Restoring from the stash.
-                    let bm = await browser.bookmarks.get(ev.item.dataset.bmid);
-                    let tabs = await restoreTabs([bm[0].url]);
+                    let tabs = await restoreTabs([item.url]);
 
                     if (tabs[0]) {
                         tid = tabs[0].id;
                     } else {
                         // We didn't actually restore anything; just go with the
                         // tabid we already have.
-                        console.assert(tid);
                     }
-
-                    // Remove the restored bookmark in the background
-                    browser.bookmarks.remove(ev.item.dataset.bmid)
-                        .catch(console.log);
                 }
 
-                // Now move the tab (whether it was restored or already open) to
-                // the right location.  This is slightly harder than it
-                // sounds--the browser intersperses hidden and visible tabs, so
-                // we have to choose a reasonable index to account for the
-                // locations of hidden tabs.
+                // Remove the restored bookmark in the background
+                if (item.isBookmark) {
+                    browser.bookmarks.remove(item.id).catch(console.log);
+                }
 
-                // The black magic used to set /idx/ takes into account the fact
-                // that this.children has /already/ been moved to its new
-                // location--so this.children[ev.newIndex] is always the tab we
-                // are moving.
-                let idx = ev.newIndex > 0
-                    ? this.children[ev.newIndex-1].tab.index
-                      + (ev.newIndex < ev.oldIndex ? 1 : 0)
-                    : this.children[1].tab.index;
-
-                await browser.tabs.move(tid, {index: idx});
+                console.assert(tid !== undefined);
+                await browser.tabs.move(tid, {
+                    windowId: this.id, index: new_model_idx,
+                });
                 await browser.tabs.show(tid);
             }
         }),

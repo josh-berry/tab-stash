@@ -10,15 +10,20 @@
          title="Hide all tabs so only group names are showing"
          @click.prevent="collapseAll">
   </div>
-  <folder id="" title="Unstashed Tabs" :dateAdded="0"
-          ref="unstashed" :children="unstashed_tabs"></folder>
+  <folder :isWindow="true" title="Unstashed Tabs"
+          ref="unstashed" :children="unstashed_tabs"
+          :filter="unstashedFilter">
+  </folder>
   <folder-list ref="stashed" :folders="stashed_tabs"></folder-list>
 </div>
 </template>
 
 <script>
+import {isTabStashable} from './stash';
+
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
+
 export default {
     components: {
         FolderList,
@@ -42,6 +47,11 @@ export default {
             this.collapsed = ! this.collapsed;
             this.$refs.unstashed.collapsed = this.collapsed;
             this.$refs.stashed.setCollapsed(this.collapsed);
+        },
+
+        unstashedFilter(t) {
+            return ! t.hidden && isTabStashable(t)
+                && ! t.related.find(i => i.isBookmark);
         },
     },
 };

@@ -1,8 +1,10 @@
 <template>
 <draggable v-model="folders" @update="move">
-  <folder v-for="f in folders" :key="f.title" v-bind="f"
-          ref="folders"
-          :data-bmid="f.id">
+  <folder v-for="f in folders" v-if="f.children"
+          :key="f.title"
+          :id="f.id" :children="f.children"
+          :title="f.title" :dateAdded="f.dateAdded"
+          ref="folders">
   </folder>
 </draggable>
 </template>
@@ -17,7 +19,7 @@ export default {
 
     methods: {
         move: function(ev) {
-            browser.bookmarks.move(ev.item.dataset.bmid, {
+            browser.bookmarks.move(ev.item.__vue__.id, {
                 index: ev.newIndex,
             }).catch(console.log);
         },
