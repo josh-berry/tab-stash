@@ -140,7 +140,9 @@ export default {
                 // momentary reshuffling of hidden tabs into the "Unstashed
                 // Tabs" list which would happen if this was left to the garbage
                 // collector in index.js.
-                tabs = tabs.filter(t => t.hidden);
+                let tabs = this.children
+                    .map(bm => bm.related.find(t => t.isTab))
+                    .filter(t => t && t.hidden);
                 await browser.tabs.remove(tabs.map(t => t.id));
 
                 await browser.bookmarks.removeTree(this.id);
