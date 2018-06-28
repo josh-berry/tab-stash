@@ -6,7 +6,10 @@
             'open': tab && ! tab.hidden}"
    target="_blank" :href="url" :title="bestTitle"
    @click.prevent="open">
-  <img class="icon" :src="favicon" v-if="favicon">
+  <img v-if="favicon" class="icon"
+       :src="favicon" :srcset="favicon ? favicon + ' 2x' : ''"
+       referrerpolicy="no-referrer"
+       alt="">
   <span class="text">{{bestTitle}}</span>
   <img src="icons/delete.svg" class="action remove"
        :title="isBookmark ? 'Delete this tab from the group' : 'Close this tab'"
@@ -43,6 +46,7 @@ export default {
         hidden: Boolean,
         pinned: Boolean,
         active: Boolean,
+        favIconUrl: Boolean,
 
         // Bookmarks only
         isBookmark: Boolean,
@@ -61,7 +65,7 @@ export default {
 
         bestTitle: function() {
             if (this.tab && this.tab.title) return this.tab.title;
-            return this.title;
+            return this.bm.title;
         },
 
         favicon: function() {
