@@ -19,13 +19,13 @@
        title="Open this tab and delete it from the group"
        @click.prevent.stop="openRemove">
   <img v-else src="icons/stash-one-dark.svg" class="action stash"
-       title="Stash this tab"
+       :title="`Stash this tab (hold ${altkey} to keep tab open)`"
        @click.prevent.stop="stash">
 </a>
 </template>
 
 <script>
-import {asyncEvent} from './util';
+import {asyncEvent, altKeyName} from './util';
 import {
     mostRecentUnnamedFolderId, restoreTabs, stashTabs, bookmarkTabs,
     refocusAwayFromTabs,
@@ -46,13 +46,15 @@ export default {
         hidden: Boolean,
         pinned: Boolean,
         active: Boolean,
-        favIconUrl: Boolean,
+        favIconUrl: String,
 
         // Bookmarks only
         isBookmark: Boolean,
     },
 
     computed: {
+        altkey: altKeyName,
+
         tab: function() {
             if (this.isTab) return this;
             return this.related.find(t => t.isTab);

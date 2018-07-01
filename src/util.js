@@ -1,5 +1,20 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 
+// Ugh, stupid hack for the fact that getting stuff from the browser that should
+// be a compiled-in set of constants is actually done through an async API...
+//
+// This is f*king racy and gross, but there's nothing we can do here since the
+// browser doesn't give us a way to block on a Promise (understandably so, since
+// that would raise a whole host of other reentrancy issues that most developers
+// probably don't want to deal with...).
+let PLATFORM_INFO = {
+    'os': 'unknown',
+    'arch': 'unknown',
+    'nacl_arch': 'unknown',
+};
+browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
+export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
+
 export function urlsInTree(bm_tree) {
     let urls = [];
     function collect(bm) {

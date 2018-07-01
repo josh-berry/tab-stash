@@ -5,8 +5,8 @@
       {{stashed_tabs.length}} {{stashed_tabs.length == 1 ? 'group' : 'groups'}},
       {{tab_count}} {{tab_count == 1 ? 'tab' : 'tabs'}}
     </span>
-    <img src="icons/collapse.svg"
-         :class="{action: true, collapse: true, toggled: collapsed}"
+    <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
+         :class="{action: true, collapse: true}"
          title="Hide all tabs so only group names are showing"
          @click.prevent="collapseAll">
   </div>

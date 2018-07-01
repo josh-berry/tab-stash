@@ -9,16 +9,16 @@
                       :isDefaultValue="isTitleDefault"
                       :enabled="!! id"
                       @update:value="rename"></editable-label>
-      <img src="icons/collapse.svg"
-           :class="{action: true, collapse: true, toggled: collapsed}"
+      <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
+           :class="{action: true, collapse: true}"
            title="Hide the tabs for this group"
            @click.prevent="collapsed = ! collapsed">
       <nav v-if="id">
         <img src="icons/stash-dark.svg" class="action stash"
-             title="Stash all open tabs to this group"
+             :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
              @click.prevent="stash">
         <img src="icons/stash-one-dark.svg" class="action stash"
-             title="Stash the active tab to this group"
+             :title="`Stash the active tab to this group (hold ${altkey} to keep tab open)`"
              @click.prevent="stashOne">
         <img src="icons/restore.svg" class="action restore"
              title="Open all tabs in this group"
@@ -32,7 +32,7 @@
       </nav>
       <nav v-else>
         <img src="icons/stash-dark.svg" class="action stash"
-             title="Stash only the unstashed tabs to a new group"
+             :title="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`"
              @click.prevent="stash">
         <img src="icons/new-empty-group.svg" class="action stash"
              title="Create a new empty group"
@@ -58,7 +58,7 @@
 </template>
 
 <script>
-import {asyncEvent} from './util';
+import {asyncEvent, altKeyName} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     stashTabs, bookmarkTabs, restoreTabs, refocusAwayFromTabs, hideTabs,
@@ -90,6 +90,8 @@ export default {
     }),
 
     computed: {
+        altkey: altKeyName,
+
         isTitleDefault: function() {
             return getFolderNameISODate(this.title) !== null;
         },
