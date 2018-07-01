@@ -48,15 +48,20 @@
           background-color: rgba(0, 0, 0, 0.12);
       }
       .action-container:hover .action:active,
-      .action-container .action.toggled
-      {
-          background-color: rgba(0, 0, 0, 0.18);
-      }
       img.action {
           width: 24px;
           height: 24px;
           padding: 4px 4px;
           border-radius: 5px;
+      }
+      .action-container:hover .action.collapse {
+          background-color: rgba(0, 0, 0, 0);
+      }
+      .action-container:hover .action.collapse:hover {
+          background-color: rgba(0, 0, 0, 0.06);
+      }
+      .action-container:hover .action.collapse:active {
+          background-color: rgba(0, 0, 0, 0.12);
       }
       .action-container:hover .action.stash {
           background-color: #cce5ff;
