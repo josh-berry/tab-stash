@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Stashed Tabs</title>
+    <title>Tab Stash</title>
     <script type="text/javascript" src="stash-list.js"></script>
     <link rel="shortcut icon" href="../icons/logo.svg">
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
@@ -104,7 +104,7 @@
       .header {
           /* To align with saved tab actions */
           padding: 0;
-          margin: 0 0 0 44px;
+          margin: 0 44px;
       }
       .folder .header {
           display: grid;
@@ -181,7 +181,7 @@
       /* Saved-tab entries - Large grid */
       .tab {
           display: grid;
-          grid-template-columns: 22px 22px 22px 1fr;
+          grid-template-columns: 22px 22px 22px 1fr 44px;
       }
       .tab > .remove { grid-row: 1; grid-column: 1; }
       .tab > .restore-remove { grid-row: 1; grid-column: 2; }
