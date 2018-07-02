@@ -117,11 +117,17 @@ export class StashState {
         }));
         browser.bookmarks.onChanged.addListener(maybe_defer((id, info) => {
             // info: {title, url}
-            state._update_bm({id, title: info.title, url: info.url});
+            //
+            // NOTE: We use Object.assign here so that if title/url are missing,
+            // they are not included in the info object directly.
+            state._update_bm(Object.assign({id}, info));
         }));
         browser.bookmarks.onMoved.addListener(maybe_defer((id, info) => {
             // info: {parentId, index, oldParentId, oldIndex}
-            state._update_bm({id, parentId: info.parentId, index: info.index});
+            //
+            // NOTE: We use Object.assign here so that if title/url are missing,
+            // they are not included in the info object directly.
+            state._update_bm(Object.assign({id}));
         }));
         browser.bookmarks.onRemoved.addListener(maybe_defer((id, info) => {
             // info: {parentId, index, node [sans children]}
@@ -140,13 +146,27 @@ export class StashState {
         }));
         browser.tabs.onAttached.addListener(maybe_defer((id, info) => {
             // info: {newWindowId, newPosition}
-            state._update_tab(
-                {id, windowId: info.newWindowId, index: info.newPosition});
+            //
+            // NOTE: We do this weird assignment thing because _update_tab
+            // expects properties we don't know anything about to not
+            // exist--letting them exist and setting them to 'undefined' is the
+            // same as explicitly unsetting them.
+            let o = {id};
+            if (info.newWindowId !== undefined) o.windowId = info.newWindowId;
+            if (info.newPosition !== undefined) o.index = info.newPosition;
+            state._update_tab(o);
         }));
         browser.tabs.onMoved.addListener(maybe_defer((id, info) => {
             // info: {windowId, fromIndex, toIndex}
-            state._update_tab(
-                {id, windowId: info.windowId, index: info.toIndex});
+            //
+            // NOTE: We do this weird assignment thing because _update_tab
+            // expects properties we don't know anything about to not
+            // exist--letting them exist and setting them to 'undefined' is the
+            // same as explicitly unsetting them.
+            let o = {id};
+            if (info.windowId !== undefined) o.windowId = info.windowId;
+            if (info.toIndex !== undefined) o.index = info.toIndex;
+            state._update_tab(o);
         }));
         browser.tabs.onRemoved.addListener(maybe_defer((id, info) => {
             // info: {windowId, isWindowClosing}
