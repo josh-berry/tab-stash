@@ -38,10 +38,14 @@
              title="Create a new empty group"
              @click.prevent="newGroup">
         <img src="icons/delete.svg" class="action remove"
-             :title="`Close all unstashed tabs (hold ${altkey} to hide stashed tabs)`"
+             :title="
+`Click: Close all unstashed tabs
+${altkey}+Click: Close/hide all stashed tabs`"
              @click.prevent="remove">
         <img src="icons/delete-opened.svg" class="action remove"
-             title="Close all open tabs"
+             :title="
+`Click: Close all open tabs
+${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
              @click.prevent="removeOpen">
       </nav>
     </div>
@@ -184,7 +188,7 @@ export default {
                     // XXX This is similar to the unstashedFilter, but the
                     // isBookmark test is inverted.
                     await hideTabs(this.children.filter(
-                        t => ! t.hidden && isTabStashable(t)
+                        t => ! t.hidden && ! t.pinned
                             && this.isItemStashed(t)));
                 } else {
                     // User has asked us to hide all unstashed tabs.
@@ -194,13 +198,26 @@ export default {
             }
         }),
 
-        removeOpen: asyncEvent(async function() {
-            // Closes ALL open tabs (stashed and unstashed).  This is just a
-            // convenience button for the "Unstashed Tabs" view.
+        removeOpen: asyncEvent(async function(ev) {
             console.assert(! this.id);
-            let tabs = await browser.tabs.query(
-                {currentWindow: true, hidden: false, pinned: false});
-            await closeTabs(tabs);
+            if (ev.altKey) {
+                // Discard hidden/stashed tabs to free memory.
+                let tabs = this.children.filter(
+                    t => t.hidden && this.isItemStashed(t));
+                await closeTabs(tabs);
+            } else {
+                // Closes ALL open tabs (stashed and unstashed).  This is just a
+                // convenience button for the "Unstashed Tabs" view.
+                //
+                // For performance, we will try to identify stashed tabs the
+                // user might want to keep, and hide instead of close them.
+                let hide_tabs = this.children.filter(
+                    t => ! t.hidden && ! t.pinned && this.isItemStashed(t));
+                let close_tabs = this.children.filter(
+                    t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t));
+                hideTabs(hide_tabs).catch(console.log);
+                closeTabs(close_tabs).catch(console.log);
+            }
         }),
 
         restoreAndRemove: asyncEvent(async function() {
