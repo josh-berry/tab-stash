@@ -56,29 +56,29 @@
   <defs
      id="defs14" />
   <path
-     d="M 74.25,30 H 70.5 V 12 A 7.5,6 0 0 0 63,6 H 33 a 7.5,6 0 0 0 -7.5,6 v 18 h -3.75 a 3.75,3 0 0 0 0,6 h 52.5 a 3.75,3 0 1 0 0,-6 z"
+     d="M 74.25,24 H 70.5 V 6 A 7.5,6 0 0 0 63,0 H 33 a 7.5,6 0 0 0 -7.5,6 v 18 h -3.75 a 3.75,3 0 0 0 0,6 h 52.5 a 3.75,3 0 1 0 0,-6 z"
      id="path5"
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:3.35410261"
      inkscape:connector-curvature="0" />
   <path
      id="path8"
-     d="m 27,60 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     d="m 27,54 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
      inkscape:connector-curvature="0" />
   <path
      id="path10"
-     d="m 6,48 v 30 c 0,12 6,18 18,18 H 72 C 84,96 90,90 90,78 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
+     d="m 6,42 v 30 c 0,12 6,18 18,18 H 72 C 84,90 90,84 90,72 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 78 H 18 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="csssscsccccsc" />
   <path
-     d="m 27,72 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     d="m 27,66 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      id="path3702"
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
      inkscape:connector-curvature="0" />
   <path
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
-     d="m 27,48 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     d="m 27,42 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      id="path832"
      inkscape:connector-curvature="0" />
 </svg>

@@ -28,7 +28,7 @@
      id="namedview5971"
      showgrid="true"
      inkscape:zoom="5.5520833"
-     inkscape:cx="48"
+     inkscape:cx="15.129456"
      inkscape:cy="48"
      inkscape:window-x="378"
      inkscape:window-y="212"
@@ -58,18 +58,18 @@
      id="defs14" />
   <path
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
-     d="m 6,48 v 30 c 0,12 6,18 18,18 H 72 C 84,96 90,90 90,78 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
+     d="m 6,42 v 30 c 0,12 6,18 18,18 H 72 C 84,90 90,84 90,72 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 78 H 18 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
      id="path10"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="csssscsccccsc" />
   <path
      style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:5.99824047;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.8"
-     d="M 47.99942,9.0400502 V 32.958165"
+     d="M 47.99942,3.0400502 V 26.958165"
      id="path890"
      inkscape:connector-curvature="0" />
   <path
      inkscape:connector-curvature="0"
      id="path1488"
-     d="M 33.051644,20.990908 H 62.930471"
+     d="M 33.051644,14.990908 H 62.930471"
      style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:6.01758242;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.8" />
 </svg>
