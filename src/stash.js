@@ -75,13 +75,14 @@ export async function closeTabs(tabs) {
 }
 
 async function refocusAwayFromTabs(tabs) {
-    let front_idx = tabs.findIndex(t => t.active);
-
-    // If we're not closing an active tab, there's nothing to do.
-    if (front_idx === -1) return;
-
     let all_tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false, pinned: false});
+
+    let front_tab = all_tabs.find(t => t.active);
+    if (! tabs.find(t => t.id === front_tab.id)) {
+        // We are not closing the active tab.  Nothing to do.
+        return;
+    }
 
     if (tabs.length >= all_tabs.length) {
         // If we are about to close all visible tabs in the window, we should
@@ -92,13 +93,16 @@ async function refocusAwayFromTabs(tabs) {
         // Otherwise we should make sure the currently-active tab isn't a tab we
         // are about to hide/discard.  The browser won't let us hide the active
         // tab, so we'll have to activate a different tab first.
-        front_idx = all_tabs.findIndex(t => t.active);
-        let front_tab = all_tabs[front_idx];
+        //
+        // We do this search a little strangely--first looking only at tabs
+        // AFTER the tabs we're stashing, followed by looking only at tabs
+        // BEFORE the tabs we're stashing, to mimic the browser's behavior when
+        // closing the front tab.
 
-        let candidates = all_tabs.slice(front_idx + 1);
+        let candidates = all_tabs.slice(front_tab.index + 1);
         let focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         if (! focus_tab) {
-            candidates = all_tabs.slice(0, front_idx);
+            candidates = all_tabs.slice(0, front_tab.index);
             focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         }
         console.assert(focus_tab);
