@@ -38,7 +38,7 @@
              title="Create a new empty group"
              @click.prevent="newGroup">
         <img src="icons/delete.svg" class="action remove"
-             title="Close all unstashed tabs"
+             :title="`Close all unstashed tabs (hold ${altkey} to hide stashed tabs)`"
              @click.prevent="remove">
         <img src="icons/delete-opened.svg" class="action remove"
              title="Close all open tabs"
@@ -61,7 +61,8 @@
 import {asyncEvent, altKeyName} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
-    stashTabs, bookmarkTabs, restoreTabs, refocusAwayFromTabs, hideTabs,
+    isTabStashable,
+    stashTabs, bookmarkTabs, restoreTabs, closeTabs, hideTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
@@ -75,7 +76,7 @@ export default {
         // Common
         id: [String, Number],
         filter: Function,
-        children: Array,
+        children: Array, // tabs in this window, OR bookmarks in this folder
         title: String,
 
         // Bookmark folder
@@ -157,7 +158,7 @@ export default {
             if (curtab) await browser.tabs.remove([curtab.id]);
         }),
 
-        remove: asyncEvent(async function() {
+        remove: asyncEvent(async function(ev) {
             if (this.id) {
                 // If we have any hidden tabs stored for these bookmarks, we
                 // should remove them first.  We do this explicitly to avoid the
@@ -172,11 +173,21 @@ export default {
                 await browser.bookmarks.removeTree(this.id);
 
             } else {
-                // This is the "open-tabs" folder; user has asked us to close
-                // all unstashed tabs.  Open a new tab for them and close all
-                // the existing ones.
-                await refocusAwayFromTabs(this.visibleChildren);
-                await browser.tabs.remove(this.visibleChildren.map(t => t.id));
+                // This is the "open-tabs" folder.
+                if (ev.altKey) {
+                    // User has asked us to hide all STASHED tabs.
+                    // (Note that this.visibleChildren are the UNSTASHED tabs)
+                    //
+                    // XXX This is similar to the unstashedFilter, but the
+                    // isBookmark test is inverted.
+                    await hideTabs(this.children.filter(
+                        t => ! t.hidden && isTabStashable(t)
+                            && t.related.find(i => i.isBookmark)));
+                } else {
+                    // User has asked us to hide all unstashed tabs.
+                    await closeTabs(this.visibleChildren);
+                }
+
             }
         }),
 
@@ -186,8 +197,7 @@ export default {
             console.assert(! this.id);
             let tabs = await browser.tabs.query(
                 {currentWindow: true, hidden: false, pinned: false});
-            await refocusAwayFromTabs(tabs);
-            await browser.tabs.remove(tabs.map(t => t.id));
+            await closeTabs(tabs);
         }),
 
         restoreAndRemove: asyncEvent(async function() {

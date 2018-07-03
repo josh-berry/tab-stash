@@ -34,6 +34,8 @@ export async function mostRecentUnnamedFolderId() {
 }
 
 export function isTabStashable(tab) {
+    if (tab.pinned) return false;
+
     try {
         let url = new URL(tab.url);
         switch (url.protocol) {
@@ -47,7 +49,6 @@ export function isTabStashable(tab) {
         return false;
     }
 
-    if (tab.pinned) return false;
     return true;
 }
 
@@ -68,7 +69,12 @@ export async function hideTabs(tabs) {
     await browser.tabs.discard(tids);
 }
 
-export async function refocusAwayFromTabs(tabs) {
+export async function closeTabs(tabs) {
+    await refocusAwayFromTabs(tabs);
+    await browser.tabs.remove(tabs.map(t => t.id));
+}
+
+async function refocusAwayFromTabs(tabs) {
     let front_idx = tabs.findIndex(t => t.active);
 
     // If we're not closing an active tab, there's nothing to do.

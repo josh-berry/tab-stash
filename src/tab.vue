@@ -28,7 +28,7 @@
 import {asyncEvent, altKeyName} from './util';
 import {
     mostRecentUnnamedFolderId, restoreTabs, stashTabs, bookmarkTabs,
-    refocusAwayFromTabs,
+    closeTabs,
 } from './stash';
 
 export default {
@@ -128,8 +128,7 @@ export default {
 
             } else {
                 // This is an unstashed open tab.  Just close it.
-                await refocusAwayFromTabs([tab]);
-                await browser.tabs.remove(tab.id);
+                await closeTabs([tab]);
             }
         }),
 
