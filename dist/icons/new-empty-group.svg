@@ -28,7 +28,7 @@
      id="namedview5971"
      showgrid="true"
      inkscape:zoom="5.5520833"
-     inkscape:cx="15.129456"
+     inkscape:cx="48"
      inkscape:cy="48"
      inkscape:window-x="378"
      inkscape:window-y="212"
@@ -50,7 +50,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -58,8 +58,10 @@
      id="defs14" />
   <path
      style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
-     d="m 6,48 v 30 c 0,12 6,12 12,12 h 60 c 6,0 12,0 12,-12 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
-     id="path10" />
+     d="m 6,48 v 30 c 0,12 6,18 18,18 H 72 C 84,96 90,90 90,78 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
+     id="path10"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="csssscsccccsc" />
   <path
      style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:5.99824047;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.8"
      d="M 47.99942,9.0400502 V 32.958165"

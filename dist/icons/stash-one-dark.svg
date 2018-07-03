@@ -5,11 +5,42 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="svg10"
    version="1.1"
    viewBox="0 0 96 96"
    height="96"
-   width="96">
+   width="96"
+   sodipodi:docname="stash-one-dark.svg"
+   inkscape:version="0.92.2 5c3e80d, 2017-08-06">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1135"
+     inkscape:window-height="876"
+     id="namedview4512"
+     showgrid="true"
+     inkscape:zoom="6.1458333"
+     inkscape:cx="48"
+     inkscape:cy="48"
+     inkscape:window-x="812"
+     inkscape:window-y="202"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg10">
+    <inkscape:grid
+       type="xygrid"
+       id="grid5057"
+       spacingx="3"
+       spacingy="3"
+       empspacing="2" />
+  </sodipodi:namedview>
   <metadata
      id="metadata16">
     <rdf:RDF>
@@ -26,8 +57,10 @@
      id="defs14" />
   <path
      id="path10"
-     d="m 6,48 v 30 c 0,12 6,12 12,12 h 60 c 6,0 12,0 12,-12 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
-     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6" />
+     d="m 6,48 v 30 c 0,12 6,18 18,18 H 72 C 84,96 90,90 90,78 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 84 H 18 V 48 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
+     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="csssscsccccsc" />
   <path
      d="m 27,72 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      id="path3702"
