@@ -93,6 +93,19 @@ function clone_bm(bm) {
 
 
 
+// Check if this item is somewhere in the folder identified by /folder_id/.  The
+// /item/ should be an object returned by clone_bm() and managed by StashState.
+export function isInFolder(folder_id, item) {
+    while (item) {
+        if (! item.isBookmark) return false;
+        if (item.id === folder_id) return true;
+        item = item.parent;
+    }
+    return false;
+}
+
+
+
 // See module documentation
 export class StashState {
     static async make() {

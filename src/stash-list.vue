@@ -12,7 +12,7 @@
   </div>
   <folder :isWindow="true" title="Unstashed Tabs"
           ref="unstashed" :children="unstashed_tabs"
-          :filter="unstashedFilter">
+          :filter="unstashedFilter" :isItemStashed="isItemStashed">
   </folder>
   <folder-list ref="stashed" :folders="stashed_tabs"></folder-list>
 </div>
@@ -20,6 +20,7 @@
 
 <script>
 import {isTabStashable} from './stash';
+import {isInFolder} from './model';
 
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
@@ -50,9 +51,13 @@ export default {
         },
 
         unstashedFilter(t) {
-            return ! t.hidden && isTabStashable(t)
-                && ! t.related.find(i => i.isBookmark);
+            return ! t.hidden && isTabStashable(t) && ! this.isItemStashed(t);
         },
+
+        isItemStashed(i) {
+            return i.related.find(
+                i => i.isBookmark && isInFolder(this.root_id, i));
+        }
     },
 };
 </script>

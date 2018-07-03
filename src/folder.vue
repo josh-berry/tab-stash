@@ -73,9 +73,12 @@ export default {
     components: {Draggable, EditableLabel, Tab},
 
     props: {
+        // View filter functions
+        filter: Function,
+        isItemStashed: Function,
+
         // Common
         id: [String, Number],
-        filter: Function,
         children: Array, // tabs in this window, OR bookmarks in this folder
         title: String,
 
@@ -182,7 +185,7 @@ export default {
                     // isBookmark test is inverted.
                     await hideTabs(this.children.filter(
                         t => ! t.hidden && isTabStashable(t)
-                            && t.related.find(i => i.isBookmark)));
+                            && this.isItemStashed(t)));
                 } else {
                     // User has asked us to hide all unstashed tabs.
                     await closeTabs(this.visibleChildren);

@@ -20,6 +20,7 @@ window.addEventListener('load', asyncEvent(async function() {
     const vue = new (Vue.extend(StashList))({data: {
         unstashed_tabs: state.wins_by_id.get(win.id).children,
         stashed_tabs: state.bms_by_id.get(root.id).children,
+        root_id: root.id,
     }});
 
     vue.$mount('#app');
