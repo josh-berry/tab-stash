@@ -76,10 +76,10 @@ export async function closeTabs(tabs) {
 
 async function refocusAwayFromTabs(tabs) {
     let all_tabs = await browser.tabs.query(
-        {currentWindow: true, hidden: false, pinned: false});
+        {currentWindow: true, hidden: false});
 
     let front_tab = all_tabs.find(t => t.active);
-    if (! front_tab || ! tabs.find(t => t.id === front_tab.id)) {
+    if (! tabs.find(t => t.id === front_tab.id)) {
         // We are not closing the active tab.  Nothing to do.
         //
         // NOTE: If front_tab is undefined at this point, it's likely because
@@ -88,7 +88,7 @@ async function refocusAwayFromTabs(tabs) {
         return;
     }
 
-    if (tabs.length >= all_tabs.length) {
+    if (tabs.length >= all_tabs.filter(t => ! t.pinned).length) {
         // If we are about to close all visible tabs in the window, we should
         // open a new tab so the window doesn't close.
         await browser.tabs.create({active: true});
