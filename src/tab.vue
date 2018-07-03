@@ -35,7 +35,7 @@ export default {
     props: {
         // Common
         id: [String, Number],
-        parentId: [String, Number],
+        parent: Object,
         index: Number,
         title: String,
         url: String,

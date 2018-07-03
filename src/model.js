@@ -58,8 +58,6 @@ function clone_tab(t) {
     return {
         isTab: true,
         id: t.id,
-        parentId: t.windowId,
-        index: t.index,
 
         title: t.title,
         url: t.url,
@@ -69,6 +67,9 @@ function clone_tab(t) {
         pinned: t.pinned,
 
         // Relationships to other objects, filled in later:
+        parent: undefined,
+        index: undefined,
+
         related: undefined, // [items with the same URL, including this item]
     };
 }
@@ -77,15 +78,14 @@ function clone_bm(bm) {
     return {
         isBookmark: true,
         id: bm.id,
-        parentId: bm.parentId,
-        index: bm.index,
 
         title: bm.title,
         url: bm.url,
         dateAdded: bm.dateAdded,
 
         // Relationships to other objects, filled in later:
-
+        parent: undefined,
+        index: undefined,
         children: bm.type === 'folder' ? [/* clone_bm()s */] : undefined,
         related: undefined, // [items with the same URL, including this item]
     };
@@ -217,14 +217,14 @@ export class StashState {
         if (bm.children) {
             i.children = bm.children.map(c => this._index_new_bm(c));
         }
+        this._reposition(i, bm.parentId, bm.index);
         return i;
     }
 
     _update_bm(bm) {
         let i = this.bms_by_id.get(bm.id);
         if (! i) {
-            i = this._index_new_bm(bm);
-            this._reposition(i, bm.parentId, bm.index);
+            this._index_new_bm(bm);
             return;
         }
 
@@ -232,9 +232,7 @@ export class StashState {
         if (bm.hasOwnProperty('url')) this._update_url(i, bm.url);
         if (bm.hasOwnProperty('dateAdded')) i.dateAdded = bm.dateAdded;
 
-        if ((bm.hasOwnProperty('parentId') && bm.parentId != i.parentId)
-            || (bm.hasOwnProperty('index') && bm.index != i.index))
-        {
+        if (bm.hasOwnProperty('parentId') || bm.hasOwnProperty('index')) {
             this._reposition(i, bm.parentId, bm.index);
         }
     }
@@ -266,8 +264,7 @@ export class StashState {
     _update_win(win) {
         let i = this.wins_by_id.get(win.id);
         if (! i) {
-            i = clone_win(win);
-            this.wins_by_id.set(win.id, i);
+            this._index_new_win(win);
             return;
         }
 
@@ -289,14 +286,14 @@ export class StashState {
         let i = clone_tab(tab);
         this.tabs_by_id.set(i.id, i);
         this._update_url(i, i.url);
+        this._reposition(i, tab.windowId, tab.index);
         return i;
     }
 
     _update_tab(tab) {
         let i = this.tabs_by_id.get(tab.id);
         if (! i) {
-            i = this._index_new_tab(tab);
-            this._reposition(i, tab.windowId, tab.index);
+            this._index_new_tab(tab);
             return;
         }
 
@@ -307,9 +304,7 @@ export class StashState {
         if (tab.hasOwnProperty('active')) i.active = tab.active;
         if (tab.hasOwnProperty('pinned')) i.pinned = tab.pinned;
 
-        if ((tab.hasOwnProperty('windowId') && tab.windowId != i.parentId)
-            || (tab.hasOwnProperty('index') && tab.index != i.index))
-        {
+        if (tab.hasOwnProperty('windowId') || tab.hasOwnProperty('index')) {
             this._reposition(i, tab.windowId, tab.index);
         }
     }
@@ -335,37 +330,57 @@ export class StashState {
         // NOTE: We expect to see new parents before we see any of their
         // children.  Children will not get linked properly into parents that
         // don't exist yet.
-        console.assert(newParentId === undefined || newIndex >= 0);
 
-        let parent_idx = item.isTab ? this.wins_by_id : this.bms_by_id;
+        // Find the new parent (even if it's the same as the old, or no parent)
+        let new_parent = undefined;
+        if (newIndex >= 0) {
+            if (newParentId === undefined
+                || (item.parent && newParentId === item.parent.id))
+            {
+                // If the new parent and new index are the same as the old ones,
+                // don't waste cycles on what will be a no-op.
+                if (newIndex === item.index) return;
 
-        // Keep the same parent if requested
-        if (newIndex >= 0 && ! newParentId) newParentId = item.parentId;
+                // Same parent (possibly no parent), different index (which is
+                // ignored if we have no parent, since the root bookmark always
+                // shows up at index 0).
+                new_parent = item.parent;
+
+            } else {
+                // Different (or new) parent.
+                let parent_idx = item.isTab ? this.wins_by_id : this.bms_by_id;
+                new_parent = parent_idx.get(newParentId);
+                if (! new_parent) throw {item, newParentId, newIndex};
+            }
+
+        } else {
+            console.assert(newParentId === undefined,
+                           "Must specify an index when specifying a parent");
+        }
 
         // First remove from the old parent
-        if (item.parentId) {
-            let parent = parent_idx.get(item.parentId);
-            let idx = parent.children.indexOf(item);
+        if (item.parent) {
+            let idx = item.parent.children.indexOf(item);
             if (idx >= 0) {
-                parent.children.splice(idx, 1);
-                for (let i = idx; i < parent.children.length; ++i) {
-                    parent.children[i].index = i;
+                item.parent.children.splice(idx, 1);
+                for (let i = idx; i < item.parent.children.length; ++i) {
+                    item.parent.children[i].index = i;
                 }
             }
+            item.parent = undefined;
+            item.index = undefined;
         }
 
-        // Then add to the new, if applicable
-        if (newParentId) {
-            let parent = parent_idx.get(newParentId);
-            parent.children.splice(newIndex, 0, item);
-
-            for (let i = newIndex + 1; i < parent.children.length; ++i) {
-                parent.children[i].index = i;
+        // Then add to the new
+        if (new_parent) {
+            new_parent.children.splice(newIndex, 0, item);
+            for (let i = newIndex + 1; i < new_parent.children.length; ++i) {
+                new_parent.children[i].index = i;
             }
-        }
 
-        item.parentId = newParentId;
-        item.index = newIndex;
+            item.parent = new_parent;
+            item.index = newIndex;
+        }
     }
 
     _update_url(i, url) {
