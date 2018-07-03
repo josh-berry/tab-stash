@@ -79,8 +79,12 @@ async function refocusAwayFromTabs(tabs) {
         {currentWindow: true, hidden: false, pinned: false});
 
     let front_tab = all_tabs.find(t => t.active);
-    if (! tabs.find(t => t.id === front_tab.id)) {
+    if (! front_tab || ! tabs.find(t => t.id === front_tab.id)) {
         // We are not closing the active tab.  Nothing to do.
+        //
+        // NOTE: If front_tab is undefined at this point, it's likely because
+        // the user is looking at a pinned tab, since we are explicitly
+        // filtering those out above.
         return;
     }
 
