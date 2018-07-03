@@ -23,15 +23,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1078"
-     inkscape:window-height="764"
+     inkscape:window-width="1422"
+     inkscape:window-height="823"
      id="namedview5971"
      showgrid="true"
      inkscape:zoom="5.5520833"
-     inkscape:cx="48"
+     inkscape:cx="-16.840526"
      inkscape:cy="48"
-     inkscape:window-x="412"
-     inkscape:window-y="431"
+     inkscape:window-x="679"
+     inkscape:window-y="342"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10">
     <inkscape:grid
@@ -50,7 +50,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -59,17 +59,18 @@
   <path
      d="M 74.25,30 H 70.5 V 12 A 7.5,6 0 0 0 63,6 H 33 a 7.5,6 0 0 0 -7.5,6 v 18 h -3.75 a 3.75,3 0 0 0 0,6 h 52.5 a 3.75,3 0 1 0 0,-6 z"
      id="path5"
-     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:3.35410261"
-     inkscape:connector-curvature="0" />
+     inkscape:connector-curvature="0"
+     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.80000001" />
   <path
+     d="M 48.076172,47.5 A 3.6935883,3.6935883 0 0 0 45.5625,48.417969 L 19.294922,71.498047 a 3.6935883,3.6935883 0 1 0 4.875,5.548828 L 48,56.109375 l 23.830078,20.9375 a 3.6935883,3.6935883 0 1 0 4.875,-5.548828 L 50.4375,48.417969 A 3.6935883,3.6935883 0 0 0 48.076172,47.5 Z"
      id="path917"
-     d="M 21.732819,74.271937 47.999993,51.193092 74.267168,74.271937"
-     style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:7.38643789;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:6;stroke-dasharray:none;stroke-opacity:0.8"
-     inkscape:connector-curvature="0" />
-  <circle
-     style="fill:#0c0c0d;fill-opacity:0.8;stroke:none;stroke-width:4.02492237;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.8"
+     inkscape:connector-curvature="0"
+     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+  <path
+     d="m 57,81 a 9,9 0 0 1 -9,9 9,9 0 0 1 -9,-9 9,9 0 0 1 9,-9 9,9 0 0 1 9,9 z"
      id="path2034"
-     cx="48"
-     cy="81"
-     r="9" />
+     inkscape:connector-curvature="0"
+     style="fill:#0c0c0d;fill-opacity:0.8" />
 </svg>

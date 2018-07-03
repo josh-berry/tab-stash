@@ -23,17 +23,19 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1078"
-     inkscape:window-height="764"
+     inkscape:window-width="1535"
+     inkscape:window-height="1148"
      id="namedview5971"
      showgrid="true"
-     inkscape:zoom="5.5520833"
-     inkscape:cx="15.129456"
+     inkscape:zoom="10.114583"
+     inkscape:cx="48"
      inkscape:cy="48"
-     inkscape:window-x="378"
-     inkscape:window-y="212"
+     inkscape:window-x="-1"
+     inkscape:window-y="0"
      inkscape:window-maximized="0"
-     inkscape:current-layer="svg10">
+     inkscape:current-layer="svg10"
+     inkscape:measure-start="18,93"
+     inkscape:measure-end="27,93">
     <inkscape:grid
        type="xygrid"
        id="grid6516"
@@ -57,19 +59,17 @@
   <defs
      id="defs14" />
   <path
-     style="fill:#0c0c0d;fill-opacity:0.8;stroke-width:6"
      d="m 6,42 v 30 c 0,12 6,18 18,18 H 72 C 84,90 90,84 90,72 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 78 H 18 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
      id="path10"
      inkscape:connector-curvature="0"
-     sodipodi:nodetypes="csssscsccccsc" />
+     sodipodi:nodetypes="csssscsccccsc"
+     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.80000001" />
   <path
-     style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:5.99824047;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.8"
-     d="M 47.99942,3.0400502 V 26.958165"
-     id="path890"
-     inkscape:connector-curvature="0" />
-  <path
+     d="m 45,3 v 9 H 33 c 0,0 -3,0 -3,3 0,3 3,3 3,3 h 12 v 9 c 0,2.072846 1.5,3.035803 3,3 1.5,-0.0358 3,-1.070366 3,-3 v -9 h 12 c 0,0 3,0 3,-3 0,-3 -3,-3 -3,-3 H 51 V 3 c 0,0 0,-3 -3,-3 -3,0 -3,3 -3,3 z"
+     id="path815"
      inkscape:connector-curvature="0"
-     id="path1488"
-     d="M 33.051644,14.990908 H 62.930471"
-     style="fill:none;fill-rule:evenodd;stroke:#0c0c0d;stroke-width:6.01758242;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.8" />
+     sodipodi:nodetypes="cccscccscccscccsc"
+     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.80000001" />
 </svg>
