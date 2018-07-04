@@ -107,7 +107,7 @@ async function refocusAwayFromTabs(tabs) {
         let candidates = all_tabs.slice(front_tab_idx + 1);
         let focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         if (! focus_tab) {
-            candidates = all_tabs.slice(0, front_tab_idx);
+            candidates = all_tabs.slice(0, front_tab_idx).reverse();
             focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         }
         console.assert(focus_tab);
