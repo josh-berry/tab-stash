@@ -78,7 +78,8 @@ async function refocusAwayFromTabs(tabs) {
     let all_tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false});
 
-    let front_tab = all_tabs.find(t => t.active);
+    let front_tab_idx = all_tabs.findIndex(t => t.active);
+    let front_tab = front_tab_idx == -1 ? undefined : all_tabs[front_tab_idx];
     if (! tabs.find(t => t.id === front_tab.id)) {
         // We are not closing the active tab.  Nothing to do.
         //
@@ -103,10 +104,10 @@ async function refocusAwayFromTabs(tabs) {
         // BEFORE the tabs we're stashing, to mimic the browser's behavior when
         // closing the front tab.
 
-        let candidates = all_tabs.slice(front_tab.index + 1);
+        let candidates = all_tabs.slice(front_tab_idx + 1);
         let focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         if (! focus_tab) {
-            candidates = all_tabs.slice(0, front_tab.index);
+            candidates = all_tabs.slice(0, front_tab_idx);
             focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         }
         console.assert(focus_tab);
