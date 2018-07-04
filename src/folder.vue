@@ -12,41 +12,41 @@
       <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
            :class="{action: true, collapse: true}"
            title="Hide the tabs for this group"
-           @click.prevent="collapsed = ! collapsed">
+           @click.prevent.stop="collapsed = ! collapsed">
       <nav v-if="id">
         <img src="icons/stash-dark.svg" class="action stash"
              :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
-             @click.prevent="stash">
+             @click.prevent.stop="stash">
         <img src="icons/stash-one-dark.svg" class="action stash"
              :title="`Stash the active tab to this group (hold ${altkey} to keep tab open)`"
-             @click.prevent="stashOne">
+             @click.prevent.stop="stashOne">
         <img src="icons/restore.svg" class="action restore"
              title="Open all tabs in this group"
-             @click.prevent="restoreAll">
+             @click.prevent.stop="restoreAll">
         <img src="icons/restore-del.svg" class="action restore-remove"
              title="Open all tabs in the group and delete the group"
-             @click.prevent="restoreAndRemove">
+             @click.prevent.stop="restoreAndRemove">
         <img src="icons/delete.svg" class="action remove"
              title="Delete this group"
-             @click.prevent="remove">
+             @click.prevent.stop="remove">
       </nav>
       <nav v-else>
         <img src="icons/stash-dark.svg" class="action stash"
              :title="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`"
-             @click.prevent="stash">
+             @click.prevent.stop="stash">
         <img src="icons/new-empty-group.svg" class="action stash"
              title="Create a new empty group"
-             @click.prevent="newGroup">
+             @click.prevent.stop="newGroup">
         <img src="icons/delete.svg" class="action remove"
              :title="
 `Click: Close all unstashed tabs
 ${altkey}+Click: Close/hide all stashed tabs`"
-             @click.prevent="remove">
+             @click.prevent.stop="remove">
         <img src="icons/delete-opened.svg" class="action remove"
              :title="
 `Click: Close all open tabs
 ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
-             @click.prevent="removeOpen">
+             @click.prevent.stop="removeOpen">
       </nav>
     </div>
   </div>

@@ -8,7 +8,7 @@
     <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
          :class="{action: true, collapse: true}"
          title="Hide all tabs so only group names are showing"
-         @click.prevent="collapseAll">
+         @click.prevent.stop="collapseAll">
   </div>
   <folder :isWindow="true" title="Unstashed Tabs"
           ref="unstashed" :children="unstashed_tabs"

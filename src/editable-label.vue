@@ -7,7 +7,8 @@
        @dblclick.stop="" @altclick.stop=""
        @blur="commit" @keyup.enter.prevent="commit"
        @keyup.esc.prevent="editing = false">
-<span v-else :class="classes" :title="value" @click="begin">{{value}}</span>
+<span v-else :class="classes" :title="value"
+      @click.prevent.stop="begin">{{value}}</span>
 </template>
 
 <script>

@@ -5,7 +5,7 @@
             'saved': !!bm,
             'open': tab && ! tab.hidden}"
    target="_blank" :href="url" :title="bestTitle"
-   @click.prevent="open">
+   @click.prevent.stop="open">
   <img v-if="favicon" class="icon"
        :src="favicon" :srcset="favicon ? favicon + ' 2x' : ''"
        referrerpolicy="no-referrer"
