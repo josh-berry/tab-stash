@@ -74,6 +74,12 @@
                 "default": "Alt+S",
                 "mac": "MacCtrl+Shift+S"
             }
+        },
+        "_execute_page_action": {
+            "suggested_key": {
+                "default": "Alt+W",
+                "mac": "MacCtrl+Shift+W"
+            }
         }
     }
 }
