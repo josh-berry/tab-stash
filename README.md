@@ -7,14 +7,15 @@ Tab Stash is a no-fuss way to save, restore and organize batches of tabs as
 bookmarks.  With one click on the Tab Stash icon, you can sweep your browser
 window clear of tabs, and save them all into the "Stashed Tabs" sidebar,
 organized conveniently into groups.  Then, when it's time to go back to that
-research project, just pop open the sidebar and restore the whole group, or restore just that one tab you were interested in.
+research project, just pop open the sidebar and restore the whole group, or
+restore just that one tab you were interested in.
 
 Because Tab Stash stores your tabs as bookmarks, they will even sync to your
 other computers or mobile devices (using Firefox Sync, if configured).  You
 don't need to keep track of yet another account, and no other cloud service can
 see your tabs.
 
-<img src="doc/screenshot-5-restored.png" alt="Screenshot" width="100%"/>
+<img src="doc/screenshot-5.png" alt="Screenshot" width="100%"/>
 
 ## Features
 
