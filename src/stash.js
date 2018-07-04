@@ -116,16 +116,24 @@ async function refocusAwayFromTabs(tabs) {
     }
 }
 
-// Determine if the currently-focused tab is the new-tab page.  If so, return
-// the tab (presumably because we may want to close it).  Otherwise, return
-// undefined.
+// Determine if the currently-focused tab has anything "useful" in it (where
+// "useful" is defined as neither the new-tab page nor the user's home page).
+// If the tab is not useful, return the tab (presumably because we may want to
+// close it).  Otherwise, return undefined.
 export async function lookingAtNewTab() {
     let curtabs_p = browser.tabs.query({active: true, currentWindow: true});
     let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
+    let home_url_p = browser.browserSettings.newTabPageOverride.get({});
     let curtab = (await curtabs_p)[0];
     let newtab_url = (await newtab_url_p).value;
+    let home_url = (await home_url_p).value;
 
-    if (curtab && curtab.url === newtab_url) return curtab;
+    if (curtab) {
+        if (curtab.url === newtab_url) return curtab;
+        if (curtab.url === home_url) return curtab;
+        if (curtab.url === 'about:blank') return curtab;
+        if (curtab.url === 'about:newtab') return curtab;
+    }
     return undefined;
 }
 
