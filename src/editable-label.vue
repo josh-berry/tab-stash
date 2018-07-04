@@ -2,6 +2,9 @@
 <input v-if="editing" type="text" :class="classes"
        :value="editValue" :disabled="disabled"
        ref="input"
+       @dragenter.stop="" @dragover.stop="" @mousedown.stop=""
+       @pointerdown.stop="" @touchstart.stop="" @click.stop=""
+       @dblclick.stop="" @altclick.stop=""
        @blur="commit" @keyup.enter.prevent="commit"
        @keyup.esc.prevent="editing = false">
 <span v-else :class="classes" :title="value" @click="begin">{{value}}</span>
