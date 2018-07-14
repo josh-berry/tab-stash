@@ -137,10 +137,7 @@ export class StashState {
         }));
         browser.bookmarks.onMoved.addListener(maybe_defer((id, info) => {
             // info: {parentId, index, oldParentId, oldIndex}
-            //
-            // NOTE: We use Object.assign here so that if title/url are missing,
-            // they are not included in the info object directly.
-            state._update_bm(Object.assign({id}));
+            state._update_bm({id, parentId: info.parentId, index: info.index});
         }));
         browser.bookmarks.onRemoved.addListener(maybe_defer((id, info) => {
             // info: {parentId, index, node [sans children]}
