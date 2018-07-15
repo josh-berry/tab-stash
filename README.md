@@ -156,9 +156,9 @@ $ make release
 
 All generated files in `dist` will be rebuilt, with debugging information and
 code stripped.  Two package files will be generated, both of which can be
-uploaded to addons.mozilla.org--the first, `tab-stash-dist.zip`, is the actual
-extension.  The second, `tab-stash-src.tar.gz`, is the source to go along with
-it.
+uploaded to addons.mozilla.org--the first, `tab-stash-X.Y.zip`, is the actual
+extension.  The second, `tab-stash-src-X.Y.tar.gz`, is the source to go along
+with it.
 
 ### Editing Icons
 
