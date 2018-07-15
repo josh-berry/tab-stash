@@ -128,10 +128,15 @@ When you first install it, Tab Stash will ask for the following permissions.  He
 ## Developer Corner
 
 ### Building Tab Stash for Development
+
+In the top-level tab-stash directory, run:
+
 ```sh
 $ npm i
 $ npm run build
 ```
+
+Or if you're on Linux or Mac, just run `make`.
 
 The result will be in the `dist` directory.  You can load it into your Firefox
 by following these steps:
@@ -142,13 +147,15 @@ by following these steps:
 
 ### Building Tab Stash for Release
 
+Linux and Mac only.  In the top-level tab-stash directory, run:
+
 ```sh
-$ npm i
-$ npm run pkg
+$ make pkg
 ```
 
-The result will be a `tab-stash-X.Y.zip` file, which can be uploaded to
-addons.mozilla.org.
+All generated files in `dist` will be rebuilt, with debugging information and
+code stripped.  The `dist` directory will then be packaged into a
+`tab-stash-X.Y.zip` file, which can be uploaded to addons.mozilla.org.
 
 ### Editing Icons
 
