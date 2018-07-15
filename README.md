@@ -127,7 +127,7 @@ When you first install it, Tab Stash will ask for the following permissions.  He
 
 ## Developer Corner
 
-### Building Tab Stash
+### Building Tab Stash for Development
 ```sh
 $ npm i
 $ npm run build
@@ -139,6 +139,16 @@ by following these steps:
 1. Go to `about:debugging`
 2. Click "*Load Temporary Add-on*"
 3. Browse to the `dist` directory, and select the `manifest.json` file.
+
+### Building Tab Stash for Release
+
+```sh
+$ npm i
+$ npm run pkg
+```
+
+The result will be a `tab-stash-X.Y.zip` file, which can be uploaded to
+addons.mozilla.org.
 
 ### Editing Icons
 
