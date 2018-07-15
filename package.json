@@ -17,8 +17,6 @@
   },
   "scripts": {
     "build": "webpack",
-    "build-rel": "webpack --mode production --devtool false",
-    "pkg-webext": "npm run build-rel && web-ext build -o -s dist -a . -v",
-    "pkg": "npm run pkg-webext && ./"
+    "build-rel": "webpack --mode production --devtool false"
   }
 }

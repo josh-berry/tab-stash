@@ -147,15 +147,18 @@ by following these steps:
 
 ### Building Tab Stash for Release
 
-Linux and Mac only.  In the top-level tab-stash directory, run:
+Linux and Mac only.  May only be done in a clean tree, with HEAD pointing at a
+release tag.  In the top-level tab-stash directory, run:
 
 ```sh
-$ make pkg
+$ make release
 ```
 
 All generated files in `dist` will be rebuilt, with debugging information and
-code stripped.  The `dist` directory will then be packaged into a
-`tab-stash-X.Y.zip` file, which can be uploaded to addons.mozilla.org.
+code stripped.  Two package files will be generated, both of which can be
+uploaded to addons.mozilla.org--the first, `tab-stash-dist.zip`, is the actual
+extension.  The second, `tab-stash-src.tar.gz`, is the source to go along with
+it.
 
 ### Editing Icons
 

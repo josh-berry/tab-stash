@@ -1,4 +1,5 @@
 node_modules
 dist/*.js
-*.zip
-*.tar.xz
+tab-stash-src-*
+tab-stash-*.zip
+tab-stash-src-*.tar.gz
