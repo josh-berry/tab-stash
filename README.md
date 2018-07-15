@@ -7,7 +7,7 @@ Tab Stash is a no-fuss way to save, restore and organize batches of tabs as
 bookmarks.  With one click on the Tab Stash icon, you can sweep your browser
 window clear of tabs, and save them all into the "Tab Stash" sidebar, organized
 conveniently into groups.  Then, when it's time to go back to that research
-project, just pop open the sidebar and restore the whole group, or restore just
+project, just pop open the sidebar and restore the whole group, or restore only
 that one tab you were interested in.
 
 Because Tab Stash stores your tabs as bookmarks, they will even sync to your
@@ -38,7 +38,8 @@ by following these steps:
 
 1. Right-click on the Firefox toolbar (anywhere outside the address bar).
 2. Click "*Customize...*" from the popup menu.
-3. Find the icon labeled "*Sidebars*", and drag it to your toolbar.
+3. Find the icon labeled "*Sidebars*", and drag it to your toolbar.  (If you
+   don't see it, it's probably already in your toolbar somewhere.)
 
 If you would prefer not to do this, you can always load the list of stashed tabs
 by right-clicking anywhere on the page, selecting "*Tab Stash*" from the popup
@@ -93,6 +94,36 @@ stash with Google, for the purpose of obtaining the site's icon.  If you are
 already logged into Google, Google may be able to identify you using login
 cookies sent as part of the request.  However, no other personally-identifying
 information is shared, and the full URL of the tab is never disclosed.
+
+### Extension Permissions
+
+When you first install it, Tab Stash will ask for the following permissions.  Here's why we need each of them:
+
+- **Access browser tabs**: Used to save and restore tabs to the stash.
+  (Honestly, we'd all be surprised if an extension with a name like "Tab Stash"
+  *didn't* have this permission.)
+
+- **Access recently closed tabs**: When restoring a stashed tab, Tab Stash will
+  look thru recently-closed tabs to see if any of them have matching URLs, and
+  restore the closed tab rather than creating a new one.  This will restore
+  additional state for that tab, such as navigation history.
+
+- **Hide and show browser tabs**: Used to hide stashed tabs instead of closing
+  them outright, so they can be restored more quickly later (and preserve useful
+  tab state such as navigation history, or that half-written blog post about
+  last night's dinner you were in the middle of when your boss walked by...).
+
+- **Read and modify bookmarks**: Used to create and delete bookmarks in the "Tab
+  Stash" folder which represent your stashed tabs.
+
+- **Read and modify browser settings**: Read-only; used to determine the new-tab
+  and Home pages, so Tab Stash can tell if you're looking at a new tab, and
+  automatically close it if it's not needed.  Tab Stash does not modify your
+  browser settings.  (Although, if we *did*, we'd probably change your homepage
+  to be a picture of a kitten.  Because who doesn't like kittens?)
+
+- **Menus**: Used to provide additional options for Tab Stash in the right-click
+  menu of a page and the tab bar.
 
 ## Developer Corner
 
