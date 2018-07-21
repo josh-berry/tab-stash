@@ -74,7 +74,7 @@ export async function closeTabs(tabs) {
     await browser.tabs.remove(tabs.map(t => t.id));
 }
 
-async function refocusAwayFromTabs(tabs) {
+export async function refocusAwayFromTabs(tabs) {
     let all_tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false});
 

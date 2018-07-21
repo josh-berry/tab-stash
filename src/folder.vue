@@ -67,6 +67,7 @@ import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     isTabStashable,
     stashTabs, bookmarkTabs, restoreTabs, closeTabs, hideTabs,
+    refocusAwayFromTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
@@ -215,8 +216,13 @@ export default {
                     t => ! t.hidden && ! t.pinned && this.isItemStashed(t));
                 let close_tabs = this.children.filter(
                     t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t));
-                hideTabs(hide_tabs).catch(console.log);
-                closeTabs(close_tabs).catch(console.log);
+
+                await refocusAwayFromTabs(Array.concat(hide_tabs, close_tabs));
+
+                browser.tabs.hide(hide_tabs.map(t => t.id))
+                    .catch(console.log);
+                browser.tabs.remove(close_tabs.map(t => t.id))
+                    .catch(console.log);
             }
         }),
 
