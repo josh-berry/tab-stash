@@ -307,13 +307,22 @@ export default {
                     new_model_idx = -1;
                 }
 
-            } else {
-                // Moving from another folder, so this is strictly an insertion.
-                // Pick the model index based on neighboring items, assuming
-                // that the insertion would have shifted everything else down.
+            } else if (ev.to.children.length > 1) {
+                // Moving from another folder to a (non-empty) folder, so this
+                // is strictly an insertion.  Pick the model index based on
+                // neighboring items, assuming that the insertion would have
+                // shifted everything else down.
+                //
+                // (NOTE: index > 1 above, since ev.to.children already contains
+                // the item we are moving.)
                 new_model_idx = ev.newIndex < ev.to.children.length - 1
                     ? ev.to.children[ev.newIndex + 1].__vue__.index
                     : ev.to.children[ev.newIndex - 1].__vue__.index + 1;
+
+            } else {
+                // Moving from another folder, to an empty folder.  Just assume
+                // we are inserting at the top.
+                new_model_idx = 0;
             }
 
             if (! from_folder.isWindow && ! this.isWindow) {
