@@ -13,7 +13,10 @@
    height="96"
    width="96"
    sodipodi:docname="logo.svg"
-   inkscape:version="0.92.2 5c3e80d, 2017-08-06">
+   inkscape:version="0.92.2 5c3e80d, 2017-08-06"
+   inkscape:export-filename="/Users/des/src/tab-stash/dist/icons/logo-64.png"
+   inkscape:export-xdpi="64"
+   inkscape:export-ydpi="64">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -23,15 +26,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1327"
-     inkscape:window-height="947"
+     inkscape:window-width="1466"
+     inkscape:window-height="977"
      id="namedview9"
      showgrid="true"
      inkscape:zoom="8.0208333"
-     inkscape:cx="48"
+     inkscape:cx="25.558441"
      inkscape:cy="48"
-     inkscape:window-x="593"
-     inkscape:window-y="294"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10">
     <inkscape:grid
@@ -49,7 +52,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
