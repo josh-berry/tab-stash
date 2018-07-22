@@ -136,9 +136,9 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 // We also garbage-collect empty, unnamed folders.
 
 tabStashTree().then(t => {
-    let old_urls = new Set(urlsInTree(t));
+    let managed_urls = new Set(urlsInTree(t));
 
-    const update = nonReentrant(async function() {
+    const close_removed_bookmarks = nonReentrant(async function() {
         let tree = await tabStashTree();
 
         // Garbage-collect empty, unnamed folders.
@@ -161,7 +161,7 @@ tabStashTree().then(t => {
         // Ugh, why am I open-coding a set-difference operation?  This
         // should be built-in!
         let removed_urls = new Set();
-        for (let url of old_urls) {
+        for (let url of managed_urls) {
             if (! new_urls.has(url)) removed_urls.add(url);
         }
 
@@ -175,10 +175,84 @@ tabStashTree().then(t => {
 
         await browser.tabs.remove(tids);
 
-        old_urls = new_urls;
+        managed_urls = new_urls;
     });
 
-    browser.bookmarks.onRemoved.addListener(update);
-    browser.bookmarks.onChanged.addListener(update);
-    browser.bookmarks.onMoved.addListener(update);
+    browser.bookmarks.onRemoved.addListener(close_removed_bookmarks);
+    browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
+    browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
+
+
+
+    // This background process will discard hidden tabs managed by Tab Stash (as
+    // defined by /managed_urls/ above) if they are not re-activated within a
+    // reasonable period of time.  Since under normal usage, we can accumulate a
+    // LOT of hidden tabs if the user leaves their browser open for a while,
+    // this is mostly a light-touch, precautionary measure to keep the user's
+    // memory usage from becoming surprisingly high over time.
+    //
+    // We could immediately discard a tab when stashing/hiding it, but this
+    // causes performance problems if the user wants to temporarily stash a
+    // bunch of tabs for a short period of time (e.g. if they are interrupted at
+    // their desk by, "Can you just check on this thing for me really quick?").
+    //
+    // We try to be relatively intelligent about the age (defined as "time since
+    // last access") of hidden tabs, to account for the fact that there will be
+    // periods of higher and lower activity (where more or fewer hidden tabs
+    // might be generated).  We do this by setting a target tab count and age,
+    // and scaling the age boundary according to the number of loaded tabs.  The
+    // target count/age are used as a reference point--when the target number of
+    // tabs are open, we want to discard tabs older than the target age (in this
+    // case, 50 tabs and 10 minutes).  If there are MORE than the target number
+    // of tabs open, the age will scale asymptotically towards 0.  If there are
+    // FEWER than the target number of tabs open, we are more lax on the age,
+    // and we will always keep a certain minimum number of tabs open (for which
+    // the age is effectively infinite).
+    //
+    // Note that active (non-hidden) tabs are counted towards the total, so if
+    // the user has a lot of tabs open, we will discard hidden tabs more
+    // aggressively to stay within reasonable memory limits.
+
+    const MIN_KEEP_TABS = 10;
+    const TARGET_TAB_COUNT = 50;
+    const TARGET_AGE_MS = 10 * 60 * 1000;
+
+    const discard_old_hidden_tabs = nonReentrant(async function() {
+        let now = Date.now();
+        let tabs = await browser.tabs.query({discarded: false});
+        let tab_count = tabs.length;
+        let candidate_tabs = tabs.filter(t => t.hidden)
+            .sort((a, b) => a.lastAccessed - b.lastAccessed);
+
+        while (tab_count > MIN_KEEP_TABS) {
+            // Keep discarding tabs until we have the minimum number of tabs
+            // remaining, we run out of candidates, OR the age of the oldest tab
+            // is less than the cutoff (as a function of the number of
+            // non-discarded tabs).
+            //
+            // You'll have to graph /age_cutoff/ as a function of /tab_count/ to
+            // (literally) see why this makes sense--it's basically a hyperbola
+            // with the vertical asymptote at /MIN_KEEP_TABS/ and the horizontal
+            // asymptote at 0.  I recommend https://www.desmos.com/calculator
+            // for a good graphing calculator.
+            let age_cutoff = (TARGET_TAB_COUNT - MIN_KEEP_TABS) * TARGET_AGE_MS
+                / (tab_count - MIN_KEEP_TABS);
+
+            let oldest_tab = candidate_tabs.pop();
+            if (! oldest_tab) break;
+
+            let age = now - oldest_tab.lastAccessed;
+            if (age > age_cutoff) {
+                --tab_count;
+                await browser.tabs.discard([oldest_tab.id]);
+            } else {
+                break;
+            }
+        }
+    });
+
+    // How often to check for tabs to discard
+    const DISCARD_INTERVAL = TARGET_AGE_MS / 4;
+
+    setInterval(discard_old_hidden_tabs, DISCARD_INTERVAL);
 });

@@ -63,10 +63,7 @@ export async function stashTabs(folder_id, tabs) {
 
 export async function hideTabs(tabs) {
     await refocusAwayFromTabs(tabs);
-
-    let tids = tabs.map((t) => t.id);
-    await browser.tabs.hide(tids);
-    await browser.tabs.discard(tids);
+    await browser.tabs.hide(tabs.map(t => t.id));
 }
 
 export async function closeTabs(tabs) {
