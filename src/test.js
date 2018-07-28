@@ -42,3 +42,4 @@ global.browser = {
 //
 
 require('./util.test');
+require('./model.test');

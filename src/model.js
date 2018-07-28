@@ -125,73 +125,32 @@ export class StashState {
             };
         };
 
-        browser.bookmarks.onCreated.addListener(maybe_defer((id, bm) => {
-            state._update_bm(bm);
-        }));
-        browser.bookmarks.onChanged.addListener(maybe_defer((id, info) => {
-            // info: {title, url}
-            //
-            // NOTE: We use Object.assign here so that if title/url are missing,
-            // they are not included in the info object directly.
-            state._update_bm(Object.assign({id}, info));
-        }));
-        browser.bookmarks.onMoved.addListener(maybe_defer((id, info) => {
-            // info: {parentId, index, oldParentId, oldIndex}
-            state._update_bm({id, parentId: info.parentId, index: info.index});
-        }));
-        browser.bookmarks.onRemoved.addListener(maybe_defer((id, info) => {
-            // info: {parentId, index, node [sans children]}
-            state._drop_bm(id);
-        }));
+        browser.bookmarks.onCreated.addListener(
+            maybe_defer((...a) => state.bm_updated(...a)));
+        browser.bookmarks.onChanged.addListener(
+            maybe_defer((...a) => state.bm_updated(...a)));
+        browser.bookmarks.onMoved.addListener(
+            maybe_defer((...a) => state.bm_updated(...a)));
+        browser.bookmarks.onRemoved.addListener(
+            maybe_defer((...a) => state.bm_removed(...a)));
 
-        browser.windows.onCreated.addListener(maybe_defer(win => {
-            state._update_win(win);
-        }));
-        browser.windows.onRemoved.addListener(maybe_defer(winid => {
-            state._drop_win(winid);
-        }));
+        browser.windows.onCreated.addListener(
+            maybe_defer((...a) => state.win_created(...a)));
+        browser.windows.onRemoved.addListener(
+            maybe_defer((...a) => state.win_removed(...a)));
 
-        browser.tabs.onCreated.addListener(maybe_defer(tab => {
-            state._update_tab(tab);
-        }));
-        browser.tabs.onAttached.addListener(maybe_defer((id, info) => {
-            // info: {newWindowId, newPosition}
-            //
-            // NOTE: We do this weird assignment thing because _update_tab
-            // expects properties we don't know anything about to not
-            // exist--letting them exist and setting them to 'undefined' is the
-            // same as explicitly unsetting them.
-            let o = {id};
-            if (info.newWindowId !== undefined) o.windowId = info.newWindowId;
-            if (info.newPosition !== undefined) o.index = info.newPosition;
-            state._update_tab(o);
-        }));
-        browser.tabs.onMoved.addListener(maybe_defer((id, info) => {
-            // info: {windowId, fromIndex, toIndex}
-            //
-            // NOTE: We do this weird assignment thing because _update_tab
-            // expects properties we don't know anything about to not
-            // exist--letting them exist and setting them to 'undefined' is the
-            // same as explicitly unsetting them.
-            let o = {id};
-            if (info.windowId !== undefined) o.windowId = info.windowId;
-            if (info.toIndex !== undefined) o.index = info.toIndex;
-            state._update_tab(o);
-        }));
-        browser.tabs.onRemoved.addListener(maybe_defer((id, info) => {
-            // info: {windowId, isWindowClosing}
-            state._drop_tab(id);
-        }));
-        browser.tabs.onReplaced.addListener(maybe_defer((new_id, old_id) => {
-            state._replace_tab(new_id, old_id);
-        }));
-        browser.tabs.onUpdated.addListener(maybe_defer((id, info, tab) => {
-            // info: {audible, discarded, favIconUrl, hidden, isArticle,
-            //        mutedInfo, pinned, status, title, url}
-            // all optional, all representing the updated state.
-            // /tab/ is the Tab object with the updated state.
-            state._update_tab(tab);
-        }));
+        browser.tabs.onCreated.addListener(
+            maybe_defer((...a) => state.tab_created(...a)));
+        browser.tabs.onAttached.addListener(
+            maybe_defer((...a) => state.tab_attached(...a)));
+        browser.tabs.onMoved.addListener(
+            maybe_defer((...a) => state.tab_moved(...a)));
+        browser.tabs.onRemoved.addListener(
+            maybe_defer((...a) => state.tab_removed(...a)));
+        browser.tabs.onReplaced.addListener(
+            maybe_defer((...a) => state.tab_replaced(...a)));
+        browser.tabs.onUpdated.addListener(
+            maybe_defer((...a) => state.tab_updated(...a)));
 
         let state = new StashState(
             (await browser.bookmarks.getSubTree(""))[0],
@@ -207,35 +166,142 @@ export class StashState {
         return state;
     }
 
-    // Don't call this.  Call make() instead.
+    // Don't call this (except for testing).  Call make() instead.
     constructor(bookmarks_root, windows) {
         this.bms_by_id = new Map();
         this.wins_by_id = new Map();
         this.tabs_by_id = new Map();
         this.items_by_url = new Map();
 
-        this.bookmarks = this._index_new_bm(bookmarks_root);
+        this.bookmarks = this._update_bm(bookmarks_root);
 
         // Populates wins_by_id
-        for (let win of windows) this._index_new_win(win);
+        for (let win of windows) this.win_created(win);
     }
 
-    _index_new_bm(bm) {
-        let i = clone_bm(bm);
-        this.bms_by_id.set(bm.id, i);
-        this._update_url(i, i.url);
-        if (bm.children) {
-            i.children = bm.children.map(c => this._index_new_bm(c));
+    //
+    // Notify the model of updates to the bookmark and/or window/tab state.
+    // These should almost entirely mirror the actual events delivered by the
+    // browser, since these are the APIs that are actually tested.
+    //
+
+    bm_updated(id, info) {
+        // info could contain any of (although the old* args are ignored):
+        //     {title, url, parentId, index, oldParentId, oldIndex}
+        //
+        // NOTE: We use Object.assign here so that if anything is missing,
+        // it is not set as an own-property directly.
+        this._update_bm(Object.assign({id}, info));
+    }
+    bm_removed(id /*, info */) {
+        // info: {parentId, index, node [sans children]}
+        let i = this.bms_by_id.get(bmid);
+        if (! i) return;
+
+        // First drop all our child bookmarks, if we have any.
+        if (i.children) {
+            let children = i.children;
+            i.children = [];
+            for (let c of children) this.bm_removed(c.id);
         }
-        this._reposition(i, bm.parentId, bm.index);
+
+        // And finally, remove ourselves from the database.
+        this._reposition(i, undefined, undefined);
+        this._update_url(i, undefined);
+        this.bms_by_id.delete(bmid);
+    }
+
+    win_created(win) {
+        let i = clone_win(win);
+        this.wins_by_id.set(win.id, i);
+        if (win.tabs) for (let t of win.tabs) this._update_tab(t);
         return i;
     }
+    win_removed(win) {
+        let i = this.wins_by_id.get(winid);
+        if (! i) return;
+
+        let tabs = i.tabs;
+        i.tabs = [];
+        for (let t of tabs) this.tab_removed(t.id);
+        this.wins_by_id.delete(winid);
+    }
+
+    tab_created(tab) {
+        this._update_tab(tab);
+    }
+    tab_attached(id, info) {
+        // info: {newWindowId, newPosition}
+        //
+        // NOTE: We do this weird assignment thing because _update_tab
+        // expects properties we don't know anything about to not
+        // exist--letting them exist and setting them to 'undefined' is the
+        // same as explicitly unsetting them.
+        let o = {id};
+        if (info.newWindowId !== undefined) o.windowId = info.newWindowId;
+        if (info.newPosition !== undefined) o.index = info.newPosition;
+        this._update_tab(o);
+    }
+    tab_moved(id, info) {
+        // info: {windowId, fromIndex, toIndex}
+        //
+        // NOTE: We do this weird assignment thing because _update_tab
+        // expects properties we don't know anything about to not
+        // exist--letting them exist and setting them to 'undefined' is the
+        // same as explicitly unsetting them.
+        let o = {id};
+        if (info.windowId !== undefined) o.windowId = info.windowId;
+        if (info.toIndex !== undefined) o.index = info.toIndex;
+        this._update_tab(o);
+    }
+    tab_removed(id /*, info */) {
+        // info: {windowId, isWindowClosing}
+        let i = this.tabs_by_id.get(tabid);
+        if (! i) return;
+
+        this._reposition(i, undefined, undefined);
+        this._update_url(i, undefined);
+        this.tabs_by_id.delete(tabid);
+    }
+    tab_replaced(new_id, old_id) {
+        let i = this.tabs_by_id.get(oldid);
+        if (! i) return;
+        this.tabs_by_id.delete(oldid);
+        this.tabs_by_id.set(newid, i);
+        i.id = newid;
+    }
+    tab_updated(id, info, tab) {
+        // info: {audible, discarded, favIconUrl, hidden, isArticle,
+        //        mutedInfo, pinned, status, title, url}
+        // all optional, all representing the updated state.
+        // /tab/ is the Tab object with the updated state.
+        this._update_tab(tab);
+    }
+
+    //
+    // Private implementation past this point.
+    //
 
     _update_bm(bm) {
         let i = this.bms_by_id.get(bm.id);
         if (! i) {
-            this._index_new_bm(bm);
-            return;
+            i = clone_bm(bm);
+            this.bms_by_id.set(i.id, i);
+
+            if (bm.children) {
+                i.children = bm.children.map((c, idx) => {
+                    let child = this._update_bm({
+                        id: c.id,
+                        title: c.title,
+                        url: c.url,
+                        dateAdded: c.dateAdded,
+                        children: c.children,
+                    });
+                    child.parent = i;
+                    child.index = idx;
+                    return child;
+                });
+            }
         }
 
         if (bm.hasOwnProperty('title')) i.title = bm.title;
@@ -245,66 +311,14 @@ export class StashState {
         if (bm.hasOwnProperty('parentId') || bm.hasOwnProperty('index')) {
             this._reposition(i, bm.parentId, bm.index);
         }
-    }
-
-    _drop_bm(bmid) {
-        let i = this.bms_by_id.get(bmid);
-        if (! i) return;
-
-        // First drop all our child bookmarks, if we have any.
-        if (i.children) {
-            let children = i.children;
-            i.children = [];
-            for (let c of children) this._drop_bm(c.id);
-        }
-
-        // And finally, remove ourselves from the database.
-        this._reposition(i, undefined, undefined);
-        this._update_url(i, undefined);
-        this.bms_by_id.delete(bmid);
-    }
-
-    _index_new_win(win) {
-        let i = clone_win(win);
-        this.wins_by_id.set(win.id, i);
-        if (win.tabs) i.children = win.tabs.map(t => this._index_new_tab(t));
-        return i;
-    }
-
-    _update_win(win) {
-        let i = this.wins_by_id.get(win.id);
-        if (! i) {
-            this._index_new_win(win);
-            return;
-        }
-
-        if (win.hasOwnProperty('focused')) i.focused = win.focused;
-        // Don't care about the other win properties
-    }
-
-    _drop_win(winid) {
-        let i = this.wins_by_id.get(winid);
-        if (! i) return;
-
-        let tabs = i.tabs;
-        i.tabs = [];
-        for (let t of tabs) this._drop_tab(t.id);
-        this.wins_by_id.delete(winid);
-    }
-
-    _index_new_tab(tab) {
-        let i = clone_tab(tab);
-        this.tabs_by_id.set(i.id, i);
-        this._update_url(i, i.url);
-        this._reposition(i, tab.windowId, tab.index);
         return i;
     }
 
     _update_tab(tab) {
         let i = this.tabs_by_id.get(tab.id);
         if (! i) {
-            this._index_new_tab(tab);
-            return;
+            i = clone_tab(tab);
+            this.tabs_by_id.set(i.id, i);
         }
 
         if (tab.hasOwnProperty('title')) i.title = tab.title;
@@ -317,23 +331,8 @@ export class StashState {
         if (tab.hasOwnProperty('windowId') || tab.hasOwnProperty('index')) {
             this._reposition(i, tab.windowId, tab.index);
         }
-    }
 
-    _replace_tab(newid, oldid) {
-        let i = this.tabs_by_id.get(oldid);
-        if (! i) return;
-        this.tabs_by_id.delete(oldid);
-        this.tabs_by_id.set(newid, i);
-        i.id = newid;
-    }
-
-    _drop_tab(tabid) {
-        let i = this.tabs_by_id.get(tabid);
-        if (! i) return;
-
-        this._reposition(i, undefined, undefined);
-        this._update_url(i, undefined);
-        this.tabs_by_id.delete(tabid);
+        return i;
     }
 
     _reposition(item, newParentId, newIndex) {
@@ -383,6 +382,9 @@ export class StashState {
 
         // Then add to the new
         if (new_parent) {
+            while (new_parent.children.length < newIndex) {
+                new_parent.children.push(undefined);
+            }
             new_parent.children.splice(newIndex, 0, item);
             for (let i = newIndex + 1; i < new_parent.children.length; ++i) {
                 new_parent.children[i].index = i;
