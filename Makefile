@@ -1,4 +1,4 @@
-VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")
+VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")-$(shell git rev-parse --short HEAD)
 SRCPKG_DIR = tab-stash-src-$(VERSION)
 SRC_PKG = $(SRCPKG_DIR).tar.gz
 DIST_PKG = tab-stash-$(VERSION).zip
@@ -27,9 +27,9 @@ pkg-webext: release-preflight build-rel
 
 pkg-source: release-preflight
 	rm -rf $(SRCPKG_DIR) $(SRC_PKG)
-	git clone . $(SRCPKG_DIR)
-	git -C $(SRCPKG_DIR) remote set-url origin "$$(git remote get-url origin)"
 	git fetch -f origin
+	git clone . $(SRCPKG_DIR)
+	rm -rf $(SRCPKG_DIR)/.git
 	tar -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
 
