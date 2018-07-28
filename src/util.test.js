@@ -81,41 +81,45 @@ describe('util', function() {
         let activeCalls = 0;
         let promise = undefined;
         let res = undefined;
-        const f = M.nonReentrant(async function() {
-            expect(activeCalls, 'internal pre').to.equal(0);
-            ++activeCalls;
-            await promise;
-            expect(activeCalls, 'internal after await').to.equal(1);
-            --activeCalls;
-            ++callCount;
+        let f;
+        let next;
+
+        beforeEach(function() {
+            f = M.nonReentrant(async function() {
+                expect(activeCalls, 'internal pre').to.equal(0);
+                ++activeCalls;
+                await promise;
+                expect(activeCalls, 'internal after await').to.equal(1);
+                --activeCalls;
+                ++callCount;
+            });
+            next = () => {
+                let r = res;
+                // Atomically switch /promise/ and /res/
+                promise = new Promise(resolve => {res = resolve});
+                // If we had an old promise active, resolve it
+                if (r) r();
+            };
+            callCount = 0;
+            next();
+            expect(activeCalls, 'activeCalls pre').to.equal(0);
         });
-        const next = () => {
-            let r = res;
-            // Atomically switch /promise/ and /res/
-            promise = new Promise(resolve => {res = resolve});
-            // If we had an old promise active, resolve it
-            if (r) r();
-        };
-        next();
+
+        afterEach(function() {
+            expect(activeCalls, 'activeCalls post').to.equal(0);
+        });
 
         it('calls the async function immediately when first called',
            async function() {
-               expect(callCount, 'callCount pre').to.equal(0);
-               expect(activeCalls, 'activeCalls pre').to.equal(0);
-
                let end = f();
                next();
                await end;
 
-               expect(activeCalls, 'activeCalls post').to.equal(0);
                expect(callCount, 'callCount post').to.equal(1);
            });
 
         it('executes all calls that happen serially',
            async function() {
-               callCount = 0;
-               expect(activeCalls, 'activeCalls pre').to.equal(0);
-
                let end1 = f();
                expect(activeCalls, 'activeCalls first').to.equal(1);
                next();
@@ -136,15 +140,11 @@ describe('util', function() {
                next();
                await end3;
                expect(end2).to.not.equal(end3);
-               expect(activeCalls, 'activeCalls third').to.equal(0);
                expect(callCount, 'callCount third').to.equal(3);
            });
 
         it('delays a second call that happens during the first call',
            async function() {
-               callCount = 0;
-               expect(activeCalls, 'activeCalls pre').to.equal(0);
-
                let end1 = f();
                expect(activeCalls, 'activeCalls both active').to.equal(1);
 
@@ -159,15 +159,11 @@ describe('util', function() {
 
                next();
                await end2;
-               expect(activeCalls, 'activeCalls post').to.equal(0);
                expect(callCount, 'callCount post').to.equal(2);
            });
 
         it('squashes together all calls that happen during the first call',
            async function() {
-               callCount = 0;
-               expect(activeCalls, 'activeCalls pre').to.equal(0);
-
                let end1 = f();
                expect(activeCalls, 'activeCalls first active').to.equal(1);
 
@@ -184,7 +180,6 @@ describe('util', function() {
 
                next();
                await end2;
-               expect(activeCalls, 'activeCalls post').to.equal(0);
                expect(callCount, 'callCount post').to.equal(2);
            });
     });
