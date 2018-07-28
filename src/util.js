@@ -18,13 +18,13 @@ export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
 export function urlsInTree(bm_tree) {
     let urls = [];
     function collect(bm) {
-        if (bm.type === 'folder') {
-            if (bm.children) for (let c of bm.children) collect(c);
+        if (bm.children) {
+            for (let c of bm.children) collect(c);
         } else if (bm.url) {
             urls.push(bm.url);
         }
     }
-    collect(bm_tree);
+    if (bm_tree) collect(bm_tree);
     return urls;
 }
 
@@ -47,19 +47,28 @@ export function asyncEvent(async_fn) {
 // Since this is ostensibly a background task, exceptions which bubble out of
 // the function are caught and logged to the console.
 export function nonReentrant(fn) {
-    let triggered = false;
-    let pending = false;
+    let running = null;
+    let next = null;
+    let resolve_next = null;
 
     const inner = () => {
-        triggered = true;
-        if (pending) return;
+        if (! running) {
+            running = fn().finally(() => {
+                running = null;
+                if (next) {
+                    let rn = resolve_next;
+                    next = null;
+                    resolve_next = null;
+                    inner().finally(rn);
+                }
+            }).catch(console.log);
+            return running;
 
-        pending = true;
-        triggered = false;
-        fn().finally(() => {
-            pending = false;
-            if (triggered) inner();
-        }).catch(console.log);
+        } else if (! next) {
+            next = new Promise(resolve => {resolve_next = resolve});
+        }
+
+        return next;
     };
 
     return inner;
