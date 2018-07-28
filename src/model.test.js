@@ -226,6 +226,7 @@ describe('model', function() {
         let model;
         beforeEach(function() {
             model = simple_state();
+            expect(model.bookmarks).to.equal(model.bms_by_id.get('root'));
         });
 
         it('creates/updates bookmarks', function() {
@@ -270,6 +271,30 @@ describe('model', function() {
                     parent: model.bms_by_id.get('parent'), index: 1,
                 });
             }
+        });
+
+        it('shifts indexes right when inserting new children', function() {
+            model.bm_updated('new', {
+                parentId: 'root', index: 0, title: 'Foo', url: 'foo',
+                dateAdded: 1
+            });
+            check(model);
+            expect(model.bms_by_id.get('new').index).to.equal(0);
+            model.bm_updated('new2', {
+                parentId: 'root', index: 1, title: 'Foo', url: 'foo',
+                dateAdded: 1
+            });
+            expect(model.bms_by_id.get('new').index).to.equal(0);
+            expect(model.bms_by_id.get('new2').index).to.equal(1);
+            check(model);
+            model.bm_updated('new3', {
+                parentId: 'root', index: 0, title: 'Foo', url: 'foo',
+                dateAdded: 1
+            });
+            expect(model.bms_by_id.get('new').index).to.equal(1);
+            expect(model.bms_by_id.get('new2').index).to.equal(2);
+            expect(model.bms_by_id.get('new3').index).to.equal(0);
+            check(model);
         });
 
         it('moves bookmarks within a folder', function() {
@@ -350,8 +375,86 @@ describe('model', function() {
             }
         });
 
-        it('removes bookmarks');
-        it('removes folders and their children');
+        it('removes bookmarks', function() {
+            model.bm_updated('new', {
+                parentId: 'root', index: 0, title: 'Foo', url: 'foo',
+                dateAdded: 1
+            });
+            check(model);
+            expect(model.bms_by_id.get('new')).to.include({
+                id: 'new', isBookmark: true, title: 'Foo', url: 'foo',
+                parent: model.bms_by_id.get('root'), index: 0,
+            });
+            expect(model.items_by_url.get('foo'))
+                .to.eql([model.bms_by_id.get('new')]);
+            model.bm_removed('new');
+            expect(model.bms_by_id.get('new')).to.equal(undefined);
+            expect(model.bookmarks.children.length).to.equal(0);
+            expect(model.items_by_url.get('foo')).to.equal(undefined);
+            check(model);
+        });
+
+        it('removes folders and their children', function() {
+            model.bm_updated('new', {
+                parentId: 'root', index: 0, title: 'Foo',
+                dateAdded: 1, children: [
+                    {id: 'child1', title: 'Child 1', url: 'child1',
+                     dateAdded: 2},
+                    {id: 'f1', title: 'Folder 1', dateAdded: 2, children: [
+                        {id: 'child2', title: 'Child 2', url: 'child2',
+                         dateAdded: 2},
+                    ]},
+                    {id: 'child3', title: 'Child 3', url: 'child3',
+                     dateAdded: 2},
+                ],
+            });
+            // We are assuming that the insertion was successful because there's
+            // another test for that.
+            check(model);
+            model.bm_removed('new');
+            expect(model.bms_by_id.get('new')).to.equal(undefined);
+            expect(model.bms_by_id.get('child1')).to.equal(undefined);
+            expect(model.bms_by_id.get('child2')).to.equal(undefined);
+            expect(model.bms_by_id.get('child3')).to.equal(undefined);
+            expect(model.bms_by_id.get('f1')).to.equal(undefined);
+            expect(model.bookmarks.children.length).to.equal(0);
+            check(model);
+        });
+
+        it('shifts indexes left when removing children', function() {
+            model.bm_updated('new', {
+                parentId: 'root', index: 0, title: 'Foo',
+                dateAdded: 1, children: [
+                    {id: 'child1', title: 'Child 1', url: 'child1',
+                     dateAdded: 2},
+                    {id: 'child2', title: 'Child 2', url: 'child2',
+                     dateAdded: 2},
+                    {id: 'child3', title: 'Child 3', url: 'child3',
+                     dateAdded: 2},
+                    {id: 'child4', title: 'Child 4', url: 'child3',
+                     dateAdded: 2},
+                ],
+            });
+            expect(model.bms_by_id.get('child1').index).to.equal(0);
+            expect(model.bms_by_id.get('child2').index).to.equal(1);
+            expect(model.bms_by_id.get('child3').index).to.equal(2);
+            expect(model.bms_by_id.get('child4').index).to.equal(3);
+            check(model);
+
+            model.bm_removed('child1');
+            expect(model.bms_by_id.get('child1')).to.equal(undefined);
+            expect(model.bms_by_id.get('child2').index).to.equal(0);
+            expect(model.bms_by_id.get('child3').index).to.equal(1);
+            expect(model.bms_by_id.get('child4').index).to.equal(2);
+            check(model);
+
+            model.bm_removed('child3');
+            expect(model.bms_by_id.get('child1')).to.equal(undefined);
+            expect(model.bms_by_id.get('child2').index).to.equal(0);
+            expect(model.bms_by_id.get('child3')).to.equal(undefined);
+            expect(model.bms_by_id.get('child4').index).to.equal(1);
+            check(model);
+        });
     });
 
     describe('windows and tabs', function() {

@@ -195,7 +195,7 @@ export class StashState {
     }
     bm_removed(id /*, info */) {
         // info: {parentId, index, node [sans children]}
-        let i = this.bms_by_id.get(bmid);
+        let i = this.bms_by_id.get(id);
         if (! i) return;
 
         // First drop all our child bookmarks, if we have any.
@@ -208,7 +208,7 @@ export class StashState {
         // And finally, remove ourselves from the database.
         this._reposition(i, undefined, undefined);
         this._update_url(i, undefined);
-        this.bms_by_id.delete(bmid);
+        this.bms_by_id.delete(id);
     }
 
     win_created(win) {
