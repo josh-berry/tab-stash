@@ -142,7 +142,7 @@ export class StashState {
         browser.tabs.onCreated.addListener(
             maybe_defer((...a) => state.tab_created(...a)));
         browser.tabs.onAttached.addListener(
-            maybe_defer((...a) => state.tab_attached(...a)));
+            maybe_defer((...a) => state.tab_moved(...a)));
         browser.tabs.onMoved.addListener(
             maybe_defer((...a) => state.tab_moved(...a)));
         browser.tabs.onRemoved.addListener(
@@ -214,15 +214,30 @@ export class StashState {
     win_created(win) {
         let i = clone_win(win);
         this.wins_by_id.set(win.id, i);
-        if (win.tabs) for (let t of win.tabs) this._update_tab(t);
+        if (win.tabs) {
+            i.children = win.tabs.map((t, idx) => {
+                let tab = this._update_tab({
+                    id: t.id,
+                    title: t.title,
+                    url: t.url,
+                    favIconUrl: t.favIconUrl,
+                    hidden: t.hidden,
+                    active: t.active,
+                    pinned: t.pinned,
+                });
+                tab.parent = i;
+                tab.index = idx;
+                return tab;
+            });
+        }
         return i;
     }
-    win_removed(win) {
+    win_removed(winid) {
         let i = this.wins_by_id.get(winid);
         if (! i) return;
 
-        let tabs = i.tabs;
-        i.tabs = [];
+        let tabs = i.children;
+        i.children = [];
         for (let t of tabs) this.tab_removed(t.id);
         this.wins_by_id.delete(winid);
     }
@@ -230,20 +245,9 @@ export class StashState {
     tab_created(tab) {
         this._update_tab(tab);
     }
-    tab_attached(id, info) {
-        // info: {newWindowId, newPosition}
-        //
-        // NOTE: We do this weird assignment thing because _update_tab
-        // expects properties we don't know anything about to not
-        // exist--letting them exist and setting them to 'undefined' is the
-        // same as explicitly unsetting them.
-        let o = {id};
-        if (info.newWindowId !== undefined) o.windowId = info.newWindowId;
-        if (info.newPosition !== undefined) o.index = info.newPosition;
-        this._update_tab(o);
-    }
     tab_moved(id, info) {
-        // info: {windowId, fromIndex, toIndex}
+        // info: {windowId, fromIndex, toIndex} (for onMoved)
+        // info: {newWindowId, newPosition} (for onAttached)
         //
         // NOTE: We do this weird assignment thing because _update_tab
         // expects properties we don't know anything about to not
@@ -252,9 +256,11 @@ export class StashState {
         let o = {id};
         if (info.windowId !== undefined) o.windowId = info.windowId;
         if (info.toIndex !== undefined) o.index = info.toIndex;
+        if (info.newWindowId !== undefined) o.windowId = info.newWindowId;
+        if (info.newPosition !== undefined) o.index = info.newPosition;
         this._update_tab(o);
     }
-    tab_removed(id /*, info */) {
+    tab_removed(tabid /*, info */) {
         // info: {windowId, isWindowClosing}
         let i = this.tabs_by_id.get(tabid);
         if (! i) return;

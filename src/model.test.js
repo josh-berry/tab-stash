@@ -18,7 +18,7 @@ describe('model', function() {
                     expect(r, `${r.id} to be indexed in bms_by_id`)
                         .to.equal(dbbm);
                 } else if (r.isTab) {
-                    const dbt = model.tabs_by_id(r.id);
+                    const dbt = model.tabs_by_id.get(r.id);
                     expect(r, `${r.id} to be indexed in tabs_by_id`)
                         .to.equal(dbt);
                 } else {
@@ -79,44 +79,46 @@ describe('model', function() {
         }
 
         function check_tab(t) {
-            expect(t.id, `${t.title} has an ID`).to.be.a('number');
-            expect(t.isTab, `${t.id} is a tab`).to.equal(true);
-            expect(t.title, `${t.id} has a title`).to.be.a('string');
-            expect(t.url, `${t.id} has a URL`).to.be.a('string');
-            expect(t.favIconUrl, `${t.id} has a favicon URL`)
+            expect(t.id, `tab ${t.title} has an ID`).to.be.a('number');
+            expect(t.isTab, `tab ${t.id} is a tab`).to.equal(true);
+            expect(t.title, `tab ${t.id} has a title`).to.be.a('string');
+            expect(t.url, `tab ${t.id} has a URL`).to.be.a('string');
+            expect(t.favIconUrl, `tab ${t.id} has a favicon URL`)
                 .to.be.a('string');
-            expect(t.hidden, `${t.id} has a hidden property`)
+            expect(t.hidden, `tab ${t.id} has a hidden property`)
                 .to.be.a('boolean');
-            expect(t.active, `${t.id} has an active property`)
+            expect(t.active, `tab ${t.id} has an active property`)
                 .to.be.a('boolean');
-            expect(t.pinned, `${t.id} has a pinned property`)
+            expect(t.pinned, `tab ${t.id} has a pinned property`)
                 .to.be.a('boolean');
 
-            const dbt = model.tabs_by_id(r.id);
-            expect(r, `${r.id} to be indexed in tabs_by_id`).to.equal(dbt);
+            const dbt = model.tabs_by_id.get(t.id);
+            expect(t, `tab ${t.id} to be indexed in tabs_by_id`).to.equal(dbt);
 
             const p = t.parent;
             expect(t.parent).to.not.be.undefined;
-            expect(p.children[t.index], `${t.id} to be at index ${t.index} in parent ${p.id}`).to.equal(t);
+            expect(p.children[t.index],
+                   `tab ${t.id} to be at index ${t.index} in win ${p.id}`)
+                .to.equal(t);
 
             check_related(t);
         }
 
         function check_win(w) {
-            expect(w.id, `${w} has an ID`).to.be.a('number');
-            expect(w.isWindow, `${w.id} is a window`).to.equal(true);
-            expect(w.focused, `${w.id} has a focused property`)
+            expect(w.id, `win ${w.title} has an ID`).to.be.a('number');
+            expect(w.isWindow, `win ${w.id} is a window`).to.equal(true);
+            expect(w.focused, `win ${w.id} has a focused property`)
                 .to.be.a('boolean');
-            expect(w.type, `${w.id} has a type property`).to.be.a('string');
+            expect(w.type, `win ${w.id} has a type property`).to.be.a('string');
 
             const dbw = model.wins_by_id.get(w.id);
-            expect(w, `${w.id} to be indexed in wins_by_id`).to.equal(dbw);
+            expect(w, `win ${w.id} to be indexed in wins_by_id`).to.equal(dbw);
 
             for (let i = 0; i < w.children.length; ++i) {
                 const c = w.children[i];
-                expect(c.parent, `${c.id} has ${w.id} as its parent`)
+                expect(c.parent, `tab ${c.id} has win ${w.id} as its parent`)
                     .to.equal(w);
-                expect(c.index, `${c.id} is at index ${i}`).to.equal(i);
+                expect(c.index, `tab ${c.id} is at index ${i}`).to.equal(i);
                 check_tab(c);
             }
         }
@@ -139,7 +141,7 @@ describe('model', function() {
             children: []
         }, [
             {id: 1, focused: true, type: 'normal',
-             children: [
+             tabs: [
                  {id: 1, title: 'Foo', url: 'url://1',
                   favIconUrl: 'favicon://foo',
                   hidden: false, active: true, pinned: false},
@@ -458,9 +460,95 @@ describe('model', function() {
     });
 
     describe('windows and tabs', function() {
-        it('creates windows with pre-populated tabs');
-        it('removes windows and their associated tabs');
-        it('creates tabs and inserts them into windows appropriately');
+        let model;
+        beforeEach(function() {
+            model = simple_state();
+            expect(model.bookmarks).to.equal(model.bms_by_id.get('root'));
+        });
+
+        it('creates windows with pre-populated tabs', function() {
+            model.win_created({
+                id: 2, focused: true, type: 'normal', tabs: [
+                    {id: 2, title: 'Tab 1', url: 'url1', favIconUrl: 'fav1',
+                     hidden: false, active: false, pinned: false},
+                    {id: 3, title: 'Tab 2', url: 'url2', favIconUrl: 'fav2',
+                     hidden: false, active: false, pinned: false},
+                ]});
+            expect(model.wins_by_id.get(2)).to.deep.include({
+                isWindow: true,
+                id: 2, focused: true, type: 'normal', children: [
+                    model.tabs_by_id.get(2),
+                    model.tabs_by_id.get(3),
+                ]});
+            expect(model.tabs_by_id.get(2)).to.include({
+                id: 2, title: 'Tab 1', url: 'url1', favIconUrl: 'fav1',
+                hidden: false, active: false, pinned: false, isTab: true,
+                parent: model.wins_by_id.get(2), index: 0,
+            });
+            expect(model.tabs_by_id.get(3)).to.include({
+                id: 3, title: 'Tab 2', url: 'url2', favIconUrl: 'fav2',
+                hidden: false, active: false, pinned: false, isTab: true,
+                parent: model.wins_by_id.get(2), index: 1,
+            });
+            expect(model.tabs_by_id.get(2).parent)
+                .to.equal(model.wins_by_id.get(2));
+            expect(model.tabs_by_id.get(3).parent)
+                .to.equal(model.wins_by_id.get(2));
+            check(model);
+        });
+
+        it('removes windows and their associated tabs', function() {
+            expect(model.wins_by_id.get(1)).to.include({id: 1});
+            expect(model.tabs_by_id.get(1)).to.include({id: 1});
+            model.win_removed(1);
+            expect(model.tabs_by_id.get(1)).to.equal(undefined);
+            expect(model.wins_by_id.get(1)).to.equal(undefined);
+            check(model);
+        });
+
+        it('creates tabs and inserts them into windows in the right place',
+           function() {
+               expect(model.wins_by_id.get(1)).to.include({id: 1});
+               expect(model.tabs_by_id.get(1)).to.include({id: 1, index: 0});
+
+               model.tab_created({
+                   id: 2, windowId: 1, index: 1, title: 'New Tab',
+                   url: 'newtab', favIconUrl: 'favicon', hidden: false,
+                   active: true, pinned: false
+               });
+               expect(model.tabs_by_id.get(2)).to.include({
+                   id: 2, parent: model.wins_by_id.get(1), index: 1,
+                   title: 'New Tab',
+                   url: 'newtab', favIconUrl: 'favicon', hidden: false,
+                   active: true, pinned: false
+               });
+               expect(model.wins_by_id.get(1)).to.deep.include({
+                   children: [
+                       model.tabs_by_id.get(1),
+                       model.tabs_by_id.get(2),
+                   ]});
+               check(model);
+
+               model.tab_created({
+                   id: 3, windowId: 1, index: 0, title: 'First Tab',
+                   url: 'first', favIconUrl: 'first', hidden: false,
+                   active: false, pinned: false,
+               });
+               expect(model.tabs_by_id.get(3)).to.include({
+                   id: 3, parent: model.wins_by_id.get(1), index: 0,
+                   title: 'First Tab',
+                   url: 'first', favIconUrl: 'first', hidden: false,
+                   active: false, pinned: false,
+               });
+               expect(model.wins_by_id.get(1)).to.deep.include({
+                   children: [
+                       model.tabs_by_id.get(3),
+                       model.tabs_by_id.get(1),
+                       model.tabs_by_id.get(2),
+                   ]});
+               check(model);
+           });
+
         it('removes tabs from their parent windows');
         it('moves tabs within a window');
         it('moves tabs between windows');
