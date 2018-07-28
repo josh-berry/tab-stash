@@ -4,7 +4,8 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin');
 module.exports = {
     entry: {
         "index": "./src/index.js",
-        "stash-list": "./src/stash-list.js"
+        "stash-list": "./src/stash-list.js",
+        "test": "./src/test.js",
     },
     mode: "development",
     devtool: "eval-source-map",

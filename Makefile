@@ -35,11 +35,13 @@ pkg-source: release-preflight
 
 build-dbg: node_modules
 	npm run build
+	npm run test
 .PHONY: build-dbg
 
 build-rel: node_modules clean
 	npm run build-rel
-	./node_modules/.bin/web-ext lint -s dist
+	npm run test
+	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 
 release-preflight:
