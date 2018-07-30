@@ -38,7 +38,9 @@ export default {
     computed: {
         tab_count: function() {
             let c = 0;
-            for (let f of this.stashed_tabs) c += f.children.length;
+            for (let f of this.stashed_tabs) {
+                if (f.children) c += f.children.length;
+            }
             return c;
         },
     },
