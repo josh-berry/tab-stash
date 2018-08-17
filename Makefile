@@ -31,7 +31,7 @@ rel: release-tag pkg-webext pkg-source
 # Rather than calling webpack directly, we invoke npm here so that Windows users
 # still have a way to build.
 pkg-webext: clean-working-tree build-rel
-	cd dist && zip -9rvo ../$(DIST_PKG) .
+	cd dist && zip -9rvo ../$(DIST_PKG) `find . -type f -not -name 'test.*'`
 .PHONY: pkg-webext
 
 pkg-source: clean-working-tree
