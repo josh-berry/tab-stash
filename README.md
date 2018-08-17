@@ -151,7 +151,7 @@ Linux and Mac only.  May only be done in a clean tree, with HEAD pointing at a
 release tag.  In the top-level tab-stash directory, run:
 
 ```sh
-$ make release
+$ make rel
 ```
 
 All generated files in `dist` will be rebuilt, with debugging information and
