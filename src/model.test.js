@@ -188,7 +188,7 @@ describe('model', function() {
             ],
         }, [
             {id: 1, focused: true, type: 'normal',
-             children: [
+             tabs: [
                  {id: 1, title: 'Foo', url: 'url://1',
                   favIconUrl: 'favicon://foo',
                   hidden: false, active: true, pinned: false},
@@ -200,17 +200,17 @@ describe('model', function() {
                   hidden: false, active: false, pinned: false},
              ]},
             {id: 2, focused: false, type: 'normal',
-             children: [
-                 {id: 3, title: 'Foo', url: 'url://1',
+             tabs: [
+                 {id: 4, title: 'Foo', url: 'url://1',
                   favIconUrl: 'favicon://foo',
                   hidden: false, active: true, pinned: true},
-                 {id: 4, title: 'Bar', url: 'url://bar-tab',
+                 {id: 5, title: 'Bar', url: 'url://bar-tab',
                   favIconUrl: 'favicon://foo',
                   hidden: false, active: false, pinned: false},
-                 {id: 5, title: 'Fred', url: 'url://fred-tab',
+                 {id: 6, title: 'Fred', url: 'url://fred-tab',
                   favIconUrl: 'favicon://foo',
                   hidden: false, active: false, pinned: false},
-                 {id: 6, title: 'Hidden', url: 'url://2',
+                 {id: 7, title: 'Hidden', url: 'url://2',
                   favIconUrl: 'favicon://foo',
                   hidden: true, active: false, pinned: false},
              ]},
@@ -698,17 +698,92 @@ describe('model', function() {
     });
 
     describe('related bookmarks', function() {
-        it('links duplicate bookmarks together');
-        it('unlinks a duplicate bookmark when it is deleted');
-        it('moves a bookmark from one URL set to another when its URL changes');
-        it('unlinks a duplicate bookmark when its URL changes');
-        it('links a newly-duplicated bookmark when its URL changes');
+        let model;
+        beforeEach(function() {
+            model = simple_state();
+            model.bm_updated('1',
+                             {id: '1', url: 'url://1', title: '1',
+                              parentId: 'root', index: 0, dateAdded: 0});
+            model.bm_updated('1prime',
+                             {id: '1prime', url: 'url://1', title: '1-prime',
+                              parentId: 'root', index: 1, dateAdded: 0});
+            model.bm_updated('2',
+                             {id: '2', url: 'url://2', title: '2',
+                              parentId: 'root', index: 2, dateAdded: 0});
+            expect(model.items_by_url.get('url://1')).to.include.members([
+                model.bms_by_id.get('1'),
+                model.bms_by_id.get('1prime'),
+            ]);
+        });
+
+        it('links duplicate bookmarks together', function() {
+            check(model);
+        });
+
+        it('unlinks a duplicate bookmark when it is deleted', function() {
+            model.bm_removed('1prime');
+            expect(model.items_by_url.get('url://1')).to.include.members([
+                model.bms_by_id.get('1'),
+            ]);
+            check(model);
+        });
+
+        it('moves a bookmark from one URL set to another when its URL changes',
+           function() {
+               model.bm_updated('1prime', {id: '1prime', url: 'url://2'});
+               expect(model.items_by_url.get('url://1')).to.include.members([
+                   model.bms_by_id.get('1'),
+               ]);
+               expect(model.items_by_url.get('url://2')).to.include.members([
+                   model.bms_by_id.get('2'),
+                   model.bms_by_id.get('1prime'),
+               ]);
+               check(model);
+           });
     });
 
     describe('related bookmarks and tabs', function() {
-        it('links duplicate tabs together');
-        it('links bookmarks with tabs with the same URLs');
-        it('unlinks bookmarks/tabs when a linked tab is closed');
-        it('unlinks bookmarks/tabs when the tab changes URLs');
+        let model;
+        beforeEach(function() {
+            model = fancy_state();
+            check(model);
+        });
+
+        it('links duplicate tabs together', function() {
+            expect(model.items_by_url.get('url://1')).to.include.members([
+                model.bms_by_id.get('1'),
+                model.tabs_by_id.get(1),
+                model.tabs_by_id.get(4),
+            ]);
+        });
+
+        it('links bookmarks with tabs with the same URLs', function() {
+            expect(model.items_by_url.get('url://2')).to.include.members([
+                model.bms_by_id.get('2'),
+                model.tabs_by_id.get(7),
+            ]);
+        });
+
+        it('unlinks a tab when it is closed', function() {
+            model.tab_removed(3);
+            expect(model.items_by_url.get('url://1')).to.include.members([
+                model.bms_by_id.get('1'),
+                model.tabs_by_id.get(1),
+            ]);
+            check(model);
+        });
+
+        it('moves a tab from one URL set to another when its URL changes',
+           function() {
+               model.tab_updated({id: 7, url: 'newtab'});
+               expect(model.items_by_url.get('url://1')).to.include.members([
+                   model.bms_by_id.get('1'),
+                   model.tabs_by_id.get(1),
+               ]);
+               expect(model.items_by_url.get('newtab')).to.include.members([
+                   model.tabs_by_id.get(7),
+               ]);
+               check(model);
+        });
     });
 });
