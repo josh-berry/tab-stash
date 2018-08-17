@@ -1,19 +1,29 @@
-VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")-$(shell git rev-parse --short HEAD)
-SRCPKG_DIR = tab-stash-src-$(VERSION)
+VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")
+FULL_VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")-$(shell git rev-parse --short HEAD)
+
+SRCPKG_DIR = tab-stash-src-$(FULL_VERSION)
 SRC_PKG = $(SRCPKG_DIR).tar.gz
-DIST_PKG = tab-stash-$(VERSION).zip
+DIST_PKG = tab-stash-$(FULL_VERSION).zip
 
 # Primary (user-facing) targets
 debug: build-dbg
 .PHONY: debug
 
-release: pkg-webext pkg-source
-	make -C $(SRCPKG_DIR) release-preflight build-rel
+rel: pkg-webext pkg-source
+	make -C $(SRCPKG_DIR) build-rel
 	[ -z "$$(diff -Nru dist $(SRCPKG_DIR)/dist)" ]
+	rm -rf $(SRCPKG_DIR)
+	git tag v$(VERSION) HEAD
 	@echo ""
 	@echo "Ready for release $(VERSION)!"
+	@echo
+	@echo "New git tag:     v$(VERSION)"
+	@echo "Release package: $(DIST_PKG)"
+	@echo "Source package:  $(SRC_PKG)"
+	@echo
+	@echo "If everything looks good, run \"git push\" and upload to AMO."
 	@echo ""
-.PHONY: release
+.PHONY: rel
 
 
 
@@ -21,11 +31,11 @@ release: pkg-webext pkg-source
 #
 # Rather than calling webpack directly, we invoke npm here so that Windows users
 # still have a way to build.
-pkg-webext: release-preflight build-rel
+pkg-webext: clean-working-tree build-rel
 	cd dist && zip -9rvo ../$(DIST_PKG) .
 .PHONY: pkg-webext
 
-pkg-source: release-preflight
+pkg-source: clean-working-tree
 	rm -rf $(SRCPKG_DIR) $(SRC_PKG)
 	git fetch -f origin
 	git clone . $(SRCPKG_DIR)
@@ -44,11 +54,10 @@ build-rel: node_modules clean
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 
-release-preflight:
+clean-working-tree:
 	[ -z "$$(git status --porcelain)" ] # Working tree must be clean.
-	[ "$$(git name-rev --tags --name-only HEAD)" == "v$(VERSION)" ] # HEAD must be pointing at the release tag which matches manifest.json.
-.PHONY: release-preflight
-.NOTPARALLEL: release-preflight
+.PHONY: clean-working-tree
+.NOTPARALLEL: clean-working-tree
 
 node_modules: package.json package-lock.json
 	npm install
