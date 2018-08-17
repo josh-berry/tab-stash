@@ -37,8 +37,7 @@ pkg-webext: clean-working-tree build-rel
 pkg-source: clean-working-tree
 	rm -rf $(SRCPKG_DIR) $(SRC_PKG)
 	git fetch -f origin
-	git clone . $(SRCPKG_DIR)
-	rm -rf $(SRCPKG_DIR)/.git
+	git clone --depth 1 -b v$(VERSION) . $(SRCPKG_DIR)
 	tar -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
 
