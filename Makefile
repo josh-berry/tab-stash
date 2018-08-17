@@ -48,6 +48,7 @@ release-preflight:
 	[ -z "$$(git status --porcelain)" ] # Working tree must be clean.
 	[ "$$(git name-rev --tags --name-only HEAD)" == "v$(VERSION)" ] # HEAD must be pointing at the release tag which matches manifest.json.
 .PHONY: release-preflight
+.NOTPARALLEL: release-preflight
 
 node_modules: package.json package-lock.json
 	npm install
