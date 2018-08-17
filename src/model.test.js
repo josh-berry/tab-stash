@@ -549,11 +549,152 @@ describe('model', function() {
                check(model);
            });
 
-        it('removes tabs from their parent windows');
-        it('moves tabs within a window');
-        it('moves tabs between windows');
-        it('replaces tabs with new IDs');
-        it('updates tab titles/URLs');
+        function move_remove_tab_state() {
+            expect(model.wins_by_id.get(1)).to.include({id: 1});
+            expect(model.tabs_by_id.get(1)).to.include({id: 1, index: 0});
+
+            model.tab_created({
+                id: 2, windowId: 1, index: 1, title: 'New Tab',
+                url: 'newtab', favIconUrl: 'favicon', hidden: false,
+                active: true, pinned: false
+            });
+            model.tab_created({
+                id: 3, windowId: 1, index: 2, title: 'New Tab #2',
+                url: 'newtab2', favIconUrl: 'favicon', hidden: false,
+                active: true, pinned: false
+            });
+            model.tab_created({
+                id: 4, windowId: 1, index: 3, title: 'New Tab #3',
+                url: 'newtab3', favIconUrl: 'favicon', hidden: false,
+                active: true, pinned: false
+            });
+            check(model);
+        }
+
+        it('removes tabs from their parent windows', function() {
+            move_remove_tab_state();
+
+            model.tab_removed(4);
+            expect(model.wins_by_id.get(1).children).to.deep.equal([
+                model.tabs_by_id.get(1),
+                model.tabs_by_id.get(2),
+                model.tabs_by_id.get(3),
+            ]);
+            check(model);
+
+            model.tab_removed(2);
+            expect(model.wins_by_id.get(1).children).to.deep.equal([
+                model.tabs_by_id.get(1),
+                model.tabs_by_id.get(3),
+            ]);
+            check(model);
+
+            model.tab_removed(1);
+            expect(model.wins_by_id.get(1).children).to.deep.equal([
+                model.tabs_by_id.get(3),
+            ]);
+            check(model);
+        });
+
+        it('moves tabs within a window', function() {
+            move_remove_tab_state();
+
+            model.tab_moved(4, {windowId: 1, toIndex: 0});
+            expect(model.tabs_by_id.get(4).index).to.equal(0);
+            expect(model.tabs_by_id.get(1).index).to.equal(1);
+            expect(model.tabs_by_id.get(2).index).to.equal(2);
+            expect(model.tabs_by_id.get(3).index).to.equal(3);
+            check(model);
+
+            model.tab_moved(4, {windowId: 1, toIndex: 3});
+            expect(model.tabs_by_id.get(1).index).to.equal(0);
+            expect(model.tabs_by_id.get(2).index).to.equal(1);
+            expect(model.tabs_by_id.get(3).index).to.equal(2);
+            expect(model.tabs_by_id.get(4).index).to.equal(3);
+            check(model);
+
+            model.tab_moved(3, {windowId: 1, toIndex: 1});
+            expect(model.tabs_by_id.get(1).index).to.equal(0);
+            expect(model.tabs_by_id.get(3).index).to.equal(1);
+            expect(model.tabs_by_id.get(2).index).to.equal(2);
+            expect(model.tabs_by_id.get(4).index).to.equal(3);
+            check(model);
+        });
+
+        it('moves tabs between windows', function() {
+            move_remove_tab_state();
+            model.win_created({
+                id: 2, focused: false, type: 'normal',
+                tabs: [
+                    {id: 5, title: 'Mambo #5', url: 'mambo',
+                     favIconUrl: 'mambo',
+                     hidden: false, active: false, pinned: false},
+                    {id: 6, title: 'words long', url: 'words',
+                     favIconUrl: 'words',
+                     hidden: false, active: false, pinned: false},
+                ],
+            });
+            check(model);
+
+            model.tab_moved(4, {windowId: 2, toIndex: 2});
+            expect(model.tabs_by_id.get(1).index).to.equal(0);
+            expect(model.tabs_by_id.get(2).index).to.equal(1);
+            expect(model.tabs_by_id.get(3).index).to.equal(2);
+            expect(model.tabs_by_id.get(5).index).to.equal(0);
+            expect(model.tabs_by_id.get(6).index).to.equal(1);
+            expect(model.tabs_by_id.get(4).parent).to.equal(
+                model.wins_by_id.get(2));
+            expect(model.tabs_by_id.get(4).index).to.equal(2);
+            check(model);
+
+            model.tab_moved(6, {windowId: 1, toIndex: 0});
+            expect(model.tabs_by_id.get(6).parent).to.equal(
+                model.wins_by_id.get(1));
+            expect(model.tabs_by_id.get(6).index).to.equal(0);
+            expect(model.tabs_by_id.get(1).index).to.equal(1);
+            expect(model.tabs_by_id.get(2).index).to.equal(2);
+            expect(model.tabs_by_id.get(3).index).to.equal(3);
+            expect(model.tabs_by_id.get(5).index).to.equal(0);
+            expect(model.tabs_by_id.get(4).parent).to.equal(
+                model.wins_by_id.get(2));
+            expect(model.tabs_by_id.get(4).index).to.equal(1);
+            check(model);
+        });
+
+        it('replaces tabs with new IDs', function() {
+            expect(model.tabs_by_id.get(1).id).to.equal(1);
+
+            model.tab_replaced(2, 1);
+            expect(model.tabs_by_id.get(1)).to.equal(undefined);
+            expect(model.tabs_by_id.get(2).id).to.equal(2);
+            expect(model.tabs_by_id.get(2).url).to.equal('url://1');
+            expect(model.wins_by_id.get(1)).to.deep.include({
+                children: [
+                    model.tabs_by_id.get(2),
+                ],
+            });
+            check(model);
+        });
+
+        it('updates tab URLs', function() {
+            expect(model.tabs_by_id.get(1).url).to.equal('url://1');
+            expect(model.items_by_url.get('url://1')).to.contain(
+                model.tabs_by_id.get(1));
+
+            model.tab_updated({id: 1, url: 'bar://'});
+            expect(model.tabs_by_id.get(1).url).to.equal('bar://');
+            expect(model.items_by_url.get('url://1')).to.equal(undefined);
+            expect(model.items_by_url.get('bar://')).to.contain(
+                model.tabs_by_id.get(1));
+            check(model);
+        });
+
+        it('updates tab titles', function() {
+            expect(model.tabs_by_id.get(1).title).to.equal('Foo');
+            model.tab_updated({id: 1, title: 'Bar'});
+            expect(model.tabs_by_id.get(1).title).to.equal('Bar');
+            check(model);
+        });
     });
 
     describe('related bookmarks', function() {

@@ -150,7 +150,7 @@ export class StashState {
         browser.tabs.onReplaced.addListener(
             maybe_defer((...a) => state.tab_replaced(...a)));
         browser.tabs.onUpdated.addListener(
-            maybe_defer((...a) => state.tab_updated(...a)));
+            maybe_defer((id, info, tab) => state.tab_updated(tab)));
 
         let state = new StashState(
             (await browser.bookmarks.getSubTree(""))[0],
@@ -270,17 +270,14 @@ export class StashState {
         this.tabs_by_id.delete(tabid);
     }
     tab_replaced(new_id, old_id) {
-        let i = this.tabs_by_id.get(oldid);
+        let i = this.tabs_by_id.get(old_id);
         if (! i) return;
-        this.tabs_by_id.delete(oldid);
-        this.tabs_by_id.set(newid, i);
-        i.id = newid;
+        this.tabs_by_id.delete(old_id);
+        this.tabs_by_id.set(new_id, i);
+        i.id = new_id;
     }
-    tab_updated(id, info, tab) {
-        // info: {audible, discarded, favIconUrl, hidden, isArticle,
-        //        mutedInfo, pinned, status, title, url}
-        // all optional, all representing the updated state.
-        // /tab/ is the Tab object with the updated state.
+    tab_updated(tab) {
+        // /tab/ is the browser Tab object with the updated state.
         this._update_tab(tab);
     }
 
