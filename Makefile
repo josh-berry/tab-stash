@@ -9,15 +9,14 @@ DIST_PKG = tab-stash-$(FULL_VERSION).zip
 debug: build-dbg
 .PHONY: debug
 
-rel: pkg-webext pkg-source
-	make -C $(SRCPKG_DIR) build-rel
+rel: release-tag pkg-webext pkg-source
+	make -C $(SRCPKG_DIR) release-tag pkg-webext pkg-source
 	[ -z "$$(diff -Nru dist $(SRCPKG_DIR)/dist)" ]
 	rm -rf $(SRCPKG_DIR)
-	git tag v$(VERSION) HEAD
 	@echo ""
 	@echo "Ready for release $(VERSION)!"
 	@echo
-	@echo "New git tag:     v$(VERSION)"
+	@echo "Git tag:         v$(VERSION)"
 	@echo "Release package: $(DIST_PKG)"
 	@echo "Source package:  $(SRC_PKG)"
 	@echo
@@ -53,6 +52,12 @@ build-rel: node_modules clean
 	npm run test
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
+
+release-tag: clean-working-tree
+	[ `git name-rev --tags --name-only HEAD` = "v$(VERSION)" ] || \
+	    git tag v$(VERSION) HEAD
+.PHONY: release-tag
+.NOTPARALLEL: release-tag
 
 clean-working-tree:
 	[ -z "$$(git status --porcelain)" ] # Working tree must be clean.
