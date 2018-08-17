@@ -129,14 +129,22 @@ When you first install it, Tab Stash will ask for the following permissions.  He
 
 ### Building Tab Stash for Development
 
-In the top-level tab-stash directory, run:
+You must have [Node.js](https://nodejs.org/) installed, which provides the `npm`
+command.  If you are on a UNIX-like system and you have GNU Make available, to
+build and run the tests, just navigate to the top-level *tab-stash* directory
+and run:
+
+```sh
+$ make
+```
+
+If you don't have GNU Make available and/or you're on Windows, run:
 
 ```sh
 $ npm i
 $ npm run build
+$ npm run test
 ```
-
-Or if you're on Linux or Mac, just run `make`.
 
 The result will be in the `dist` directory.  You can load it into your Firefox
 by following these steps:
@@ -147,8 +155,9 @@ by following these steps:
 
 ### Building Tab Stash for Release
 
-Linux and Mac only.  May only be done in a clean tree, with HEAD pointing at a
-release tag.  In the top-level tab-stash directory, run:
+Linux and Mac only.  May only be done in a clean tree, and your HEAD commit must
+be pointing at a release tag (or `make` will create one for you with the version
+listed in `manifest.json`).  In the top-level *tab-stash* directory, run:
 
 ```sh
 $ make rel
