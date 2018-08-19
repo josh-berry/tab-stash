@@ -1,5 +1,6 @@
-VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")
-FULL_VERSION := $(shell node -e "x=$$(cat dist/manifest.json); console.log(x.version)")-$(shell git rev-parse --short HEAD)
+VERSION != node -e "x=$$(cat dist/manifest.json); console.log(x.version)"
+COMMIT != git rev-parse --short HEAD
+FULL_VERSION := $(VERSION)-$(COMMIT)
 
 SRCPKG_DIR = tab-stash-src-$(FULL_VERSION)
 SRC_PKG = $(SRCPKG_DIR).tar.gz
