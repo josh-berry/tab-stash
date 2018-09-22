@@ -6,8 +6,8 @@
   <div class="panel-section-header"
        v-if="! hideIfEmpty || visibleChildren.length > 0">
     <div class="header">
-      <editable-label classes="folder-name" :value="userTitle"
-                      :isDefaultValue="isTitleDefault"
+      <editable-label classes="folder-name" :value="nonDefaultTitle"
+                      :defaultValue="defaultTitle"
                       :enabled="!! id"
                       @update:value="rename"></editable-label>
       <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
@@ -104,13 +104,12 @@ export default {
     computed: {
         altkey: altKeyName,
 
-        isTitleDefault: function() {
-            return getFolderNameISODate(this.title) !== null;
+        defaultTitle: function() {
+            return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
         },
-        userTitle: function() {
-            return this.isTitleDefault
-                ? `Saved ${(new Date(getFolderNameISODate(this.title))).toLocaleString()}`
-                : this.title;
+        nonDefaultTitle: function() {
+            return getFolderNameISODate(this.title) !== null
+                ? '' : this.title;
         },
         visibleChildren: function() {
             return this.children.filter(

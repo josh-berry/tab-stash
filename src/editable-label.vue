@@ -1,14 +1,14 @@
 <template>
 <input v-if="editing" type="text" :class="classes"
-       :value="editValue" :disabled="disabled"
+       :value="value" :placeholder="defaultValue" :disabled="disabled"
        ref="input"
        @dragenter.stop="" @dragover.stop="" @mousedown.stop=""
        @pointerdown.stop="" @touchstart.stop="" @click.stop=""
        @dblclick.stop="" @altclick.stop=""
        @blur="commit" @keyup.enter.prevent="commit"
        @keyup.esc.prevent="editing = false">
-<span v-else :class="classes" :title="value"
-      @click.prevent.stop="begin">{{value}}</span>
+<span v-else :class="classes" :title="value !== '' ? value : defaultValue"
+      @click.prevent.stop="begin">{{value !== '' ? value : defaultValue}}</span>
 </template>
 
 <script>
@@ -24,9 +24,8 @@ export default {
         // The value to show
         value: String,
 
-        // If true, we show the user an empty text box instead of whatever is in
-        // /value/.
-        isDefaultValue: Boolean,
+        // The value to show if no value is provided
+        defaultValue: String,
     },
 
     data: () => ({
@@ -36,14 +35,6 @@ export default {
     }),
 
     computed: {
-        editValue: function() {
-            // The value to populate in the text box.  (If the user has
-            // specified a value already, we just use that.)
-            if (this.newValue !== undefined) return this.newValue;
-            if (this.isDefaultValue) return '';
-            return this.value;
-        },
-
         disabled: function() {
             // We disable the text box if we're in the middle of an update
             // operation...
@@ -82,7 +73,7 @@ export default {
             this.editing = true;
         },
         commit: function() {
-            if (this.$refs.input.value === this.editValue) {
+            if (this.$refs.input.value === this.value) {
                 this.editing = false;
                 return;
             }
