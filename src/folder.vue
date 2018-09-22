@@ -165,7 +165,9 @@ export default {
 
             // If we ourselves are open in a tab (and not the sidebar or a
             // popup), close the tab so the user doesn't have to.
-            if (curtab) await browser.tabs.remove([curtab.id]);
+            if (curtab && ! curtab.pinned) {
+                await browser.tabs.remove([curtab.id]);
+            }
         }),
 
         remove: asyncEvent(async function(ev) {
@@ -242,7 +244,9 @@ export default {
 
             // If we ourselves are open in a tab (and not the sidebar or a
             // popup), close the tab so the user doesn't have to.
-            if (curtab) await browser.tabs.remove([curtab.id]);
+            if (curtab && ! curtab.pinned) {
+                await browser.tabs.remove([curtab.id]);
+            }
         }),
 
         rename: function(title) {
