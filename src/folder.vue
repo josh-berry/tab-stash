@@ -3,7 +3,8 @@
               virtual: ! id,
               'action-container': true,
               collapsed: collapsed}">
-  <div class="panel-section-header">
+  <div class="panel-section-header"
+       v-if="! hideIfEmpty || visibleChildren.length > 0">
     <div class="header">
       <editable-label classes="folder-name" :value="userTitle"
                       :isDefaultValue="isTitleDefault"
@@ -50,7 +51,8 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
       </nav>
     </div>
   </div>
-  <div class="panel-section-list contents">
+  <div class="panel-section-list contents"
+       v-if="! hideIfEmpty || visibleChildren.length > 0">
     <draggable :options="{group: 'tab'}" ref="drag"
                class="sortable-list"
                @add="move" @update="move">
@@ -81,6 +83,7 @@ export default {
         // View filter functions
         filter: Function,
         isItemStashed: Function,
+        hideIfEmpty: Boolean,
 
         // Common
         id: [String, Number],

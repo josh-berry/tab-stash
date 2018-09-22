@@ -4,6 +4,7 @@
           :key="f.title"
           :id="f.id" :children="f.children"
           :title="f.title" :dateAdded="f.dateAdded"
+          :filter="filter" :hideIfEmpty="hideIfEmpty"
           ref="folders">
   </folder>
 </draggable>
@@ -15,7 +16,14 @@ import Folder from './folder.vue';
 
 export default {
     components: {Draggable, Folder},
-    props: {folders: Array},
+    props: {
+        folders: Array,
+        filter: Function,
+
+        // Whether to hide a folder entirely if it has no elements (e.g. because
+        // we're filtering at the moment)
+        hideIfEmpty: Boolean,
+    },
 
     methods: {
         move: function(ev) {
