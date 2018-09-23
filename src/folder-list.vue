@@ -1,5 +1,5 @@
 <template>
-<draggable class="sortable-list" @update="move">
+<draggable class="sortable-list folder-list" @update="move">
   <folder v-for="f in folders" v-if="f.children"
           :key="f.title"
           :id="f.id" :children="f.children"

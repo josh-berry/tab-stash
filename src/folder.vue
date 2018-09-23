@@ -2,9 +2,9 @@
 <div :class="{folder: true,
               virtual: ! id,
               'action-container': true,
-              collapsed: collapsed}">
-  <div class="panel-section-header"
-       v-if="! hideIfEmpty || visibleChildren.length > 0">
+              collapsed: collapsed}"
+     v-if="! hideIfEmpty || visibleChildren.length > 0">
+  <div class="panel-section-header">
     <div class="header">
       <editable-label classes="folder-name" :value="nonDefaultTitle"
                       :defaultValue="defaultTitle"
@@ -51,8 +51,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
       </nav>
     </div>
   </div>
-  <div class="panel-section-list contents"
-       v-if="! hideIfEmpty || visibleChildren.length > 0">
+  <div class="panel-section-list contents">
     <draggable :options="{group: 'tab'}" ref="drag"
                class="sortable-list"
                @add="move" @update="move">

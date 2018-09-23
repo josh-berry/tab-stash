@@ -10,6 +10,10 @@
     <style type="text/css">
       /* NOTE: box-sizing: border-box is in effect in extension.css */
       /* base text color: #222426 */
+      html {
+          --margin: 16px;
+      }
+
       #app {
           width: 100%;
           margin: 0;
@@ -20,7 +24,7 @@
       a.open, a.open:visited { color: #287acc; }
 
       .page.header {
-          padding: 4px 16px;
+          padding: 4px var(--margin);
           display: grid;
           grid-template-columns: 1fr 24px;
           align-items: center;
@@ -94,11 +98,7 @@
       }
 
       /* Folder headings */
-      .header {
-          /* To align with saved tab actions */
-          padding: 0;
-          margin: 0 44px;
-      }
+      .header { padding: 0; margin: 0; }
       .folder .header {
           display: grid;
           grid-template-columns: 1fr 24px;
@@ -120,7 +120,7 @@
           border: 2px solid rgba(128, 128, 128, 0.8);
           min-width: 5em;
       }
-      nav {
+      .folder .header nav {
           grid-row: 2;
           grid-column: 1 / 3;
       }
@@ -129,12 +129,12 @@
           grid-column: 2;
           display: none;
       }
-      .folder .header:hover .action.collapse,
+      .folder:hover .header .action.collapse,
       .collapsed.folder .header .action.collapse {
           display: inline-block;
       }
       .collapsed.folder .header .folder-name,
-      .folder .header:hover .folder-name {
+      .folder:hover .header .folder-name {
           grid-column: 1;
       }
       .folder .contents {
@@ -174,33 +174,20 @@
       /* Saved-tab entries - Large grid */
       .tab {
           display: grid;
-          grid-template-columns: 22px 22px 22px 1fr 44px;
+          grid-template-columns: 22px 1fr 22px 22px;
       }
-      .tab > .remove { grid-row: 1; grid-column: 1; }
-      .tab > .restore-remove { grid-row: 1; grid-column: 2; }
-      .tab > .icon { grid-row: 1; grid-column: 3; }
-      .tab > .text { grid-row: 1; grid-column: 4; }
+      .tab > .icon { grid-row: 1; grid-column: 1; }
+      .tab > .text { grid-row: 1; grid-column: 2 / 5; }
+      .tab:hover > .text { grid-row: 1; grid-column: 2; }
+      .tab > .restore-remove { grid-row: 1; grid-column: 3; }
+      .tab > .stash { grid-row: 1; grid-column: 3; }
+      .tab > .remove { grid-row: 1; grid-column: 4; }
 
       /* Collapsing folders */
       .collapsed nav { display: none; }
       .collapsed .panel-section-header { padding-bottom: 4px; }
       .collapsed.folder .contents { display: none; }
       .collapsed.folder .action.collapse { display: inline-block; }
-
-      /* Sidebar mods */
-      @media all and (max-width: 30rem) {
-          .header { margin-left: 0; margin-right: 0; }
-          .tab {
-              display: grid;
-              grid-template-columns: 22px 1fr 22px 22px;
-          }
-          .tab > .icon { grid-row: 1; grid-column: 1; }
-          .tab > .text { grid-row: 1; grid-column: 2 / 5; }
-          .tab:hover > .text { grid-row: 1; grid-column: 2; }
-          .tab > .restore-remove { grid-row: 1; grid-column: 3; }
-          .tab > .stash { grid-row: 1; grid-column: 3; }
-          .tab > .remove { grid-row: 1; grid-column: 4; }
-      }
 
       /* Drag-and-Drop */
       .sortable-list {
@@ -212,6 +199,82 @@
       }
       .sortable-chosen {
           opacity: 0.8;
+      }
+
+      @media all and (min-width: 25rem) {
+          .page.header { grid-template-columns: 1fr; }
+          .action.collapse { display: none !important; }
+
+          /* Multi-column large format (for display in a tab) */
+          body {
+              background: #efefef;
+          }
+          .folder-list {
+              display: flex;
+              flex-direction: row;
+              flex: 1 1 auto;
+              flex-wrap: wrap;
+          }
+          .folder {
+              margin: var(--margin);
+              background: #ffffff;
+              border: 1px solid #c0c0c0;
+              box-shadow: 2px 2px 4px #c0c0c0;
+              width: calc(100% - 2 * var(--margin));
+          }
+          .panel-section-header { padding-top: 11px; }
+          .folder .header {
+              grid-template-columns: 1fr 0fr;
+              align-items: center;
+          }
+          .folder .header nav {
+              grid-row: 1;
+              grid-column: 2;
+              display: none;
+          }
+
+          .folder .header nav .action {
+              width: 24px;
+              height: 24px;
+              line-height: 24px;
+              border-radius: 0;
+              margin: 0;
+              padding: 4px 4px;
+          }
+          .folder .header nav .action:first-child {
+              border-radius: 4px 0 0 4px;
+          }
+          .folder .header nav .action:last-child {
+              border-radius: 0 4px 4px 0;
+          }
+
+          .folder:hover .header nav {
+              display: flex;
+              flex-direction: row;
+              flex-wrap: nowrap;
+          }
+      }
+
+      @media all and (min-width: calc(2 * 25rem)) {
+          .folder { width: calc(50% - 2 * var(--margin)); }
+      }
+      @media all and (min-width: calc(3 * 25rem)) {
+          .folder { width: calc(33.333333333% - 2 * var(--margin)); }
+      }
+      @media all and (min-width: calc(4 * 25rem)) {
+          .folder { width: calc(25% - 2 * var(--margin)); }
+      }
+      @media all and (min-width: calc(5 * 25rem)) {
+          .folder { width: calc(20% - 2 * var(--margin)); }
+      }
+      @media all and (min-width: calc(6 * 25rem)) {
+          .folder { width: calc(16.66666666667% - 2 * var(--margin)); }
+      }
+      @media all and (min-width: calc(7 * 25rem)) {
+          .folder { width: calc(14.28571429% - 2 * var(--margin)); }
+      }
+      @media all and (min-width: calc(8 * 25rem)) {
+          .folder { width: calc(12.5% - 2 * var(--margin)); }
       }
     </style>
   </head>
