@@ -18,10 +18,14 @@ window.addEventListener('load', asyncEvent(async function() {
     let [state, root, win] = [await state_p, await root_p, await win_p];
 
     const vue = new (Vue.extend(StashList))({data: {
-        unstashed_tabs: state.wins_by_id.get(win.id).children,
-        stashed_tabs: state.bms_by_id.get(root.id).children,
+        unstashed_tabs: state.wins_by_id.get(win.id),
+        stashed_tabs: state.bms_by_id.get(root.id),
         root_id: root.id,
     }});
+
+    window.stash_state = state;
+    window.stash_root = state.bms_by_id.get(root.id);
+    window.stash_win = state.wins_by_id.get(win.id);
 
     vue.$mount('#app');
 }));

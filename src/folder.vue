@@ -1,20 +1,23 @@
 <template>
 <div :class="{folder: true,
-              virtual: ! id,
+              window: isWindow,
+              
               'action-container': true,
               collapsed: collapsed}"
      v-if="! hideIfEmpty || visibleChildren.length > 0">
   <div class="panel-section-header">
     <div class="header">
-      <editable-label classes="folder-name" :value="nonDefaultTitle"
+      <editable-label :classes="{'folder-name': true,
+                                 'disabled': isWindow || ! allowRenameDelete}"
+                      :value="nonDefaultTitle"
                       :defaultValue="defaultTitle"
-                      :enabled="!! id"
+                      :enabled="! isWindow && allowRenameDelete"
                       @update:value="rename"></editable-label>
       <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
            :class="{action: true, collapse: true}"
            title="Hide the tabs for this group"
            @click.prevent.stop="collapsed = ! collapsed">
-      <nav v-if="id">
+      <nav v-if="! isWindow">
         <img src="icons/stash-dark.svg" class="action stash"
              :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
@@ -24,10 +27,12 @@
         <img src="icons/restore.svg" class="action restore"
              title="Open all tabs in this group"
              @click.prevent.stop="restoreAll">
-        <img src="icons/restore-del.svg" class="action restore-remove"
+        <img v-if="allowRenameDelete"
+             src="icons/restore-del.svg" class="action restore-remove"
              title="Open all tabs in the group and delete the group"
              @click.prevent.stop="restoreAndRemove">
-        <img src="icons/delete.svg" class="action remove"
+        <img v-if="allowRenameDelete"
+             src="icons/delete.svg" class="action remove"
              title="Delete this group"
              @click.prevent.stop="remove">
       </nav>
@@ -91,9 +96,7 @@ export default {
 
         // Bookmark folder
         dateAdded: Number,
-
-        // Window
-        isWindow: Boolean,
+        allowRenameDelete: Boolean,
     },
 
     data: () => ({
@@ -103,6 +106,7 @@ export default {
     computed: {
         altkey: altKeyName,
 
+        isWindow: function() { return ! this.id; },
         defaultTitle: function() {
             return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
         },

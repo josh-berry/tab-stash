@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="stash-list">
   <div class="page header action-container">
     <input class="status-text" type="search"
            :placeholder="search_placeholder"
@@ -10,11 +10,29 @@
          title="Hide all tabs so only group names are showing"
          @click.prevent.stop="collapseAll">
   </div>
-  <folder :isWindow="true" title="Unstashed Tabs"
-          ref="unstashed" :children="unstashed_tabs"
-          :filter="unstashedFilter" :isItemStashed="isItemStashed">
-  </folder>
-  <folder-list ref="stashed" :folders="stashed_tabs" :filter="search_filter"
+  <div class="folder-list">
+    <folder title="Unstashed Tabs" :allowRenameDelete="false"
+            ref="unstashed" :children="unstashed_tabs.children"
+            :filter="unstashedFilter" :isItemStashed="isItemStashed">
+    </folder>
+    <!-- XXX This is presently disabled because it exposes a bug in
+         Vue.Draggable, wherein if the draggable goes away as the result of a
+         drag operation, the "ghost" element which is being dragged doesn't get
+         cleaned up, and it looks like there is a duplicate.
+
+         We hit the bug in this case, because the "Unfiled" folder disappears
+         after the last unfiled entry is dragged out of it.
+
+    <folder title="Unfiled" :allowRenameDelete="false"
+            :id="stashed_tabs.id" :children="stashed_tabs.children"
+            :dateAdded="stashed_tabs.dateAdded"
+            :filter="search_filter" :isItemStashed="isItemStashed"
+            :hideIfEmpty="true">
+    </folder>
+    -->
+  </div>
+  <folder-list ref="stashed" :folders="stashed_tabs.children"
+               :filter="search_filter"
                :hideIfEmpty="searchtext !== ''">
   </folder-list>
 </div>
@@ -39,17 +57,21 @@ export default {
     }),
 
     computed: {
-        tab_count: function() {
-            let c = 0;
-            for (let f of this.stashed_tabs) {
-                if (f.children) c += f.children.length;
+        counts: function() {
+            let tabs = 0, groups = 0;
+            for (let f of this.stashed_tabs.children) {
+                if (f.children) {
+                    tabs += f.children.length;
+                    groups++;
+                }
             }
-            return c;
+            return {tabs, groups};
         },
         search_placeholder: function() {
-            const groups = this.stashed_tabs.length == 1 ? 'group' : 'groups';
-            const tabs = this.tab_count == 1 ? 'tab' : 'tabs';
-            return `${this.stashed_tabs.length} ${groups}, ${this.tab_count} ${tabs}`;
+            const counts = this.counts;
+            const groups = counts.groups == 1 ? 'group' : 'groups';
+            const tabs = counts.tabs == 1 ? 'tab' : 'tabs';
+            return `${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
         text_matcher: function() {
             if (this.searchtext == '') return txt => true;

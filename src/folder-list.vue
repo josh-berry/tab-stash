@@ -2,7 +2,7 @@
 <draggable class="sortable-list folder-list" @update="move">
   <folder v-for="f in folders" v-if="f.children"
           :key="f.title"
-          :id="f.id" :children="f.children"
+          :id="f.id" :children="f.children" :allowRenameDelete="true"
           :title="f.title" :dateAdded="f.dateAdded"
           :filter="filter" :hideIfEmpty="hideIfEmpty"
           ref="folders">

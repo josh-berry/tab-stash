@@ -115,7 +115,7 @@
           border: 2px solid rgba(0, 0, 0, 0);
           border-radius: 2px;
       }
-      .virtual .folder-name { color: rgba(128, 128, 128); }
+      .folder-name.disabled { color: rgba(128, 128, 128); }
       input.folder-name {
           border: 2px solid rgba(128, 128, 128, 0.8);
           min-width: 5em;
@@ -222,9 +222,6 @@
               border: 1px solid #c0c0c0;
               box-shadow: 2px 2px 4px #c0c0c0;
               width: calc(100% - 1 * var(--margin));
-          }
-          .folder.virtual {
-              margin: var(--margin);
           }
           .panel-section-header { padding-top: 11px; }
           .folder .header {
