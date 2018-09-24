@@ -195,10 +195,10 @@
       }
       .sortable-ghost {
           background-color: rgba(0, 0, 0, 0.08);
-          opacity: 0.8;
+          opacity: 0.6;
       }
       .sortable-chosen {
-          opacity: 0.8;
+          opacity: 0.6;
       }
 
       @media all and (min-width: 25rem) {
@@ -214,13 +214,17 @@
               flex-direction: row;
               flex: 1 1 auto;
               flex-wrap: wrap;
+              padding: calc(var(--margin) / 2);
           }
           .folder {
-              margin: var(--margin);
+              margin: calc(var(--margin) / 2);
               background: #ffffff;
               border: 1px solid #c0c0c0;
               box-shadow: 2px 2px 4px #c0c0c0;
-              width: calc(100% - 2 * var(--margin));
+              width: calc(100% - 1 * var(--margin));
+          }
+          .folder.virtual {
+              margin: var(--margin);
           }
           .panel-section-header { padding-top: 11px; }
           .folder .header {
@@ -256,25 +260,25 @@
       }
 
       @media all and (min-width: calc(2 * 25rem)) {
-          .folder { width: calc(50% - 2 * var(--margin)); }
+          .folder { width: calc(50% - 1 * var(--margin)); }
       }
       @media all and (min-width: calc(3 * 25rem)) {
-          .folder { width: calc(33.333333333% - 2 * var(--margin)); }
+          .folder { width: calc(33.333333333% - 1 * var(--margin)); }
       }
       @media all and (min-width: calc(4 * 25rem)) {
-          .folder { width: calc(25% - 2 * var(--margin)); }
+          .folder { width: calc(25% - 1 * var(--margin)); }
       }
       @media all and (min-width: calc(5 * 25rem)) {
-          .folder { width: calc(20% - 2 * var(--margin)); }
+          .folder { width: calc(20% - 1 * var(--margin)); }
       }
       @media all and (min-width: calc(6 * 25rem)) {
-          .folder { width: calc(16.66666666667% - 2 * var(--margin)); }
+          .folder { width: calc(16.66666666667% - 1 * var(--margin)); }
       }
       @media all and (min-width: calc(7 * 25rem)) {
-          .folder { width: calc(14.28571429% - 2 * var(--margin)); }
+          .folder { width: calc(14.28571429% - 1 * var(--margin)); }
       }
       @media all and (min-width: calc(8 * 25rem)) {
-          .folder { width: calc(12.5% - 2 * var(--margin)); }
+          .folder { width: calc(12.5% - 1 * var(--margin)); }
       }
     </style>
   </head>
