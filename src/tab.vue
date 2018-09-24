@@ -11,16 +11,19 @@
        referrerpolicy="no-referrer"
        alt="">
   <span class="text">{{bestTitle}}</span>
-  <img src="icons/delete.svg" class="action remove"
-       :title="isBookmark ? 'Delete this tab from the group' : 'Close this tab'"
-       @click.prevent.stop="remove">
-  <img v-if="isBookmark" src="icons/restore-del.svg"
-       class="action restore-remove"
-       title="Open this tab and delete it from the group"
-       @click.prevent.stop="openRemove">
-  <img v-else src="icons/stash-one-dark.svg" class="action stash"
-       :title="`Stash this tab (hold ${altkey} to keep tab open)`"
-       @click.prevent.stop="stash">
+  <ButtonBox>
+    <img v-if="isBookmark" src="icons/restore-del.svg"
+         class="action restore-remove"
+         title="Open this tab and delete it from the group"
+         @click.prevent.stop="openRemove">
+    <img v-else src="icons/stash-one-dark.svg" class="action stash"
+         :title="`Stash this tab (hold ${altkey} to keep tab open)`"
+         @click.prevent.stop="stash">
+    <img src="icons/delete.svg" class="action remove"
+         :title="isBookmark ? 'Delete this tab from the group'
+                            : 'Close this tab'"
+         @click.prevent.stop="remove">
+  </ButtonBox>
 </a>
 </template>
 
@@ -30,8 +33,11 @@ import {
     mostRecentUnnamedFolderId, restoreTabs, stashTabs, bookmarkTabs,
     closeTabs,
 } from './stash';
+import ButtonBox from 'button-box.vue';
 
 export default {
+    components: {ButtonBox},
+
     props: {
         // Common
         id: [String, Number],

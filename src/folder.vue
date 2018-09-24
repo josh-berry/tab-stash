@@ -13,11 +13,13 @@
                       :defaultValue="defaultTitle"
                       :enabled="! isWindow && allowRenameDelete"
                       @update:value="rename"></editable-label>
-      <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
-           :class="{action: true, collapse: true}"
-           title="Hide the tabs for this group"
-           @click.prevent.stop="collapsed = ! collapsed">
-      <nav v-if="! isWindow">
+      <ButtonBox class="collapse-btnbox">
+        <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
+             :class="{action: true, collapse: true}"
+             title="Hide the tabs for this group"
+             @click.prevent.stop="collapsed = ! collapsed">
+      </ButtonBox>
+      <ButtonBox v-if="! isWindow">
         <img src="icons/stash-dark.svg" class="action stash"
              :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
@@ -35,8 +37,8 @@
              src="icons/delete.svg" class="action remove"
              title="Delete this group"
              @click.prevent.stop="remove">
-      </nav>
-      <nav v-else>
+      </ButtonBox>
+      <ButtonBox v-else>
         <img src="icons/stash-dark.svg" class="action stash"
              :title="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
@@ -53,7 +55,7 @@ ${altkey}+Click: Close/hide all stashed tabs`"
 `Click: Close all open tabs
 ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
              @click.prevent.stop="removeOpen">
-      </nav>
+      </ButtonBox>
     </div>
   </div>
   <div class="panel-section-list contents">
@@ -79,9 +81,10 @@ import {
 import Draggable from 'vuedraggable';
 import EditableLabel from './editable-label.vue';
 import Tab from './tab.vue';
+import ButtonBox from './button-box.vue';
 
 export default {
-    components: {Draggable, EditableLabel, Tab},
+    components: {Draggable, EditableLabel, Tab, ButtonBox},
 
     props: {
         // View filter functions

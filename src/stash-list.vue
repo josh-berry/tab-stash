@@ -5,10 +5,12 @@
            :placeholder="search_placeholder"
            @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
            v-model="searchtext">
-    <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
-         :class="{action: true, collapse: true}"
-         title="Hide all tabs so only group names are showing"
-         @click.prevent.stop="collapseAll">
+    <ButtonBox>
+      <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
+           :class="{action: true, collapse: true}"
+           title="Hide all tabs so only group names are showing"
+           @click.prevent.stop="collapseAll">
+    </ButtonBox>
   </div>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
@@ -44,11 +46,13 @@ import {isInFolder} from './model';
 
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
+import ButtonBox from './button-box.vue';
 
 export default {
     components: {
         FolderList,
         Folder,
+        ButtonBox,
     },
 
     data: () => ({
