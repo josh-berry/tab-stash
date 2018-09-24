@@ -1,9 +1,9 @@
 <template>
 <div class="stash-list">
   <div class="page header action-container">
-    <input class="status-text" type="search"
+    <input type="search" ref="search"
            :placeholder="search_placeholder"
-           @keyup.esc.prevent="searchtext=''"
+           @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
            v-model="searchtext">
     <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
          :class="{action: true, collapse: true}"
@@ -71,7 +71,7 @@ export default {
             const counts = this.counts;
             const groups = counts.groups == 1 ? 'group' : 'groups';
             const tabs = counts.tabs == 1 ? 'tab' : 'tabs';
-            return `${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
+            return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
         text_matcher: function() {
             if (this.searchtext == '') return txt => true;
