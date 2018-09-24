@@ -118,7 +118,13 @@ export default {
         }),
 
         open: asyncEvent(async function() {
+            let curtab = await browser.tabs.getCurrent();
+
             await restoreTabs([this.url]);
+
+            if (curtab && ! curtab.pinned) {
+                await browser.tabs.remove([curtab.id]);
+            }
         }),
 
         remove: asyncEvent(async function() {
@@ -139,6 +145,8 @@ export default {
         }),
 
         openRemove: asyncEvent(async function() {
+            let curtab = await browser.tabs.getCurrent();
+
             await restoreTabs([this.url]);
             if (this.isBookmark) {
                 await browser.bookmarks.remove(this.id);
@@ -146,6 +154,10 @@ export default {
             // If this is just a tab and not a bookmark, we don't remove the
             // tab, since openRemove indicates the user wanted to switch to the
             // tab.
+
+            if (curtab && ! curtab.pinned) {
+                await browser.tabs.remove([curtab.id]);
+            }
         }),
     },
 };
