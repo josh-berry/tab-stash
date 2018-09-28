@@ -183,4 +183,79 @@ describe('util', function() {
                expect(callCount, 'callCount post').to.equal(2);
            });
     });
+
+    describe('DeferQueue', function() {
+        it('holds events until unplugged', function() {
+            const dq = new M.DeferQueue();
+            let count = 0;
+            const fn = () => ++count;
+
+            dq.push(fn);
+            expect(count).to.equal(0);
+            dq.push(fn);
+            expect(count).to.equal(0);
+        });
+
+        it('fires queued events after it is unplugged', function() {
+            const dq = new M.DeferQueue();
+            let count = 0;
+            const fn = () => ++count;
+
+            dq.push(fn);
+            expect(count).to.equal(0);
+            dq.push(fn);
+            expect(count).to.equal(0);
+
+            dq.unplug();
+            expect(count).to.equal(2);
+        });
+
+        it('fires events immediately after it is unplugged', function() {
+            const dq = new M.DeferQueue();
+            let count = 0;
+            const fn = () => ++count;
+
+            dq.unplug();
+            dq.push(fn);
+            expect(count).to.equal(1);
+            dq.push(fn);
+            expect(count).to.equal(2);
+        });
+
+        it('forwards arguments correctly to queued events', function() {
+            const dq = new M.DeferQueue();
+            let count = 0;
+            const ain = 42;
+            const bin = {a: 'b'};
+
+            const fn = function(a, b) {
+                ++count;
+                expect(a).to.equal(ain);
+                expect(b).to.equal(bin);
+                expect(arguments.length).to.equal(2);
+            };
+
+            dq.push(fn, ain, bin);
+            dq.unplug();
+            expect(count).to.equal(1);
+        });
+
+        it('forwards arguments correctly to immediate events', function() {
+            const dq = new M.DeferQueue();
+            let count = 0;
+            const ain = 42;
+            const bin = {a: 'b'};
+
+            const fn = function(a, b) {
+                ++count;
+                expect(a).to.equal(ain);
+                expect(b).to.equal(bin);
+                expect(arguments.length).to.equal(2);
+            };
+
+            dq.unplug();
+            dq.push(fn, ain, bin);
+            expect(count).to.equal(1);
+        });
+    });
 });

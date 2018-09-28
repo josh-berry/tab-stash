@@ -73,3 +73,52 @@ export function nonReentrant(fn) {
 
     return inner;
 }
+
+
+
+// A "defer queue" is a queue of functions (and their arguments) to be called
+// later (referred to as "events").  This is mostly useful for event
+// handling--e.g. if you need to collect and defer delivery of some events while
+// you are doing some other asynchronous processing that depends on events NOT
+// being delivered until that processing is complete.
+//
+// You can append to the queue with push(), or you can use wrap() to create a
+// "wrapper function" which, when called, adds the call to the queue to be
+// forwarded to another function on release().  (This wrapped function can then
+// be provided as an event handler to other parts of the system.)
+//
+// To control the delivery of events, call plug() and unplug().  If the queue is
+// "plugged" (the default state when it is constructed), events will be queued
+// and not delivered.  When the queue is "unplugged", any queued events will be
+// delivered in order, and future events will be delivered immediately.
+export class DeferQueue {
+    constructor() {
+        this._events = [];
+    }
+
+    push(fn, ...args) {
+        if (this._events !== null) {
+            this._events.push([fn, args]);
+        } else {
+            fn(...args);
+        }
+    }
+
+    wrap(fn) {
+        return (...args) => this.push(fn, ...args);
+    }
+
+    /* Untested; uncomment this only after adding unit tests
+    plug() {
+        if (this._events === null) {
+            this._events = [];
+        }
+    }
+    */
+
+    unplug() {
+        let evq = this._events;
+        this._events = null;
+        for (let [fn, args] of evq) fn(...args);
+    }
+}

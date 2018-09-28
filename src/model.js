@@ -27,6 +27,7 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU StashState METHODS.
 
+import {DeferQueue} from './util.js';
 
 
 // These are constructor-ish functions which return un-prototyped objects
@@ -109,59 +110,44 @@ export function isInFolder(folder_id, item) {
 // See module documentation
 export class StashState {
     static async make() {
-        let defer_queue = [];
-
-        // We register event handlers immediately, so that we are collecting
-        // events even as we are waiting for the entire tree to get built.  We
-        // need to do this to avoid missing events that come in while we are
-        // building the tree--the end result will be a tree that's out of date.
-        const maybe_defer = (fn) => {
-            return (...args) => {
-                if (defer_queue) {
-                    defer_queue.push([fn, args]);
-                } else {
-                    fn(...args);
-                }
-            };
-        };
+        let evq = new DeferQueue();
 
         browser.bookmarks.onCreated.addListener(
-            maybe_defer((...a) => state.bm_updated(...a)));
+            evq.wrap((...a) => state.bm_updated(...a)));
         browser.bookmarks.onChanged.addListener(
-            maybe_defer((...a) => state.bm_updated(...a)));
+            evq.wrap((...a) => state.bm_updated(...a)));
         browser.bookmarks.onMoved.addListener(
-            maybe_defer((...a) => state.bm_updated(...a)));
+            evq.wrap((...a) => state.bm_updated(...a)));
         browser.bookmarks.onRemoved.addListener(
-            maybe_defer((...a) => state.bm_removed(...a)));
+            evq.wrap((...a) => state.bm_removed(...a)));
 
         browser.windows.onCreated.addListener(
-            maybe_defer((...a) => state.win_created(...a)));
+            evq.wrap((...a) => state.win_created(...a)));
         browser.windows.onRemoved.addListener(
-            maybe_defer((...a) => state.win_removed(...a)));
+            evq.wrap((...a) => state.win_removed(...a)));
 
         browser.tabs.onCreated.addListener(
-            maybe_defer((...a) => state.tab_created(...a)));
+            evq.wrap((...a) => state.tab_created(...a)));
         browser.tabs.onAttached.addListener(
-            maybe_defer((...a) => state.tab_moved(...a)));
+            evq.wrap((...a) => state.tab_moved(...a)));
         browser.tabs.onMoved.addListener(
-            maybe_defer((...a) => state.tab_moved(...a)));
+            evq.wrap((...a) => state.tab_moved(...a)));
         browser.tabs.onRemoved.addListener(
-            maybe_defer((...a) => state.tab_removed(...a)));
+            evq.wrap((...a) => state.tab_removed(...a)));
         browser.tabs.onReplaced.addListener(
-            maybe_defer((...a) => state.tab_replaced(...a)));
+            evq.wrap((...a) => state.tab_replaced(...a)));
         browser.tabs.onUpdated.addListener(
-            maybe_defer((id, info, tab) => state.tab_updated(tab)));
+            evq.wrap((id, info, tab) => state.tab_updated(tab)));
 
         let state = new StashState(
             (await browser.bookmarks.getSubTree(""))[0],
             await browser.windows.getAll(
                 {populate: true, windowTypes: ['normal']}));
 
-        // Once we have finished buildin the state object, bring it up-to-date
+        // Once we have finished building the state object, bring it up-to-date
         // with any events that were delivered while we were querying the
         // browser.
-        for (let [fn, args] of defer_queue) fn(...args);
-        defer_queue = undefined;
+        evq.unplug();
 
         return state;
     }
