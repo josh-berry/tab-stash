@@ -5,6 +5,18 @@ import {
     stashTabs, bookmarkTabs, restoreTabs, tabStashTree,
     getFolderNameISODate, mostRecentUnnamedFolderId,
 } from './stash';
+import {Options} from './options-model';
+
+
+
+//
+// A continuously-updated (via browser events) object representing the user's
+// current preferences.  We need SYNCHRONOUS access to these preferences because
+// of Firefox's restrictions on opening the sidebar--it must be done
+// synchronously from an event handler.
+//
+let OPTIONS;
+Options.make().then(o => {OPTIONS = o});
 
 
 
@@ -59,6 +71,31 @@ browser.menus.create({
     title: 'Show Stashed Tabs (New Tab)',
     id: 'show_tab'
 });
+browser.menus.create({
+    contexts: menu_contexts,
+    type: 'separator', enabled: false,
+});
+browser.menus.create({
+    contexts: menu_contexts,
+    title: 'Options',
+    id: 'options',
+});
+
+async function show_stash_if_desired() {
+    switch (OPTIONS.open_stash_in) {
+    case 'none':
+        break;
+
+    case 'tab':
+        await restoreTabs([browser.extension.getURL('stash-list.html')]);
+        break;
+
+    case 'sidebar':
+    default:
+        browser.sidebarAction.open().catch(console.log);
+        break;
+    }
+}
 
 const commands = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
@@ -74,31 +111,36 @@ const commands = {
     },
 
     stash_all: async function() {
-        browser.sidebarAction.open().catch(console.log);
+        let tabs = await browser.tabs.query(
+            {currentWindow: true, hidden: false, pinned: false});
 
-        await stashTabs(undefined, await browser.tabs.query(
-            {currentWindow: true, hidden: false, pinned: false}));
+        show_stash_if_desired().catch(console.log);
+        await stashTabs(undefined, tabs);
     },
 
     stash_one: async function(tab) {
-        browser.sidebarAction.open().catch(console.log);
+        show_stash_if_desired().catch(console.log);
         await stashTabs(await mostRecentUnnamedFolderId(), [tab]);
     },
 
     stash_one_newgroup: async function(tab) {
-        browser.sidebarAction.open().catch(console.log);
+        show_stash_if_desired().catch(console.log);
         await stashTabs(undefined, [tab]);
     },
 
     copy_all: async function() {
-        browser.sidebarAction.open().catch(console.log);
+        show_stash_if_desired().catch(console.log);
         await bookmarkTabs(undefined, await browser.tabs.query(
             {currentWindow: true, hidden: false, pinned: false}));
     },
 
     copy_one: async function(tab) {
-        browser.sidebarAction.open().catch(console.log);
+        show_stash_if_desired().catch(console.log);
         await bookmarkTabs(await mostRecentUnnamedFolderId(), [tab]);
+    },
+
+    options: async function() {
+        await browser.runtime.openOptionsPage();
     },
 };
 

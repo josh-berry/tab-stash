@@ -97,7 +97,8 @@ information is shared, and the full URL of the tab is never disclosed.
 
 ### Extension Permissions
 
-When you first install it, Tab Stash will ask for the following permissions.  Here's why we need each of them:
+When you first install it, Tab Stash will ask for the following permissions.
+Here's why we need each of them:
 
 - **Access browser tabs**: Used to save and restore tabs to the stash.
   (Honestly, we'd all be surprised if an extension with a name like "Tab Stash"
@@ -121,6 +122,10 @@ When you first install it, Tab Stash will ask for the following permissions.  He
   automatically close it if it's not needed.  Tab Stash does not modify your
   browser settings.  (Although, if we *did*, we'd probably change your homepage
   to be a picture of a kitten.  Because who doesn't like kittens?)
+
+- **Store client-side data**: Tab Stash stores your preferences (such as whether
+  to open the stash in the sidebar or a new tab) in the browser's local and
+  synced storage.
 
 - **Menus**: Used to provide additional options for Tab Stash in the right-click
   menu of a page and the tab bar.

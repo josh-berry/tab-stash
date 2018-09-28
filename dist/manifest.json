@@ -20,7 +20,8 @@
         "tabHide",
         "bookmarks",
         "menus",
-        "browserSettings"
+        "browserSettings",
+        "storage"
     ],
     "content_security_policy":
         "script-src 'self' 'unsafe-eval'; object-src 'self';",
@@ -60,6 +61,10 @@
             "32": "icons/logo.svg"
         },
         "default_panel": "stash-list.html",
+        "browser_style": true
+    },
+    "options_ui": {
+        "page": "options.html",
         "browser_style": true
     },
     "commands": {

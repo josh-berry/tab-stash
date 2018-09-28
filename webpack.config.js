@@ -5,6 +5,7 @@ module.exports = {
     entry: {
         "index": "./src/index.js",
         "stash-list": "./src/stash-list.js",
+        "options": "./src/options.js",
         "test": "./src/test.js",
     },
     mode: "development",
