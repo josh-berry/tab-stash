@@ -1,10 +1,10 @@
 <template>
 <div :class="{folder: true,
               window: isWindow,
-              
               'action-container': true,
-              collapsed: collapsed}"
-     v-if="! hideIfEmpty || visibleChildren.length > 0">
+              collapsed: collapsed,
+              hidden: hideIfEmpty && visibleChildren.length == 0,
+              }">
   <div class="panel-section-header">
     <div class="header">
       <editable-label :classes="{'folder-name': true,
@@ -62,8 +62,9 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
     <draggable :options="{group: 'tab'}" ref="drag"
                class="sortable-list"
                @add="move" @update="move">
-      <tab v-for="item of visibleChildren"
-           :key="item.id" v-bind="item"></tab>
+      <tab v-for="item of children" v-if="item.url"
+           :key="item.id" v-bind="item"
+           :class="{hidden: filter && ! filter(item)}"></tab>
     </draggable>
   </div>
 </div>
