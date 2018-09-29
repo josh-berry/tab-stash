@@ -12,7 +12,7 @@
       /* NOTE: box-sizing: border-box is in effect in extension.css */
       /* base text color: #222426 */
       html {
-          --margin: 16px;
+          --margin: 1.5rem;
       }
 
       .hidden { display: none !important; }
@@ -27,7 +27,7 @@
       a.open, a.open:visited { color: #287acc; }
 
       .page.header {
-          padding: 4px var(--margin);
+          padding: 4px 16px;
           display: grid;
           grid-template-columns: 1fr 24px;
           align-items: center;
@@ -226,7 +226,11 @@
       }
 
       @media all and (min-width: 25rem) {
-          .page.header { grid-template-columns: 1fr; }
+          .page.header {
+              padding-left: var(--margin);
+              padding-right: var(--margin);
+              grid-template-columns: 1fr;
+          }
           .action.collapse { display: none !important; }
 
           /* Multi-column large format (for display in a tab) */
@@ -237,7 +241,7 @@
               display: flex;
               flex-direction: row;
               flex-wrap: wrap;
-              padding: calc(var(--margin) / 2);
+              margin: 0 calc(var(--margin) / 2);
           }
           .folder {
               flex: 1 1 25rem;
