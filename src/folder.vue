@@ -58,15 +58,13 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
       </ButtonBox>
     </div>
   </div>
-  <div class="panel-section-list contents">
-    <draggable :options="{group: 'tab'}" ref="drag"
-               class="sortable-list"
-               @add="move" @update="move">
-      <tab v-for="item of children" v-if="item.url"
-           :key="item.id" v-bind="item"
-           :class="{hidden: filter && ! filter(item)}"></tab>
-    </draggable>
-  </div>
+  <draggable :options="{group: 'tab'}" ref="drag"
+             class="panel-section-list contents"
+             @add="move" @update="move">
+    <tab v-for="item of children" v-if="item.url"
+         :key="item.id" v-bind="item"
+         :class="{hidden: filter && ! filter(item)}"></tab>
+  </draggable>
 </div>
 </template>
 
