@@ -225,63 +225,57 @@
           opacity: 0.6;
       }
 
-      @media all and (min-width: 25rem) {
-          .page.header {
-              padding-left: var(--margin);
-              padding-right: var(--margin);
-              grid-template-columns: 1fr;
-          }
-          .action.collapse { display: none !important; }
 
-          /* Multi-column large format (for display in a tab) */
-          body {
-              background: #efefef;
-          }
-          .folder-list {
-              display: flex;
-              flex-direction: row;
-              flex-wrap: wrap;
-              margin: 0 calc(var(--margin) / 2);
-          }
-          .folder {
-              flex: 1 1 25rem;
-              margin: calc(var(--margin) / 2);
-              background: #ffffff;
-              border: 1px solid #c0c0c0;
-              box-shadow: 2px 2px 4px #c0c0c0;
 
-              display: flex;
-              flex-direction: column;
-          }
-          .panel-section-header { padding-top: 11px; }
-          .folder .header {
-              grid-template-columns: 1fr 0fr;
-              align-items: center;
-              flex: 0 0 auto;
-          }
-          .folder .header nav {
-              grid-row: 1;
-              grid-column: 2;
-              display: none;
-          }
+      /***
+       * Mods for when in tab view -- uses a multi-column display format
+       ***/
 
-          .folder .header nav .action {
-              width: 24px;
-              height: 24px;
-              line-height: 24px;
-              border-radius: 0;
-              margin: 0;
-              padding: 4px 4px;
-          }
-
-          .folder:hover .header nav { display: flex; }
-
-          .folder .contents { flex: 1 1 auto; }
+      body.tab-view {
+          background: #efefef;
       }
+
+      .tab-view .page.header {
+          padding-left: var(--margin);
+          padding-right: var(--margin);
+          grid-template-columns: 1fr;
+      }
+      .tab-view .action.collapse { display: none !important; }
+
+      .tab-view .folder-list {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          margin: 0 calc(var(--margin) / 2);
+      }
+      .tab-view .folder {
+          flex: 1 1 25rem;
+          margin: calc(var(--margin) / 2);
+          background: #ffffff;
+          border: 1px solid #c0c0c0;
+          box-shadow: 2px 2px 4px #c0c0c0;
+
+          display: flex;
+          flex-direction: column;
+      }
+      .tab-view .panel-section-header { padding-top: 11px; }
+      .tab-view .folder .header {
+          grid-template-columns: 1fr 0fr;
+          align-items: center;
+          flex: 0 0 auto;
+      }
+      .tab-view .folder .header nav {
+          grid-row: 1;
+          grid-column: 2;
+          display: none;
+      }
+      .tab-view .folder:hover .header nav { display: flex; }
+
+      .tab-view .folder .contents { flex: 1 1 auto; }
     </style>
   </head>
 
-  <body class="stash-list">
+  <body>
     <div id="app">
     </div>
   </body>

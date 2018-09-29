@@ -19,11 +19,14 @@ window.addEventListener('load', asyncEvent(async function() {
     let [state, root, win, curtab] = [
         await state_p, await root_p, await win_p, await curtab_p];
 
+    if (curtab) {
+        document.body.classList.add('tab-view');
+    }
+
     const vue = new (Vue.extend(StashList))({data: {
         unstashed_tabs: state.wins_by_id.get(win.id),
         stashed_tabs: state.bms_by_id.get(root.id),
         root_id: root.id,
-        is_open_in_tab: !!curtab,
     }});
 
     window.stash_state = state;
