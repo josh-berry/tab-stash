@@ -101,7 +101,8 @@ export default {
         },
 
         unstashedFilter(t) {
-            return ! t.hidden && isTabStashable(t) && ! this.isItemStashed(t)
+            return ! t.hidden && ! t.pinned
+                && isTabStashable(t) && ! this.isItemStashed(t)
                 && this.search_filter(t);
         },
 

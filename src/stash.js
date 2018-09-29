@@ -34,7 +34,11 @@ export async function mostRecentUnnamedFolderId() {
 }
 
 export function isTabStashable(tab) {
-    if (tab.pinned) return false;
+    // NOTE: We don't actually check this here because it is filtered by our
+    //callers; if we see a tab that is pinned at this point, we can safely
+    //assume the user explicitly asked for it to be stashed.
+    //
+    // if (tab.pinned) return false;
 
     try {
         let url = new URL(tab.url);
