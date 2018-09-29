@@ -20,10 +20,10 @@
              @click.prevent.stop="collapsed = ! collapsed">
       </ButtonBox>
       <ButtonBox v-if="! isWindow">
-        <img src="icons/stash-dark.svg" class="action stash"
+        <img src="icons/stash-dark.svg" class="action stash here"
              :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
-        <img src="icons/stash-one-dark.svg" class="action stash"
+        <img src="icons/stash-one-dark.svg" class="action stash one here"
              :title="`Stash the active tab to this group (hold ${altkey} to keep tab open)`"
              @click.prevent.stop="stashOne">
         <img src="icons/restore.svg" class="action restore"
@@ -39,7 +39,7 @@
              @click.prevent.stop="remove">
       </ButtonBox>
       <ButtonBox v-else>
-        <img src="icons/stash-dark.svg" class="action stash"
+        <img src="icons/stash-dark.svg" class="action stash newgroup"
              :title="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
         <img src="icons/new-empty-group.svg" class="action stash"

@@ -1,5 +1,5 @@
 <template>
-<div class="stash-list">
+<div :class="{'stash-list': true, 'tab-view': is_open_in_tab}">
   <div class="page header action-container">
     <input type="search" ref="search"
            :placeholder="search_placeholder"

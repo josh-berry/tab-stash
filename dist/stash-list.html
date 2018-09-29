@@ -123,6 +123,12 @@
           background-color: #ccb3b3;
       }
 
+      /* Don't show the "stash this tab" button on folders when we are the
+         current tab (and not the sidebar) */
+      .tab-view .action.stash.one.here {
+          display: none;
+      }
+
       /* Folder headings */
       .header { padding: 0; margin: 0; }
       .folder .header {

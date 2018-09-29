@@ -16,7 +16,7 @@
          class="action restore-remove"
          title="Open this tab and delete it from the group"
          @click.prevent.stop="openRemove">
-    <img v-else src="icons/stash-one-dark.svg" class="action stash"
+    <img v-else src="icons/stash-one-dark.svg" class="action stash one"
          :title="`Stash this tab (hold ${altkey} to keep tab open)`"
          @click.prevent.stop="stash">
     <img src="icons/delete.svg" class="action remove"
