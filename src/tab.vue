@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import {asyncEvent, altKeyName} from './util';
+import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
     mostRecentUnnamedFolderId, restoreTabs, stashTabs, bookmarkTabs,
     closeTabs,
@@ -117,10 +117,10 @@ export default {
             }
         }),
 
-        open: asyncEvent(async function() {
+        open: asyncEvent(async function(ev) {
             let curtab = await browser.tabs.getCurrent();
 
-            await restoreTabs([this.url]);
+            await restoreTabs([this.url], {background: bgKeyPressed(ev)});
 
             if (curtab && ! curtab.pinned) {
                 await browser.tabs.remove([curtab.id]);
@@ -144,10 +144,10 @@ export default {
             }
         }),
 
-        openRemove: asyncEvent(async function() {
+        openRemove: asyncEvent(async function(ev) {
             let curtab = await browser.tabs.getCurrent();
 
-            await restoreTabs([this.url]);
+            await restoreTabs([this.url], {background: bgKeyPressed(ev)});
             if (this.isBookmark) {
                 await browser.bookmarks.remove(this.id);
             }

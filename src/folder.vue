@@ -69,7 +69,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 </template>
 
 <script>
-import {asyncEvent, altKeyName} from './util';
+import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     isTabStashable,
@@ -159,18 +159,21 @@ export default {
             }
         }),
 
-        restoreAll: asyncEvent(async function() {
+        restoreAll: asyncEvent(async function(ev) {
             console.assert(this.id); // Can't restore already-open tabs
+
+            const bg = bgKeyPressed(ev);
 
             // Figure out which tab WE are.  Do this before opening new tabs,
             // since that will disturb the browser's focus.
             let curtab = await browser.tabs.getCurrent();
 
-            await restoreTabs(this.children.map(item => item.url));
+            await restoreTabs(this.children.map(item => item.url),
+                             {background: bg});
 
             // If we ourselves are open in a tab (and not the sidebar or a
             // popup), close the tab so the user doesn't have to.
-            if (curtab && ! curtab.pinned) {
+            if (! bg && curtab && ! curtab.pinned) {
                 await browser.tabs.remove([curtab.id]);
             }
         }),
@@ -235,21 +238,24 @@ export default {
             }
         }),
 
-        restoreAndRemove: asyncEvent(async function() {
+        restoreAndRemove: asyncEvent(async function(ev) {
             console.assert(this.id); // Can't restore already-open tabs
+
+            const bg = bgKeyPressed(ev);
 
             // Figure out which tab WE are.  Do this before opening new tabs,
             // since that will disturb the browser's focus.
             let curtab = await browser.tabs.getCurrent();
 
-            await restoreTabs(this.children.map(item => item.url));
+            await restoreTabs(this.children.map(item => item.url),
+                              {background: bg});
 
             // Discard opened tabs as requested.
             await browser.bookmarks.removeTree(this.id);
 
             // If we ourselves are open in a tab (and not the sidebar or a
             // popup), close the tab so the user doesn't have to.
-            if (curtab && ! curtab.pinned) {
+            if (! bg && curtab && ! curtab.pinned) {
                 await browser.tabs.remove([curtab.id]);
             }
         }),
@@ -368,7 +374,8 @@ export default {
 
                 if (! tid) {
                     // Restoring from the stash.
-                    let tabs = await restoreTabs([item.url]);
+                    let tabs = await restoreTabs(
+                        [item.url], {background: true});
 
                     if (tabs[0]) {
                         tid = tabs[0].id;

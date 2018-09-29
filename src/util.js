@@ -15,6 +15,9 @@ let PLATFORM_INFO = {
 browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
 export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
 
+export const bgKeyPressed = ev =>
+    PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
+
 export function urlsInTree(bm_tree) {
     let urls = [];
     function collect(bm) {

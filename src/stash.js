@@ -113,24 +113,19 @@ export async function refocusAwayFromTabs(tabs) {
     }
 }
 
-// Determine if the currently-focused tab has anything "useful" in it (where
-// "useful" is defined as neither the new-tab page nor the user's home page).
-// If the tab is not useful, return the tab (presumably because we may want to
-// close it).  Otherwise, return undefined.
-export async function lookingAtNewTab() {
-    let curtabs_p = browser.tabs.query({active: true, currentWindow: true});
+// Determine if the specified tab has anything "useful" in it (where "useful" is
+// defined as neither the new-tab page nor the user's home page).  Returns the
+// tab itself if not, otherwise returns undefined.
+export async function isNewTab(tab) {
     let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
     let home_url_p = browser.browserSettings.newTabPageOverride.get({});
-    let curtab = (await curtabs_p)[0];
     let newtab_url = (await newtab_url_p).value;
     let home_url = (await home_url_p).value;
 
-    if (curtab) {
-        if (curtab.url === newtab_url) return curtab;
-        if (curtab.url === home_url) return curtab;
-        if (curtab.url === 'about:blank') return curtab;
-        if (curtab.url === 'about:newtab') return curtab;
-    }
+    if (tab.url === newtab_url) return tab;
+    if (tab.url === home_url) return tab;
+    if (tab.url === 'about:blank') return tab;
+    if (tab.url === 'about:newtab') return tab;
     return undefined;
 }
 
@@ -314,16 +309,12 @@ export async function gcDuplicateBookmarks(
     for (let p of ps) try {await p} catch(e) {console.log(e)};
 }
 
-export async function restoreTabs(urls) {
+export async function restoreTabs(urls, options) {
     // Remove duplicate URLs so we only try to restore each URL once.
     urls = Array.from(new Set(urls));
 
     // First collect some info from the browser; done in parallel to reduce
     // latency.
-
-    // We want to know which tab the user is currently looking at so
-    // we can close it if it's just the new-tab page.
-    let tab_to_close_p = lookingAtNewTab();
 
     // We also want to know what tabs were recently closed, so we can
     // restore/un-hide tabs as appropriate.
@@ -333,9 +324,14 @@ export async function restoreTabs(urls) {
     // presently open in that window.
     let win_p = browser.windows.getCurrent({populate: true});
 
-    let tab_to_close = await tab_to_close_p;
     let closed_tabs = await closed_tabs_p;
     let win = await win_p;
+
+    // We want to know which tab the user is currently looking at so we can
+    // close it if it's just the new-tab page, and because if we restore any
+    // closed tabs, the browser will re-focus (and we may want to shift the
+    // focus back if we've been asked to restore in the background).
+    let curtab = win.tabs.filter(t => t.active)[0];
 
     // We can restore a tab in one of four(!) ways:
     //
@@ -385,27 +381,38 @@ export async function restoreTabs(urls) {
     let tabs = [];
     for (let p of ps) tabs.push(await p);
 
-    // Special case: If we were asked to open only one tab AND that tab is
-    // already open, just switch to it.
-    if (urls.length == 1 && tabs.length == 0) {
-        await browser.tabs.update(win.tabs.find(t => t.url === urls[0]).id,
-                                  {active: true});
-    }
+    if (! options || ! options.background) {
+        // Special case: If we were asked to open only one tab AND that tab is
+        // already open, just switch to it.
+        if (urls.length == 1 && tabs.length == 0) {
+            await browser.tabs.update(win.tabs.find(t => t.url === urls[0]).id,
+                                      {active: true});
+        }
 
-    // Special case: If only one tab was restored, switch to it.  (This is
-    // different from the special case above, in which NO tabs are restored.)
-    if (tabs.length == 1) {
-        let tab = tabs[0];
-        // It's actually a Session, but instanceof doesn't work here because
-        // Session isn't a constructor (you can't create your own, you can only
-        // get them from the browser).  So we have to do some true duck-typing.
-        await browser.tabs.update(tab.id, {active: true});
-    }
+        // Special case: If only one tab was restored, switch to it.  (This is
+        // different from the special case above, in which NO tabs are
+        // restored.)
+        if (tabs.length == 1) {
+            let tab = tabs[0];
+            // It's actually a Session, but instanceof doesn't work here because
+            // Session isn't a constructor (you can't create your own, you can
+            // only get them from the browser).  So we have to do some true
+            // duck-typing.
+            await browser.tabs.update(tab.id, {active: true});
+        }
 
-    // Finally, if we opened at least one tab, AND the current tab is looking at
-    // the new-tab page, close the current tab in the background.
-    if (tabs.length > 0 && tab_to_close) {
-        browser.tabs.remove([tab_to_close.id]).catch(console.log);
+        // Finally, if we opened at least one tab, AND the current tab is
+        // looking at the new-tab page, close the current tab in the background.
+        const tab_to_close = await isNewTab(curtab);
+        if (tabs.length > 0 && tab_to_close) {
+            browser.tabs.remove([tab_to_close.id]).catch(console.log);
+        }
+
+    } else {
+        // Caller has indicated they don't want the tab focus disturbed.
+        // Unfortunately, if we restored any sessions, that WILL disturb the
+        // focus, so we need to re-focus on the previously-active tab.
+        await browser.tabs.update(curtab.id, {active: true});
     }
 
     return tabs;
