@@ -28,58 +28,48 @@ Options.make().then(o => {OPTIONS = o});
 const menu_buttons = ['browser_action', 'page_action',
                       'tab', 'page', 'tools_menu'];
 const menu_contexts = ['tab', 'page', 'tools_menu'];
-browser.menus.create({
-    contexts: menu_buttons,
-    title: 'Stash All Tabs',
-    id: 'stash_all'
-});
-browser.menus.create({
-    contexts: menu_buttons,
-    title: 'Stash This Tab',
-    id: 'stash_one'
-});
-browser.menus.create({
-    contexts: menu_buttons,
-    title: 'Stash This Tab to a New Group',
-    id: 'stash_one_newgroup'
-});
-browser.menus.create({
-    contexts: menu_buttons,
-    type: 'separator', enabled: false,
-});
-browser.menus.create({
-    contexts: menu_buttons,
-    title: 'Copy All Tabs to Stash',
-    id: 'copy_all'
-});
-browser.menus.create({
-    contexts: menu_buttons,
-    title: 'Copy Tab to Stash',
-    id: 'copy_one'
-});
-browser.menus.create({
-    contexts: menu_contexts,
-    type: 'separator', enabled: false,
-});
-browser.menus.create({
-    contexts: menu_contexts,
-    title: 'Show Stashed Tabs (Sidebar)',
-    id: 'show_sidebar'
-});
-browser.menus.create({
-    contexts: menu_contexts,
-    title: 'Show Stashed Tabs (New Tab)',
-    id: 'show_tab'
-});
-browser.menus.create({
-    contexts: menu_contexts,
-    type: 'separator', enabled: false,
-});
-browser.menus.create({
-    contexts: menu_contexts,
-    title: 'Options',
-    id: 'options',
-});
+
+const menu = (idprefix, contexts, def) => {
+    for (let [id, title] of def) {
+        if (id) {
+            browser.menus.create({contexts, title, id: idprefix + id});
+        } else {
+            browser.menus.create({contexts, type: 'separator', enabled: false});
+        }
+    }
+};
+
+menu('1:', ['tab', 'page', 'tools_menu'], [
+    ['stash_all', 'Stash All Tabs'],
+    ['stash_one', 'Stash This Tab'],
+    ['stash_one_newgroup', 'Stash This Tab to a New Group'],
+    ['', ''],
+    ['copy_all', 'Copy All Tabs to Stash'],
+    ['copy_one', 'Copy Tab to Stash'],
+    ['', ''],
+    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', 'Show Stashed Tabs in a Tab'],
+    ['', ''],
+    ['options', 'Options...'],
+]);
+
+// These should only have like 6 items each
+menu('2:', ['browser_action'], [
+    ['stash_all', 'Stash All Tabs'],
+    ['copy_all', 'Copy All Tabs to Stash'],
+    ['', ''],
+    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', 'Show Stashed Tabs in a Tab'],
+]);
+
+menu('3:', ['page_action'], [
+    ['stash_one', 'Stash This Tab'],
+    ['stash_one_newgroup', 'Stash This Tab to a New Group'],
+    ['copy_one', 'Copy Tab to Stash'],
+    ['', ''],
+    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', 'Show Stashed Tabs in a Tab'],
+]);
 
 async function show_stash_if_desired() {
     switch (OPTIONS.open_stash_in) {
@@ -151,8 +141,9 @@ const commands = {
 //
 
 browser.menus.onClicked.addListener((info, tab) => {
-    console.assert(commands[info.menuItemId]);
-    commands[info.menuItemId](tab).catch(console.log);
+    const cmd = info.menuItemId.replace(/^[^:]*:/, '');
+    console.assert(commands[cmd]);
+    commands[cmd](tab).catch(console.log);
 });
 
 browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
