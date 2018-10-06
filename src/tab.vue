@@ -118,11 +118,12 @@ export default {
         }),
 
         open: asyncEvent(async function(ev) {
-            let curtab = await browser.tabs.getCurrent();
+            const curtab = await browser.tabs.getCurrent();
+            const bg = bgKeyPressed(ev);
 
-            await restoreTabs([this.url], {background: bgKeyPressed(ev)});
+            await restoreTabs([this.url], {background: bg});
 
-            if (curtab && ! curtab.pinned) {
+            if (! bg && curtab && ! curtab.pinned) {
                 await browser.tabs.remove([curtab.id]);
             }
         }),
@@ -145,9 +146,10 @@ export default {
         }),
 
         openRemove: asyncEvent(async function(ev) {
-            let curtab = await browser.tabs.getCurrent();
+            const curtab = await browser.tabs.getCurrent();
+            const bg = bgKeyPressed(ev);
 
-            await restoreTabs([this.url], {background: bgKeyPressed(ev)});
+            await restoreTabs([this.url], {background: bg});
             if (this.isBookmark) {
                 await browser.bookmarks.remove(this.id);
             }
@@ -155,7 +157,7 @@ export default {
             // tab, since openRemove indicates the user wanted to switch to the
             // tab.
 
-            if (curtab && ! curtab.pinned) {
+            if (! bg && curtab && ! curtab.pinned) {
                 await browser.tabs.remove([curtab.id]);
             }
         }),
