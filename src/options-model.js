@@ -62,7 +62,7 @@ export class Options {
                 get: () => this._get(k),
                 set: v => this._set(k, v),
             });
-            if (k in options) {
+            if (options && k in options) {
                 this._saved[k] = options[k];
             } else {
                 this._saved[k] = DEFAULTS[k];
