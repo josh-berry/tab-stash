@@ -83,4 +83,5 @@ distclean: clean
 
 clean:
 	rm -f dist/*.js
+	find dist -type f -name .DS_Store |xargs rm
 .PHONY: clean
