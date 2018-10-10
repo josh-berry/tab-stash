@@ -247,9 +247,7 @@
       .tab-view .page.header {
           padding-left: var(--margin);
           padding-right: var(--margin);
-          grid-template-columns: 1fr;
       }
-      .tab-view .action.collapse { display: none !important; }
 
       .tab-view .folder-list {
           display: flex;
@@ -269,7 +267,7 @@
       }
       .tab-view .panel-section-header { padding-top: 11px; }
       .tab-view .folder .header {
-          grid-template-columns: 1fr 0fr;
+          grid-template-columns: 1fr 0fr 0fr;
           align-items: center;
           flex: 0 0 auto;
       }
@@ -278,6 +276,7 @@
           grid-column: 2;
           display: none;
       }
+      .tab-view .folder .header .collapse-btnbox { grid-column: 3; }
       .tab-view .folder:hover .header nav { display: flex; }
 
       .tab-view .folder .contents { flex: 1 1 auto; }
