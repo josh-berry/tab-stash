@@ -5,10 +5,10 @@ come back to your tabs later?
 
 Tab Stash is a no-fuss way to save, restore and organize batches of tabs as
 bookmarks.  With one click on the Tab Stash icon, you can sweep your browser
-window clear of tabs, and save them all into the "Tab Stash" sidebar, organized
-conveniently into groups.  Then, when it's time to go back to that research
-project, just pop open the sidebar and restore the whole group, or restore only
-that one tab you were interested in.
+window clear of tabs, and save them all into the "Tab Stash" sidebar or tab,
+organized conveniently into groups.  Then, when it's time to go back to that
+research project, just pop open your stash and restore the whole group, or
+restore only that one tab you were interested in.
 
 Because Tab Stash stores your tabs as bookmarks, they will even sync to your
 other computers or mobile devices (using Firefox Sync, if configured).  You
@@ -21,7 +21,9 @@ see your tabs.
 
 - Stash all your open tabs in one click (in browser toolbar)
 - Stash individual tabs in one click (in address bar)
-- Unobtrusive Firefox sidebar which shows all your stashed tabs
+- Show all stashed tabs in an unobtrusive Firefox sidebar
+- Show all stashed tabs in a full-browser tab view
+- Search your stash by typing in the search box at the top of the sidebar/tab
 - Restore and delete entire groups of tabs, or individual tabs within a group
 - Drag and drop stashed tabs and groups to re-organize them
 - Rename tab groups, or keep the automatically-generated names
@@ -44,6 +46,21 @@ by following these steps:
 If you would prefer not to do this, you can always load the list of stashed tabs
 by right-clicking anywhere on the page, selecting "*Tab Stash*" from the popup
 menu, and choosing "*Show Stashed Tabs*".
+
+### Make Tab Stash Your Homepage
+
+If you would prefer not to use the sidebar, or even if you just want easy access to the full-browser view of your stashed tabs, you can make Tab Stash your homepage.
+
+1. Right-click the Tab Stash icon in the toolbar, and choose "Show Stashed Tabs
+   in a Tab".
+2. Right-click in the address bar and select "Copy".
+3. Click the Firefox menu (far right side of the toolbar), then "Preferences".
+4. In the "Preferences" tab, click "Home".
+5. Next to "Homepage and new windows", click the drop-down and select "Custom URLs...".
+6. Paste the copied URL from the address bar into the Custom URL box.
+
+You can now open the stash any time you like by clicking the "Home" button in
+your Firefox toolbar.
 
 ### Keyboard Shortcuts
 
