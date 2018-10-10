@@ -15,7 +15,8 @@
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
             ref="unstashed" :children="unstashed_tabs.children"
-            :filter="unstashedFilter" :isItemStashed="isItemStashed">
+            :filter="unstashedFilter" :userFilter="search_filter"
+            :isItemStashed="isItemStashed">
     </folder>
     <!-- XXX This is presently disabled because it exposes a bug in
          Vue.Draggable, wherein if the draggable goes away as the result of a
@@ -34,7 +35,7 @@
     -->
   </div>
   <folder-list ref="stashed" :folders="stashed_tabs.children"
-               :filter="search_filter"
+               :userFilter="search_filter"
                :hideIfEmpty="searchtext !== ''">
   </folder-list>
 </div>
@@ -102,8 +103,7 @@ export default {
 
         unstashedFilter(t) {
             return ! t.hidden && ! t.pinned
-                && isTabStashable(t) && ! this.isItemStashed(t)
-                && this.search_filter(t);
+                && isTabStashable(t) && ! this.isItemStashed(t);
         },
 
         isItemStashed(i) {

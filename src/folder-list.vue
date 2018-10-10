@@ -4,7 +4,7 @@
           :key="f.title"
           :id="f.id" :children="f.children" :allowRenameDelete="true"
           :title="f.title" :dateAdded="f.dateAdded"
-          :filter="filter" :hideIfEmpty="hideIfEmpty"
+          :filter="filter" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
           ref="folders">
   </folder>
 </draggable>
@@ -19,6 +19,7 @@ export default {
     props: {
         folders: Array,
         filter: Function,
+        userFilter: Function,
 
         // Whether to hide a folder entirely if it has no elements (e.g. because
         // we're filtering at the moment)

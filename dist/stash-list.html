@@ -167,38 +167,45 @@
       .folder:hover .header .folder-name {
           grid-column: 1;
       }
+      .folder .panel-section-list {
+          min-height: 12px;
+          padding-bottom: 0;
+      }
       .folder .contents {
           margin-bottom: 1em;
-          min-height: 12px;
       }
       .folder .panel-section-header {
           padding-bottom: 6px;
       }
 
-      /* Tab entries */
-      .tab {
+      /* Tab entries and other folder contents (e.g. count of hidden tabs) */
+      .folder-item {
           display: grid;
           grid-template-columns: 22px 1fr 0fr;
+          align-items: center;
+          /* copied from panel-list-item so it applies to things that aren't
+             selectable as well */
+          padding: 0 16px;
+          height: 24px;
       }
-      .tab > * {
-          vertical-align: middle;
+      .folder-item > * {
           margin: 0 3px;
           padding: 0;
       }
-      .tab > .icon {
+      .folder-item > .icon {
           grid-row: 1;
           grid-column: 1;
           width: 16px;
           height: 16px;
       }
-      .tab > .text { grid-row: 1; grid-column: 2; }
-      .tab > nav {
+      .folder-item > .text { grid-row: 1; grid-column: 2; }
+      .folder-item > nav {
           display: none;
           grid-row: 1;
           grid-column: 3;
       }
-      .tab:hover > nav { display: flex; }
-      .tab > nav > .action {
+      .folder-item:hover > nav { display: flex; }
+      .folder-item > nav > .action {
           width: 22px;
           height: 22px;
           line-height: 22px;
@@ -206,7 +213,7 @@
           margin: 0;
           padding: 3px 3px;
       }
-      span.folder-name, .tab > .text {
+      span.folder-name, .folder-item > .text {
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;

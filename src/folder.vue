@@ -58,13 +58,21 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
       </ButtonBox>
     </div>
   </div>
-  <draggable :options="{group: 'tab'}" ref="drag"
-             class="panel-section-list contents"
-             @add="move" @update="move">
-    <tab v-for="item of children" v-if="item.url"
-         :key="item.id" v-bind="item"
-         :class="{hidden: filter && ! filter(item)}"></tab>
-  </draggable>
+  <div class="contents">
+    <draggable :options="{group: 'tab'}" ref="drag" class="panel-section-list"
+               @add="move" @update="move">
+      <tab v-for="item of children" v-if="item.url"
+           :key="item.id" v-bind="item"
+           :class="{hidden: (filter && ! filter(item))
+                         || (userFilter && ! userFilter(item)),
+                    'folder-item': true}"></tab>
+    </draggable>
+    <div class="folder-item" v-if="userHiddenChildren.length > 0">
+      <span class="text status-text hidden-count">
+        + {{userHiddenChildren.length}} filtered
+      </span>
+    </div>
+  </div>
 </div>
 </template>
 
@@ -88,6 +96,7 @@ export default {
     props: {
         // View filter functions
         filter: Function,
+        userFilter: Function,
         isItemStashed: Function,
         hideIfEmpty: Boolean,
 
@@ -116,9 +125,26 @@ export default {
             return getFolderNameISODate(this.title) !== null
                 ? '' : this.title;
         },
+        filteredChildren: function() {
+            if (this.filter) {
+                return this.children.filter(c => c.url && this.filter(c));
+            } else {
+                return this.children.filter(c => c.url);
+            }
+        },
         visibleChildren: function() {
-            return this.children.filter(
-                c => c.url && (! this.filter || this.filter(c)));
+            if (this.userFilter) {
+                return this.filteredChildren.filter(this.userFilter);
+            } else {
+                return this.filteredChildren;
+            }
+        },
+        userHiddenChildren: function() {
+            if (this.userFilter) {
+                return this.filteredChildren.filter(c => ! this.userFilter(c));
+            } else {
+                return [];
+            }
         },
     },
 
