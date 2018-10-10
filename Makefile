@@ -1,6 +1,14 @@
-VERSION != node -e "x=$$(cat dist/manifest.json); console.log(x.version)"
-COMMIT != git rev-parse --short HEAD
+VERSION := $(shell node -e "x=`cat dist/manifest.json`; console.log(x.version)")
+COMMIT := $(shell git rev-parse --short HEAD)
 FULL_VERSION := $(VERSION)-$(COMMIT)
+
+ifeq ($(VERSION),)
+$(error Unable to determine the current version number)
+endif
+
+ifeq ($(COMMIT),)
+$(error Unable to determine the HEAD commit)
+endif
 
 SRCPKG_DIR = tab-stash-src-$(FULL_VERSION)
 SRC_PKG = $(SRCPKG_DIR).tar.gz
