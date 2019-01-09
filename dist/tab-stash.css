@@ -15,15 +15,23 @@ html {
 a, a:visited { color: #44484c; text-decoration: none; }
 a.open, a.open:visited { color: #287acc; }
 
+header { padding: 4px 16px; }
 .page.header {
-    padding: 4px 16px;
     display: grid;
     grid-template-columns: 1fr 24px;
     align-items: center;
 }
-.status-text {
+.page.footer {
+    padding: 16px 16px 8px;
+    text-align: center;
+}
+.status-text, .status-text a {
     color: #889099;
     font-style: italic;
+}
+.status-text a:hover {
+    color: #287acc;
+    text-decoration: underline;
 }
 
 /* Search and other input boxes */
@@ -75,7 +83,7 @@ nav.action-container img.action:last-child {
 .action-container:hover .action.collapse:active {
     background-color: rgba(0, 0, 0, 0.12);
 }
-.action-container:hover .action.stash {
+.action-container:hover .action.stash, .whats-new .improved {
     background-color: #cce5ff;
 }
 .action-container:hover .action.stash:hover {
@@ -84,7 +92,7 @@ nav.action-container img.action:last-child {
 .action-container:hover .action.stash:active {
     background-color: #a3b7cc;
 }
-.action-container:hover .action.restore {
+.action-container:hover .action.restore, .whats-new .added {
     background-color: #b0ffc0;
 }
 .action-container:hover .action.restore:hover {
@@ -93,7 +101,7 @@ nav.action-container img.action:last-child {
 .action-container:hover .action.restore:active {
     background-color: #8ccc99;
 }
-.action-container:hover .action.restore-remove {
+.action-container:hover .action.restore-remove, .whats-new .fixed {
     background-color: #f0f090;
 }
 .action-container:hover .action.restore-remove:hover {
@@ -102,7 +110,7 @@ nav.action-container img.action:last-child {
 .action-container:hover .action.restore-remove:active {
     background-color: #bcbc71;
 }
-.action-container:hover .action.remove {
+.action-container:hover .action.remove, .whats-new .removed {
     background-color: #ffe0e0;
 }
 .action-container:hover .action.remove:hover {
@@ -119,8 +127,8 @@ nav.action-container img.action:last-child {
 }
 
 /* Folder headings */
-.header { padding: 0; margin: 0; }
 .folder .header {
+    padding: 0; margin: 0;
     display: grid;
     grid-template-columns: 1fr 24px;
     align-items: center;
@@ -231,7 +239,7 @@ body.tab-view {
     background: #efefef;
 }
 
-.tab-view .page.header {
+.tab-view header {
     padding-left: var(--margin);
     padding-right: var(--margin);
 }
@@ -267,3 +275,40 @@ body.tab-view {
 .tab-view .folder:hover .header nav { display: flex; }
 
 .tab-view .folder .contents { flex: 1 1 auto; }
+
+
+
+/***
+ * A few small tweaks for the whats-new page so it has the same spacing as the
+ * stash list.
+ ***/
+
+.whats-new:not(.tab-view) h1 {
+    font-size: 15pt;
+}
+
+.whats-new .folder .contents {
+    padding: 0;
+    margin-left: 32px;
+    margin-right: 16px;
+    margin-top: 0;
+}
+.whats-new li {
+    margin: 8px 0;
+}
+.whats-new section.folder {
+    flex: 1 1 auto;
+    width: 100%;
+}
+
+.whats-new.tab-view .status-text {
+    margin-bottom: 1em;
+}
+
+.whats-new .added, .whats-new .improved, .whats-new .fixed, .whats-new .removed
+{
+    font-variant: small-caps;
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 0 4px;
+}

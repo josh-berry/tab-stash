@@ -16,8 +16,10 @@ window.addEventListener('load', asyncEvent(async function() {
     let root_p = rootFolder();
     let win_p = browser.windows.getCurrent();
     let curtab_p = browser.tabs.getCurrent();
-    let [state, root, win, curtab] = [
-        await state_p, await root_p, await win_p, await curtab_p];
+    let extinfo_p = browser.management.getSelf();
+    let [state, root, win, curtab, extinfo] = [
+        await state_p, await root_p, await win_p, await curtab_p,
+        await extinfo_p];
 
     if (curtab) {
         document.body.classList.add('tab-view');
@@ -27,6 +29,7 @@ window.addEventListener('load', asyncEvent(async function() {
         unstashed_tabs: state.wins_by_id.get(win.id),
         stashed_tabs: state.bms_by_id.get(root.id),
         root_id: root.id,
+        tab_stash_version: extinfo.version,
     }});
 
     window.stash_state = state;

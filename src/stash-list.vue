@@ -1,6 +1,6 @@
 <template>
 <div class="stash-list">
-  <div class="page header action-container">
+  <header class="page header action-container">
     <input type="search" ref="search"
            :placeholder="search_placeholder"
            @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
@@ -11,7 +11,7 @@
            title="Hide all tabs so only group names are showing"
            @click.prevent.stop="collapseAll">
     </ButtonBox>
-  </div>
+  </header>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
             ref="unstashed" :children="unstashed_tabs.children"
@@ -38,6 +38,10 @@
                :userFilter="search_filter"
                :hideIfEmpty="searchtext !== ''">
   </folder-list>
+  <footer class="page footer status-text">
+    Tab Stash {{tab_stash_version}} &mdash;
+    <a href="whats-new.html">What's New</a>
+  </footer>
 </div>
 </template>
 
