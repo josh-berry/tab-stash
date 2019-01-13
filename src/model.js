@@ -348,13 +348,41 @@ export class StashState {
                 // Different (or new) parent.
                 let parent_idx = item.isTab ? this.wins_by_id : this.bms_by_id;
                 new_parent = parent_idx.get(newParentId);
-                if (! new_parent) throw {item, newParentId, newIndex};
+
+                if (! new_parent) {
+                    // Parent we haven't seen before.  We will create an empty
+                    // window for it for now, and populate it below when we
+                    // reposition the tab.
+                    if (newIndex !== 0) {
+                        console.warn(
+                            "Repositioning tab", item,
+                            "into window", newParentId,
+                            "at non-zero index", newIndex,
+                            ", but we haven't heard of this window before.");
+                    } else {
+                        console.warn(
+                            "Repositioning tab", item,
+                            "into window", newParentId,
+                            "which we assume is a non-focused normal window");
+                    }
+                    new_parent = this.win_created({id: newParentId,
+                                                   focused: false,
+                                                   type: 'normal'});
+                }
             }
 
         } else {
+            // A parent was specified, but not an index. We have no idea where
+            // in the window this tab is.
             console.assert(newParentId === undefined,
                            "Must specify an index when specifying a parent");
         }
+
+        // At this point, /new_parent/ is pointing to the window where the tab
+        // is being moved to (even if that's the same as the old window).  Now
+        // it's just a matter of moving the tab to the right position, and
+        // re-shuffling the indices of the other tabs in that window
+        // accordingly.
 
         // First remove from the old parent
         if (item.parent) {

@@ -17,6 +17,8 @@
       </Added>
       <Fixed>an issue where the sidebar may not open automatically when stashing
         tabs.</Fixed>
+      <Fixed>an issue that prevents the list of unstashed tabs from updating
+        when a tab is torn off into a new window.</Fixed>
     </Version>
 
     <Version v="2.0">
