@@ -27,8 +27,10 @@ export default {
     data: () => ({collapsed: undefined}),
     computed: {
         is_collapsed: function() {
-            // XXX fill me in
-            return this.collapsed;
+            if (this.collapsed !== undefined) return this.collapsed;
+            return the_last_notified_version !== undefined
+                && this.v.split(".").map(x => x|0)
+                 <= the_last_notified_version.split(".").map(x => x|0);
         },
     },
 }

@@ -15,8 +15,8 @@ import {Options} from './options-model';
 // of Firefox's restrictions on opening the sidebar--it must be done
 // synchronously from an event handler.
 //
-let OPTIONS;
-Options.make().then(o => {OPTIONS = o});
+let SYNC_OPTIONS;
+Options.make('sync').then(o => {SYNC_OPTIONS = o});
 
 
 
@@ -72,7 +72,7 @@ menu('3:', ['page_action'], [
 ]);
 
 async function show_stash_if_desired() {
-    switch (OPTIONS.open_stash_in) {
+    switch (SYNC_OPTIONS.open_stash_in) {
     case 'none':
         break;
 
