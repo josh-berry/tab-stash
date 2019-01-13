@@ -10,6 +10,16 @@
 
   <div class="folder-list">
 
+    <Version v="2.2">
+      <Fixed>a conflict with keyboard shortcuts on Windows and Linux.  The new
+        keyboard shortcuts are as follows:</Fixed>
+      <ul>
+        <li>Show stashed tabs in sidebar: <em>Ctrl+Alt+S</em></li>
+        <li>Stash all open tabs: <em>Ctrl+Alt+T</em></li>
+        <li>Stash the active tab: <em>Ctrl+Alt+W</em></li>
+      </ul>
+    </Version>
+
     <Version v="2.1">
       <Added subtext="&quot;Users&quot; means you. Thank you for reading this. You are awesome.">
         a "What's New?" page and unobtrusive notification to let users know when

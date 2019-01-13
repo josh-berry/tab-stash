@@ -70,19 +70,19 @@
     "commands": {
         "_execute_browser_action": {
             "suggested_key": {
-                "default": "Alt+T",
+                "default": "Ctrl+Alt+T",
                 "mac": "MacCtrl+Shift+T"
             }
         },
         "_execute_sidebar_action": {
             "suggested_key": {
-                "default": "Alt+S",
+                "default": "Ctrl+Alt+S",
                 "mac": "MacCtrl+Shift+S"
             }
         },
         "_execute_page_action": {
             "suggested_key": {
-                "default": "Alt+W",
+                "default": "Ctrl+Alt+W",
                 "mac": "MacCtrl+Shift+W"
             }
         }

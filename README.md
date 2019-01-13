@@ -72,9 +72,9 @@ On **Mac**:
 
 On **Windows**, **Linux** and other platforms:
 
-- Show stashed tabs in sidebar: *Alt+S*
-- Stash all open tabs: *Alt+T*
-- Stash the active tab: *Alt+W*
+- Show stashed tabs in sidebar: *Ctrl+Alt+S*
+- Stash all open tabs: *Ctrl+Alt+T*
+- Stash the active tab: *Ctrl+Alt+W*
 
 ### Alternate Ways to Manage Your Stash
 
