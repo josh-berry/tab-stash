@@ -118,10 +118,10 @@ const commands = {
     },
 
     stash_all: async function() {
+        show_stash_if_desired().catch(console.log);
+
         let tabs = await browser.tabs.query(
             {currentWindow: true, hidden: false, pinned: false});
-
-        show_stash_if_desired().catch(console.log);
         await stashTabs(undefined, tabs);
     },
 

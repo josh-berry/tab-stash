@@ -12,9 +12,11 @@
 
     <Version v="$NEXT">
       <Added subtext="&quot;Users&quot; means you. Thank you for reading this. You are awesome.">
-      a "What's New?" page and unobtrusive notification to let users know when
-      new features are available.
+        a "What's New?" page and unobtrusive notification to let users know when
+        new features are available.
       </Added>
+      <Fixed>an issue where the sidebar may not open automatically when stashing
+        tabs.</Fixed>
     </Version>
 
     <Version v="2.0">
