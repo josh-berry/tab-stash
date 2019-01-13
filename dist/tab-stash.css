@@ -15,11 +15,22 @@ html {
 a, a:visited { color: #44484c; text-decoration: none; }
 a.open, a.open:visited { color: #287acc; }
 
-header { padding: 4px 16px; }
-.page.header {
+header { margin: 4px 16px; }
+header .searchbar, aside.notification {
     display: grid;
-    grid-template-columns: 1fr 24px;
+    grid-template-columns: 1fr 0fr;
     align-items: center;
+}
+aside.notification {
+    background-color: rgba(40, 122, 204, 0.16); /* 287acc */
+    border-radius: 5px;
+    margin-top: var(--margin);
+}
+aside.notification:hover {
+    background-color: rgba(40, 122, 204, 0.24); /* 287acc */
+}
+aside.notification .contents {
+    margin: 4px 8px;
 }
 .page.footer {
     padding: 16px 16px 8px;
@@ -74,13 +85,13 @@ nav.action-container img.action:last-child {
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
 }
-.action-container:hover .action.collapse {
+.action-container:hover .action {
     background-color: rgba(0, 0, 0, 0);
 }
-.action-container:hover .action.collapse:hover {
+.action-container:hover .action:hover {
     background-color: rgba(0, 0, 0, 0.06);
 }
-.action-container:hover .action.collapse:active {
+.action-container:hover .action:active {
     background-color: rgba(0, 0, 0, 0.12);
 }
 .action-container:hover .action.stash, .whats-new .improved {
@@ -240,8 +251,12 @@ body.tab-view {
 }
 
 .tab-view header {
-    padding-left: var(--margin);
-    padding-right: var(--margin);
+    margin-left: var(--margin);
+    margin-right: var(--margin);
+}
+
+.tab-view aside.notification {
+    margin-bottom: var(--margin);
 }
 
 .tab-view .folder-list {

@@ -1,16 +1,23 @@
 <template>
 <div class="stash-list">
-  <header class="page header action-container">
-    <input type="search" ref="search"
-           :placeholder="search_placeholder"
-           @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
-           v-model="searchtext">
-    <ButtonBox>
-      <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
-           :class="{action: true, collapse: true}"
-           title="Hide all tabs so only group names are showing"
-           @click.prevent.stop="collapseAll">
-    </ButtonBox>
+  <header class="page action-container">
+    <div class="searchbar">
+      <input type="search" ref="search"
+             :placeholder="search_placeholder"
+             @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
+             v-model="searchtext">
+      <ButtonBox>
+        <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
+             :class="{action: true, collapse: true}"
+             title="Hide all tabs so only group names are showing"
+             @click.prevent.stop="collapseAll">
+      </ButtonBox>
+    </div>
+    <Notification v-if="recently_updated"
+                  @activate="showWhatsNew"
+                  @dismiss="hideWhatsNew">
+      You've been updated to Tab Stash {{my_version}}.  See what's new!
+    </Notification>
   </header>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
@@ -39,7 +46,7 @@
                :hideIfEmpty="searchtext !== ''">
   </folder-list>
   <footer class="page footer status-text">
-    Tab Stash {{tab_stash_version}} &mdash;
+    Tab Stash {{my_version}} &mdash;
     <a href="whats-new.html">What's New</a>
   </footer>
 </div>
@@ -52,12 +59,14 @@ import {isInFolder} from './model';
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
 import ButtonBox from './button-box.vue';
+import Notification from './notification.vue';
 
 export default {
     components: {
         FolderList,
         Folder,
         ButtonBox,
+        Notification,
     },
 
     data: () => ({
@@ -66,6 +75,10 @@ export default {
     }),
 
     computed: {
+        recently_updated: function() {
+            return this.local_options.last_notified_version !== this.my_version;
+        },
+
         counts: function() {
             let tabs = 0, groups = 0;
             for (let f of this.stashed_tabs.children) {
@@ -113,7 +126,14 @@ export default {
         isItemStashed(i) {
             return i.related.find(
                 i => i.isBookmark && isInFolder(this.root_id, i));
-        }
+        },
+
+        showWhatsNew() {
+            window.location.href = 'whats-new.html';
+        },
+        hideWhatsNew() {
+            this.local_options.last_notified_version = this.my_version;
+        },
     },
 };
 </script>

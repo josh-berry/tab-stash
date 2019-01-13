@@ -10,13 +10,30 @@ import {Options} from './options-model';
 
 
 //
-// A continuously-updated (via browser events) object representing the user's
+// Continuously-updated (via browser events) objects representing the user's
 // current preferences.  We need SYNCHRONOUS access to these preferences because
 // of Firefox's restrictions on opening the sidebar--it must be done
 // synchronously from an event handler.
 //
 let SYNC_OPTIONS;
-Options.make('sync').then(o => {SYNC_OPTIONS = o});
+let LOCAL_OPTIONS;
+
+(async function() {
+    let sync_p = Options.make('sync');
+    let local_p = Options.make('local');
+    SYNC_OPTIONS = await sync_p;
+    LOCAL_OPTIONS = await local_p;
+
+    if (LOCAL_OPTIONS.last_notified_version === undefined) {
+        // This looks like a fresh install, (or an upgrade from a version that
+        // doesn't keep track of the last-notified version, in which case, we
+        // just assume it's a fresh install).  Record our current version number
+        // here so we can detect upgrades in the future and show the user a
+        // whats-new notification.
+        LOCAL_OPTIONS.last_notified_version =
+            (await browser.management.getSelf()).version;
+    }
+})();
 
 
 
