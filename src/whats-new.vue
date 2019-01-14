@@ -10,7 +10,7 @@
 
   <div class="folder-list">
 
-    <Version v="$NEXT">
+    <Version v="2.1">
       <Added subtext="&quot;Users&quot; means you. Thank you for reading this. You are awesome.">
         a "What's New?" page and unobtrusive notification to let users know when
         new features are available.
