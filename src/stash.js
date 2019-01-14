@@ -1,5 +1,7 @@
 "use strict";
 
+import Options from './options-model';
+
 export const STASH_FOLDER = 'Tab Stash';
 
 export function getFolderNameISODate(n) {
@@ -62,12 +64,31 @@ export async function stashTabs(folder_id, tabs) {
 
     let saved_tabs = await bookmarkTabs(folder_id, tabs);
 
-    await hideTabs(saved_tabs);
+    await hideStashedTabs(saved_tabs);
 }
 
-export async function hideTabs(tabs) {
+// Hides tabs that we know are stashed.
+export async function hideStashedTabs(tabs) {
+    let opts_p = Options.get('sync');
+
     await refocusAwayFromTabs(tabs);
-    await browser.tabs.hide(tabs.map(t => t.id));
+    const opts = await opts_p;
+
+    const tids = tabs.map(t => t.id);
+
+    switch (opts.after_stashing_tab) {
+    case 'hide_discard':
+        await browser.tabs.hide(tids);
+        await browser.tabs.discard(tids);
+        break;
+    case 'close':
+        await browser.tabs.remove(tids);
+        break;
+    case 'hide':
+    default:
+        await browser.tabs.hide(tids);
+        break;
+    }
 }
 
 export async function closeTabs(tabs) {

@@ -1,47 +1,144 @@
 <template>
-  <div>
-    <div>
-      <div>When saving tabs to the stash:</div>
-      <ul>
-        <li>
+<div>
+  <label for="meta_show_advanced"><div class="advanced">
+      <input type="checkbox" id="meta_show_advanced"
+             v-model="meta_show_advanced" />
+      Show advanced settings
+  </div></label>
+
+  <hr>
+
+  <h4>Tab Stash Behavior (All Synced Browsers)</h4>
+  <ul>
+    <li class="synced">When saving tabs to the stash:</li>
+    <ul>
+      <label for="open_stash_in_sidebar"><li>
           <input type="radio" name="open_stash_in" id="open_stash_in_sidebar"
                  v-model="open_stash_in" value="sidebar" />
-          <label for="open_stash_in_sidebar">Automatically show your stashed tabs in the sidebar</label>
-        </li>
-        <li>
+          Automatically show your stashed tabs in the sidebar
+      </li></label>
+      <label for="open_stash_in_tab"><li>
           <input type="radio" name="open_stash_in" id="open_stash_in_tab"
                  v-model="open_stash_in" value="tab" />
-          <label for="open_stash_in_tab">Automatically show your stashed tabs in a new tab</label>
-        </li>
-        <li>
+          Automatically show your stashed tabs in a new tab
+      </li></label>
+      <label for="open_stash_in_none"><li>
           <input type="radio" name="open_stash_in" id="open_stash_in_none"
                  v-model="open_stash_in" value="none" />
-          <label for="open_stash_in_none">Don't automatically show the stash</label>
+          Don't automatically show the stash
+      </li></label>
+    </ul>
+  </ul>
+
+  <hr>
+
+  <h4 title="Options in this section are stored only on this computer.">Tab and Memory Management (This Browser)</h4>
+  <ul>
+    <li>Once a tab has been stashed:</li>
+    <ul>
+      <label for="after_stashing_tab_hide">
+        <li title="Hidden tabs that are still loaded can be restored instantly. They also preserve anything you had entered into the tab and its history (e.g. Back button).">
+          <input type="radio"
+                 name="after_stashing_tab" id="after_stashing_tab_hide"
+                 v-model="after_stashing_tab" value="hide" />
+          Hide the tab and keep it loaded in the background
         </li>
+      </label>
+      <ul :class="{disabled: after_stashing_tab !== 'hide'}">
+        <label for="autodiscard_hidden_tabs">
+          <li title="Monitors the total number of tabs in your browser, and if you have a lot of tabs open, unloads hidden tabs that haven't been used recently. This option significantly reduces memory usage and is recommended for most users.">
+            <input type="checkbox"
+                   name="autodiscard_hidden_tabs" id="autodiscard_hidden_tabs"
+                   :disabled="after_stashing_tab !== 'hide'"
+                   v-model="autodiscard_hidden_tabs" />
+            Automatically unload hidden tabs that haven't been used in a while
+          </li>
+        </label>
+        <ul v-if="meta_show_advanced"
+            :class="{advanced: true,
+                    disabled: after_stashing_tab !== 'hide'
+                           || ! autodiscard_hidden_tabs}">
+          <label for="autodiscard_interval_min"><li>
+              Check for old hidden tabs every
+              <input type="number" id="autodiscard_interval_min"
+                     :disabled="after_stashing_tab !== 'hide'
+                                || ! autodiscard_hidden_tabs"
+                     v-model="autodiscard_interval_min">
+              minutes
+          </li></label>
+          <label for="autodiscard_min_keep_tabs"><li>
+              Keep at least
+              <input type="number" id="autodiscard_min_keep_tabs"
+                     :disabled="after_stashing_tab !== 'hide'
+                                || ! autodiscard_hidden_tabs"
+                     v-model="autodiscard_min_keep_tabs">
+              hidden and visible tabs loaded at all times
+          </li></label>
+          <label for="autodiscard_target_age_min"><li>
+              Keep the oldest tabs loaded for at least
+              <input type="number" id="autodiscard_target_age_min"
+                     :disabled="after_stashing_tab !== 'hide'
+                                || ! autodiscard_hidden_tabs"
+                     v-model="autodiscard_target_age_min">
+              minutes, but...
+          </li></label>
+          <label for="autodiscard_target_tab_count"><li>
+              ...unload tabs more aggressively if there are more than
+              <input type="number" id="autodiscard_target_tab_count"
+                     :disabled="after_stashing_tab !== 'hide'
+                                || ! autodiscard_hidden_tabs"
+                     v-model="autodiscard_target_tab_count">
+              tabs loaded
+          </li></label>
+        </ul>
       </ul>
-    </div>
-  </div>
+      <label for="after_stashing_tab_hide_discard">
+        <li title="Hidden tabs that are unloaded can be restored very quickly, and usually without a network connection. They also preserve browsing history (e.g. Back button). However, depending on the website, you may lose anything you had entered into the tab that isn't already saved. Uses less memory.">
+          <input type="radio"
+                 name="after_stashing_tab" id="after_stashing_tab_hide_discard"
+                 v-model="after_stashing_tab" value="hide_discard" />
+          Hide the tab and immediately unload it
+        </li>
+      </label>
+      <label for="after_stashing_tab_close">
+        <li title="Uses the least amount of memory and takes the longest to restore, because tab contents may need to be fetched over the network. This option will cause the browser to forget anything you had entered into the tab, as well as the tab's browsing history (e.g. Back button).">
+          <input type="radio"
+                 name="after_stashing_tab" id="after_stashing_tab_close"
+                 v-model="after_stashing_tab" value="close" />
+          Close the tab immediately
+        </li>
+      </label>
+    </ul>
+  </ul>
+</div>
 </template>
 
 <script>
-function syncprop(name) {
-    return {
-        get: function() { return this.sync[name]; },
-        set: function(v) { this.sync.set({[name]: v}); },
-    };
-}
+import Options from './options-model';
 
-function localprop(name) {
-    return {
-        get: function() { return this.sync[name]; },
-        set: function(v) { this.sync.set({[name]: v}); },
-    };
+const syncprop = name => ({
+    get: function() { return this.sync[name]; },
+    set: function(v) { this.sync.set({[name]: v}).catch(console.log); },
+});
+
+const localprop = name => ({
+    get: function() { return this.local[name]; },
+    set: function(v) { this.local.set({[name]: v}).catch(console.log); },
+});
+
+function options(defaults) {
+    let ret = {};
+    for (let k of Object.keys(defaults.local)) {
+        ret[k] = localprop(k);
+    }
+    for (let k of Object.keys(defaults.sync)) {
+        ret[k] = syncprop(k);
+    }
+    return ret;
 }
 
 export default {
-    computed: {
-        open_stash_in: syncprop('open_stash_in'),
-    },
+    computed: options(Options.DEFAULTS),
 }
 </script>
 

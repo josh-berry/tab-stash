@@ -11,6 +11,10 @@
   <div class="folder-list">
 
     <Version v="2.2">
+      <Added>options to control whether tabs are hidden or closed when they are
+        stashed.</Added>
+      <Added>advanced options to adjust how aggressively Tab Stash unloads
+        hidden tabs that haven't been used recently.</Added>
       <Improved subtext="I kept collapsing groups, forgetting they were collapsed, and then wondering where all my tabs went.  Now I know—they were lost at sea in the Disclosure Triangle.">
         the styling of collapsed groups in the tab view, to make them
         more visually-distinct from folders that are not collapsed.</Improved>

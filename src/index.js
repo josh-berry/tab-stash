@@ -15,25 +15,9 @@ import Options from './options-model';
 // of Firefox's restrictions on opening the sidebar--it must be done
 // synchronously from an event handler.
 //
-let SYNC_OPTIONS;
-let LOCAL_OPTIONS;
-
-(async function() {
-    let sync_p = Options.get('sync');
-    let local_p = Options.get('local');
-    SYNC_OPTIONS = await sync_p;
-    LOCAL_OPTIONS = await local_p;
-
-    if (LOCAL_OPTIONS.last_notified_version === undefined) {
-        // This looks like a fresh install, (or an upgrade from a version that
-        // doesn't keep track of the last-notified version, in which case, we
-        // just assume it's a fresh install).  Record our current version number
-        // here so we can detect upgrades in the future and show the user a
-        // whats-new notification.
-        LOCAL_OPTIONS.last_notified_version =
-            (await browser.management.getSelf()).version;
-    }
-})();
+// These are populated from within the async function at the bottom of index.js.
+//
+let OPTIONS = {sync: null, local: null};
 
 
 
@@ -89,7 +73,7 @@ menu('3:', ['page_action'], [
 ]);
 
 async function show_stash_if_desired() {
-    switch (SYNC_OPTIONS.open_stash_in) {
+    switch (OPTIONS.sync.open_stash_in) {
     case 'none':
         break;
 
@@ -185,9 +169,31 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 //
 // We also garbage-collect empty, unnamed folders.
 
-tabStashTree().then(t => {
-    let managed_urls = new Set(urlsInTree(t));
+(async function() {
+    // First, populate the local and sync options objects, since we rely on
+    // settings in here for a variety of things.
+    let sync_p = Options.get('sync');
+    let local_p = Options.get('local');
+    OPTIONS.sync = await sync_p;
+    OPTIONS.local = await local_p;
 
+    if (OPTIONS.local.last_notified_version === undefined) {
+        // This looks like a fresh install, (or an upgrade from a version that
+        // doesn't keep track of the last-notified version, in which case, we
+        // just assume it's a fresh install).  Record our current version number
+        // here so we can detect upgrades in the future and show the user a
+        // whats-new notification.
+        OPTIONS.local.last_notified_version =
+            (await browser.management.getSelf()).version;
+    }
+
+
+
+    // Next, setup the garbage collector -- we collect empty, unnamed folders in
+    // the stash, as well as hidden tabs that are pointing to URLs that are
+    // removed from the stash.  This is driven by browser bookmark events.
+    let t = await TabStashTree();
+    let managed_urls = new Set(urlsInTree(t));
     const close_removed_bookmarks = nonReentrant(async function() {
         let tree = await tabStashTree();
 
@@ -234,12 +240,12 @@ tabStashTree().then(t => {
 
 
 
-    // This background process will discard hidden tabs managed by Tab Stash (as
-    // defined by /managed_urls/ above) if they are not re-activated within a
-    // reasonable period of time.  Since under normal usage, we can accumulate a
-    // LOT of hidden tabs if the user leaves their browser open for a while,
-    // this is mostly a light-touch, precautionary measure to keep the user's
-    // memory usage from becoming surprisingly high over time.
+    // This periodic background job will discard hidden tabs if they are not
+    // re-activated within a reasonable period of time.  Since under normal
+    // usage, we can accumulate a LOT of hidden tabs if the user leaves their
+    // browser open for a while, this is mostly a light-touch, precautionary
+    // measure to keep the user's memory usage from becoming surprisingly high
+    // over time.
     //
     // We could immediately discard a tab when stashing/hiding it, but this
     // causes performance problems if the user wants to temporarily stash a
@@ -263,18 +269,25 @@ tabStashTree().then(t => {
     // the user has a lot of tabs open, we will discard hidden tabs more
     // aggressively to stay within reasonable memory limits.
 
-    const MIN_KEEP_TABS = 10;
-    const TARGET_TAB_COUNT = 50;
-    const TARGET_AGE_MS = 10 * 60 * 1000;
-
     const discard_old_hidden_tabs = nonReentrant(async function() {
+        // We setTimeout() first because the enable/disable flag could change at
+        // runtime.
+        setTimeout(discard_old_hidden_tabs,
+                   OPTIONS.local.autodiscard_interval_min *60*1000);
+
+        if (! OPTIONS.local.autodiscard_hidden_tabs) return;
+
         let now = Date.now();
         let tabs = await browser.tabs.query({discarded: false});
         let tab_count = tabs.length;
         let candidate_tabs = tabs.filter(t => t.hidden)
             .sort((a, b) => a.lastAccessed - b.lastAccessed);
 
-        while (tab_count > MIN_KEEP_TABS) {
+        const min_keep_tabs = OPTIONS.local.autodiscard_min_keep_tabs;
+        const target_tab_count = OPTIONS.local.autodiscard_target_tab_count;
+        const target_age_ms = OPTIONS.local.autodiscard_target_age_min *60*1000;
+
+        while (tab_count > min_keep_tabs) {
             // Keep discarding tabs until we have the minimum number of tabs
             // remaining, we run out of candidates, OR the age of the oldest tab
             // is less than the cutoff (as a function of the number of
@@ -285,8 +298,8 @@ tabStashTree().then(t => {
             // with the vertical asymptote at /MIN_KEEP_TABS/ and the horizontal
             // asymptote at 0.  I recommend https://www.desmos.com/calculator
             // for a good graphing calculator.
-            let age_cutoff = (TARGET_TAB_COUNT - MIN_KEEP_TABS) * TARGET_AGE_MS
-                / (tab_count - MIN_KEEP_TABS);
+            let age_cutoff = (target_tab_count - min_keep_tabs) * target_age_ms
+                / (tab_count - min_keep_tabs);
 
             let oldest_tab = candidate_tabs.pop();
             if (! oldest_tab) break;
@@ -301,8 +314,10 @@ tabStashTree().then(t => {
         }
     });
 
-    // How often to check for tabs to discard
-    const DISCARD_INTERVAL = TARGET_AGE_MS / 4;
-
-    setInterval(discard_old_hidden_tabs, DISCARD_INTERVAL);
-});
+    // We use setTimeout rather than setInterval here because the interval could
+    // change at runtime if the corresponding option is changed.  This will
+    // cause some drift but it's not a big deal--the interval doesn't need to be
+    // exact.
+    setTimeout(discard_old_hidden_tabs,
+               OPTIONS.local.autodiscard_interval_min *60*1000);
+})();

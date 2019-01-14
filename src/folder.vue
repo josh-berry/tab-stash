@@ -81,7 +81,7 @@ import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     isTabStashable,
-    stashTabs, bookmarkTabs, restoreTabs, closeTabs, hideTabs,
+    stashTabs, bookmarkTabs, restoreTabs, closeTabs, hideStashedTabs,
     refocusAwayFromTabs,
 } from 'stash';
 
@@ -226,7 +226,7 @@ export default {
                     //
                     // XXX This is similar to the unstashedFilter, but the
                     // isBookmark test is inverted.
-                    await hideTabs(this.children.filter(
+                    await hideStashedTabs(this.children.filter(
                         t => ! t.hidden && ! t.pinned
                             && this.isItemStashed(t)));
                 } else {
@@ -391,7 +391,7 @@ export default {
                     url: item.url,
                     index: new_model_idx,
                 });
-                await hideTabs([item]);
+                await hideStashedTabs([item]);
 
             } else {
                 // Placing a tab at a particular location in the open window

@@ -11,12 +11,34 @@
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension-mac.css">
     <style type="text/css">
-      ul { list-style: none; padding: 0 0 0 2rem; }
-      ul, div, li { margin: 1ex 0; }
+      html, body {
+          font-size: 11pt;
+      }
+      ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+      }
+      ul ul {
+          margin: 1ex 0 1ex 2rem;
+      }
+      li { margin: 1ex 0; }
       hr {
-          margin: 2ex 0;
           border: 0.5px solid #e0e0e0;
       }
+      h4, hr {
+          margin: 2ex 0;
+      }
+      input[type=number] {
+          max-width: 5em;
+      }
+      .advanced {
+          /*border: 1px solid rgba(255, 0, 0, 0.4);*/
+          background-color: rgba(229, 201, 201, 0.25);
+          border-radius: 4px;
+          padding: 1px 1ex;
+      }
+      .disabled { color: #808080; }
     </style>
   </head>
 
