@@ -14,8 +14,7 @@
       </ButtonBox>
     </div>
     <Notification v-if="recently_updated"
-                  @activate="showWhatsNew"
-                  @dismiss="hideWhatsNew">
+                  @activate="showWhatsNew" @dismiss="hideWhatsNew">
       You've been updated to Tab Stash {{my_version}}.  See what's new!
     </Notification>
   </header>
