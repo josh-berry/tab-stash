@@ -10,13 +10,13 @@
     "chai": "^4.2.0",
     "css-loader": "^0.28.11",
     "mocha": "^5.2.0",
-    "vue": "^2.5.17",
-    "vue-loader": "^15.4.2",
-    "vue-template-compiler": "^2.5.17",
-    "vuedraggable": "^2.16.0",
-    "web-ext": "^2.9.1",
-    "webpack": "^4.20.2",
-    "webpack-cli": "^3.1.1"
+    "vue": "^2.5.22",
+    "vue-loader": "^15.5.1",
+    "vue-template-compiler": "^2.5.22",
+    "vuedraggable": "^2.17.0",
+    "web-ext": "^2.9.3",
+    "webpack": "^4.28.4",
+    "webpack-cli": "^3.2.1"
   },
   "scripts": {
     "build": "webpack",
