@@ -47,7 +47,6 @@ export class Options {
         browser.storage.onChanged.addListener(
             evq.wrap((changes, a) => {
                 if (a === area && changes.options) {
-                    console.log(area, changes.options.newValue);
                     Object.assign(model._saved, changes.options.newValue);
                     Object.assign(model, changes.options.newValue);
                 }
@@ -88,7 +87,6 @@ export class Options {
 
     _set(key, value) {
         if (this._saved[key] !== value) {
-            console.log('set', key, value);
             this._saved[key] = value;
             this._store.set({options: this._saved}).catch(console.log);
         }
