@@ -11,6 +11,9 @@
   <div class="folder-list">
 
     <Version v="2.2">
+      <Improved subtext="I kept collapsing groups, forgetting they were collapsed, and then wondering where all my tabs went.  Now I know—they were lost at sea in the Disclosure Triangle.">
+        the styling of collapsed groups in the tab view, to make them
+        more visually-distinct from folders that are not collapsed.</Improved>
       <Fixed>a conflict with keyboard shortcuts on Windows and Linux.  The new
         keyboard shortcuts are as follows:</Fixed>
       <ul>

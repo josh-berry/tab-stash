@@ -275,6 +275,11 @@ body.tab-view {
     display: flex;
     flex-direction: column;
 }
+.tab-view .collapsed.folder {
+    background: #f4f4f4;
+    border: 1px solid #d8d8d8;
+    box-shadow: 2px 2px 4px #d8d8d8;
+}
 .tab-view .panel-section-header { padding-top: 11px; }
 .tab-view .folder .header {
     grid-template-columns: 1fr 0fr 0fr;
