@@ -7,8 +7,8 @@
               }">
   <div class="panel-section-header">
     <div class="header">
-      <editable-label :classes="{'folder-name': true,
-                                 'disabled': isWindow || ! allowRenameDelete}"
+      <editable-label :class="{'folder-name': true,
+                               'disabled': isWindow || ! allowRenameDelete}"
                       :value="nonDefaultTitle"
                       :defaultValue="defaultTitle"
                       :enabled="! isWindow && allowRenameDelete"

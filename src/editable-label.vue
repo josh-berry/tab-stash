@@ -1,5 +1,5 @@
 <template>
-<input v-if="editing" type="text" :class="classes"
+<input v-if="editing" type="text"
        :value="value" :placeholder="defaultValue" :disabled="disabled"
        ref="input"
        @dragenter.stop="" @dragover.stop="" @mousedown.stop=""
@@ -7,7 +7,7 @@
        @dblclick.stop="" @altclick.stop=""
        @blur="commit" @keyup.enter.prevent="commit"
        @keyup.esc.prevent="editing = false">
-<span v-else :class="classes" :title="value !== '' ? value : defaultValue"
+<span v-else :title="value !== '' ? value : defaultValue"
       @click.prevent.stop="begin">{{value !== '' ? value : defaultValue}}</span>
 </template>
 
@@ -16,10 +16,6 @@ export default {
     props: {
         // Whether to allow editing or not
         enabled: Boolean,
-
-        // CSS classes to apply to the editable label, which is either a <span>
-        // or <input> element.
-        classes: [Object, String],
 
         // The value to show
         value: String,
