@@ -25,6 +25,9 @@
         <li>Stash all open tabs: <em>Ctrl+Alt+T</em></li>
         <li>Stash the active tab: <em>Ctrl+Alt+W</em></li>
       </ul>
+      <Fixed subtext="So narrow you couldn't park a motorcycle in it.">
+        an issue where the search box wouldn't fit inside the sidebar if the
+        sidebar was really narrow.</Fixed>
     </Version>
 
     <Version v="2.1">

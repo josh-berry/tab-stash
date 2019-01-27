@@ -50,11 +50,12 @@ input {
     border: 2px solid rgba(0, 0, 0, 0);
     background: transparent;
     font: caption;
+    min-width: 2em;
+    text-overflow: ellipsis;
 }
 input:focus {
     background-color: #ffffff;
     border: 2px solid rgba(128, 128, 128, 0.8);
-    min-width: 5em;
 }
 
 /* Actions */
