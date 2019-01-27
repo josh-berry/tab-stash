@@ -5,7 +5,7 @@ import {
     stashTabs, bookmarkTabs, restoreTabs, tabStashTree,
     getFolderNameISODate, mostRecentUnnamedFolderId,
 } from './stash';
-import {Options} from './options-model';
+import Options from './options-model';
 
 
 
@@ -19,8 +19,8 @@ let SYNC_OPTIONS;
 let LOCAL_OPTIONS;
 
 (async function() {
-    let sync_p = Options.make('sync');
-    let local_p = Options.make('local');
+    let sync_p = Options.get('sync');
+    let local_p = Options.get('local');
     SYNC_OPTIONS = await sync_p;
     LOCAL_OPTIONS = await local_p;
 

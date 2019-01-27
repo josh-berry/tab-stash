@@ -3,7 +3,7 @@
 import Vue from 'vue/dist/vue.runtime.esm';
 
 import WhatsNew from "./whats-new.vue";
-import {Options} from "./options-model";
+import Options from "./options-model";
 
 (async function() {
     if (await browser.tabs.getCurrent()) {
@@ -11,7 +11,7 @@ import {Options} from "./options-model";
     }
 
     let extinfo = await browser.management.getSelf();
-    let localopts = await Options.make('local');
+    let localopts = await Options.get('local');
 
     window.the_last_notified_version = localopts.last_notified_version;
 
@@ -20,7 +20,7 @@ import {Options} from "./options-model";
         window.the_last_notified_version = undefined;
     } else {
         window.the_last_notified_version = localopts.last_notified_version;
-        localopts.last_notified_version = extinfo.version;
+        localopts.set({last_notified_version: extinfo.version});
     }
 
     const vue = new (Vue.extend(WhatsNew))();

@@ -131,7 +131,7 @@ export default {
             window.location.href = 'whats-new.html';
         },
         hideWhatsNew() {
-            this.local_options.last_notified_version = this.my_version;
+            this.local_options.set({last_notified_version: this.my_version});
         },
     },
 };

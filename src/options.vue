@@ -24,8 +24,24 @@
 </template>
 
 <script>
+function syncprop(name) {
+    return {
+        get: function() { return this.sync[name]; },
+        set: function(v) { this.sync.set({[name]: v}); },
+    };
+}
+
+function localprop(name) {
+    return {
+        get: function() { return this.sync[name]; },
+        set: function(v) { this.sync.set({[name]: v}); },
+    };
+}
+
 export default {
-    // no props defined, since we expect everything to be passed in as data
+    computed: {
+        open_stash_in: syncprop('open_stash_in'),
+    },
 }
 </script>
 

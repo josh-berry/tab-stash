@@ -43,3 +43,4 @@ global.browser = {
 
 require('./util.test');
 require('./model.test');
+require('./stored-object.test');

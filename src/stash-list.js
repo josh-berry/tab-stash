@@ -8,7 +8,7 @@ import {rootFolder, isTabStashable} from './stash';
 import StashList from './stash-list.vue';
 
 import {StashState} from './model';
-import {Options} from './options-model';
+import Options from './options-model';
 
 
 
@@ -18,8 +18,8 @@ window.addEventListener('load', asyncEvent(async function() {
     let win_p = browser.windows.getCurrent();
     let curtab_p = browser.tabs.getCurrent();
     let extinfo_p = browser.management.getSelf();
-    let localopts_p = Options.make('local');
-    let syncopts_p = Options.make('sync');
+    let localopts_p = Options.get('local');
+    let syncopts_p = Options.get('sync');
 
     let [state, root, win, curtab, extinfo, localopts, syncopts] = [
         await state_p, await root_p, await win_p, await curtab_p,
