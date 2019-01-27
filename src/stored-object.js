@@ -27,15 +27,46 @@
 // And you can delete the stored object from the browser store entirely:
 //
 //     await obj.delete();
+//
+// As an extension, if you want to implement some validation or casting/munging
+// behavior, you can provide an array instead of a value for a particular
+// default.  For example, the following will ensure the value stored in 'num' is
+// always a number:
+//
+//     let obj = StoredObject.get('local', 'foo', {
+//         num: [0, (obj, key, value) => parseFloat(value)],
+//     };
+//     await obj.set({num: "15"});
+//     console.assert(obj.num === 15);
+//
+// Note that if you provide a casting function, that function will NOT be
+// returned from obj.defaults, which will continue to look like:
+//
+//     { num: 0 }
+//
+// The casting function you provide may throw an exception if validation fails.  If an exception is thrown from a casting function, 
 
 export default {get};
 
-async function get(store, key, defaults) {
+async function get(store, key, schema) {
     let res = LIVE_OBJECTS[store].get(key);
     if (res) return res;
 
+    let defaults = {};
+    let casts = {};
+
+    for (let k of Object.keys(schema)) {
+        let v = schema[k];
+        if (v instanceof Array) {
+            defaults[k] = v[0];
+            casts[k] = v[1];
+        } else {
+            defaults[k] = v;
+        }
+    }
+
     res = Object.assign(new StoredObject(), defaults);
-    let meta = {store, key, defaults};
+    let meta = {store, key, defaults, casts};
     META.set(res, meta);
 
     await _animate(res, meta);
@@ -70,12 +101,15 @@ class StoredObject {
                 continue;
             }
 
+            let v = values[k];
+            if (k in meta.casts) v = meta.casts[k](this, k, v);
+
             // If /values/ explicitly specifies that /k/ should be the default
             // value, omit it from the saved object entirely.
-            if (values[k] === meta.defaults[k]) continue;
+            if (v === meta.defaults[k]) continue;
 
             // Otherwise, store it.
-            data[k] = values[k];
+            data[k] = v;
         }
 
         return browser.storage[meta.store].set({[meta.key]: data});

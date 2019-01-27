@@ -16,7 +16,12 @@ const DEFAULTS = {
     sync: {
         // When the user clicks one of the "stash" buttons in the browser
         // toolbar, do we show the "sidebar", "tab", or "none" (of the above)?
-        open_stash_in: 'sidebar',
+        open_stash_in: ['sidebar', (obj, k, v) => {
+            if (! ['sidebar', 'tab', 'none'].includes(v)) {
+                throw `Invalid value for open_stash_in: ${v}`;
+            }
+            return v;
+        }],
     },
 
     local: {

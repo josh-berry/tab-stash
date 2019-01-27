@@ -400,5 +400,45 @@ describe('stored-object', function() {
             expect(await browser.storage.sync.get()).to.deep.equal({foo: {}});
             expect(o).to.deep.equal(DEFAULTS);
         });
+
+        it('casts properties if a cast function is defined', async function () {
+            let o = await StoredObject.get(
+                'sync', 'bar',
+                Object.assign({}, DEFAULTS, {
+                    a: [1, (obj, key, val) => val * 2],
+                }));
+
+            await o.set({a: 1});
+            await browser.storage.onChanged.drain(1);
+
+            expect(o.a).to.equal(2);
+        });
+
+        it('drops properties that have been cast to the default value',
+           async function () {
+               let o = await StoredObject.get(
+                   'sync', 'bar',
+                   Object.assign({}, DEFAULTS, {
+                       a: [1, (obj, key, val) => 1],
+                   }));
+
+               await o.set({a: 42});
+               await browser.storage.onChanged.drain(1);
+
+               expect(await browser.storage.sync.get('bar'))
+                   .to.deep.equal({bar: {}});
+               expect(o.a).to.equal(1);
+           });
+
+        it('does not include the casting function in returned defaults',
+           async function() {
+               let o = await StoredObject.get(
+                   'sync', 'bar',
+                   Object.assign({}, DEFAULTS, {
+                       a: [1, (obj, key, val) => 1],
+                   }));
+
+               expect(o.defaults).to.deep.equal(DEFAULTS);
+           });
     });
 });
