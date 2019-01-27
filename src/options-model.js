@@ -10,13 +10,6 @@ export const DEFAULTS = {
         // When the user clicks one of the "stash" buttons in the browser
         // toolbar, do we show the "sidebar", "tab", or "none" (of the above)?
         'open_stash_in': 'sidebar',
-
-        // Future/unimplemented options:
-        //
-        //'sidebar_close_on_restore_group': false,
-        //'sidebar_close_on_restore_one': false,
-        //'tab_close_on_restore_group': true,
-        //'tab_close_on_restore_one': true,
     },
 
     local: {

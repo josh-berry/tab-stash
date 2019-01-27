@@ -20,42 +20,6 @@
         </li>
       </ul>
     </div>
-
-    <!-- These preferences aren't implemented for now
-    <hr>
-
-    <div>
-      <div>Automatically close the stashed-tabs <b>sidebar</b> when:</div>
-      <ul>
-        <li>
-          <input type="checkbox" id="sidebar_close_on_restore_group"
-                 v-model="sidebar_close_on_restore_group">
-          <label for="sidebar_close_on_restore_group">Restoring a group of stashed tabs</label>
-        </li>
-        <li>
-          <input type="checkbox" id="sidebar_close_on_restore_one"
-                 v-model="sidebar_close_on_restore_one">
-          <label for="close_on_restore_group">Restoring a single stashed tab</label>
-        </li>
-      </ul>
-    </div>
-
-    <div>
-      <div>Automatically close the stashed-tabs <b>tab</b> when:</div>
-      <ul>
-        <li>
-          <input type="checkbox" id="tab_close_on_restore_group"
-                 v-model="tab_close_on_restore_group">
-          <label for="close_on_restore_group">Restoring a group of stashed tabs</label>
-        </li>
-        <li>
-          <input type="checkbox" id="tab_close_on_restore_one"
-                 v-model="tab_close_on_restore_one">
-          <label for="close_on_restore_group">Restoring a single stashed tab</label>
-        </li>
-      </ul>
-    </div>
-    -->
   </div>
 </template>
 
