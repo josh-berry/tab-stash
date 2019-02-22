@@ -36,11 +36,11 @@ aside.notification .contents {
     padding: 16px 16px 8px;
     text-align: center;
 }
-.status-text, .status-text a {
+.status-text, .status-text a, .whats-new .issue {
     color: #889099;
     font-style: italic;
 }
-.status-text a:hover {
+.status-text a:hover, .whats-new .issue:hover {
     color: #287acc;
     text-decoration: underline;
 }

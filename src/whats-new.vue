@@ -11,53 +11,53 @@
   <div class="folder-list">
 
     <Version v="2.2">
-      <Added>options to control whether tabs are hidden or closed when they are
-        stashed.</Added>
-      <Added>advanced options to adjust how aggressively Tab Stash unloads
-        hidden tabs that haven't been used recently.</Added>
-      <Improved subtext="I kept collapsing groups, forgetting they were collapsed, and then wondering where all my tabs went.  Now I know—they were lost at sea in the Disclosure Triangle.">
+      <L v="Added">options to control whether tabs are hidden or closed when
+        they are stashed.</L>
+      <L v="Added">advanced options to adjust how aggressively Tab Stash unloads
+        hidden tabs that haven't been used recently.</L>
+      <L subtext="I kept collapsing groups, forgetting they were collapsed, and then wondering where all my tabs went.  Now I know—they were lost at sea in the Disclosure Triangle." v="Improved">
         the styling of collapsed groups in the tab view, to make them
-        more visually-distinct from folders that are not collapsed.</Improved>
-      <Fixed>a conflict with keyboard shortcuts on Windows and Linux.  The new
-        keyboard shortcuts are as follows:</Fixed>
+        more visually-distinct from folders that are not collapsed.</L>
+      <L v="Fixed">a conflict with keyboard shortcuts on Windows and Linux.  The
+        new keyboard shortcuts are as follows:</L>
       <ul>
         <li>Show stashed tabs in sidebar: <em>Ctrl+Alt+S</em></li>
         <li>Stash all open tabs: <em>Ctrl+Alt+T</em></li>
         <li>Stash the active tab: <em>Ctrl+Alt+W</em></li>
       </ul>
-      <Fixed subtext="So narrow you couldn't park a motorcycle in it.">
+      <L subtext="So narrow you couldn't park a motorcycle in it." v="Fixed">
         an issue where the search box wouldn't fit inside the sidebar if the
-        sidebar was really narrow.</Fixed>
+        sidebar was really narrow.</L>
     </Version>
 
     <Version v="2.1">
-      <Added subtext="&quot;Users&quot; means you. Thank you for reading this. You are awesome.">
+      <L subtext="&quot;Users&quot; means you. Thank you for reading this. You are awesome." v="Added">
         a "What's New?" page and unobtrusive notification to let users know when
         new features are available.
-      </Added>
-      <Fixed>an issue where the sidebar may not open automatically when stashing
-        tabs.</Fixed>
-      <Fixed>an issue that prevents the list of unstashed tabs from updating
-        when a tab is torn off into a new window.</Fixed>
+      </L>
+      <L v="Fixed">an issue where the sidebar may not open automatically when
+        stashing tabs.</L>
+      <L v="Fixed">an issue that prevents the list of unstashed tabs from
+        updating when a tab is torn off into a new window.</L>
     </Version>
 
     <Version v="2.0">
-      <Added>a new "stashed tabs" tab which presents your stash in a
-        full-window, multi-column view.</Added>
-      <Added>a preference to choose whether to automatically open the
-        sidebar or the tab view when stashing tabs.</Added>
-      <Added>a search box. Search your stash by clicking on the "Search
-        ..." label at the top of the stash view.</Added>
-      <Added>keyboard shortcuts. Re-open stashed tabs and groups in the
-        background by Ctrl+ or Cmd+clicking the tab/folder.</Added>
-      <Improved>the aesthetics of the stashed-tabs view.</Improved>
-      <Fixed>stashing of pinned tabs if explicitly requested (by clicking a
-        "Stash This Tab" button).</Fixed>
+      <L v="Added">a new "stashed tabs" tab which presents your stash in a
+        full-window, multi-column view.</L>
+      <L v="Added">a preference to choose whether to automatically open the
+        sidebar or the tab view when stashing tabs.</L>
+      <L v="Added">a search box. Search your stash by clicking on the "Search
+        ..." label at the top of the stash view.</L>
+      <L v="Added">keyboard shortcuts. Re-open stashed tabs and groups in the
+        background by Ctrl+ or Cmd+clicking the tab/folder.</L>
+      <L v="Improved">the aesthetics of the stashed-tabs view.</L>
+      <L v="Fixed">stashing of pinned tabs if explicitly requested (by clicking
+        a "Stash This Tab" button).</L>
     </Version>
 
     <Version v="1.0">
-      <Fixed>various bugs, mostly pertaining to display or updating issues in
-        the "Stashed Tabs" sidebar.</Fixed>
+      <L v="Fixed">various bugs, mostly pertaining to display or updating issues
+        in the "Stashed Tabs" sidebar.</L>
     </Version>
 
     <Version v="0.9">
@@ -69,18 +69,12 @@
 
 <script>
 import Version from './whats-new/version.vue';
-import Added from './whats-new/added.vue';
-import Improved from './whats-new/improved.vue';
-import Fixed from './whats-new/fixed.vue';
-import Removed from './whats-new/removed.vue';
+import L from './whats-new/item.vue';
 
 export default {
     components: {
         Version,
-        Added,
-        Improved,
-        Fixed,
-        Removed,
+        L,
     },
 }
 </script>
