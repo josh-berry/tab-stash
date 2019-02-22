@@ -10,6 +10,11 @@
 
   <div class="folder-list">
 
+    <Version v="NEXT">
+      <L issue="4" v="Fixed">an issue where the option to close instead of hide
+        stashed tabs wasn't being respected.</L>
+    </Version>
+
     <Version v="2.2">
       <L v="Added">options to control whether tabs are hidden or closed when
         they are stashed.</L>
