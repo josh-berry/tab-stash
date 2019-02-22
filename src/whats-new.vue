@@ -11,8 +11,19 @@
   <div class="folder-list">
 
     <Version v="NEXT">
-      <L issue="4" v="Fixed">an issue where the option to close instead of hide
-        stashed tabs wasn't being respected.</L>
+      <L subtext="Fun fact: This bug was caused by a single-letter typo."
+         v="Fixed">an issue preventing Tab Stash from closing hidden tabs
+        associated with bookmarks that were deleted from the stash.</L>
+      <L subtext="Fun fact: This bug was caused by the SAME single-letter typo."
+         v="Fixed">an issue preventing Tab Stash from unloading old hidden tabs
+        correctly.</L>
+      <L subtext="Yep... this one too. (If you really want to know, a 'T' was capitalized when it should have been lowercase.)"
+         v="Fixed">an issue preventing Tab Stash from automatically deleting
+        empty folders in the stash.</L>
+      <L issue="4"
+         subtext="This bug was caused by a whole WORD being wrong."
+         v="Fixed">an issue where the option to close instead of hide stashed
+        tabs wasn't being respected.</L>
     </Version>
 
     <Version v="2.2">

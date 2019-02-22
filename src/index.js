@@ -192,7 +192,7 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
     // Next, setup the garbage collector -- we collect empty, unnamed folders in
     // the stash, as well as hidden tabs that are pointing to URLs that are
     // removed from the stash.  This is driven by browser bookmark events.
-    let t = await TabStashTree();
+    let t = await tabStashTree();
     let managed_urls = new Set(urlsInTree(t));
     const close_removed_bookmarks = nonReentrant(async function() {
         let tree = await tabStashTree();
