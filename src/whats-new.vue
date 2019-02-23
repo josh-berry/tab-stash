@@ -10,21 +10,23 @@
 
   <div class="folder-list">
 
-    <Version v="NEXT">
+    <Version v="2.2.1">
       <L subtext="Fun fact: This bug was caused by a single-letter typo."
          v="Fixed">an issue preventing Tab Stash from closing hidden tabs
         associated with bookmarks that were deleted from the stash.</L>
       <L subtext="Fun fact: This bug was caused by the SAME single-letter typo."
          v="Fixed">an issue preventing Tab Stash from unloading old hidden tabs
         correctly.</L>
-      <L subtext="Yep... this one too. (If you really want to know, a 'T' was capitalized when it should have been lowercase.)"
+      <L :subtext="`Yep... this one too. (If you really want to know, a 'T' `
+                   + `was capitalized when it should have been lowercase.)`"
          v="Fixed">an issue preventing Tab Stash from automatically deleting
         empty folders in the stash.</L>
       <L :issue="4"
          subtext="This bug was caused by a whole WORD being wrong."
          v="Fixed">an issue where the option to close instead of hide stashed
         tabs wasn't being respected.</L>
-      <L v="Fixed">an issue that in some cases would cause the stash list to
+      <L subtext="(Imagine the chaos if it had been an entire line of code.)"
+        v="Fixed">an issue that in some cases would cause the stash list to
         become unresponsive after restoring a tab that was recently closed.</L>
     </Version>
 
