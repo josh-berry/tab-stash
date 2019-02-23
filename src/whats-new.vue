@@ -24,6 +24,8 @@
          subtext="This bug was caused by a whole WORD being wrong."
          v="Fixed">an issue where the option to close instead of hide stashed
         tabs wasn't being respected.</L>
+      <L v="Fixed">an issue that in some cases would cause the stash list to
+        become unresponsive after restoring a tab that was recently closed.</L>
     </Version>
 
     <Version v="2.2">

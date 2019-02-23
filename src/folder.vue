@@ -61,7 +61,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   <div class="contents">
     <draggable :options="{group: 'tab'}" ref="drag" class="panel-section-list"
                @add="move" @update="move">
-      <tab v-for="item of children" v-if="item.url"
+      <tab v-for="item of children" v-if="item && item.url"
            :key="item.id" v-bind="item"
            :class="{hidden: (filter && ! filter(item))
                          || (userFilter && ! userFilter(item)),
