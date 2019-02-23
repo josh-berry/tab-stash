@@ -20,7 +20,7 @@
       <L subtext="Yep... this one too. (If you really want to know, a 'T' was capitalized when it should have been lowercase.)"
          v="Fixed">an issue preventing Tab Stash from automatically deleting
         empty folders in the stash.</L>
-      <L issue="4"
+      <L :issue="4"
          subtext="This bug was caused by a whole WORD being wrong."
          v="Fixed">an issue where the option to close instead of hide stashed
         tabs wasn't being respected.</L>
