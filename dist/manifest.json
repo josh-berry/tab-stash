@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Tab Stash",
-    "version": "2.2.1",
+    "version": "2.2.1.2222",
     "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
     "homepage_url": "https://github.com/josh-berry/tab-stash",
     "icons": {
