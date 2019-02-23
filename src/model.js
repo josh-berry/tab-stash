@@ -188,7 +188,7 @@ export class StashState {
         if (i.children) {
             let children = i.children;
             i.children = [];
-            for (let c of children) this.bm_removed(c.id);
+            for (let c of children) if (c) this.bm_removed(c.id);
         }
 
         // And finally, remove ourselves from the database.
@@ -202,6 +202,7 @@ export class StashState {
         this.wins_by_id.set(win.id, i);
         if (win.tabs) {
             i.children = win.tabs.map((t, idx) => {
+                if (! t) return undefined;
                 let tab = this._update_tab({
                     id: t.id,
                     title: t.title,
@@ -224,7 +225,7 @@ export class StashState {
 
         let tabs = i.children;
         i.children = [];
-        for (let t of tabs) this.tab_removed(t.id);
+        for (let t of tabs) if (t) this.tab_removed(t.id);
         this.wins_by_id.delete(winid);
     }
 
@@ -279,6 +280,7 @@ export class StashState {
 
             if (bm.children) {
                 i.children = bm.children.map((c, idx) => {
+                    if (! c) return undefined;
                     let child = this._update_bm({
                         id: c.id,
                         title: c.title,

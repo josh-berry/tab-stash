@@ -70,6 +70,7 @@ describe('model', function() {
             if (bm.children) {
                 for (let i = 0; i < bm.children.length; ++i) {
                     const c = bm.children[i];
+                    if (c === undefined) continue;
                     expect(c.parent, `${c.id}'s parent to be ${bm.id}`)
                         .to.equal(bm);
                     expect(c.index, `${c.id} to have index ${i}`).to.equal(i);
@@ -116,6 +117,7 @@ describe('model', function() {
 
             for (let i = 0; i < w.children.length; ++i) {
                 const c = w.children[i];
+                if (c === undefined) continue;
                 expect(c.parent, `tab ${c.id} has win ${w.id} as its parent`)
                     .to.equal(w);
                 expect(c.index, `tab ${c.id} is at index ${i}`).to.equal(i);
@@ -181,6 +183,9 @@ describe('model', function() {
                            title: 'D2D', url: 'url://d2d'},
                           {id: 'dup1', type: 'bookmark', dateAdded: 0,
                            title: 'Dup1', url: 'url://dup1'},
+                          undefined,
+                          {id: 'd2e', type: 'bookmark', dateAdded: 0,
+                           title: 'D2E', url: 'url://d2e'},
                       ]},
                  ]},
                 {id: 'dup1-1', type: 'bookmark', dateAdded: 0,
@@ -213,6 +218,10 @@ describe('model', function() {
                  {id: 7, title: 'Hidden', url: 'url://2',
                   favIconUrl: 'favicon://foo',
                   hidden: true, active: false, pinned: false},
+                 undefined,
+                 {id: 9, title: 'Sparse', url: 'url://sparse',
+                  favIconUrl: 'favicon://sparse',
+                  hidden: false, active: false, pinned: false},
              ]},
         ]);
     }
