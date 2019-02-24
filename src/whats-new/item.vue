@@ -8,7 +8,7 @@
 </li>
 </template>
 
-<script>
+<script lang="ts">
 export default {
     props: {
         v: String, // v is for "verb"

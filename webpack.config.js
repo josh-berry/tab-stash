@@ -6,7 +6,7 @@ module.exports = {
         "index": "./src/index.js",
         "stash-list": "./src/stash-list.js",
         "options": "./src/options.ts",
-        "whats-new": "./src/whats-new.js",
+        "whats-new": "./src/whats-new.ts",
         "test": "./src/test.ts",
     },
     mode: "development",
@@ -26,6 +26,9 @@ module.exports = {
     resolve: {
         modules: [path.resolve(__dirname, 'src'), 'node_modules'],
         extensions: ['.ts', '.js', '.vue', '.json'],
+        alias: {
+            'vue$': 'vue/dist/vue.runtime.esm'
+        },
     },
     plugins: [
         new VueLoaderPlugin(),

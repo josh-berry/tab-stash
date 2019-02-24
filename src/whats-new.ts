@@ -1,6 +1,6 @@
 "use strict";
 
-import Vue from 'vue/dist/vue.runtime.esm';
+import Vue from 'vue';
 
 import WhatsNew from "./whats-new.vue";
 import Options from "./options-model";
@@ -13,16 +13,20 @@ import Options from "./options-model";
     let extinfo = await browser.management.getSelf();
     let localopts = await Options.local();
 
-    window.the_last_notified_version = localopts.last_notified_version;
+    let lnv: string | undefined;
 
     if (localopts.last_notified_version == extinfo.version) {
         // Show everything
-        window.the_last_notified_version = undefined;
+        lnv = undefined;
     } else {
-        window.the_last_notified_version = localopts.last_notified_version;
+        lnv = localopts.last_notified_version;
         localopts.set({last_notified_version: extinfo.version});
     }
 
-    const vue = new (Vue.extend(WhatsNew))();
+    const vue = new (Vue.extend(WhatsNew))({
+        provide: () => ({
+            the_last_notified_version: lnv,
+        }),
+    });
     vue.$mount('#app');
 })();

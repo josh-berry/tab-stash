@@ -8,7 +8,7 @@
   </nav>
 </template>
 
-<script>
+<script lang="ts">
 export default {
     props: {classes: Object},
     //data: () => ({}),

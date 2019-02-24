@@ -17,6 +17,23 @@ export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
 
+export function cmpVersions(a: string, b: string): number {
+    let va: number[] = a.split('.').map((x: string) => parseInt(x));
+    let vb: number[] = b.split('.').map((x: string) => parseInt(x));
+    let i = 0;
+    let cmplen = Math.min(va.length, vb.length);
+
+    for (i = 0; i < cmplen; ++i) {
+        if (va[i] != vb[i]) return va[i] - vb[i];
+    }
+
+    // Check for trailing .0.0.0... (e.g. 1.0 == 1.0.0)
+    let tail = va.length > vb.length ? va : vb;
+    if (tail.slice(cmplen).every(x => x == 0)) return 0;
+
+    return va.length - vb.length;
+}
+
 export function urlsInTree(
     bm_tree: browser.bookmarks.BookmarkTreeNode
 ): string[] {

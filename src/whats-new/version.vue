@@ -18,19 +18,20 @@
   </section>
 </template>
 
-<script>
+<script lang="ts">
 import ButtonBox from '../button-box.vue';
+import {cmpVersions} from '../util';
 
 export default {
     components: {ButtonBox},
     props: {v: String},
+    inject: ['the_last_notified_version'],
     data: () => ({collapsed: undefined}),
     computed: {
-        is_collapsed: function() {
+        is_collapsed: function(this: any): boolean {
             if (this.collapsed !== undefined) return this.collapsed;
-            return the_last_notified_version !== undefined
-                && this.v.split(".").map(x => x|0)
-                 <= the_last_notified_version.split(".").map(x => x|0);
+            return this.the_last_notified_version !== undefined
+                && cmpVersions(this.v, this.the_last_notified_version) <= 0;
         },
     },
 }

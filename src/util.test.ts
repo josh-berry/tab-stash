@@ -2,6 +2,31 @@ import {expect} from 'chai';
 import * as M from './util';
 
 describe('util', function() {
+    describe('cmpVersions()', callSuite(M.cmpVersions, [
+        {it: "handles equal versions",
+         i: ["1.0", "1.0"], o: 0},
+        {it: "handles equal versions (but one is longer than the other)",
+         i: ["1.0", "1.0.0"], o: 0},
+        {it: "handles equal versions (but one is much longer than the other)",
+         i: ["1.0", "1.0.0.0.0"], o: 0},
+        {it: "handles a < b (major)",
+         i: ["1.0", "2.0"], o: -1},
+        {it: "handles a > b (major)",
+         i: ["2.0", "1.0"], o: 1},
+        {it: "handles a < b (minor)",
+         i: ["1.0", "1.1"], o: -1},
+        {it: "handles a > b (minor)",
+         i: ["1.1", "1.0"], o: 1},
+        {it: "handles a < b (major/minor)",
+         i: ["1.3", "2.0"], o: -1},
+        {it: "handles a > b (major/minor)",
+         i: ["2.0", "1.3"], o: 1},
+        {it: "handles a < b (major/minor, differing lengths)",
+         i: ["1.3.3", "2.0"], o: -1},
+        {it: "handles a > b (major/minor, differing lengths)",
+         i: ["2.0", "1.3.3"], o: 1},
+    ]));
+
     describe('urlsInTree()', callSuite(M.urlsInTree, [
         {
             it: "doesn't crash when provided with no nodes",

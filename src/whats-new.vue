@@ -96,7 +96,7 @@
 </div>
 </template>
 
-<script>
+<script lang="ts">
 import Version from './whats-new/version.vue';
 import L from './whats-new/item.vue';
 
