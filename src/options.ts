@@ -1,6 +1,4 @@
-"use strict";
-
-import Vue from 'vue/dist/vue.runtime.esm';
+import Vue from 'vue';
 
 import {asyncEvent} from './util';
 import OptionsView from './options.vue';
@@ -12,8 +10,4 @@ window.addEventListener('load', asyncEvent(async function() {
     const vue = new (Vue.extend(OptionsView))({data: {sync, local}});
 
     vue.$mount('#vue');
-
-    window.sync = sync;
-    window.local = local;
-    window.vue = vue;
 }));

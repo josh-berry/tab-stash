@@ -113,32 +113,29 @@
 </div>
 </template>
 
-<script>
+<script lang="ts">
 import Options from './options-model';
 
-const syncprop = name => ({
-    get: function() { return this.sync[name]; },
-    set: function(v) { this.sync.set({[name]: v}).catch(console.log); },
+const prop = (area: string, name: string) => ({
+    get: function(this: any) { return this[area][name]; },
+    set: function(this: any, v: any) {
+        this[area].set({[name]: v}).catch(console.log);
+    },
 });
 
-const localprop = name => ({
-    get: function() { return this.local[name]; },
-    set: function(v) { this.local.set({[name]: v}).catch(console.log); },
-});
-
-function options(defaults) {
-    let ret = {};
-    for (let k of Object.keys(defaults.local)) {
-        ret[k] = localprop(k);
+function options() {
+    let ret: any = {};
+    for (let k of Object.keys(Options.LOCAL_DEFAULTS)) {
+        ret[k] = prop('local', k);
     }
-    for (let k of Object.keys(defaults.sync)) {
-        ret[k] = syncprop(k);
+    for (let k of Object.keys(Options.SYNC_DEFAULTS)) {
+        ret[k] = prop('sync', k);
     }
     return ret;
 }
 
 export default {
-    computed: options(Options.DEFAULTS),
+    computed: options(),
 }
 </script>
 
