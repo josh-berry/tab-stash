@@ -3,7 +3,7 @@
 import Vue from 'vue/dist/vue.runtime.esm';
 
 import {nonReentrant, asyncEvent} from './util';
-import {rootFolder, isTabStashable} from './stash';
+import {rootFolder} from './stash';
 
 import StashList from './stash-list.vue';
 

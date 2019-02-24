@@ -52,7 +52,7 @@
 </template>
 
 <script>
-import {isTabStashable} from './stash';
+import {isURLStashable} from './stash';
 import {isInFolder} from './model';
 
 import FolderList from './folder-list.vue';
@@ -119,7 +119,7 @@ export default {
 
         unstashedFilter(t) {
             return ! t.hidden && ! t.pinned
-                && isTabStashable(t) && ! this.isItemStashed(t);
+                && isURLStashable(t.url) && ! this.isItemStashed(t);
         },
 
         isItemStashed(i) {

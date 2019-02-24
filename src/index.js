@@ -106,6 +106,7 @@ const commands = {
 
         let tabs = await browser.tabs.query(
             {currentWindow: true, hidden: false, pinned: false});
+        tabs.sort((a, b) => a.index - b.index);
         await stashTabs(undefined, tabs);
     },
 
@@ -121,8 +122,11 @@ const commands = {
 
     copy_all: async function() {
         show_stash_if_desired().catch(console.log);
-        await bookmarkTabs(undefined, await browser.tabs.query(
-            {currentWindow: true, hidden: false, pinned: false}));
+        await bookmarkTabs(
+            undefined,
+            (await browser.tabs.query(
+                    {currentWindow: true, hidden: false, pinned: false}))
+                .sort((a, b) => a.index - b.index));
     },
 
     copy_one: async function(tab) {

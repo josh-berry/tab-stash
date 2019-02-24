@@ -81,7 +81,6 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
-    isTabStashable,
     stashTabs, bookmarkTabs, restoreTabs, closeTabs, hideStashedTabs,
     refocusAwayFromTabs,
 } from 'stash';
@@ -162,8 +161,9 @@ export default {
 
         stash: asyncEvent(async function(ev) {
             let tabs = this.id
-                ? await browser.tabs.query(
-                    {currentWindow: true, hidden: false, pinned: false})
+                ? (await browser.tabs.query(
+                        {currentWindow: true, hidden: false, pinned: false}))
+                    .sort((a, b) => a.index - b.index)
                 : this.visibleChildren;
 
             if (ev.altKey) {
@@ -177,8 +177,9 @@ export default {
             // Stashing the front tab to the unstashed-tabs group doesn't make
             // sense
             console.assert(this.id);
-            let tabs = await browser.tabs.query(
-                {currentWindow: true, hidden: false, active: true});
+            let tabs = (await browser.tabs.query(
+                    {currentWindow: true, hidden: false, active: true}))
+                .sort((a, b) => a.index - b.index);
 
             if (ev.altKey) {
                 await bookmarkTabs(this.id, tabs);

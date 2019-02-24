@@ -1,14 +1,23 @@
-"use strict";
-
 import Options from './options-model';
 
 export const STASH_FOLDER = 'Tab Stash';
 
-export function getFolderNameISODate(n) {
+// Interface used in place of browser.tabs.Tab, defining only the fields we care
+// about for the purposes of stashing and restoring tabs.  Using this interface
+// makes the API more permissive, because we can also take model objects in
+// addition to official browser objects.
+interface PartialTabInfo {
+    id: number,
+    title?: string,
+    url?: string,
+}
+
+export function getFolderNameISODate(n: string): string | null {
     let m = n.match(/saved-([-0-9:.T]+Z)/);
     return m ? m[1] : null;
 }
-export const genDefaultFolderName = (date) => 'saved-' + date.toISOString();
+export const genDefaultFolderName =
+    (date: Date) => 'saved-' + date.toISOString();
 
 
 
@@ -35,7 +44,7 @@ export async function mostRecentUnnamedFolderId() {
     return undefined;
 }
 
-export function isTabStashable(tab) {
+export function isURLStashable(urlstr: string): boolean {
     // NOTE: We don't actually check this here because it is filtered by our
     //callers; if we see a tab that is pinned at this point, we can safely
     //assume the user explicitly asked for it to be stashed.
@@ -43,7 +52,7 @@ export function isTabStashable(tab) {
     // if (tab.pinned) return false;
 
     try {
-        let url = new URL(tab.url);
+        let url = new URL(urlstr);
         switch (url.protocol) {
         case 'moz-extension:':
         case 'about:':
@@ -51,14 +60,17 @@ export function isTabStashable(tab) {
             return false;
         }
     } catch (e) {
-        console.warn('Tab with unparseable URL:', tab, tab.url);
+        console.warn('Tab with unparseable URL:', urlstr);
         return false;
     }
 
     return true;
 }
 
-export async function stashTabs(folder_id, tabs) {
+export async function stashTabs(
+    folder_id: string | undefined,
+    tabs: PartialTabInfo[]
+) : Promise<void> {
     // BIG WARNING: This function assumes that all passed-in tabs are in the
     // current window.  It WILL DO WEIRD THINGS if that's not the case.
 
@@ -68,13 +80,13 @@ export async function stashTabs(folder_id, tabs) {
 }
 
 // Hides tabs that we know are stashed.
-export async function hideStashedTabs(tabs) {
+export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
     let opts_p = Options.local();
 
     await refocusAwayFromTabs(tabs);
     const opts = await opts_p;
 
-    const tids = tabs.map(t => t.id);
+    const tids = tabs.map(t => t.id!);
 
     switch (opts.after_stashing_tab) {
     case 'hide_discard':
@@ -91,18 +103,20 @@ export async function hideStashedTabs(tabs) {
     }
 }
 
-export async function closeTabs(tabs) {
+export async function closeTabs(tabs: PartialTabInfo[]): Promise<void> {
     await refocusAwayFromTabs(tabs);
-    await browser.tabs.remove(tabs.map(t => t.id));
+    await browser.tabs.remove(tabs.map(t => t.id!));
 }
 
-export async function refocusAwayFromTabs(tabs) {
-    let all_tabs = await browser.tabs.query(
+export async function refocusAwayFromTabs(
+    tabs: PartialTabInfo[]
+): Promise<void> {
+    const all_tabs = await browser.tabs.query(
         {currentWindow: true, hidden: false});
 
-    let front_tab_idx = all_tabs.findIndex(t => t.active);
-    let front_tab = front_tab_idx == -1 ? undefined : all_tabs[front_tab_idx];
-    if (! tabs.find(t => t.id === front_tab.id)) {
+    const front_tab_idx = all_tabs.findIndex(t => t.active);
+    const front_tab = front_tab_idx == -1 ? undefined : all_tabs[front_tab_idx];
+    if (front_tab && ! tabs.find(t => t.id === front_tab.id)) {
         // We are not closing the active tab.  Nothing to do.
         //
         // NOTE: If front_tab is undefined at this point, it's likely because
@@ -130,9 +144,8 @@ export async function refocusAwayFromTabs(tabs) {
         let focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
         if (! focus_tab) {
             candidates = all_tabs.slice(0, front_tab_idx).reverse();
-            focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
+            focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id))!;
         }
-        console.assert(focus_tab);
 
         await browser.tabs.update(focus_tab.id, {active: true});
     }
@@ -141,25 +154,30 @@ export async function refocusAwayFromTabs(tabs) {
 // Determine if the specified tab has anything "useful" in it (where "useful" is
 // defined as neither the new-tab page nor the user's home page).  Returns the
 // tab itself if not, otherwise returns undefined.
-export async function isNewTab(tab) {
+export async function isNewTabURL(url: string): Promise<boolean> {
     let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
     let home_url_p = browser.browserSettings.newTabPageOverride.get({});
     let newtab_url = (await newtab_url_p).value;
     let home_url = (await home_url_p).value;
 
-    if (tab.url === newtab_url) return tab;
-    if (tab.url === home_url) return tab;
-    if (tab.url === 'about:blank') return tab;
-    if (tab.url === 'about:newtab') return tab;
-    return undefined;
+    switch (url) {
+        case newtab_url:
+        case home_url:
+        case 'about:blank':
+        case 'about:newtab':
+            return true;
+        default:
+            return false;
+    }
 }
 
-export async function bookmarkTabs(folderId, all_tabs) {
-    // First figure out which of the tabs to save, and make sure they are sorted
-    // by their actual position in the tab bar.  We ignore tabs with unparseable
+export async function bookmarkTabs(
+    folderId: string | undefined,
+    all_tabs: PartialTabInfo[]
+): Promise<PartialTabInfo[]> {
+    // Figure out which of the tabs to save.  We ignore tabs with unparseable
     // URLs or which look like extensions and internal browser things.
-    let tabs = all_tabs.filter(isTabStashable);
-    tabs.sort((a, b) => a.index - b.index);
+    let tabs = all_tabs.filter(t => t.url && isURLStashable(t.url));
 
     // If there are no tabs to save, early-exit here so we don't unnecessarily
     // create bookmark folders we don't need.
@@ -217,7 +235,7 @@ export async function bookmarkTabs(folderId, all_tabs) {
     // fill them in with the right values (again in parallel).
     let ps = [];
     let created_bm_ids = new Set();
-    for (let tab of tabs_to_actually_save) {
+    for (let _tab of tabs_to_actually_save) {
         ps.push(browser.bookmarks.create({
             parentId: folderId,
             title: 'Stashing...',
@@ -231,7 +249,7 @@ export async function bookmarkTabs(folderId, all_tabs) {
 
     // We now read the folder back to determine the order of the created
     // bookmarks, so we can fill each of them in in the correct order.
-    let child_bms = (await browser.bookmarks.getSubTree(folderId))[0].children;
+    let child_bms = (await browser.bookmarks.getSubTree(folderId))[0].children!;
 
     // Now fill everything in.
     let tab_index = 0;
@@ -239,8 +257,8 @@ export async function bookmarkTabs(folderId, all_tabs) {
         if (! created_bm_ids.has(bm.id)) continue;
         created_bm_ids.delete(bm.id);
         ps.push(browser.bookmarks.update(bm.id, {
-            title: tabs_to_actually_save[tab_index].title,
-            url: tabs_to_actually_save[tab_index].url,
+            title: tabs_to_actually_save[tab_index].title!,
+            url: tabs_to_actually_save[tab_index].url!,
         }));
         ++tab_index;
     }
@@ -259,21 +277,26 @@ export async function bookmarkTabs(folderId, all_tabs) {
     // duplicates if the user decides to rename a named folder to have a
     // default/temporary name once again).
     gcDuplicateBookmarks(root.id, new Set([folderId]),
-                         new Set(tabs.map(t => t.url))).catch(console.log);
+                         // t.url! in the lambda below is okay because we filter
+                         // out tabs with no URLs near the beginning of the
+                         // function.
+                         new Set(tabs.map(t => t.url!))).catch(console.log);
 
     return tabs;
 }
 
 export async function gcDuplicateBookmarks(
-    root_id, ignore_folder_ids, urls_to_check)
-{
-    let folders = (await browser.bookmarks.getSubTree(root_id))[0].children;
+    root_id: string,
+    ignore_folder_ids: Set<string>,
+    urls_to_check: Set<string>
+): Promise<void> {
+    let folders = (await browser.bookmarks.getSubTree(root_id))[0].children!;
 
     // We want to preserve/ignore duplicates in folders which are ignored
     // (/ignored_folder_ids/), and folders which were explicitly-named by the
     // user (i.e. folders which do not have a "default" name of the date/time at
     // which they were created).  These are "preserved folders".
-    let should_preserve_folder = f =>
+    let should_preserve_folder = (f: browser.bookmarks.BookmarkTreeNode) =>
         (ignore_folder_ids && ignore_folder_ids.has(f.id))
         || ! getFolderNameISODate(f.title);
 
@@ -334,7 +357,10 @@ export async function gcDuplicateBookmarks(
     for (let p of ps) try {await p} catch(e) {console.log(e)};
 }
 
-export async function restoreTabs(urls, options) {
+export async function restoreTabs(
+    urls: string[],
+    options: {background?: boolean}
+): Promise<browser.tabs.Tab[]> {
     // Remove duplicate URLs so we only try to restore each URL once.
     urls = Array.from(new Set(urls));
 
@@ -343,20 +369,21 @@ export async function restoreTabs(urls, options) {
 
     // We also want to know what tabs were recently closed, so we can
     // restore/un-hide tabs as appropriate.
-    let closed_tabs_p = browser.sessions.getRecentlyClosed();
+    const closed_tabs_p = browser.sessions.getRecentlyClosed();
 
     // We also need to know which window to restore tabs to, and what tabs are
     // presently open in that window.
-    let win_p = browser.windows.getCurrent({populate: true});
+    const win_p = browser.windows.getCurrent({populate: true});
 
-    let closed_tabs = await closed_tabs_p;
-    let win = await win_p;
+    const closed_tabs = await closed_tabs_p;
+    const win = await win_p;
+    const wintabs = win.tabs!;
 
     // We want to know which tab the user is currently looking at so we can
     // close it if it's just the new-tab page, and because if we restore any
     // closed tabs, the browser will re-focus (and we may want to shift the
     // focus back if we've been asked to restore in the background).
-    let curtab = win.tabs.filter(t => t.active)[0];
+    const curtab = wintabs.filter(t => t.active)[0];
 
     // We can restore a tab in one of four(!) ways:
     //
@@ -366,32 +393,35 @@ export async function restoreTabs(urls, options) {
     // 4. Open a new tab.
     //
     // Let's figure out which strategy to use for each tab, and kick it off.
-    let ps = [];
-    let index = win.tabs.length;
-    for (let url of urls) {
-        let open = win.tabs.find(tab => (tab.url === url));
+    let ps: Promise<browser.tabs.Tab>[] = [];
+    let index = wintabs.length;
+    for (const url of urls) {
+        const open = wintabs.find(tab => (tab.url === url));
         if (open) {
             // Tab is already open.  If it was hidden, un-hide it and move it to
             // the right location in the tab bar.
             if (open.hidden) {
-                ps.push(browser.tabs.show([open.id])
-                        .then(() => browser.tabs.move(
-                            open.id, {windowId: win.id, index}))
-                        .then(() => open));
+                ps.push(async function(open) {
+                    await browser.tabs.show([open.id!]);
+                    await browser.tabs.move(
+                        open.id!, {windowId: win.id, index});
+                    return open;
+                }(open));
                 ++index;
             }
             continue;
         }
 
-        let closed = closed_tabs.find(
+        const closed = closed_tabs.find(
             sess => (sess.tab && sess.tab.url === url));
         if (closed) {
             // Tab was recently-closed.  Re-open it, and move it to the right
             // location in the tab bar.
-            ps.push(browser.sessions.restore(closed.tab.sessionId)
-                    .then(sess => browser.tabs.move(
-                        sess.tab.id, {windowId: win.id, index})
-                          .then(() => sess.tab)));
+            ps.push(async function(closed) {
+                let s = await browser.sessions.restore(closed.tab.sessionId!);
+                await browser.tabs.move(s.tab.id!, {windowId: win.id, index});
+                return s.tab;
+            }(closed));
             ++index;
             continue;
         }
@@ -403,14 +433,14 @@ export async function restoreTabs(urls, options) {
 
     // NOTE: Can't do this with .map() since await doesn't work in a nested
     // function context. :/
-    let tabs = [];
+    let tabs: browser.tabs.Tab[] = [];
     for (let p of ps) tabs.push(await p);
 
     if (! options || ! options.background) {
         // Special case: If we were asked to open only one tab AND that tab is
         // already open, just switch to it.
         if (urls.length == 1 && tabs.length == 0) {
-            await browser.tabs.update(win.tabs.find(t => t.url === urls[0]).id,
+            await browser.tabs.update(wintabs.find(t => t.url === urls[0])!.id,
                                       {active: true});
         }
 
@@ -418,26 +448,25 @@ export async function restoreTabs(urls, options) {
         // different from the special case above, in which NO tabs are
         // restored.)
         if (tabs.length == 1) {
-            let tab = tabs[0];
+            const tab = tabs[0];
             // It's actually a Session, but instanceof doesn't work here because
             // Session isn't a constructor (you can't create your own, you can
             // only get them from the browser).  So we have to do some true
             // duck-typing.
-            await browser.tabs.update(tab.id, {active: true});
+            await browser.tabs.update(tab.id!, {active: true});
         }
 
         // Finally, if we opened at least one tab, AND the current tab is
         // looking at the new-tab page, close the current tab in the background.
-        const tab_to_close = await isNewTab(curtab);
-        if (tabs.length > 0 && tab_to_close) {
-            browser.tabs.remove([tab_to_close.id]).catch(console.log);
+        if (tabs.length > 0 && await isNewTabURL(curtab.url!)) {
+            browser.tabs.remove([curtab.id!]).catch(console.log);
         }
 
     } else {
         // Caller has indicated they don't want the tab focus disturbed.
         // Unfortunately, if we restored any sessions, that WILL disturb the
         // focus, so we need to re-focus on the previously-active tab.
-        await browser.tabs.update(curtab.id, {active: true});
+        await browser.tabs.update(curtab.id!, {active: true});
     }
 
     return tabs;
