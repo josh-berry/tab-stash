@@ -1,3 +1,5 @@
+import {expect} from 'chai';
+
 //
 // Mocks
 //

@@ -1,3 +1,4 @@
+import {expect} from 'chai';
 import * as M from './util';
 
 describe('util', function() {
@@ -79,10 +80,10 @@ describe('util', function() {
     describe('nonReentrant()', function() {
         let callCount = 0;
         let activeCalls = 0;
-        let promise = undefined;
-        let res = undefined;
-        let f;
-        let next;
+        let promise: Promise<any> | undefined;
+        let res: () => void | undefined;
+        let f: () => Promise<any> | undefined;
+        let next: () => void | undefined;
 
         beforeEach(function() {
             f = M.nonReentrant(async function() {
@@ -228,7 +229,7 @@ describe('util', function() {
             const ain = 42;
             const bin = {a: 'b'};
 
-            const fn = function(a, b) {
+            const fn = function(a: any, b: any) {
                 ++count;
                 expect(a).to.equal(ain);
                 expect(b).to.equal(bin);
@@ -246,7 +247,7 @@ describe('util', function() {
             const ain = 42;
             const bin = {a: 'b'};
 
-            const fn = function(a, b) {
+            const fn = function(a: any, b: any) {
                 ++count;
                 expect(a).to.equal(ain);
                 expect(b).to.equal(bin);

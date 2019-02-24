@@ -10,17 +10,18 @@
 let PLATFORM_INFO = {
     'os': 'unknown',
     'arch': 'unknown',
-    'nacl_arch': 'unknown',
 };
 browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
 export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
 
-export const bgKeyPressed = ev =>
+export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
 
-export function urlsInTree(bm_tree) {
-    let urls = [];
-    function collect(bm) {
+export function urlsInTree(
+    bm_tree: browser.bookmarks.BookmarkTreeNode
+): string[] {
+    let urls: string[] = [];
+    function collect(bm: browser.bookmarks.BookmarkTreeNode) {
         if (bm.children) {
             for (let c of bm.children) collect(c);
         } else if (bm.url) {
@@ -31,10 +32,15 @@ export function urlsInTree(bm_tree) {
     return urls;
 }
 
-export function asyncEvent(async_fn) {
-    return function() {
-        async_fn.apply(this, arguments).catch(console.log);
-    };
+export function asyncEvent<
+    U,
+    T extends (this: U, ...args: any[]) => Promise<any>
+>(
+    async_fn: T
+): T {
+    return function(this: U, ...args: any[]): Promise<any> {
+        return async_fn.apply(this, args).catch(console.log);
+    } as T;
 }
 
 // Returns a function which, when called, arranges to call the async function
@@ -49,19 +55,19 @@ export function asyncEvent(async_fn) {
 //
 // Since this is ostensibly a background task, exceptions which bubble out of
 // the function are caught and logged to the console.
-export function nonReentrant(fn) {
-    let running = null;
-    let next = null;
-    let resolve_next = null;
+export function nonReentrant(fn: () => Promise<any>): () => Promise<void> {
+    let running: Promise<any> | undefined;
+    let next: Promise<any> | undefined;
+    let resolve_next: (() => void) | undefined;
 
     const inner = () => {
         if (! running) {
             running = fn().finally(() => {
-                running = null;
+                running = undefined;
                 if (next) {
                     let rn = resolve_next;
-                    next = null;
-                    resolve_next = null;
+                    next = undefined;
+                    resolve_next = undefined;
                     inner().finally(rn);
                 }
             }).catch(console.log);
@@ -95,11 +101,9 @@ export function nonReentrant(fn) {
 // and not delivered.  When the queue is "unplugged", any queued events will be
 // delivered in order, and future events will be delivered immediately.
 export class DeferQueue {
-    constructor() {
-        this._events = [];
-    }
+    _events: [Function, any[]][] | null = [];
 
-    push(fn, ...args) {
+    push(fn: Function, ...args: any[]) {
         if (this._events !== null) {
             this._events.push([fn, args]);
         } else {
@@ -107,8 +111,8 @@ export class DeferQueue {
         }
     }
 
-    wrap(fn) {
-        return (...args) => this.push(fn, ...args);
+    wrap(fn: Function): Function {
+        return (...args: any[]) => this.push(fn, ...args);
     }
 
     /* Untested; uncomment this only after adding unit tests
@@ -122,6 +126,6 @@ export class DeferQueue {
     unplug() {
         let evq = this._events;
         this._events = null;
-        for (let [fn, args] of evq) fn(...args);
+        if (evq) for (let [fn, args] of evq) fn(...args);
     }
 }

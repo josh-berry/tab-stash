@@ -1,3 +1,4 @@
+import {expect} from 'chai';
 import * as M from './model';
 
 describe('model', function() {

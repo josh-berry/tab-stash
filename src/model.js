@@ -27,7 +27,7 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU StashState METHODS.
 
-import {DeferQueue} from './util.js';
+import {DeferQueue} from './util';
 
 
 // These are constructor-ish functions which return un-prototyped objects

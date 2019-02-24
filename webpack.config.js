@@ -7,7 +7,7 @@ module.exports = {
         "stash-list": "./src/stash-list.js",
         "options": "./src/options.js",
         "whats-new": "./src/whats-new.js",
-        "test": "./src/test.js",
+        "test": "./src/test.ts",
     },
     mode: "development",
     devtool: "eval-source-map",
