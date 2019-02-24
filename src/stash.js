@@ -69,7 +69,7 @@ export async function stashTabs(folder_id, tabs) {
 
 // Hides tabs that we know are stashed.
 export async function hideStashedTabs(tabs) {
-    let opts_p = Options.get('local');
+    let opts_p = Options.local();
 
     await refocusAwayFromTabs(tabs);
     const opts = await opts_p;

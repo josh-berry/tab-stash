@@ -4,20 +4,51 @@ import {expect} from 'chai';
 // Mocks
 //
 
-class MockStorageArea {
-    constructor(area) {
-        this._area = area;
-        this._storage = {};
+class MockEventDispatcher<Fn extends Function> {
+    _listeners: Fn[] = [];
+    _pending: any[] = [];
+
+    addListener(l: Fn) {
+        expect(l).to.be.a('function');
+        this._listeners.push(l);
     }
 
-    async get(keys) {
+    send(...args: any[]) {
+        this._pending.push(args);
+    }
+
+    drain(count: number) {
+        expect(this._pending.length).to.equal(count);
+        while (this._pending.length > 0) {
+            let p = this._pending;
+            this._pending = [];
+            for (let ev of p) for (let f of this._listeners) f(...ev);
+        }
+    }
+}
+
+// Alternate route to access the onChanged listener so TypeScript doesn't get
+// mad.  This object is replaced for each test.
+let storage_events = new MockEventDispatcher<StorageChangedFn>();
+
+class MockStorageArea {
+    _area: browser.storage.StorageName;
+    _storage: {[k: string]: string} = {};
+
+    constructor(area: browser.storage.StorageName) {
+        this._area = area;
+    }
+
+    async get(keys: string | string[] | null)
+        : Promise<browser.storage.StorageObject>
+    {
         if (! keys) {
             keys = Object.keys(this._storage);
         } else if (typeof keys === 'string') {
             keys = [keys];
         }
 
-        let res = {};
+        let res: browser.storage.StorageObject = {};
         for (let k of keys) {
             if (k in this._storage) res[k] = JSON.parse(this._storage[k]);
         }
@@ -25,8 +56,8 @@ class MockStorageArea {
         return Promise.resolve(res);
     }
 
-    async set(obj) {
-        let ev = {};
+    async set(obj: browser.storage.StorageObject): Promise<void> {
+        let ev: browser.storage.ChangeDict = {};
         for (let k of Object.keys(obj)) {
             let v = JSON.stringify(obj[k]);
 
@@ -38,14 +69,14 @@ class MockStorageArea {
             this._storage[k] = v;
         }
 
-        browser.storage.onChanged.send(ev, this._area);
+        storage_events.send(ev, this._area);
         return Promise.resolve();
     }
 
-    async remove(keys) {
+    async remove(keys: string | string[]): Promise<void> {
         if (typeof keys === 'string') keys = [keys];
 
-        let ev = {};
+        let ev: browser.storage.ChangeDict = {};
 
         for (let k of keys) {
             if (k in this._storage) {
@@ -54,7 +85,7 @@ class MockStorageArea {
             }
         }
 
-        browser.storage.onChanged.send(ev, this._area);
+        storage_events.send(ev, this._area);
         return Promise.resolve();
     }
 
@@ -63,36 +94,15 @@ class MockStorageArea {
     }
 }
 
-class MockEventDispatcher {
-    constructor() {
-        this._listeners = [];
-        this._pending = [];
-    }
-
-    addListener(l) {
-        expect(l).to.be.a('function');
-        this._listeners.push(l);
-    }
-
-    send(changes, area) {
-        this._pending.push([changes, area]);
-    }
-
-    drain(count) {
-        expect(this._pending.length).to.equal(count);
-        while (this._pending.length > 0) {
-            let p = this._pending;
-            this._pending = [];
-            for (let ev of p) for (let f of this._listeners) f(...ev);
-        }
-    }
-}
+type StorageChangedFn = (changes: browser.storage.ChangeDict,
+                         area: browser.storage.StorageName) => void;
 
 function setupMocks() {
-    browser.storage = {
+    storage_events = new MockEventDispatcher<StorageChangedFn>();
+    (<any>browser).storage = {
         local: new MockStorageArea('local'),
         sync: new MockStorageArea('sync'),
-        onChanged: new MockEventDispatcher(),
+        onChanged: storage_events,
     };
 }
 
@@ -142,52 +152,53 @@ describe('stored-object', function() {
 
         it('delivers events on object creation', async function() {
             let fired = false;
-            browser.storage.onChanged.addListener((changes, area) => {
+            storage_events.addListener((changes, area) => {
                 expect('oldValue' in changes.foo).to.equal(false);
                 expect(changes.foo.newValue).to.equal(5);
                 expect(area).to.equal('local');
                 fired = true;
             });
             await browser.storage.local.set({foo: 5});
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
             expect(fired).to.equal(true);
         });
 
         it('delivers events on object update', async function() {
             let fired = false;
             await browser.storage.local.set({foo: 5});
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
-            browser.storage.onChanged.addListener((changes, area) => {
+            storage_events.addListener((changes, area) => {
                 expect(changes.foo.oldValue).to.equal(5);
                 expect(changes.foo.newValue).to.equal(10);
                 expect(area).to.equal('local');
                 fired = true;
             });
             await browser.storage.local.set({foo: 10});
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
             expect(fired).to.equal(true);
         });
 
         it('delivers events on object deletion', async function() {
             let fired = false;
             await browser.storage.local.set({foo: 5});
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
-            browser.storage.onChanged.addListener((changes, area) => {
+            storage_events.addListener((changes, area) => {
                 expect(changes.foo.oldValue).to.equal(5);
                 expect('newValue' in changes.foo).to.equal(false);
                 expect(area).to.equal('local');
                 fired = true;
             });
             await browser.storage.local.remove('foo');
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
             expect(fired).to.equal(true);
         });
     });
 
     describe('behaviors', function() {
-        let StoredObject = null;
+        setupMocks();
+        let StoredObject = require('./stored-object').default;
 
         const DEFAULTS = {
             a: 1,
@@ -251,7 +262,7 @@ describe('stored-object', function() {
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await browser.storage.local.set({foo: {a: 42}});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                expect(o).to.deep.equal(Object.assign({}, DEFAULTS, {a: 42}));
            });
@@ -259,12 +270,12 @@ describe('stored-object', function() {
         it('updates objects which have been updated out-of-band',
            async function() {
                await browser.storage.local.set({foo: {a: 42}});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await browser.storage.local.set({foo: {a: 17}});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                expect(o).to.deep.equal(Object.assign({}, DEFAULTS, {a: 17}));
            });
@@ -272,12 +283,12 @@ describe('stored-object', function() {
         it('updates objects which have been deleted out-of-band',
            async function() {
                await browser.storage.local.set({foo: {a: 42}});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await browser.storage.local.remove('foo');
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                expect(o).to.deep.equal(Object.assign({}, DEFAULTS));
            });
@@ -288,7 +299,7 @@ describe('stored-object', function() {
             expect(o).to.deep.equal(DEFAULTS);
 
             await o.set(OVERRIDES);
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
             expect(await browser.storage.local.get('foo'))
                 .to.deep.equal({foo: OVERRIDES});
@@ -299,12 +310,12 @@ describe('stored-object', function() {
            async function() {
                const OVERRIDES = {a: 42, bar: 'fred'};
                await browser.storage.local.set({foo: OVERRIDES});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await o.set({a: 17});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                expect(await browser.storage.local.get('foo'))
                    .to.deep.equal({foo: Object.assign({}, OVERRIDES, {a: 17})});
@@ -316,12 +327,12 @@ describe('stored-object', function() {
            async function() {
                const OVERRIDES = {a: 42, bar: 'fred'};
                await browser.storage.local.set({foo: OVERRIDES});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await o.set({a: 1});
-               browser.storage.onChanged.drain(1);
+               storage_events.drain(1);
 
                expect(await browser.storage.local.get('foo'))
                    .to.deep.equal({foo: {bar: 'fred'}});
@@ -333,7 +344,7 @@ describe('stored-object', function() {
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
 
             await o.delete();
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
             expect(await browser.storage.local.get()).to.deep.equal({});
             expect(o).to.deep.equal(DEFAULTS);
@@ -344,7 +355,7 @@ describe('stored-object', function() {
 
             await o.set({a: 2});
             await o.delete();
-            browser.storage.onChanged.drain(2);
+            storage_events.drain(2);
 
             expect(await browser.storage.local.get()).to.deep.equal({});
             expect(o).to.deep.equal(DEFAULTS);
@@ -354,7 +365,7 @@ describe('stored-object', function() {
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
 
             await o.delete();
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
             let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
 
@@ -366,7 +377,7 @@ describe('stored-object', function() {
 
             await o.set({a: 5});
             await o.delete();
-            browser.storage.onChanged.drain(2);
+            storage_events.drain(2);
 
             let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
 
@@ -377,10 +388,10 @@ describe('stored-object', function() {
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
 
             await o.delete();
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
             await o.set({a: 2});
-            browser.storage.onChanged.drain(1);
+            storage_events.drain(1);
 
             let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
 
@@ -390,57 +401,17 @@ describe('stored-object', function() {
         it('drops keys it does not recognize on save', async function() {
             const DATA = {foo: {asdf: 'qwer'}};
             await browser.storage.sync.set(DATA);
-            await browser.storage.onChanged.drain(1);
+            await storage_events.drain(1);
 
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
             expect(o).to.deep.equal(DEFAULTS);
             expect(await browser.storage.sync.get()).to.deep.equal(DATA);
 
             await o.set({a: 1});
-            await browser.storage.onChanged.drain(1);
+            await storage_events.drain(1);
 
             expect(await browser.storage.sync.get()).to.deep.equal({foo: {}});
             expect(o).to.deep.equal(DEFAULTS);
         });
-
-        it('casts properties if a cast function is defined', async function () {
-            let o = await StoredObject.get(
-                'sync', 'bar',
-                Object.assign({}, DEFAULTS, {
-                    a: [1, (obj, key, val) => val * 2],
-                }));
-
-            await o.set({a: 1});
-            await browser.storage.onChanged.drain(1);
-
-            expect(o.a).to.equal(2);
-        });
-
-        it('drops properties that have been cast to the default value',
-           async function () {
-               let o = await StoredObject.get(
-                   'sync', 'bar',
-                   Object.assign({}, DEFAULTS, {
-                       a: [1, (obj, key, val) => 1],
-                   }));
-
-               await o.set({a: 42});
-               await browser.storage.onChanged.drain(1);
-
-               expect(await browser.storage.sync.get('bar'))
-                   .to.deep.equal({bar: {}});
-               expect(o.a).to.equal(1);
-           });
-
-        it('does not include the casting function in returned defaults',
-           async function() {
-               let o = await StoredObject.get(
-                   'sync', 'bar',
-                   Object.assign({}, DEFAULTS, {
-                       a: [1, (obj, key, val) => 1],
-                   }));
-
-               expect(o.defaults).to.deep.equal(DEFAULTS);
-           });
     });
 });

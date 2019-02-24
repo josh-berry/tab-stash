@@ -172,8 +172,8 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 (async function() {
     // First, populate the local and sync options objects, since we rely on
     // settings in here for a variety of things.
-    let sync_p = Options.get('sync');
-    let local_p = Options.get('local');
+    let sync_p = Options.sync();
+    let local_p = Options.local();
     OPTIONS.sync = await sync_p;
     OPTIONS.local = await local_p;
 

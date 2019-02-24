@@ -11,7 +11,7 @@ import Options from "./options-model";
     }
 
     let extinfo = await browser.management.getSelf();
-    let localopts = await Options.get('local');
+    let localopts = await Options.local();
 
     window.the_last_notified_version = localopts.last_notified_version;
 

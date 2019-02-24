@@ -1,5 +1,3 @@
-"use strict";
-
 // A module to load and save JavaScript objects to/fron a particular key in
 // browser-local storage, and to keep those JavaScript objects up to date
 // automatically as browser-local storage changes.
@@ -27,61 +25,38 @@
 // And you can delete the stored object from the browser store entirely:
 //
 //     await obj.delete();
-//
-// As an extension, if you want to implement some validation or casting/munging
-// behavior, you can provide an array instead of a value for a particular
-// default.  For example, the following will ensure the value stored in 'num' is
-// always a number:
-//
-//     let obj = StoredObject.get('local', 'foo', {
-//         num: [0, (obj, key, value) => parseFloat(value)],
-//     };
-//     await obj.set({num: "15"});
-//     console.assert(obj.num === 15);
-//
-// Note that if you provide a casting function, that function will NOT be
-// returned from obj.defaults, which will continue to look like:
-//
-//     { num: 0 }
-//
-// The casting function you provide may throw an exception if validation fails.  If an exception is thrown from a casting function, 
 
-export default {get};
+type StorableValue = undefined | null | boolean | number | string;
 
-async function get(store, key, schema) {
-    let res = LIVE_OBJECTS[store].get(key);
-    if (res) return res;
+type StorableObject<T> = {[K in keyof T]: T[K] & StorableValue}
 
-    let defaults = {};
-    let casts = {};
-
-    for (let k of Object.keys(schema)) {
-        let v = schema[k];
-        if (v instanceof Array) {
-            defaults[k] = v[0];
-            casts[k] = v[1];
-        } else {
-            defaults[k] = v;
-        }
-    }
-
-    res = Object.assign(new StoredObject(), defaults);
-    let meta = {store, key, defaults, casts};
-    META.set(res, meta);
-
-    await _animate(res, meta);
-    return res;
+type MetaInfo<T> = {
+    store: 'sync' | 'local';
+    key: string;
+    defaults: T;
 }
 
+export default class StoredObject<T extends StorableObject<T>> {
+    static async get<T extends StorableObject<T>>(
+        store: 'sync' | 'local',
+        key: string,
+        defaults: T,
+    ): Promise<StoredObject<T> & T> {
+        let res = LIVE_OBJECTS[store].get(key);
+        if (res) return <StoredObject<T> & T>res;
 
+        res = new StoredObject<T>();
+        let meta: MetaInfo<T> = {store, key, defaults};
+        META.set(res, meta);
 
-class StoredObject {
-    constructor() {}
+        await _animate(res, meta);
+        return <StoredObject<T> & T>res;
+    }
 
-    get defaults() { return META.get(this).defaults; }
+    get defaults(): T { return (<MetaInfo<T>>META.get(this)).defaults; }
 
-    async set(values) {
-        let meta = META.get(this);
+    async set(values: Partial<T>): Promise<void> {
+        let meta = META.get(this)!;
 
         // Make sure we have an updated set of stuff first.
         await _animate(this, meta);
@@ -89,20 +64,19 @@ class StoredObject {
         // The object we will save to the store.  Values which are the default
         // should be omitted to save space (and allow defaults to
         // programmatically change later).
-        let data = {};
+        let data: Partial<T> = {};
 
-        for (let k of Object.keys(this)) {
+        for (let k of Object.keys(this) as (keyof T)[]) {
             // Carry forward existing values that are non-default and not
             // explicitly specified in /values/.
             if (! (k in values)) {
-                if (this[k] !== meta.defaults[k]) {
-                    data[k] = this[k];
+                if ((<any>this)[k] !== meta.defaults[k]) {
+                    data[k] = (<any>this)[k];
                 }
                 continue;
             }
 
             let v = values[k];
-            if (k in meta.casts) v = meta.casts[k](this, k, v);
 
             // If /values/ explicitly specifies that /k/ should be the default
             // value, omit it from the saved object entirely.
@@ -112,11 +86,11 @@ class StoredObject {
             data[k] = v;
         }
 
-        return browser.storage[meta.store].set({[meta.key]: data});
+        return await browser.storage[meta.store].set({[meta.key]: data});
     }
 
-    delete() {
-        let meta = META.get(this);
+    delete(): Promise<void> {
+        let meta = META.get(this)!;
 
         // The following may or may not trigger a browser.storage.onChanged
         // event.  if it doesn't (e.g. because the object never existed), we
@@ -143,14 +117,14 @@ class StoredObject {
 // Have I mentioned recently how much I hate JavaScript's lack of
 // memory-management facilities? :/
 const LIVE_OBJECTS = {
-    sync: new Map(),
-    local: new Map(),
+    sync: new Map<string, StoredObject<any>>(),
+    local: new Map<string, StoredObject<any>>(),
 };
 
 // A map of private metadata tracking its identity within the browser store, and
 // default values to rely on if any of those values aren't set.  Stored outside
 // the object so we don't pollute the object's namespace.
-const META = new WeakMap();
+const META = new WeakMap<StoredObject<any>, MetaInfo<any>>();
 
 // The set of objects we are currently trying to load.  We keep track of this
 // set because objects can be loaded in one of two ways--either through
@@ -164,8 +138,7 @@ const META = new WeakMap();
 // it's still in this set.
 //
 // The value of the map is a Promise which resolves once the object is loaded.
-const LOADING_OBJECTS = new WeakMap();
-
+const LOADING_OBJECTS = new WeakMap<StoredObject<any>, Promise<void>>();
 
 // -----END UGLY GLOBAL STATE-----
 
@@ -178,7 +151,7 @@ browser.storage.onChanged.addListener((changes, area) => {
         let obj = areaobjs.get(key);
         if (! obj) continue;
 
-        let meta = META.get(obj);
+        let meta = META.get(obj)!;
 
         if ('newValue' in changes[key]) {
             _load(obj, meta, changes[key].newValue);
@@ -201,11 +174,13 @@ browser.storage.onChanged.addListener((changes, area) => {
 
 
 
-function _animate(obj, meta) {
+function _animate<T extends StorableObject<T>>(
+    obj: StoredObject<T>, meta: MetaInfo<T>
+): Promise<void> {
     const liveobj = LIVE_OBJECTS[meta.store].get(meta.key);
     if (liveobj) {
         if (liveobj !== obj) {
-            throw `Multiple objects exist for key: ${obj[S.key]}`;
+            throw `Multiple objects exist for key: ${meta.key}`;
         }
 
         const loading = LOADING_OBJECTS.get(obj);
@@ -230,18 +205,21 @@ function _animate(obj, meta) {
     return p;
 }
 
-function _load(obj, meta, values) {
+function _load<T extends StorableObject<T>>(
+    obj: StoredObject<T>, meta: MetaInfo<T>,
+    values: browser.storage.StorageValue
+) {
     // We assign both defaults and the new values here so that if any
     // properties were reset to the default (and removed from storage),
     // Vue will notice those as well.
 
     Object.assign(obj, meta.defaults);
 
-    if (! values) return;
+    if (typeof values !== 'object') return;
 
-    for (let k of Object.keys(values)) {
+    for (let k of Object.keys(<object>values)) {
         if (k in meta.defaults) {
-            obj[k] = values[k];
+            (<any>obj)[k] = (<any>values)[k];
         }
         // Otherwise keys not present in defaults are dropped/ignored.
     }
