@@ -14,6 +14,8 @@ module.exports = {
     module: {
         rules: [
             {test: /\.vue$/, loader: 'vue-loader'},
+            {test: /\.tsx?$/, loader: 'ts-loader',
+             exclude: /node_modules/, options: {appendTsSuffixTo: [/.vue$/]}},
             {test: /\.svg$/, loader: 'file-loader'},
             {test: /\.css$/, use: [
                 'vue-style-loader',
@@ -23,7 +25,7 @@ module.exports = {
     },
     resolve: {
         modules: [path.resolve(__dirname, 'src'), 'node_modules'],
-        extensions: ['.js'],
+        extensions: ['.ts', '.js', '.vue', '.json'],
     },
     plugins: [
         new VueLoaderPlugin(),
