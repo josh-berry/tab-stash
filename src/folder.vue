@@ -61,7 +61,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   <div class="contents">
     <draggable :options="{group: 'tab'}" ref="drag" class="panel-section-list"
                @add="move" @update="move">
-      <tab v-for="item of children" v-if="item && item.url"
+      <tab v-for="item of filteredChildren"
            :key="item.id" v-bind="item"
            :class="{hidden: (filter && ! filter(item))
                          || (userFilter && ! userFilter(item)),
@@ -127,9 +127,9 @@ export default {
         },
         filteredChildren: function() {
             if (this.filter) {
-                return this.children.filter(c => c.url && this.filter(c));
+                return this.children.filter(c => c && c.url && this.filter(c));
             } else {
-                return this.children.filter(c => c.url);
+                return this.children.filter(c => c && c.url);
             }
         },
         visibleChildren: function() {
@@ -141,7 +141,8 @@ export default {
         },
         userHiddenChildren: function() {
             if (this.userFilter) {
-                return this.filteredChildren.filter(c => ! this.userFilter(c));
+                return this.filteredChildren.filter(
+                    c => c && ! this.userFilter(c));
             } else {
                 return [];
             }
@@ -227,7 +228,7 @@ export default {
                     // XXX This is similar to the unstashedFilter, but the
                     // isBookmark test is inverted.
                     await hideStashedTabs(this.children.filter(
-                        t => ! t.hidden && ! t.pinned
+                        t => t && ! t.hidden && ! t.pinned
                             && this.isItemStashed(t)));
                 } else {
                     // User has asked us to hide all unstashed tabs.
@@ -242,7 +243,7 @@ export default {
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
                 let tabs = this.children.filter(
-                    t => t.hidden && this.isItemStashed(t));
+                    t => t && t.hidden && this.isItemStashed(t));
                 await closeTabs(tabs);
             } else {
                 // Closes ALL open tabs (stashed and unstashed).  This is just a
@@ -251,9 +252,11 @@ export default {
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
                 let hide_tabs = this.children.filter(
-                    t => ! t.hidden && ! t.pinned && this.isItemStashed(t));
+                    t => t && ! t.hidden && ! t.pinned
+                           && this.isItemStashed(t));
                 let close_tabs = this.children.filter(
-                    t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t));
+                    t => t && ! t.hidden && ! t.pinned
+                           && ! this.isItemStashed(t));
 
                 await refocusAwayFromTabs(Array.concat(hide_tabs, close_tabs));
 
