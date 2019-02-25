@@ -19,7 +19,7 @@
              title="Hide the tabs for this group"
              @click.prevent.stop="collapsed = ! collapsed">
       </ButtonBox>
-      <ButtonBox v-if="! isWindow">
+      <ButtonBox class="action-btnbox" v-if="! isWindow">
         <img src="icons/stash-dark.svg" class="action stash here"
              :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
@@ -33,24 +33,25 @@
              src="icons/restore-del.svg" class="action restore-remove"
              title="Open all tabs in the group and delete the group"
              @click.prevent.stop="restoreAndRemove">
-        <img v-if="allowRenameDelete"
+        <img v-if="allowRenameDelete && ! collapsed"
              src="icons/delete.svg" class="action remove"
              title="Delete this group"
              @click.prevent.stop="remove">
       </ButtonBox>
-      <ButtonBox v-else>
+      <ButtonBox class="action-btnbox" v-else>
         <img src="icons/stash-dark.svg" class="action stash newgroup"
              :title="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
         <img src="icons/new-empty-group.svg" class="action stash"
              title="Create a new empty group"
              @click.prevent.stop="newGroup">
-        <img src="icons/delete.svg" class="action remove"
+        <img v-if="! collapsed" src="icons/delete.svg" class="action remove"
              :title="
 `Click: Close all unstashed tabs
 ${altkey}+Click: Close/hide all stashed tabs`"
              @click.prevent.stop="remove">
-        <img src="icons/delete-opened.svg" class="action remove"
+        <img v-if="! collapsed" src="icons/delete-opened.svg"
+             class="action remove"
              :title="
 `Click: Close all open tabs
 ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"

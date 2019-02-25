@@ -10,6 +10,12 @@
 
   <div class="folder-list">
 
+    <Version v="NEXT">
+      <L v="Added">the ability to manage collapsed groups in the sidebar.  When
+        you hover over a collapsed group, the group's "Stash..." and "Open..."
+        buttons will now appear.</L>
+    </Version>
+
     <Version v="2.2.1">
       <L subtext="Fun fact: This bug was caused by a single-letter typo."
          v="Fixed">an issue preventing Tab Stash from closing hidden tabs
