@@ -128,8 +128,8 @@ export class DeferQueue {
         }
     }
 
-    wrap(fn: Function): Function {
-        return (...args: any[]) => this.push(fn, ...args);
+    wrap<FN extends (...args: any[]) => void>(fn: FN): FN {
+        return ((...args: any[]) => this.push(fn, ...args)) as unknown as FN;
     }
 
     /* Untested; uncomment this only after adding unit tests

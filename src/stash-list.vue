@@ -124,7 +124,7 @@ export default {
 
         isItemStashed(i) {
             return i.related.find(
-                i => i.isBookmark && isInFolder(this.root_id, i));
+                i => i.isBookmark && i.isInFolder(this.root_id));
         },
 
         showWhatsNew() {
