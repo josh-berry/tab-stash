@@ -10,11 +10,12 @@
 </aside>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue';
 import ButtonBox from './button-box.vue';
 import Button from './button.vue';
 
-export default {
+export default Vue.extend({
     components: {ButtonBox, Button},
 
     props: {
@@ -27,16 +28,16 @@ export default {
     }),
 
     methods: {
-        activate: function(ev) {
+        activate(ev: MouseEvent) {
             this.$emit('activate');
         },
 
-        dismiss: function(ev) {
+        dismiss(ev: MouseEvent) {
             this.$emit('dismiss');
             this.dismissed = true;
         },
     },
-}
+});
 </script>
 
 <style>
