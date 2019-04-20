@@ -11,8 +11,10 @@
       @click.prevent.stop="begin">{{value !== '' ? value : defaultValue}}</span>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue from 'vue';
+
+export default Vue.extend({
     props: {
         // Whether to allow editing or not
         enabled: Boolean,
@@ -26,12 +28,12 @@ export default {
 
     data: () => ({
         editing: false,
-        oldValue: undefined,
-        newValue: undefined,
+        oldValue: undefined as string | undefined,
+        newValue: undefined as string | undefined,
     }),
 
     computed: {
-        disabled: function() {
+        disabled(): boolean {
             // We disable the text box if we're in the middle of an update
             // operation...
             return this.oldValue !== undefined
@@ -40,10 +42,11 @@ export default {
         }
     },
 
-    updated: function() {
+    updated() {
         // If we are just now showing the text box, make sure it's focused so
         // the user can start typing.
-        if (this.$refs.input && ! this.disabled) this.$refs.input.focus();
+        const inp = this.$refs.input as HTMLInputElement | undefined;
+        if (inp && ! this.disabled) inp.focus();
 
         // All of this convoluted logic is to prevent the user from seeing a
         // momentary switch back to the "old" value before the model has
@@ -63,13 +66,15 @@ export default {
             this.newValue = undefined;
         }
     },
+
     methods: {
         begin: function() {
             if (! this.enabled) return;
             this.editing = true;
         },
         commit: function() {
-            if (this.$refs.input.value === this.value) {
+            const inp = this.$refs.input as HTMLInputElement;
+            if (inp.value === this.value) {
                 this.editing = false;
                 return;
             }
@@ -81,11 +86,11 @@ export default {
             // update the model, and the logic in "upddated" above will kick in
             // and move us back to not-editing state.
             this.oldValue = this.value;
-            this.newValue = this.$refs.input.value;
+            this.newValue = inp.value;
             this.$emit('update:value', this.newValue);
         },
     },
-};
+});
 </script>
 
 <style>
