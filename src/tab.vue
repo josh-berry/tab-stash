@@ -30,7 +30,8 @@
 <script>
 import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
-    mostRecentUnnamedFolderId, restoreTabs, stashTabs, bookmarkTabs,
+    getFolderNameISODate, mostRecentUnnamedFolderId,
+    restoreTabs, stashTabs, bookmarkTabs,
     closeTabs,
 } from './stash';
 import ButtonBox from 'button-box.vue';
@@ -137,7 +138,7 @@ export default {
                     // gets to it.
                     await browser.tabs.remove(tab.id);
                 }
-                await browser.bookmarks.remove(this.id);
+                await this._removeBM();
 
             } else {
                 // This is an unstashed open tab.  Just close it.
@@ -151,7 +152,7 @@ export default {
 
             await restoreTabs([this.url], {background: bg});
             if (this.isBookmark) {
-                await browser.bookmarks.remove(this.id);
+                await this._removeBM();
             }
             // If this is just a tab and not a bookmark, we don't remove the
             // tab, since openRemove indicates the user wanted to switch to the
@@ -161,6 +162,30 @@ export default {
                 await browser.tabs.remove([curtab.id]);
             }
         }),
+
+        _removeBM: async function(ev) {
+            const folder = this.parent;
+
+            await browser.bookmarks.remove(this.id);
+
+            // If we are the only thing in our parent folder, AND the parent
+            // folder has a "default" name, remove the parent folder, so we
+            // don't leave any empty unnamed stashes lying around.
+            //
+            // XXX this logic is mirrored (ish) in
+            // folder.vue:_maybeCleanupEmptyFolder().  See the comment there for
+            // further discussion.
+
+            if (getFolderNameISODate(folder.title) === null) return;
+
+            if (folder.children.length > 1) return;
+            if (folder.children.length === 1
+                && folder.children[0].id !== this.id) {
+                return;
+            }
+
+            await browser.bookmarks.remove(folder.id);
+        },
     },
 };
 </script>

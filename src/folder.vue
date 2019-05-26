@@ -382,10 +382,12 @@ export default {
             if (! from_folder.isWindow && ! this.isWindow) {
                 console.assert(item.isBookmark);
                 // Moving a stashed tab from one place to another.
-                browser.bookmarks.move(item.id, {
+                await browser.bookmarks.move(item.id, {
                     parentId: this.id,
                     index: new_model_idx,
-                }).catch(console.log);
+                });
+
+                await this._maybeCleanupEmptyFolder(from_folder, item);
 
             } else if (! this.isWindow) {
                 console.assert(item.isTab);
@@ -416,18 +418,54 @@ export default {
                     }
                 }
 
-                // Remove the restored bookmark in the background
-                if (item.isBookmark) {
-                    browser.bookmarks.remove(item.id).catch(console.log);
-                }
-
                 console.assert(tid !== undefined);
                 await browser.tabs.move(tid, {
                     windowId: this.id, index: new_model_idx,
                 });
                 await browser.tabs.show(tid);
+
+                // Remove the restored bookmark
+                if (item.isBookmark) {
+                    await browser.bookmarks.remove(item.id);
+                    await this._maybeCleanupEmptyFolder(from_folder, item);
+                }
             }
         }),
+
+        _maybeCleanupEmptyFolder: async function(folder, removing_item) {
+            // If the folder we are removing an item from is empty and has a
+            // default name, remove the folder automatically so we don't leave
+            // any empty stashes lying around unnecessarily.
+
+            if (folder.isWindow) return;
+            if (folder.id === this.id) return;
+            if (getFolderNameISODate(folder.title) === null) return;
+
+            // Now we check if the folder is empty, or about to be.  Note that
+            // there are three cases here:
+            //
+            // 1. The model has been updated and /removing_item/ removed
+            //    (so: length == 0),
+            //
+            // 2. The model hasn't yet been updated and /removing_item/ still
+            //    appears to be present (but should have been removed already)
+            //    (so: length == 1 and the only child is /removing_item/),
+            //
+            // 3. There are other children present which aren't /removing_item/,
+            //    in which case the folder doesn't need to be cleaned up.
+            //
+            // The following paragraph detects case #3 and returns early.
+
+            if (folder.children.length > 1) return;
+            if (folder.children.length === 1
+                && folder.children[0].id !== removing_item.id) {
+                return;
+            }
+
+            // If we reach this point, we have an empty, unnamed bookmark
+            // folder.
+            await browser.bookmarks.remove(folder.id);
+        },
     },
 };
 </script>

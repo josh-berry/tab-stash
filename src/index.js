@@ -170,8 +170,6 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 // manage hidden tabs, but there's unfortunately not much we can do about this.
 // The alternative is to allow hidden tabs which belong to deleted folders to
 // pile up, which will cause browser slowdowns over time.
-//
-// We also garbage-collect empty, unnamed folders.
 
 (async function() {
     // First, populate the local and sync options objects, since we rely on
@@ -193,24 +191,15 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 
 
 
-    // Next, setup the garbage collector -- we collect empty, unnamed folders in
-    // the stash, as well as hidden tabs that are pointing to URLs that are
-    // removed from the stash.  This is driven by browser bookmark events.
-    let t = await tabStashTree();
-    let managed_urls = new Set(urlsInTree(t));
+    // Next, setup the hidden-tab garbage collector -- we collect (close) hidden
+    // tabs that are pointing to URLs that are removed from the stash.  This is
+    // driven by any browser bookmark event which could possibly change the set
+    // of URLs stored in the stash.
+
+    let managed_urls = new Set(urlsInTree(await tabStashTree()));
+
     const close_removed_bookmarks = nonReentrant(async function() {
         let tree = await tabStashTree();
-
-        // Garbage-collect empty, unnamed folders.
-        //
-        // If there are any such folders, this may trigger another GC run, but
-        // that's okay because we will converge on the second iteration.
-        for (let f of tree.children) {
-            if (f.type !== 'folder') continue;
-            if (! getFolderNameISODate(f.title)) continue;
-            if (f.children.length > 0) continue;
-            browser.bookmarks.remove(f.id).catch(console.log);
-        }
 
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
