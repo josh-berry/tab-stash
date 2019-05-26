@@ -14,6 +14,9 @@
       <L v="Added">the ability to manage collapsed groups in the sidebar.  When
         you hover over a collapsed group, the group's "Stash..." and "Open..."
         buttons will now appear.</L>
+      <L :issue="8" v="Fixed">a poor interaction between Tab Stash and Firefox
+        Sync that would occasionally cause stashed tabs to get mis-filed so they
+        no longer appear in the stash.  To recover any missing tabs, see:</L>
     </Version>
 
     <Version v="2.2.1">

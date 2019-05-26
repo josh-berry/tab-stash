@@ -13,7 +13,7 @@ html {
 }
 .panel-list-item:hover { cursor: pointer; }
 a, a:visited { color: #44484c; text-decoration: none; }
-a.open, a.open:visited { color: #287acc; }
+.whats-new a, a.open, a.open:visited { color: #287acc; }
 
 header { margin: 4px 16px; }
 header .searchbar, aside.notification {
@@ -40,7 +40,7 @@ aside.notification .contents {
     color: #889099;
     font-style: italic;
 }
-.status-text a:hover, .whats-new .issue:hover {
+.status-text a:hover, .whats-new a:hover {
     color: #287acc;
     text-decoration: underline;
 }
@@ -319,6 +319,10 @@ body.tab-view {
     margin-left: 32px;
     margin-right: 16px;
     margin-top: 0;
+}
+.whats-new ul {
+    margin: 0 0 0 32px;
+    padding: 0;
 }
 .whats-new li {
     margin: 8px 0;
