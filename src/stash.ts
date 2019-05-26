@@ -239,7 +239,11 @@ export async function bookmarkTabs(
         ps.push(browser.bookmarks.create({
             parentId: folderId,
             title: 'Stashing...',
-            url: 'about:blank',
+            // We provide a unique URL for each in-progress stash to avoid
+            // problems with Firefox Sync erroneously de-duplicating bookmarks
+            // with the same URL while the stash is in progress.  See issue #8
+            // and Firefox bug 1549648.
+            url: `about:blank#stashing-${folderId}-${index}`,
             index,
         }));
         ++index;
