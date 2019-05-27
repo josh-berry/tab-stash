@@ -453,10 +453,6 @@ export async function restoreTabs(
         // restored.)
         if (tabs.length == 1) {
             const tab = tabs[0];
-            // It's actually a Session, but instanceof doesn't work here because
-            // Session isn't a constructor (you can't create your own, you can
-            // only get them from the browser).  So we have to do some true
-            // duck-typing.
             await browser.tabs.update(tab.id!, {active: true});
         }
 
