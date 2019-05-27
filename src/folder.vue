@@ -21,7 +21,7 @@
       </ButtonBox>
       <ButtonBox class="action-btnbox" v-if="! isWindow">
         <img src="icons/stash-dark.svg" class="action stash here"
-             :title="`Stash all open tabs to this group (hold ${altkey} to keep tabs open)`"
+             :title="`Stash all (or selected) open tabs to this group (hold ${altkey} to keep tabs open)`"
              @click.prevent.stop="stash">
         <img src="icons/stash-one-dark.svg" class="action stash one here"
              :title="`Stash the active tab to this group (hold ${altkey} to keep tab open)`"
@@ -81,8 +81,8 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
-    stashTabs, bookmarkTabs, restoreTabs, closeTabs, hideStashedTabs,
-    refocusAwayFromTabs,
+    stashTabsInWindow, stashTabs, restoreTabs,
+    closeTabs, hideStashedTabs, refocusAwayFromTabs,
 } from 'stash';
 
 import Draggable from 'vuedraggable';
@@ -160,16 +160,16 @@ export default {
         }),
 
         stash: asyncEvent(async function(ev) {
-            let tabs = this.id
-                ? (await browser.tabs.query(
-                        {currentWindow: true, hidden: false, pinned: false}))
-                    .sort((a, b) => a.index - b.index)
-                : this.visibleChildren;
-
-            if (ev.altKey) {
-                await bookmarkTabs(this.id, tabs);
+            if (this.id) {
+                // Stashing possibly-selected open tabs into the current group.
+                await stashTabsInWindow(undefined, {
+                    folderId: this.id,
+                    close: ! ev.altKey,
+                });
             } else {
-                await stashTabs(this.id, tabs);
+                // This is the "Unstashed Tabs" group--stash everything in
+                // "Unstashed Tabs" to a new group.
+                await stashTabs(this.visibleChildren, {close: ! ev.altKey});
             }
         }),
 
@@ -181,11 +181,10 @@ export default {
                     {currentWindow: true, hidden: false, active: true}))
                 .sort((a, b) => a.index - b.index);
 
-            if (ev.altKey) {
-                await bookmarkTabs(this.id, tabs);
-            } else {
-                await stashTabs(this.id, tabs);
-            }
+            await stashTabs(tabs, {
+                folderId: this.id,
+                close: ! ev.altKey,
+            });
         }),
 
         restoreAll: asyncEvent(async function(ev) {

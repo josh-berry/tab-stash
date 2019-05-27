@@ -2,7 +2,7 @@
 
 import {asyncEvent, urlsInTree, nonReentrant} from './util';
 import {
-    stashTabs, bookmarkTabs, restoreTabs, tabStashTree,
+    stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
     mostRecentUnnamedFolderId,
 } from './stash';
 import Options from './options-model';
@@ -29,12 +29,12 @@ menu('1:', ['tab', 'page', 'tools_menu'], [
     ['show_tab', 'Show Stashed Tabs in a Tab'],
     ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
     ['', ''],
-    ['stash_all', 'Stash All Tabs'],
+    ['stash_all', 'Stash Tabs'],
     ['stash_one', 'Stash This Tab'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
     ['', ''],
-    ['copy_all', 'Copy All Tabs to Stash'],
-    ['copy_one', 'Copy Tab to Stash'],
+    ['copy_all', 'Copy Tabs to Stash'],
+    ['copy_one', 'Copy This Tab to Stash'],
     ['', ''],
     ['options', 'Options...'],
 ]);
@@ -44,8 +44,8 @@ menu('2:', ['browser_action'], [
     ['show_tab', 'Show Stashed Tabs in a Tab'],
     ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
     ['', ''],
-    ['stash_all', 'Stash All Tabs'],
-    ['copy_all', 'Copy All Tabs to Stash'],
+    ['stash_all', 'Stash Tabs'],
+    ['copy_all', 'Copy Tabs to Stash'],
 ]);
 
 menu('3:', ['page_action'], [
@@ -54,7 +54,7 @@ menu('3:', ['page_action'], [
     ['', ''],
     ['stash_one', 'Stash This Tab'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
-    ['copy_one', 'Copy Tab to Stash'],
+    ['copy_one', 'Copy This Tab to Stash'],
 ]);
 
 async function show_stash_if_desired() {
@@ -86,37 +86,36 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
         await restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
 
-    stash_all: async function() {
+    stash_all: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
 
-        let tabs = await browser.tabs.query(
-            {currentWindow: true, hidden: false, pinned: false});
-        tabs.sort((a, b) => a.index - b.index);
-        await stashTabs(undefined, tabs);
+        await stashTabsInWindow(tab.windowId, {close: true});
     },
 
     stash_one: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
-        await stashTabs(await mostRecentUnnamedFolderId(), [tab]);
+        await stashTabs([tab], {
+            folderId: await mostRecentUnnamedFolderId(),
+            close: true,
+        });
     },
 
     stash_one_newgroup: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
-        await stashTabs(undefined, [tab]);
+        await stashTabs([tab], {close: true});
     },
 
-    copy_all: async function() {
+    copy_all: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
-        await bookmarkTabs(
-            undefined,
-            (await browser.tabs.query(
-                    {currentWindow: true, hidden: false, pinned: false}))
-                .sort((a, b) => a.index - b.index));
+        await stashTabsInWindow(tab.windowId, {close: false});
     },
 
     copy_one: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
-        await bookmarkTabs(await mostRecentUnnamedFolderId(), [tab]);
+        await stashTabs([tab], {
+            folderId: await mostRecentUnnamedFolderId(),
+            close: false,
+        });
     },
 
     options: async function() {

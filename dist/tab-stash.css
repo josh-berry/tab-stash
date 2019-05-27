@@ -343,3 +343,8 @@ body.tab-view {
     border-radius: 4px;
     padding: 0 4px;
 }
+
+.whats-new img.inl {
+    height: 16px;
+    vertical-align: bottom;
+}

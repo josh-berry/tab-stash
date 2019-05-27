@@ -67,16 +67,52 @@ export function isURLStashable(urlstr: string): boolean {
     return true;
 }
 
+export async function stashTabsInWindow(
+    windowId: number | undefined,
+    options: {
+        folderId?: string,
+        close?: boolean
+    }
+): Promise<void> {
+    // Stash either all tabs (if none are selected) or the selected tabs in the
+    // window /windowId/ (or the current window, if /windowId/ is undefined).
+    //
+    // If /folderId/ is not specified, stashes into a new unnamed folder.
+    //
+    // If /close/ is true, closes/hides the stashed tabs according to the user's
+    // preferences.
+    if (windowId === undefined) windowId = browser.windows.WINDOW_ID_CURRENT;
+
+    const tabs = await browser.tabs.query(
+        {windowId, hidden: false, pinned: false});
+    tabs.sort((a, b) => a.index - b.index);
+
+    let selected = tabs.filter(t => t.highlighted);
+    if (selected.length <= 1) selected = tabs;
+
+    await stashTabs(selected, options);
+}
+
 export async function stashTabs(
-    folder_id: string | undefined,
-    tabs: PartialTabInfo[]
-) : Promise<void> {
+    tabs: PartialTabInfo[],
+    options: {
+        folderId?: string,
+        close?: boolean
+    }
+): Promise<void> {
+    // Stashes the specified tabs into a bookmark folder.
+    //
     // BIG WARNING: This function assumes that all passed-in tabs are in the
     // current window.  It WILL DO WEIRD THINGS if that's not the case.
+    //
+    // If /folderId/ is not specified, stashes into a new unnamed folder.
+    //
+    // If /close/ is true, closes/hides the stashed tabs according to the user's
+    // preferences.
 
-    let saved_tabs = await bookmarkTabs(folder_id, tabs);
+    const saved_tabs = await bookmarkTabs(options.folderId, tabs);
 
-    await hideStashedTabs(saved_tabs);
+    if (options.close) await hideStashedTabs(saved_tabs);
 }
 
 // Hides tabs that we know are stashed.
@@ -178,7 +214,7 @@ export async function isNewTabURL(url: string | undefined): Promise<boolean> {
     }
 }
 
-export async function bookmarkTabs(
+async function bookmarkTabs(
     folderId: string | undefined,
     all_tabs: PartialTabInfo[]
 ): Promise<PartialTabInfo[]> {

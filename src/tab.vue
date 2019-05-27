@@ -31,7 +31,7 @@
 import {asyncEvent, altKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, mostRecentUnnamedFolderId,
-    restoreTabs, stashTabs, bookmarkTabs,
+    restoreTabs, stashTabs,
     closeTabs,
 } from './stash';
 import ButtonBox from 'button-box.vue';
@@ -110,12 +110,10 @@ export default {
     methods: {
         stash: asyncEvent(async function(ev) {
             console.assert(this.tab);
-            if (ev.altKey) {
-                await bookmarkTabs(await mostRecentUnnamedFolderId(),
-                                   [this.tab]);
-            } else {
-                await stashTabs(await mostRecentUnnamedFolderId(), [this.tab]);
-            }
+            await stashTabs([this.tab], {
+                folderId: await mostRecentUnnamedFolderId(),
+                close: ! ev.altKey,
+            });
         }),
 
         open: asyncEvent(async function(ev) {
