@@ -17,6 +17,8 @@
       <L :issue="8" v="Fixed">a poor interaction between Tab Stash and Firefox
         Sync that would occasionally cause stashed tabs to get mis-filed so they
         no longer appear in the stash.  To recover any missing tabs, see:</L>
+      <L v="Fixed">an issue where the "Close all open tabs" button wasn't
+        respecting the "hide" vs. "close" stashed tabs setting.</L>
     </Version>
 
     <Version v="2.2.1">

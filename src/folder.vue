@@ -262,8 +262,7 @@ export default {
 
                 await refocusAwayFromTabs(Array.concat(hide_tabs, close_tabs));
 
-                browser.tabs.hide(hide_tabs.map(t => t.id))
-                    .catch(console.log);
+                hideStashedTabs(hide_tabs).catch(console.log);
                 browser.tabs.remove(close_tabs.map(t => t.id))
                     .catch(console.log);
             }
