@@ -86,7 +86,7 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
     await refocusAwayFromTabs(tabs);
     const opts = await opts_p;
 
-    const tids = tabs.map(t => t.id!);
+    const tids = tabs.map(t => t.id);
 
     switch (opts.after_stashing_tab) {
     case 'hide_discard':
@@ -105,7 +105,7 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
 
 export async function closeTabs(tabs: PartialTabInfo[]): Promise<void> {
     await refocusAwayFromTabs(tabs);
-    await browser.tabs.remove(tabs.map(t => t.id!));
+    await browser.tabs.remove(tabs.map(t => t.id));
 }
 
 export async function refocusAwayFromTabs(
@@ -141,20 +141,26 @@ export async function refocusAwayFromTabs(
         // closing the front tab.
 
         let candidates = all_tabs.slice(front_tab_idx + 1);
-        let focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id));
+        let focus_tab = candidates.find(
+            t => t.id !== undefined && ! tabs.find(u => t.id === u.id));
         if (! focus_tab) {
             candidates = all_tabs.slice(0, front_tab_idx).reverse();
-            focus_tab = candidates.find(t => ! tabs.find(u => t.id === u.id))!;
+            focus_tab = candidates.find(
+                t => t.id !== undefined && ! tabs.find(u => t.id === u.id));
         }
 
-        await browser.tabs.update(focus_tab.id, {active: true});
+        // We should always have a /focus_tab/ at this point, but if we don't,
+        // it's better to fail gracefully by doing nothing.
+        console.assert(focus_tab);
+        // We filter out tabs with undefined IDs above #undef
+        if (focus_tab) await browser.tabs.update(focus_tab.id!, {active: true});
     }
 }
 
 // Determine if the specified tab has anything "useful" in it (where "useful" is
 // defined as neither the new-tab page nor the user's home page).  Returns the
 // tab itself if not, otherwise returns undefined.
-export async function isNewTabURL(url: string): Promise<boolean> {
+export async function isNewTabURL(url: string | undefined): Promise<boolean> {
     let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
     let home_url_p = browser.browserSettings.newTabPageOverride.get({});
     let newtab_url = (await newtab_url_p).value;
@@ -177,7 +183,10 @@ export async function bookmarkTabs(
 ): Promise<PartialTabInfo[]> {
     // Figure out which of the tabs to save.  We ignore tabs with unparseable
     // URLs or which look like extensions and internal browser things.
-    let tabs = all_tabs.filter(t => t.url && isURLStashable(t.url));
+    //
+    // We filter out all tabs without URLs below. #cast
+    const tabs = <(PartialTabInfo & {url: string})[]>
+        all_tabs.filter(t => t.url && isURLStashable(t.url));
 
     // If there are no tabs to save, early-exit here so we don't unnecessarily
     // create bookmark folders we don't need.
@@ -253,6 +262,10 @@ export async function bookmarkTabs(
 
     // We now read the folder back to determine the order of the created
     // bookmarks, so we can fill each of them in in the correct order.
+    //
+    // We know that the bookmark node returned from getSubTree() has children
+    // because it's a folder we created or identified earlier, and we were able
+    // to successfully create child bookmarks under it above.  #undef
     let child_bms = (await browser.bookmarks.getSubTree(folderId))[0].children!;
 
     // Now fill everything in.
@@ -261,6 +274,7 @@ export async function bookmarkTabs(
         if (! created_bm_ids.has(bm.id)) continue;
         created_bm_ids.delete(bm.id);
         ps.push(browser.bookmarks.update(bm.id, {
+            // #undef typedef is wrong; title/url are both optional
             title: tabs_to_actually_save[tab_index].title!,
             url: tabs_to_actually_save[tab_index].url!,
         }));
@@ -281,10 +295,7 @@ export async function bookmarkTabs(
     // duplicates if the user decides to rename a named folder to have a
     // default/temporary name once again).
     gcDuplicateBookmarks(root.id, new Set([folderId]),
-                         // t.url! in the lambda below is okay because we filter
-                         // out tabs with no URLs near the beginning of the
-                         // function.
-                         new Set(tabs.map(t => t.url!))).catch(console.log);
+                         new Set(tabs.map(t => t.url))).catch(console.log);
 
     return tabs;
 }
@@ -294,7 +305,8 @@ export async function gcDuplicateBookmarks(
     ignore_folder_ids: Set<string>,
     urls_to_check: Set<string>
 ): Promise<void> {
-    let folders = (await browser.bookmarks.getSubTree(root_id))[0].children!;
+    let folders = (await browser.bookmarks.getSubTree(root_id))[0].children
+        || [];
 
     // We want to preserve/ignore duplicates in folders which are ignored
     // (/ignored_folder_ids/), and folders which were explicitly-named by the
@@ -381,7 +393,8 @@ export async function restoreTabs(
 
     const closed_tabs = await closed_tabs_p;
     const win = await win_p;
-    const wintabs = win.tabs!;
+    const winid = win.id!; // #undef ASSUME we aren't in a devtools window
+    const wintabs = win.tabs!; // #undef because {populate: true} returns tabs
 
     // We want to know which tab the user is currently looking at so we can
     // close it if it's just the new-tab page, and because if we restore any
@@ -401,14 +414,14 @@ export async function restoreTabs(
     let index = wintabs.length;
     for (const url of urls) {
         const open = wintabs.find(tab => (tab.url === url));
-        if (open) {
+        if (open && open.id !== undefined) {
             // Tab is already open.  If it was hidden, un-hide it and move it to
             // the right location in the tab bar.
             if (open.hidden) {
                 ps.push(async function(open) {
                     await browser.tabs.show([open.id!]);
                     await browser.tabs.move(
-                        open.id!, {windowId: win.id, index});
+                        open.id!, {windowId: winid, index});
                     return open;
                 }(open));
                 ++index;
@@ -417,15 +430,20 @@ export async function restoreTabs(
         }
 
         const closed = closed_tabs.find(
-            sess => (sess.tab && sess.tab.url === url));
+            sess => (sess.tab && sess.tab.url === url || false));
         if (closed) {
+            const ct = closed.tab!;
+
             // Tab was recently-closed.  Re-open it, and move it to the right
             // location in the tab bar.
-            ps.push(async function(closed) {
-                let s = await browser.sessions.restore(closed.tab.sessionId!);
-                await browser.tabs.move(s.tab.id!, {windowId: win.id, index});
-                return s.tab;
-            }(closed));
+            ps.push(async function(ct) {
+                // #undef We filtered out non-tab sessions above, and we know
+                // that /ct/ is a session-flavored Tab.
+                const t = (await browser.sessions.restore(ct.sessionId!)).tab!;
+                // #undef The restored tab is a normal (non-devtools) tab
+                await browser.tabs.move(t.id!, {windowId: winid, index});
+                return t;
+            }(ct));
             ++index;
             continue;
         }
@@ -444,7 +462,9 @@ export async function restoreTabs(
         // Special case: If we were asked to open only one tab AND that tab is
         // already open, just switch to it.
         if (urls.length == 1 && tabs.length == 0) {
-            await browser.tabs.update(wintabs.find(t => t.url === urls[0])!.id,
+            // #undef Since we opened no tabs, yet we were asked to open one
+            // URL, the tab must be open and therefore listed in /wintabs/.
+            await browser.tabs.update(wintabs.find(t => t.url === urls[0])!.id!,
                                       {active: true});
         }
 
@@ -453,12 +473,14 @@ export async function restoreTabs(
         // restored.)
         if (tabs.length == 1) {
             const tab = tabs[0];
+            // #undef Tabs we opened must always have IDs (they're not devtools)
             await browser.tabs.update(tab.id!, {active: true});
         }
 
         // Finally, if we opened at least one tab, AND the current tab is
         // looking at the new-tab page, close the current tab in the background.
-        if (tabs.length > 0 && await isNewTabURL(curtab.url!)) {
+        if (tabs.length > 0 && await isNewTabURL(curtab.url)) {
+            // #undef devtools tabs don't have URLs and won't fall in here
             browser.tabs.remove([curtab.id!]).catch(console.log);
         }
 
@@ -466,6 +488,8 @@ export async function restoreTabs(
         // Caller has indicated they don't want the tab focus disturbed.
         // Unfortunately, if we restored any sessions, that WILL disturb the
         // focus, so we need to re-focus on the previously-active tab.
+        //
+        // #undef If the user is looking at a devtools tab, we can't switch back
         await browser.tabs.update(curtab.id!, {active: true});
     }
 

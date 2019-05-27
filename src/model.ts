@@ -86,7 +86,11 @@ export class Window implements ModelItem {
                 c.index = undefined;
             }
             this.children = w.tabs.map((t, i) => {
-                const r = this.state._tab(t.id!)._update({
+                if (t.id === undefined) {
+                    // This is a devtools or special tab of some kind--ignore it
+                    return undefined;
+                }
+                const r = this.state._tab(t.id)._update({
                     title: t.title,
                     url: t.url,
                     favIconUrl: t.favIconUrl,
@@ -229,7 +233,7 @@ export class Bookmark implements ModelItem {
                 }
             }
             this.children = bm.children.map((c, i) => {
-                const r = this.state._bookmark(c.id!)._update({
+                const r = this.state._bookmark(c.id)._update({
                     title: c.title,
                     url: c.url,
                     dateAdded: c.dateAdded,
@@ -311,32 +315,35 @@ export class StashState {
         browser.bookmarks.onChanged.addListener(bmupdate);
         browser.bookmarks.onMoved.addListener(bmupdate);
         browser.bookmarks.onRemoved.addListener(
-            evq.wrap((id: string) => state._bookmark(id)._remove()));
+            evq.wrap(id => state._bookmark(id)._remove()));
 
-        browser.windows.onCreated.addListener(evq.wrap(
-            (win: browser.windows.Window) =>
-                state._window(win.id!)._update(win)));
+        browser.windows.onCreated.addListener(evq.wrap(win => {
+            // Window objects might not have IDs when queried thru the
+            // browser.session API, but that doesn't happen here. #undef
+            state._window(win.id!)._update(win)
+        }));
         browser.windows.onRemoved.addListener(evq.wrap(
-            (id: number) => state._window(id)._remove()));
+            id => state._window(id)._remove()));
 
-        browser.tabs.onCreated.addListener(evq.wrap(
-            (tab: browser.tabs.Tab) => state._tab(tab.id!)._update(tab)));
-        browser.tabs.onAttached.addListener(evq.wrap(
-            (id: number, info: {newWindowId: number, newPosition: number}) =>
-                state._tab(id)._update({windowId: info.newWindowId,
-                                      index: info.newPosition})));
-        browser.tabs.onMoved.addListener(evq.wrap(
-            (id: number, info: {windowId: number, toIndex: number}) =>
-                state._tab(id)._update({windowId: info.windowId,
-                                      index: info.toIndex})));
+        browser.tabs.onCreated.addListener(evq.wrap(tab => {
+            // Tab objects might not have IDs when queried thru the
+            // browser.session API, but that doesn't happen here. #undef
+            state._tab(tab.id!)._update(tab);
+        }));
+        browser.tabs.onAttached.addListener(evq.wrap((id, info) => {
+            state._tab(id)._update({windowId: info.newWindowId,
+                                    index: info.newPosition});
+        }));
+        browser.tabs.onMoved.addListener(evq.wrap((id, info) => {
+            state._tab(id)._update({windowId: info.windowId,
+                                    index: info.toIndex});
+        }));
         browser.tabs.onRemoved.addListener(
-            evq.wrap((id: number) => state._tab(id)._remove()));
+            evq.wrap(id => state._tab(id)._remove()));
         browser.tabs.onReplaced.addListener(
-            evq.wrap((new_id: number, old_id: number) =>
-                     state._tab_replaced(new_id, old_id)));
+            evq.wrap((new_id, old_id) => state._tab_replaced(new_id, old_id)));
         browser.tabs.onUpdated.addListener(
-            evq.wrap((id: number, info: {}, tab: browser.tabs.Tab) =>
-                     state._tab(id)._update(tab)));
+            evq.wrap((id, info, tab) => state._tab(id)._update(tab)));
 
         //
         // Once event handlers are setup, we can construct the state object.
@@ -371,7 +378,10 @@ export class StashState {
         this.bookmarks._update(bookmarks_root);
 
         // Populates wins_by_id
-        for (let win of windows) this._window(win.id!)._update(win);
+        for (let win of windows) {
+            if (win.id === undefined) continue; // Special/devtools window
+            this._window(win.id)._update(win);
+        }
     }
 
     _bookmark(id: string): Bookmark {
@@ -439,12 +449,14 @@ export class StashState {
 
         // First remove from the old parent
         if (item.parent) {
-            const children = item.parent.children!;
-            let idx = children.indexOf(item);
-            if (idx >= 0) {
-                children.splice(idx, 1);
-                for (let i = idx; i < children.length; ++i) {
-                    if (children[i]) children[i]!.index = i;
+            const children = item.parent.children;
+            if (children) {
+                let idx = children.indexOf(item);
+                if (idx >= 0) {
+                    children.splice(idx, 1);
+                    for (let i = idx; i < children.length; ++i) {
+                        if (children[i]) children[i]!.index = i;
+                    }
                 }
             }
             item.parent = undefined;
@@ -471,6 +483,8 @@ export class StashState {
             let idx = i.related.indexOf(i);
             console.assert(idx >= 0);
             i.related.splice(idx, 1);
+            // Safe to assume we have a URL here since delete(undefined) is
+            // mostly harmless. #undef
             if (i.related.length <= 0) this.items_by_url.delete(i.url!);
 
             i.url = undefined;

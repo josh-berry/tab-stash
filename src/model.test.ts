@@ -34,12 +34,13 @@ describe('model', function() {
             if (item.url) {
                 expect(item.related, `${item.id} has a related index`)
                     .to.not.be.undefined;
+                const rel = item.related!;
 
                 const urldb = model.items_by_url.get(item.url);
                 expect(urldb, `${item.id}'s related index is in items_by_url`)
-                    .to.equal(item.related);
+                    .to.equal(rel);
 
-                expect(item.related!.includes(item),
+                expect(rel.includes(item),
                        `${item.id}'s related index contains itself`)
                     .to.equal(true);
             }
@@ -63,6 +64,8 @@ describe('model', function() {
 
             if (bm.parent !== undefined) {
                 const p = bm.parent;
+                expect(p.children).to.not.be.undefined;
+                expect(bm.index).to.not.be.undefined;
                 expect(p.children![bm.index!],
                        `${bm.id} to be at index ${bm.index} in parent ${p.id}`)
                     .to.equal(bm);
@@ -104,9 +107,11 @@ describe('model', function() {
             const dbt = model.tabs_by_id.get(t.id);
             expect(t, `tab ${t.id} to be indexed in tabs_by_id`).to.equal(dbt);
 
-            const p = t.parent!;
             expect(t.parent).to.not.be.undefined;
-            expect(p.children[t.index!],
+            const p = t.parent!;
+            expect(p.children).to.not.be.undefined;
+            expect(t.index).to.not.be.undefined;
+            expect(p.children![t.index!],
                    `tab ${t.id} to be at index ${t.index} in win ${p.id}`)
                 .to.equal(t);
 
@@ -453,7 +458,7 @@ describe('model', function() {
                 .to.eql([model.bms_by_id.get('new')]);
             model._bookmark('new')._remove();
             expect(model.bms_by_id.get('new')).to.equal(undefined);
-            expect(model.bookmarks.children!.length).to.equal(0);
+            expect(model.bookmarks.children).to.deep.equal([]);
             expect(model.items_by_url.get('foo')).to.equal(undefined);
             check(model);
         });
@@ -481,7 +486,7 @@ describe('model', function() {
             expect(model.bms_by_id.get('child2')).to.equal(undefined);
             expect(model.bms_by_id.get('child3')).to.equal(undefined);
             expect(model.bms_by_id.get('f1')).to.equal(undefined);
-            expect(model.bookmarks.children!.length).to.equal(0);
+            expect(model.bookmarks.children).to.deep.equal([]);
             check(model);
         });
 
