@@ -3,7 +3,7 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 module.exports = {
     entry: {
-        "index": "./src/index.js",
+        "index": "./src/index.ts",
         "stash-list": "./src/stash-list.js",
         "options": "./src/options.ts",
         "whats-new": "./src/whats-new.ts",

@@ -3,22 +3,9 @@
 import {asyncEvent, urlsInTree, nonReentrant} from './util';
 import {
     stashTabs, bookmarkTabs, restoreTabs, tabStashTree,
-    getFolderNameISODate, mostRecentUnnamedFolderId,
+    mostRecentUnnamedFolderId,
 } from './stash';
 import Options from './options-model';
-
-
-
-//
-// Continuously-updated (via browser events) objects representing the user's
-// current preferences.  We need SYNCHRONOUS access to these preferences because
-// of Firefox's restrictions on opening the sidebar--it must be done
-// synchronously from an event handler.
-//
-// These are populated from within the async function at the bottom of index.js.
-//
-let OPTIONS = {sync: null, local: null};
-
 
 
 //
@@ -26,11 +13,9 @@ let OPTIONS = {sync: null, local: null};
 // correspond to field names in the commands object.
 //
 
-const menu_buttons = ['browser_action', 'page_action',
-                      'tab', 'page', 'tools_menu'];
-const menu_contexts = ['tab', 'page', 'tools_menu'];
-
-const menu = (idprefix, contexts, def) => {
+function menu(idprefix: string, contexts: browser.menus.ContextType[],
+              def: string[][])
+{
     for (let [id, title] of def) {
         if (id) {
             browser.menus.create({contexts, title, id: idprefix + id});
@@ -38,7 +23,7 @@ const menu = (idprefix, contexts, def) => {
             browser.menus.create({contexts, type: 'separator', enabled: false});
         }
     }
-};
+}
 
 menu('1:', ['tab', 'page', 'tools_menu'], [
     ['stash_all', 'Stash All Tabs'],
@@ -73,12 +58,12 @@ menu('3:', ['page_action'], [
 ]);
 
 async function show_stash_if_desired() {
-    switch (OPTIONS.sync.open_stash_in) {
+    switch ((await Options.sync()).open_stash_in) {
     case 'none':
         break;
 
     case 'tab':
-        await restoreTabs([browser.extension.getURL('stash-list.html')]);
+        await restoreTabs([browser.extension.getURL('stash-list.html')], {});
         break;
 
     case 'sidebar':
@@ -88,17 +73,17 @@ async function show_stash_if_desired() {
     }
 }
 
-const commands = {
+const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
     // permission to do so per Firefox's API rules.
 
-    show_sidebar: async function(tab) {
+    show_sidebar: async function() {
         browser.sidebarAction.open().catch(console.log);
     },
 
-    show_tab: async function(tab) {
-        await restoreTabs([browser.extension.getURL('stash-list.html')]);
+    show_tab: async function() {
+        await restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
 
     stash_all: async function() {
@@ -110,12 +95,12 @@ const commands = {
         await stashTabs(undefined, tabs);
     },
 
-    stash_one: async function(tab) {
+    stash_one: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
         await stashTabs(await mostRecentUnnamedFolderId(), [tab]);
     },
 
-    stash_one_newgroup: async function(tab) {
+    stash_one_newgroup: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
         await stashTabs(undefined, [tab]);
     },
@@ -129,7 +114,7 @@ const commands = {
                 .sort((a, b) => a.index - b.index));
     },
 
-    copy_one: async function(tab) {
+    copy_one: async function(tab: browser.tabs.Tab) {
         show_stash_if_desired().catch(console.log);
         await bookmarkTabs(await mostRecentUnnamedFolderId(), [tab]);
     },
@@ -146,7 +131,8 @@ const commands = {
 //
 
 browser.menus.onClicked.addListener((info, tab) => {
-    const cmd = info.menuItemId.replace(/^[^:]*:/, '');
+    // #cast We only ever create menu items with string IDs
+    const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, '');
     console.assert(commands[cmd]);
     commands[cmd](tab).catch(console.log);
 });
@@ -156,12 +142,36 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 
 
 
-// Various garbage-collection tasks are handled here.
 //
-// Most importantly, we garbage-collect hidden tabs when their corresponding
-// bookmarks are removed from the tab stash.  Unfortunately, because Firefox
-// doesn't provide a comprehensive accounting of all bookmarks that are removed
-// (in particular, if a subtree is removed, we only get one notification for the
+// Check for a fresh install and note which version we are, so we can notify the
+// user when updates are installed.
+//
+
+(async () => {
+    const localopts = await Options.local();
+
+    if (localopts.last_notified_version === undefined) {
+        // This looks like a fresh install, (or an upgrade from a version that
+        // doesn't keep track of the last-notified version, in which case, we
+        // just assume it's a fresh install).  Record our current version number
+        // here so we can detect upgrades in the future and show the user a
+        // whats-new notification.
+        localopts.last_notified_version =
+            (await browser.management.getSelf()).version;
+    }
+
+})().catch(console.log);
+
+
+
+//
+// Setup the hidden-tab garbage collector.  This GC is triggered by any bookmark
+// event which could possibly change the set of URLs stored in the stash.
+//
+// We garbage-collect (close) hidden tabs with URLs that correspond to bookmarks
+// which are removed from the stash.  Unfortunately, because Firefox doesn't
+// provide a comprehensive accounting of all bookmarks that are removed (in
+// particular, if a subtree is removed, we only get one notification for the
 // top-level folder and NO information about the children that were deleted),
 // the only way we can reliably identify which hidden tabs to throw away is by
 // diffing the bookmark trees.
@@ -170,32 +180,9 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 // manage hidden tabs, but there's unfortunately not much we can do about this.
 // The alternative is to allow hidden tabs which belong to deleted folders to
 // pile up, which will cause browser slowdowns over time.
+//
 
-(async function() {
-    // First, populate the local and sync options objects, since we rely on
-    // settings in here for a variety of things.
-    let sync_p = Options.sync();
-    let local_p = Options.local();
-    OPTIONS.sync = await sync_p;
-    OPTIONS.local = await local_p;
-
-    if (OPTIONS.local.last_notified_version === undefined) {
-        // This looks like a fresh install, (or an upgrade from a version that
-        // doesn't keep track of the last-notified version, in which case, we
-        // just assume it's a fresh install).  Record our current version number
-        // here so we can detect upgrades in the future and show the user a
-        // whats-new notification.
-        OPTIONS.local.last_notified_version =
-            (await browser.management.getSelf()).version;
-    }
-
-
-
-    // Next, setup the hidden-tab garbage collector -- we collect (close) hidden
-    // tabs that are pointing to URLs that are removed from the stash.  This is
-    // driven by any browser bookmark event which could possibly change the set
-    // of URLs stored in the stash.
-
+(async () => {
     let managed_urls = new Set(urlsInTree(await tabStashTree()));
 
     const close_removed_bookmarks = nonReentrant(async function() {
@@ -216,9 +203,12 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 
         let tids = [];
         for (let w of windows) {
-            for (let t of w.tabs) {
+            // #undef We only asked for 'normal' windows, which have tabs
+            for (let t of w.tabs!) {
                 if (! t.hidden) continue;
-                if (removed_urls.has(t.url)) tids.push(t.id);
+                if (! removed_urls.has(t.url)) continue;
+                if (t.id === undefined) continue;
+                tids.push(t.id);
             }
         }
 
@@ -231,54 +221,62 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
     browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
     browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
 
+})().catch(console.log);
 
 
-    // This periodic background job will discard hidden tabs if they are not
-    // re-activated within a reasonable period of time.  Since under normal
-    // usage, we can accumulate a LOT of hidden tabs if the user leaves their
-    // browser open for a while, this is mostly a light-touch, precautionary
-    // measure to keep the user's memory usage from becoming surprisingly high
-    // over time.
-    //
-    // We could immediately discard a tab when stashing/hiding it, but this
-    // causes performance problems if the user wants to temporarily stash a
-    // bunch of tabs for a short period of time (e.g. if they are interrupted at
-    // their desk by, "Can you just check on this thing for me really quick?").
-    //
-    // We try to be relatively intelligent about the age (defined as "time since
-    // last access") of hidden tabs, to account for the fact that there will be
-    // periods of higher and lower activity (where more or fewer hidden tabs
-    // might be generated).  We do this by setting a target tab count and age,
-    // and scaling the age boundary according to the number of loaded tabs.  The
-    // target count/age are used as a reference point--when the target number of
-    // tabs are open, we want to discard tabs older than the target age (in this
-    // case, 50 tabs and 10 minutes).  If there are MORE than the target number
-    // of tabs open, the age will scale asymptotically towards 0.  If there are
-    // FEWER than the target number of tabs open, we are more lax on the age,
-    // and we will always keep a certain minimum number of tabs open (for which
-    // the age is effectively infinite).
-    //
-    // Note that active (non-hidden) tabs are counted towards the total, so if
-    // the user has a lot of tabs open, we will discard hidden tabs more
-    // aggressively to stay within reasonable memory limits.
+
+//
+// Setup a background job to discard (unload, but keep open) hidden tabs that
+// haven't been touched in a while.
+//
+// Since under normal usage, we can accumulate a LOT of hidden tabs if the user
+// leaves their browser open for a while, this is mostly a light-touch,
+// precautionary measure to keep the user's memory usage from becoming
+// surprisingly high over time.
+//
+// We could immediately discard a tab when stashing/hiding it, but this causes
+// performance problems if the user wants to temporarily stash a bunch of tabs
+// for a short period of time (e.g. if they are interrupted at their desk by,
+// "Can you just check on this thing for me really quick?").
+//
+// We try to be relatively intelligent about the age (defined as "time since
+// last access") of hidden tabs, to account for the fact that there will be
+// periods of higher and lower activity (where more or fewer hidden tabs might
+// be generated).  We do this by setting a target tab count and age, and scaling
+// the age boundary according to the number of loaded tabs.  The target
+// count/age are used as a reference point--when the target number of tabs are
+// open, we want to discard tabs older than the target age (in this case, 50
+// tabs and 10 minutes).  If there are MORE than the target number of tabs open,
+// the age will scale asymptotically towards 0.  If there are FEWER than the
+// target number of tabs open, we are more lax on the age, and we will always
+// keep a certain minimum number of tabs open (for which the age is effectively
+// infinite).
+//
+// Note that active (non-hidden) tabs are counted towards the total, so if the
+// user has a lot of tabs open, we will discard hidden tabs more aggressively to
+// stay within reasonable memory limits.
+//
+
+(async () => {
+    const localopts = await Options.local();
 
     const discard_old_hidden_tabs = nonReentrant(async function() {
         // We setTimeout() first because the enable/disable flag could change at
         // runtime.
         setTimeout(discard_old_hidden_tabs,
-                   OPTIONS.local.autodiscard_interval_min *60*1000);
+                   localopts.autodiscard_interval_min * 60 * 1000);
 
-        if (! OPTIONS.local.autodiscard_hidden_tabs) return;
+        if (! localopts.autodiscard_hidden_tabs) return;
 
         let now = Date.now();
         let tabs = await browser.tabs.query({discarded: false});
         let tab_count = tabs.length;
-        let candidate_tabs = tabs.filter(t => t.hidden)
+        let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
             .sort((a, b) => a.lastAccessed - b.lastAccessed);
 
-        const min_keep_tabs = OPTIONS.local.autodiscard_min_keep_tabs;
-        const target_tab_count = OPTIONS.local.autodiscard_target_tab_count;
-        const target_age_ms = OPTIONS.local.autodiscard_target_age_min *60*1000;
+        const min_keep_tabs = localopts.autodiscard_min_keep_tabs;
+        const target_tab_count = localopts.autodiscard_target_tab_count;
+        const target_age_ms = localopts.autodiscard_target_age_min * 60 * 1000;
 
         while (tab_count > min_keep_tabs) {
             // Keep discarding tabs until we have the minimum number of tabs
@@ -300,7 +298,8 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
             let age = now - oldest_tab.lastAccessed;
             if (age > age_cutoff) {
                 --tab_count;
-                await browser.tabs.discard([oldest_tab.id]);
+                // #undef We filter no-id tabs out of /candidate_tabs/ above
+                await browser.tabs.discard([oldest_tab.id!]);
             } else {
                 break;
             }
@@ -312,5 +311,6 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
     // cause some drift but it's not a big deal--the interval doesn't need to be
     // exact.
     setTimeout(discard_old_hidden_tabs,
-               OPTIONS.local.autodiscard_interval_min *60*1000);
-})();
+               localopts.autodiscard_interval_min * 60 * 1000);
+
+})().catch(console.log);

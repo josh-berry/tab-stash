@@ -7,7 +7,7 @@ export const STASH_FOLDER = 'Tab Stash';
 // makes the API more permissive, because we can also take model objects in
 // addition to official browser objects.
 interface PartialTabInfo {
-    id: number,
+    id?: number,
     title?: string,
     url?: string,
 }
@@ -86,7 +86,7 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
     await refocusAwayFromTabs(tabs);
     const opts = await opts_p;
 
-    const tids = tabs.map(t => t.id);
+    const tids = <number[]>tabs.map(t => t.id).filter(id => id !== undefined);
 
     switch (opts.after_stashing_tab) {
     case 'hide_discard':
@@ -104,8 +104,9 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
 }
 
 export async function closeTabs(tabs: PartialTabInfo[]): Promise<void> {
+    const tids = <number[]>tabs.map(t => t.id).filter(id => id !== undefined);
     await refocusAwayFromTabs(tabs);
-    await browser.tabs.remove(tabs.map(t => t.id));
+    await browser.tabs.remove(tids);
 }
 
 export async function refocusAwayFromTabs(
