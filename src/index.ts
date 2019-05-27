@@ -26,35 +26,35 @@ function menu(idprefix: string, contexts: browser.menus.ContextType[],
 }
 
 menu('1:', ['tab', 'page', 'tools_menu'], [
+    ['show_tab', 'Show Stashed Tabs in a Tab'],
+    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['', ''],
     ['stash_all', 'Stash All Tabs'],
     ['stash_one', 'Stash This Tab'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
     ['', ''],
     ['copy_all', 'Copy All Tabs to Stash'],
     ['copy_one', 'Copy Tab to Stash'],
-    ['', ''],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
     ['', ''],
     ['options', 'Options...'],
 ]);
 
 // These should only have like 6 items each
 menu('2:', ['browser_action'], [
+    ['show_tab', 'Show Stashed Tabs in a Tab'],
+    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['', ''],
     ['stash_all', 'Stash All Tabs'],
     ['copy_all', 'Copy All Tabs to Stash'],
-    ['', ''],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
 ]);
 
 menu('3:', ['page_action'], [
+    ['show_tab', 'Show Stashed Tabs in a Tab'],
+    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['', ''],
     ['stash_one', 'Stash This Tab'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
     ['copy_one', 'Copy Tab to Stash'],
-    ['', ''],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
 ]);
 
 async function show_stash_if_desired() {
