@@ -10,10 +10,9 @@
 
   <div class="folder-list">
 
-    <Version v="NEXT">
+    <Version v="2.3">
       <L issue="6" v="Added">the ability to stash multiple selected tabs at once
-        in
-        <a href="https://www.mozilla.org/en-US/firefox/64.0/releasenotes/">Firefox 64</a>
+        in <a href="https://www.mozilla.org/en-US/firefox/64.0/releasenotes/">Firefox 64</a>
         and newer.  Just Ctrl/Cmd- or Shift-click on the tabs you want to
         stash, and then click any
         <img class="inl" src="icons/stash-dark.svg" alt="multi-stash">
