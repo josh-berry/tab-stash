@@ -29,7 +29,7 @@
         "scripts": ["index.js"]
     },
     "browser_action": {
-        "default_title": "Stash all open tabs",
+        "default_title": "Stash all (or selected) open tabs",
         "default_icon": {
             "16": "icons/stash-dark.svg",
             "32": "icons/stash-dark.svg"
