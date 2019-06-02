@@ -49,14 +49,17 @@ menu, and choosing "*Show Stashed Tabs*".
 
 ### Make Tab Stash Your Homepage
 
-If you would prefer not to use the sidebar, or even if you just want easy access to the full-browser view of your stashed tabs, you can make Tab Stash your homepage.
+If you would prefer not to use the sidebar, or even if you just want easy access
+to the full-browser view of your stashed tabs, you can make Tab Stash your
+homepage.
 
 1. Right-click the Tab Stash icon in the toolbar, and choose "Show Stashed Tabs
    in a Tab".
 2. Right-click in the address bar and select "Copy".
 3. Click the Firefox menu (far right side of the toolbar), then "Preferences".
 4. In the "Preferences" tab, click "Home".
-5. Next to "Homepage and new windows", click the drop-down and select "Custom URLs...".
+5. Next to "Homepage and new windows", click the drop-down and select "Custom
+   URLs...".
 6. Paste the copied URL from the address bar into the Custom URL box.
 
 You can now open the stash any time you like by clicking the "Home" button in
