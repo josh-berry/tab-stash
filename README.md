@@ -79,6 +79,22 @@ On **Windows**, **Linux** and other platforms:
 - Stash all open tabs: *Ctrl+Alt+T*
 - Stash the active tab: *Ctrl+Alt+W*
 
+### Stashing Multiple Tabs at Once
+
+In Firefox 64 and newer, if you get distracted and wind up with a bunch of tabs
+mixed together in your window for different tasks, you can select only those
+tabs applicable to a particular task and stash them, leaving the remaining tabs
+open.
+
+Just Shift-click (or Ctrl/Cmd-click) in the Firefox tab bar to select multiple
+tabs at once, and click any "Stash all..." button (in the browser toolbar or
+stash view).  When Tab Stash sees that you have multiple tabs selected, it will
+stash only the selected tabs.
+
+You can still stash individual tabs using the "Stash this tab" buttons in the
+location bar or stash view--these buttons ignore multi-selection and stash only
+the currently-visible tab.
+
 ### Alternate Ways to Manage Your Stash
 
 To see all your stashed tabs as bookmarks, you can browse to the "*Tab Stash*"
