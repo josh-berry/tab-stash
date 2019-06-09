@@ -10,6 +10,17 @@
 
   <div class="folder-list">
 
+    <Version v="2.3.1">
+      <L :subtext="`This bug got introduced in 2.3 because, ironically, I made `
+         + `some changes to try to catch more issues like this before they `
+         + `made it into a release.`"
+         v="Fixed">an issue preventing the sidebar from opening after stashing
+         tabs when the (default) option "<em>Automatically show your stashed
+         tabs in the sidebar</em>" is chosen.  The tabs would get saved
+         correctly, but you'd have no idea where they went because the sidebar
+         wouldn't open.</L>
+    </Version>
+
     <Version v="2.3">
       <L issue="6" v="Added">the ability to stash multiple selected tabs at once
         in <a href="https://www.mozilla.org/en-US/firefox/64.0/releasenotes/">Firefox 64</a>
