@@ -31,7 +31,8 @@ rel: release-tag pkg-webext pkg-source
 	@echo "Release package: $(DIST_PKG)"
 	@echo "Source package:  $(SRC_PKG)"
 	@echo
-	@echo "If everything looks good, run \"git push\" and upload to AMO."
+	@echo "If everything looks good, run \"git push --tags\", and"
+	@echo "upload to AMO."
 	@echo ""
 .PHONY: rel
 
