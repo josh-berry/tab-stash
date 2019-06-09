@@ -1,6 +1,6 @@
 "use strict";
 
-import {asyncEvent, urlsInTree, nonReentrant} from './util';
+import {asyncEvent, urlsInTree, nonReentrant, AsyncReturnTypeOf} from './util';
 import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
     mostRecentUnnamedFolderId,
@@ -57,21 +57,47 @@ menu('3:', ['page_action'], [
     ['copy_one', 'Copy This Tab to Stash'],
 ]);
 
-async function show_stash_if_desired() {
-    switch ((await Options.sync()).open_stash_in) {
-    case 'none':
-        break;
+// show_stash_if_desired() shows either the Tab Stash sidebar, the Tab Stash
+// tab, or nothing, depending on the `open_stash_in` synced setting.
+//
+// The extra layer of scoping is just to hide the SYNC_OPTIONS variable, for
+// safety (since otherwise it would be a global).
+const show_stash_if_desired = (() => {
+    // Ugh, we have to load Options.sync() synchronously here (ha) so it's
+    // synchronously accessible in show_stash_if_desired(), which absolutely
+    // cannot yield to the browser because we will lose the user-event context
+    // and not be able to open the sidebar, instead resulting in the dreaded
+    // error: "sidebarAction.open may only be called from a user input handler".
 
-    case 'tab':
-        await restoreTabs([browser.extension.getURL('stash-list.html')], {});
-        break;
+    // Ugh, the "| undefined" is needed to work around a TypeScript limitation
+    // related to uninitialized local variables -- see:
+    // https://github.com/microsoft/TypeScript/issues/28013
+    let SYNC_OPTIONS: AsyncReturnTypeOf<typeof Options.sync> | undefined;
+    Options.sync().then(opts => {SYNC_OPTIONS = opts});
 
-    case 'sidebar':
-    default:
-        browser.sidebarAction.open().catch(console.log);
-        break;
-    }
-}
+    // Actual implementation of show_stash_if_desired().
+    return () => {
+        // SYNC_OPTIONS should almost always be defined since we load it at
+        // startup, but on the off chance the user gets to us before the promise
+        // above returns (which is very very very unlikely), we'll just go with
+        // the default behavior.
+        switch (SYNC_OPTIONS && SYNC_OPTIONS.open_stash_in) {
+            case 'none':
+                break;
+
+            case 'tab':
+                restoreTabs([browser.extension.getURL('stash-list.html')], {})
+                    .catch(console.log);
+                break;
+
+            case 'sidebar':
+            default:
+                browser.sidebarAction.open().catch(console.log);
+                break;
+        }
+    };
+})();
+
 
 const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
@@ -87,13 +113,12 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
     },
 
     stash_all: async function(tab: browser.tabs.Tab) {
-        show_stash_if_desired().catch(console.log);
-
+        show_stash_if_desired();
         await stashTabsInWindow(tab.windowId, {close: true});
     },
 
     stash_one: async function(tab: browser.tabs.Tab) {
-        show_stash_if_desired().catch(console.log);
+        show_stash_if_desired();
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
             close: true,
@@ -101,17 +126,17 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
     },
 
     stash_one_newgroup: async function(tab: browser.tabs.Tab) {
-        show_stash_if_desired().catch(console.log);
+        show_stash_if_desired();
         await stashTabs([tab], {close: true});
     },
 
     copy_all: async function(tab: browser.tabs.Tab) {
-        show_stash_if_desired().catch(console.log);
+        show_stash_if_desired();
         await stashTabsInWindow(tab.windowId, {close: false});
     },
 
     copy_one: async function(tab: browser.tabs.Tab) {
-        show_stash_if_desired().catch(console.log);
+        show_stash_if_desired();
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
             close: false,

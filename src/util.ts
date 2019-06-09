@@ -1,5 +1,15 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 
+// AsyncReturnTypeOf is the return type of an `async function` (or Promise). So:
+//
+// AsyncReturnTypeOf<(...) => Promise<T>> == T
+//
+// It comes from a slight modification of the "Advanced Types" section of the
+// TypeScript docs.
+export type AsyncReturnTypeOf<T extends (...args: any) => any> =
+    ReturnType<T> extends Promise<infer U> ? U : void;
+
+
 // Ugh, stupid hack for the fact that getting stuff from the browser that should
 // be a compiled-in set of constants is actually done through an async API...
 //
