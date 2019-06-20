@@ -54,10 +54,16 @@ export function isURLStashable(urlstr: string): boolean {
     try {
         let url = new URL(urlstr);
         switch (url.protocol) {
-        case 'moz-extension:':
-        case 'about:':
-        case 'chrome:':
-            return false;
+            case 'about:':
+                switch (url.pathname) {
+                    // We carve out an exemption for about:reader URLs, since
+                    // these are actual sites being viewed in reader mode.
+                    case 'reader': return true;
+                    default: return false;
+                }
+            case 'moz-extension:':
+            case 'chrome:':
+                return false;
         }
     } catch (e) {
         console.warn('Tab with unparseable URL:', urlstr);

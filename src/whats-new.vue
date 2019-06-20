@@ -10,6 +10,21 @@
 
   <div class="folder-list">
 
+    <Version v="2.4">
+      <L issue="24" v="Added">support for stashing tabs which are in Reader
+        View.  There are a couple caveats:</L>
+      <ul>
+        <li>Since Firefox does not allow extensions to work with page content on
+          Reader View pages, the "Stash this tab" icon will not appear in the
+          address bar for Reader View pages.  You can instead use the
+          right-click menu to stash individual Reader Mode tabs.</li>
+        <li>When you close a tab that was stashed in Reader Mode, the site icon
+          will disappear from the stash list.  This will be addressed in an
+          upcoming release as part of re-working how site icons are
+          handled.</li>
+      </ul>
+    </Version>
+
     <Version v="2.3.1">
       <L :subtext="`This bug got introduced in 2.3 because, ironically, I made `
          + `some changes to try to catch more issues like this before they `
