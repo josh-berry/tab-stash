@@ -522,7 +522,9 @@ export async function restoreTabs(
 
         // Finally, if we opened at least one tab, AND the current tab is
         // looking at the new-tab page, close the current tab in the background.
-        if (tabs.length > 0 && await isNewTabURL(curtab.url)) {
+        if (tabs.length > 0 && await isNewTabURL(curtab.url)
+            && curtab.status === 'complete')
+        {
             // #undef devtools tabs don't have URLs and won't fall in here
             browser.tabs.remove([curtab.id!]).catch(console.log);
         }

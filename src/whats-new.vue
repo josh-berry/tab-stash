@@ -23,6 +23,9 @@
           upcoming release as part of re-working how site icons are
           handled.</li>
       </ul>
+      <L issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
+        tab it had just opened if multiple individual tabs are opened from the
+        stash list in quick succession.</L>
     </Version>
 
     <Version v="2.3.1">
