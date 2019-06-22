@@ -48,8 +48,8 @@
     "page_action": {
         "default_title": "Stash this tab",
         "default_icon": {
-            "16": "icons/stash-one-dark-toolbar.svg",
-            "32": "icons/stash-one-dark-toolbar.svg"
+            "16": "icons/stash-one-mid.svg",
+            "32": "icons/stash-one-mid.svg"
         },
         "browser_style": true,
         "show_matches": ["<all_urls>"]

@@ -12,7 +12,7 @@
    viewBox="0 0 96 96"
    height="96"
    width="96"
-   sodipodi:docname="stash-one-dark-toolbar.svg"
+   sodipodi:docname="stash-one-mid.svg"
    inkscape:version="0.92.2 5c3e80d, 2017-08-06">
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -24,14 +24,14 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1135"
-     inkscape:window-height="876"
+     inkscape:window-height="856"
      id="namedview4512"
      showgrid="true"
      inkscape:zoom="6.1979167"
-     inkscape:cx="18.957983"
-     inkscape:cy="48"
-     inkscape:window-x="1218"
-     inkscape:window-y="192"
+     inkscape:cx="41.707563"
+     inkscape:cy="49.333028"
+     inkscape:window-x="174"
+     inkscape:window-y="23"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10">
     <inkscape:grid
@@ -61,17 +61,17 @@
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="csssscsccccsc"
      fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.60000002" />
+     style="fill:#808080;fill-opacity:1" />
   <path
      d="m 27,66 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      id="path3702"
      inkscape:connector-curvature="0"
      fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.60000002" />
+     style="fill:#808080;fill-opacity:1" />
   <path
      d="M 74.373047,-0.11328125 A 3.7138296,3.7138296 0 0 0 71.759766,0.86132812 L 48,22.027344 24.240234,0.86132812 A 3.7138296,3.7138296 0 1 0 19.300781,6.40625 l 26.228516,23.367188 a 3.7138296,3.7138296 0 0 0 4.941406,0 L 76.699219,6.40625 a 3.7138296,3.7138296 0 0 0 -2.326172,-6.51953125 z"
      id="path917"
      inkscape:connector-curvature="0"
      fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.60000002" />
+     style="fill:#808080;fill-opacity:1" />
 </svg>
