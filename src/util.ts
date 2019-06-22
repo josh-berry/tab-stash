@@ -9,6 +9,12 @@
 export type AsyncReturnTypeOf<T extends (...args: any) => any> =
     ReturnType<T> extends Promise<infer U> ? U : void;
 
+// A "marker" type for a string which is a URL that is actually openable by Tab
+// Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
+// actually exist, it's just used to force an explicit cast so you can't use a
+// string when you should be using a URL that has passed thru urlToOpen().)
+export type OpenableURL = string & { __openable_url_marker__: undefined };
+
 
 // Ugh, stupid hack for the fact that getting stuff from the browser that should
 // be a compiled-in set of constants is actually done through an async API...
@@ -46,18 +52,42 @@ export function cmpVersions(a: string, b: string): number {
 
 export function urlsInTree(
     bm_tree: browser.bookmarks.BookmarkTreeNode
-): string[] {
-    let urls: string[] = [];
+): OpenableURL[] {
+    let urls: OpenableURL[] = [];
     function collect(bm: browser.bookmarks.BookmarkTreeNode) {
         if (bm.children) {
             for (let c of bm.children) collect(c);
         } else if (bm.url) {
-            urls.push(bm.url);
+            urls.push(urlToOpen(bm.url));
         }
     }
     if (bm_tree) collect(bm_tree);
     return urls;
 }
+
+// Given a URL to stash, return the URL that is actually openable by an
+// extension.  This is needed because sometimes the saved URL is a "privileged"
+// URL (e.g. a tab which is open in Reader Mode), which we won't be able to open
+// again later.
+//
+// This is in util.ts instead of stash.ts because it's also required by the
+// model, which uses it to figure out if tabs/bookmarks are "related" to each
+// other.
+export function urlToOpen(urlstr: string): OpenableURL {
+    try {
+        let url = new URL(urlstr);
+        if (url.protocol === 'about:' && url.pathname === 'reader') {
+            let res = url.searchParams.get('url');
+            if (! res) return urlstr as OpenableURL;
+            return (res + url.hash) as OpenableURL;
+        }
+        return urlstr as OpenableURL;
+    } catch (_) {
+        return urlstr as OpenableURL;
+    }
+}
+
+
 
 export function asyncEvent<
     U,

@@ -27,6 +27,47 @@ describe('util', function() {
          i: ["2.0", "1.3.3"], o: 1},
     ]));
 
+    describe('urlToOpen()', callSuite(M.urlToOpen, [
+        {
+            it: 'passes http:// URLs through unscathed',
+            i: ['http://foo.com'], o: 'http://foo.com'
+        },
+        {
+            it: 'passes https:// URLs through unscathed',
+            i: ['https://foo.com'], o: 'https://foo.com'
+        },
+        {
+            it: 'passes complicated https:// URLs through unscathed',
+            i: ['https://foo.com/testing?foo=bar#hashtag'],
+            o: 'https://foo.com/testing?foo=bar#hashtag'
+        },
+        {
+            it: 'passes about: URLs through unscathed',
+            i: ['about:blank?foo=bar#hashtag'],
+            o: 'about:blank?foo=bar#hashtag'
+        },
+        {
+            it: 'transforms simple about:reader URLs',
+            i: ['about:reader?url=http%3a%2f%2ffoo.com'],
+            o: 'http://foo.com'
+        },
+        {
+            it: 'transforms complicated about:reader URLs',
+            i: ['about:reader?url=http%3a%2f%2ffoo.com'],
+            o: 'http://foo.com'
+        },
+        {
+            it: 'transforms about:reader URLs with query strings',
+            i: ['about:reader?url=http%3a%2f%2ffoo.com%2Fdoc%3Ffoo%3Dbar'],
+            o: 'http://foo.com/doc?foo=bar'
+        },
+        {
+            it: 'transforms about:reader URLs with query strings and anchors',
+            i: ['about:reader?url=http%3a%2f%2ffoo.com%2Fdoc%3Ffoo%3Dbar#pos'],
+            o: 'http://foo.com/doc?foo=bar#pos'
+        },
+    ]));
+
     describe('urlsInTree()', callSuite(M.urlsInTree, [
         {
             it: "doesn't crash when provided with no nodes",

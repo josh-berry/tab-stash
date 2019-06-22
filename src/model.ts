@@ -27,7 +27,7 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU NON-`_` METHODS.
 
-import {DeferQueue} from './util';
+import {DeferQueue, OpenableURL, urlToOpen} from './util';
 
 
 // These model objects are designed to look like plain old objects for Vue's
@@ -279,7 +279,7 @@ export class StashState {
     bms_by_id: Map<string, Bookmark> = new Map();
     wins_by_id: Map<number, Window> = new Map();
     tabs_by_id: Map<number, Tab> = new Map();
-    items_by_url: Map<string, (Tab | Bookmark)[]> = new Map();
+    items_by_url: Map<OpenableURL, (Tab | Bookmark)[]> = new Map();
 
     bookmarks: Bookmark;
 
@@ -485,17 +485,20 @@ export class StashState {
             i.related.splice(idx, 1);
             // Safe to assume we have a URL here since delete(undefined) is
             // mostly harmless. #undef
-            if (i.related.length <= 0) this.items_by_url.delete(i.url!);
+            if (i.related.length <= 0) {
+                this.items_by_url.delete(urlToOpen(i.url!));
+            }
 
             i.url = undefined;
             i.related = undefined;
         }
 
         if (url) {
-            let related = this.items_by_url.get(url);
+            const ourl = urlToOpen(url);
+            let related = this.items_by_url.get(ourl);
             if (! related) {
                 related = [];
-                this.items_by_url.set(url, related);
+                this.items_by_url.set(ourl, related);
             }
             related.push(i);
 

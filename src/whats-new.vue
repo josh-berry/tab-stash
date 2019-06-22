@@ -12,16 +12,15 @@
 
     <Version v="2.4">
       <L issue="24" v="Added">support for stashing tabs which are in Reader
-        View.  There are a couple caveats:</L>
+        View.  Due to Firefox security restrictions, there are a couple caveats
+        to be aware of:</L>
       <ul>
-        <li>Since Firefox does not allow extensions to work with page content on
-          Reader View pages, the "Stash this tab" icon will not appear in the
-          address bar for Reader View pages.  You can instead use the
-          right-click menu to stash individual Reader Mode tabs.</li>
-        <li>When you close a tab that was stashed in Reader Mode, the site icon
-          will disappear from the stash list.  This will be addressed in an
-          upcoming release as part of re-working how site icons are
-          handled.</li>
+        <li>The "Stash this tab" icon will not appear in the address bar for
+          Reader View pages.  You can instead use the right-click menu to stash
+          individual Reader View tabs.</li>
+        <li>Tab Stash cannot restore tabs directly to Reader View, so if a tab
+          is no longer available (e.g. it was closed and removed from Firefox's
+          cache), Tab Stash will restore it to the normal website view.</li>
       </ul>
       <L issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
         tab it had just opened if multiple individual tabs are opened from the

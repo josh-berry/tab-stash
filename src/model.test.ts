@@ -1,5 +1,6 @@
 import {expect} from 'chai';
 import * as M from './model';
+import {urlToOpen} from './util';
 
 describe('model', function() {
     //
@@ -36,7 +37,7 @@ describe('model', function() {
                     .to.not.be.undefined;
                 const rel = item.related!;
 
-                const urldb = model.items_by_url.get(item.url);
+                const urldb = model.items_by_url.get(urlToOpen(item.url));
                 expect(urldb, `${item.id}'s related index is in items_by_url`)
                     .to.equal(rel);
 
@@ -215,6 +216,8 @@ describe('model', function() {
               }))
             : undefined,
     });
+
+    const OU = urlToOpen;
 
     function simple_state(): M.StashState {
         return new M.StashState(mkbm({
@@ -454,12 +457,12 @@ describe('model', function() {
                 id: 'new', isBookmark: true, title: 'Foo', url: 'foo',
                 parent: model.bms_by_id.get('root'), index: 0,
             });
-            expect(model.items_by_url.get('foo'))
-                .to.eql([model.bms_by_id.get('new')]);
+            expect(model.items_by_url.get(OU('foo')))
+                .to.eql([model.bms_by_id.get(OU('new'))]);
             model._bookmark('new')._remove();
-            expect(model.bms_by_id.get('new')).to.equal(undefined);
+            expect(model.bms_by_id.get(OU('new'))).to.equal(undefined);
             expect(model.bookmarks.children).to.deep.equal([]);
-            expect(model.items_by_url.get('foo')).to.equal(undefined);
+            expect(model.items_by_url.get(OU('foo'))).to.equal(undefined);
             check(model);
         });
 
@@ -741,13 +744,13 @@ describe('model', function() {
 
         it('updates tab URLs', function() {
             expect(model.tabs_by_id.get(1)!.url).to.equal('url://1');
-            expect(model.items_by_url.get('url://1')).to.contain(
+            expect(model.items_by_url.get(OU('url://1'))).to.contain(
                 model.tabs_by_id.get(1)!);
 
             model._tab(1)._update({id: 1, url: 'bar://'});
             expect(model.tabs_by_id.get(1)!.url).to.equal('bar://');
-            expect(model.items_by_url.get('url://1')).to.equal(undefined);
-            expect(model.items_by_url.get('bar://')).to.contain(
+            expect(model.items_by_url.get(OU('url://1'))).to.equal(undefined);
+            expect(model.items_by_url.get(OU('bar://'))).to.contain(
                 model.tabs_by_id.get(1)!);
             check(model);
         });
@@ -773,7 +776,7 @@ describe('model', function() {
             model._bookmark('2')._update({id: '2', url: 'url://2', title: '2',
                                         dateAdded: 3,
                                         parentId: 'root', index: 2});
-            expect(model.items_by_url.get('url://1')).to.include.members([
+            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
                 model.bms_by_id.get('1'),
                 model.bms_by_id.get('1prime'),
             ]);
@@ -785,7 +788,7 @@ describe('model', function() {
 
         it('unlinks a duplicate bookmark when it is deleted', function() {
             model._bookmark('1prime')._remove();
-            expect(model.items_by_url.get('url://1')).to.include.members([
+            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
                 model.bms_by_id.get('1'),
             ]);
             check(model);
@@ -794,13 +797,13 @@ describe('model', function() {
         it('moves a bookmark from one URL set to another when its URL changes',
            function() {
                model._bookmark('1prime')._update({url: 'url://2'});
-               expect(model.items_by_url.get('url://1')).to.include.members([
-                   model.bms_by_id.get('1'),
-               ]);
-               expect(model.items_by_url.get('url://2')).to.include.members([
-                   model.bms_by_id.get('2'),
-                   model.bms_by_id.get('1prime'),
-               ]);
+               expect(model.items_by_url.get(OU('url://1'))).to.include
+                   .members([model.bms_by_id.get('1')]);
+               expect(model.items_by_url.get(OU('url://2'))).to.include
+                   .members([
+                       model.bms_by_id.get('2'),
+                       model.bms_by_id.get('1prime'),
+                   ]);
                check(model);
            });
     });
@@ -813,7 +816,7 @@ describe('model', function() {
         });
 
         it('links duplicate tabs together', function() {
-            expect(model.items_by_url.get('url://1')).to.include.members([
+            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
                 model.bms_by_id.get('1'),
                 model.tabs_by_id.get(1),
                 model.tabs_by_id.get(4),
@@ -821,7 +824,7 @@ describe('model', function() {
         });
 
         it('links bookmarks with tabs with the same URLs', function() {
-            expect(model.items_by_url.get('url://2')).to.include.members([
+            expect(model.items_by_url.get(OU('url://2'))).to.include.members([
                 model.bms_by_id.get('2'),
                 model.tabs_by_id.get(7),
             ]);
@@ -829,7 +832,7 @@ describe('model', function() {
 
         it('unlinks a tab when it is closed', function() {
             model._tab(3)._remove();
-            expect(model.items_by_url.get('url://1')).to.include.members([
+            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
                 model.bms_by_id.get('1'),
                 model.tabs_by_id.get(1),
             ]);
@@ -839,14 +842,33 @@ describe('model', function() {
         it('moves a tab from one URL set to another when its URL changes',
            function() {
                model._tab(7)._update({id: 7, url: 'newtab'});
-               expect(model.items_by_url.get('url://1')).to.include.members([
-                   model.bms_by_id.get('1'),
-                   model.tabs_by_id.get(1),
-               ]);
-               expect(model.items_by_url.get('newtab')).to.include.members([
+               expect(model.items_by_url.get(OU('url://1'))).to.include
+                   .members([
+                       model.bms_by_id.get('1'),
+                       model.tabs_by_id.get(1),
+                   ]);
+               expect(model.items_by_url.get(OU('newtab'))).to.include.members([
                    model.tabs_by_id.get(7),
                ]);
                check(model);
+           });
+
+        it('relates about:reader URLs to their actual URLs', function() {
+            model._tab(10)._update({
+                id: 10, windowId: 1, index: 3,
+                url: "about:reader?url=http%3A%2F%2Ffoo.bar%2Fpath#a",
+                title: 'Reader Mode',
+                favIconUrl: 'favicon://none'});
+            model._bookmark('non-reader')._update({
+                id: 'non-reader', parentId: 'root', index: 5,
+                title: 'Non reader mode URL',
+                url: 'http://foo.bar/path#a'
+            });
+            expect(model.items_by_url.get(OU('http://foo.bar/path#a')))
+                .to.include.members([
+                    model.tabs_by_id.get(10),
+                    model.bms_by_id.get('non-reader'),
+                ]);
         });
     });
 });

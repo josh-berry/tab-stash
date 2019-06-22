@@ -1,6 +1,9 @@
 "use strict";
 
-import {asyncEvent, urlsInTree, nonReentrant, AsyncReturnTypeOf} from './util';
+import {
+    AsyncReturnTypeOf,
+    asyncEvent, urlsInTree, urlToOpen, nonReentrant,
+} from './util';
 import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
     mostRecentUnnamedFolderId,
@@ -230,8 +233,8 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
             // #undef We only asked for 'normal' windows, which have tabs
             for (let t of w.tabs!) {
                 if (! t.hidden) continue;
-                if (! removed_urls.has(t.url)) continue;
                 if (t.id === undefined) continue;
+                if (! removed_urls.has(urlToOpen(t.url!))) continue;
                 tids.push(t.id);
             }
         }

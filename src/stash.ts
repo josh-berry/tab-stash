@@ -1,5 +1,7 @@
 import Options from './options-model';
 
+import {urlToOpen} from './util';
+
 export const STASH_FOLDER = 'Tab Stash';
 
 // Interface used in place of browser.tabs.Tab, defining only the fields we care
@@ -319,7 +321,7 @@ async function bookmarkTabs(
         ps.push(browser.bookmarks.update(bm.id, {
             // #undef typedef is wrong; title/url are both optional
             title: tabs_to_actually_save[tab_index].title!,
-            url: tabs_to_actually_save[tab_index].url!,
+            url: urlToOpen(tabs_to_actually_save[tab_index].url!),
         }));
         ++tab_index;
     }
@@ -456,7 +458,8 @@ export async function restoreTabs(
     let ps: Promise<browser.tabs.Tab>[] = [];
     let index = wintabs.length;
     for (const url of urls) {
-        const open = wintabs.find(tab => (tab.url === url));
+        const open = wintabs.find(tab => (tab.url === url
+                                          || urlToOpen(tab.url!) === url));
         if (open && open.id !== undefined) {
             // Tab is already open.  If it was hidden, un-hide it and move it to
             // the right location in the tab bar.
@@ -473,7 +476,9 @@ export async function restoreTabs(
         }
 
         const closed = closed_tabs.find(
-            sess => (sess.tab && sess.tab.url === url || false));
+            sess => (sess.tab && (sess.tab.url === url
+                                  || urlToOpen(sess.tab.url!) === url)
+                     || false));
         if (closed) {
             const ct = closed.tab!;
 
@@ -491,8 +496,8 @@ export async function restoreTabs(
             continue;
         }
 
-        // Tab was never open in the first place.
-        ps.push(browser.tabs.create({active: false, url, index}));
+        ps.push(browser.tabs.create({
+            active: false, url: urlToOpen(url), index}));
         ++index;
     }
 
@@ -505,10 +510,11 @@ export async function restoreTabs(
         // Special case: If we were asked to open only one tab AND that tab is
         // already open, just switch to it.
         if (urls.length == 1 && tabs.length == 0) {
+            const open_tab = wintabs.find(t => t.url === urls[0]
+                                          || urlToOpen(t.url!) === urls[0]);
             // #undef Since we opened no tabs, yet we were asked to open one
             // URL, the tab must be open and therefore listed in /wintabs/.
-            await browser.tabs.update(wintabs.find(t => t.url === urls[0])!.id!,
-                                      {active: true});
+            await browser.tabs.update(open_tab!.id, {active: true});
         }
 
         // Special case: If only one tab was restored, switch to it.  (This is
