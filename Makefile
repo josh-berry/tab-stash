@@ -36,6 +36,13 @@ rel: release-tag pkg-webext pkg-source
 	@echo ""
 .PHONY: rel
 
+# My version of `npm update`, since `npm update` seems to leave stale stuff
+# lying around in package-lock.json. :/
+up:
+	rm -rf package-lock.json node_modules
+	$(MAKE)
+.PHONY: up
+
 
 
 # Intermediate targets.
