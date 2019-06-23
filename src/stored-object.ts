@@ -55,7 +55,8 @@ export default class StoredObject<T extends StorableObject<T>> {
 
     get defaults(): T { return (<MetaInfo<T>>META.get(this)).defaults; }
 
-    async set(values: Partial<T>): Promise<void> {
+    async set(values: browser.storage.StorageObject & Partial<T>): Promise<void>
+    {
         let meta = META.get(this)!;
 
         // Make sure we have an updated set of stuff first.
@@ -64,7 +65,7 @@ export default class StoredObject<T extends StorableObject<T>> {
         // The object we will save to the store.  Values which are the default
         // should be omitted to save space (and allow defaults to
         // programmatically change later).
-        let data: Partial<T> = {};
+        let data: typeof values = {};
 
         for (let k of Object.keys(this) as (keyof T)[]) {
             // Carry forward existing values that are non-default and not
