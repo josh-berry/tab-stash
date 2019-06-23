@@ -48,12 +48,22 @@ import {DeferQueue, OpenableURL, urlToOpen} from './util';
 export interface ModelItem {
     readonly state: StashState;
     readonly id: number | string;
-    parent?: ModelItem;
-    index?: number;
-    children?: (ModelItem | undefined)[];
 }
 
-export class Window implements ModelItem {
+export interface ModelParent extends ModelItem {
+    children?: (ModelLeaf | undefined)[];
+}
+
+export interface ModelLeaf extends ModelItem {
+    title?: string;
+    url?: string;
+
+    parent?: ModelParent;
+    index?: number;
+    related?: ModelLeaf[];
+}
+
+export class Window implements ModelParent {
     readonly state: StashState;
     readonly id: number;
     readonly isWindow: boolean = true;
@@ -119,7 +129,7 @@ export class Window implements ModelItem {
     }
 }
 
-export class Tab implements ModelItem {
+export class Tab implements ModelLeaf {
     readonly state: StashState;
     id: number; // not readonly because of _tab_replaced()
     readonly isTab: boolean = true;
@@ -169,7 +179,7 @@ export class Tab implements ModelItem {
     }
 }
 
-export class Bookmark implements ModelItem {
+export class Bookmark implements ModelParent, ModelLeaf {
     readonly state: StashState;
     readonly id: string;
     readonly isBookmark: boolean = true;
@@ -192,7 +202,7 @@ export class Bookmark implements ModelItem {
     parent?: Bookmark = undefined;
     index?: number = undefined;
     children?: (Bookmark | undefined)[] = undefined;
-    related?: ModelItem[] = undefined;
+    related?: ModelLeaf[] = undefined;
 
     // Check if this item is somewhere in the folder identified by /folder_id/.
     isInFolder(folder_id: string) {
@@ -279,7 +289,7 @@ export class StashState {
     bms_by_id: Map<string, Bookmark> = new Map();
     wins_by_id: Map<number, Window> = new Map();
     tabs_by_id: Map<number, Tab> = new Map();
-    items_by_url: Map<OpenableURL, (Tab | Bookmark)[]> = new Map();
+    items_by_url: Map<OpenableURL, ModelLeaf[]> = new Map();
 
     bookmarks: Bookmark;
 
@@ -404,7 +414,7 @@ export class StashState {
         i.id = new_id;
     }
 
-    _reposition(item: ModelItem,
+    _reposition(item: ModelLeaf,
                 newParentId: string | number | undefined,
                 newIndex: number | undefined)
     {
@@ -478,7 +488,7 @@ export class StashState {
         }
     }
 
-    _update_url(i: Bookmark | Tab, url?: string) {
+    _update_url(i: ModelLeaf, url?: string) {
         if (i.related) {
             let idx = i.related.indexOf(i);
             console.assert(idx >= 0);

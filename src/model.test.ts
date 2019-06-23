@@ -8,7 +8,7 @@ describe('model', function() {
     // model.
     //
     function check(model: M.StashState) {
-        function check_related_index(url: string, items: (M.Bookmark | M.Tab)[])
+        function check_related_index(url: string, items: M.ModelLeaf[])
         {
             for (let r of items) {
                 expect(r.related,
