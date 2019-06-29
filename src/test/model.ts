@@ -14,7 +14,8 @@ describe('model', function() {
                 expect(r.related,
                        `${r.id} to share related objects with ${url}`)
                     .to.equal(items);
-                expect(r.url, `${r.id} to have the URL ${url}`)
+                expect(r.url && urlToOpen(r.url),
+                       `${r.id} to have the URL ${url}`)
                     .to.equal(url);
 
                 if (r instanceof M.Bookmark) {
@@ -862,13 +863,15 @@ describe('model', function() {
             model._bookmark('non-reader')._update({
                 id: 'non-reader', parentId: 'root', index: 5,
                 title: 'Non reader mode URL',
-                url: 'http://foo.bar/path#a'
+                url: 'http://foo.bar/path#a',
+                dateAdded: 2,
             });
             expect(model.items_by_url.get(OU('http://foo.bar/path#a')))
                 .to.include.members([
                     model.tabs_by_id.get(10),
                     model.bms_by_id.get('non-reader'),
                 ]);
+            check(model);
         });
     });
 });
