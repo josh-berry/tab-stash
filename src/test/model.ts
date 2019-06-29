@@ -1,6 +1,6 @@
 import {expect} from 'chai';
-import * as M from './model';
-import {urlToOpen} from './util';
+import * as M from '../model';
+import {urlToOpen} from '../util';
 
 describe('model', function() {
     //
