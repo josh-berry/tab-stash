@@ -1,6 +1,32 @@
 import {expect} from 'chai';
-import * as M from '../model';
+
 import {urlToOpen} from '../util';
+
+import * as M from '../model';
+
+// XXX move me into a mock file, or remove me entirely and test with the actual
+// favicon cache
+class MockFaviconCache {
+    cache: Map<string, M.FaviconCacheEntry>;
+    constructor() {
+        this.cache = new Map();
+    }
+    _entry(key: string): M.FaviconCacheEntry {
+        let i = this.cache.get(key);
+        if (! i) {
+            i = {key, value: undefined, requested: true};
+            this.cache.set(key, i);
+        }
+        return i;
+    }
+
+    get(key: string): M.FaviconCacheEntry { return this._entry(key); }
+    set(key: string, icon: string): M.FaviconCacheEntry {
+        let i = this._entry(key);
+        i.value = icon;
+        return i;
+    }
+}
 
 describe('model', function() {
     //
@@ -32,8 +58,18 @@ describe('model', function() {
             }
         }
 
-        function check_related(item: M.Bookmark | M.Tab) {
+        function check_related(item: M.ModelLeaf) {
             if (item.url) {
+                try {
+                    let u = new URL(urlToOpen(item.url)).origin;
+                    expect(item.favicon, `${item.id} has a Favicon object`)
+                        .to.not.be.undefined;
+                    expect(item.favicon, `${item.id} has the right Favicon`)
+                        .to.equal(model.favicon_cache.get(u));
+                } catch (e) {
+                    // skip favicon check if URL isn't valid
+                }
+
                 expect(item.related, `${item.id} has a related index`)
                     .to.not.be.undefined;
                 const rel = item.related!;
@@ -105,6 +141,11 @@ describe('model', function() {
                 .to.be.a('boolean');
             expect(t.pinned, `tab ${t.id} has a pinned property`)
                 .to.be.a('boolean');
+
+            expect(t.favicon, `tab ${t.id} has a favicon`).to.not.be.undefined;
+            // favicon origin is checked in check_related()
+            expect(t.favicon!.value, `tab ${t.id} has the right favicon URL`)
+                .to.equal(t.favIconUrl);
 
             const dbt = model.tabs_by_id.get(t.id);
             expect(t, `tab ${t.id} to be indexed in tabs_by_id`).to.equal(dbt);
@@ -225,10 +266,10 @@ describe('model', function() {
             id: 'root', title: 'Root', children: []
         }), [
             mkwin({id: 1, focused: true}, [
-                {id: 1, title: 'Foo', url: 'url://1',
+                {id: 1, title: 'Foo', url: 'http://1',
                  favIconUrl: 'favicon://foo', active: true},
             ]),
-        ]);
+        ], new MockFaviconCache() as unknown as M.FaviconCache);
     }
 
     function fancy_state(): M.StashState {
@@ -236,46 +277,48 @@ describe('model', function() {
             id: 'root', title: 'Root',
             children: [
                 {id: 'a', title: 'Folder A', children: [
-                    {id: '1', title: 'Bookmark 1', url: 'url://1'},
-                     {id: '2', title: 'Bookmark 2', url: 'url://2'},
+                    {id: '1', title: 'Bookmark 1', url: 'http://1/bookmark'},
+                     {id: '2', title: 'Bookmark 2', url: 'http://2/bookmark'},
                 ]},
-                {id: 'b', title: 'Bookmark B', url: 'url://b'},
+                {id: 'b', title: 'Bookmark B', url: 'http://b'},
                 {id: 'c', title: 'Empty Folder C', children: []},
                 {id: 'd', title: 'Folder D', children: [
                     {id: 'd1', title: 'Folder D1', children: []},
                     {id: 'd2', title: 'Folder D2', children: [
-                        {id: 'd2a', title: 'D2A', url: 'url://d2a'},
-                        {id: 'd2b', title: 'D2B', url: 'url://d2b'},
-                        {id: 'd2c', title: 'D2C', url: 'url://d2c'},
-                        {id: 'd2d', title: 'D2D', url: 'url://d2d'},
-                        {id: 'dup1', title: 'Dup1', url: 'url://dup1'},
-                        {id: 'd2e', title: 'D2E', url: 'url://d2e'},
+                        {id: 'd2a', title: 'D2A', url: 'http://d2a'},
+                        {id: 'd2b', title: 'D2B', url: 'http://d2b'},
+                        {id: 'd2c', title: 'D2C', url: 'http://d2c'},
+                        {id: 'd2d', title: 'D2D', url: 'http://d2d'},
+                        {id: 'dup1', title: 'Dup1', url: 'http://dup1'},
+                        {id: 'd2e', title: 'D2E', url: 'http://d2e'},
                     ]},
                 ]},
-                {id: 'dup1-1', title: 'Dup 1 (1)', url: 'url://dup1'},
+                {id: 'dup1-1', title: 'Dup 1 (1)', url: 'http://dup1'},
             ],
         }), [
             mkwin({id: 1, focused: true}, [
-                {id: 1, title: 'Foo', url: 'url://1',
-                 favIconUrl: 'favicon://foo', active: true},
-                {id: 2, title: 'Bar', url: 'url://bar-tab',
-                 favIconUrl: 'favicon://foo'},
-                {id: 3, title: 'Fred', url: 'url://fred-tab',
-                 favIconUrl: 'favicon://foo'},
+                {id: 1, title: 'Foo', url: 'http://1/bookmark',
+                 favIconUrl: 'favicon://1/foo', active: true},
+                {id: 2, title: 'Bar', url: 'http://bar/asdf',
+                 favIconUrl: 'favicon://bar/foo'},
+                {id: 3, title: 'Fred', url: 'http://fred/qwer',
+                 favIconUrl: 'favicon://fred/foo'},
             ]),
             mkwin({id: 2}, [
-                {id: 4, title: 'Foo', url: 'url://1',
-                 favIconUrl: 'favicon://foo', active: true, pinned: true},
-                {id: 5, title: 'Bar', url: 'url://bar-tab',
-                 favIconUrl: 'favicon://foo'},
-                {id: 6, title: 'Fred', url: 'url://fred-tab',
-                 favIconUrl: 'favicon://foo'},
-                {id: 7, title: 'Hidden', url: 'url://2',
-                 favIconUrl: 'favicon://foo'},
-                {id: 9, title: 'Sparse', url: 'url://sparse',
-                 favIconUrl: 'favicon://sparse'},
+                {id: 4, title: 'Foo', url: 'http://1/bookmark',
+                 favIconUrl: 'favicon://1/foo', active: true, pinned: true},
+                {id: 5, title: 'Bar', url: 'http://bar/qwer',
+                 favIconUrl: 'favicon://bar/foo'},
+                {id: 6, title: 'Fred', url: 'http://fred/asdf',
+                 favIconUrl: 'favicon://fred/foo'},
+                {id: 7, title: 'Hidden', url: 'http://2/path',
+                 favIconUrl: 'favicon://2/foo'},
+                {id: 8, title: 'Hidden', url: 'http://2/bookmark',
+                 favIconUrl: 'favicon://2/foo'},
+                {id: 10, title: 'Sparse', url: 'http://sparse/testing',
+                 favIconUrl: 'favicon://sparse/icon'},
             ]),
-        ]);
+        ], new MockFaviconCache() as unknown as M.FaviconCache);
     }
 
     describe('construction', function() {
@@ -289,6 +332,7 @@ describe('model', function() {
         let model: M.StashState;
         beforeEach(function() {
             model = simple_state();
+            check(model);
             expect(model.bookmarks).to.equal(model.bms_by_id.get('root'));
         });
 
@@ -296,7 +340,7 @@ describe('model', function() {
             for (let _ of [0, 1, 2]) {
                 model._bookmark('new')._update({
                     id: 'new', parentId: 'root', index: 0, dateAdded: 1,
-                    title: 'New Title', url: 'url://new'});
+                    title: 'New Title', url: 'http://new'});
                 check(model);
                 expect(model.bms_by_id.get('new')).to.include({
                     isBookmark: true,
@@ -328,7 +372,7 @@ describe('model', function() {
                         {id: 'child2', title: 'Child 2', dateAdded: 2,
                          url: 'url-child2'},
                         {id: 'new', title: 'New Title', dateAdded: 2,
-                         url: 'url://new'},
+                         url: 'http://new'},
                     ]});
                 check(model);
                 expect(model.bms_by_id.get('parent')).to.include({
@@ -379,7 +423,7 @@ describe('model', function() {
                     {id: 'child2', title: 'Child 2', dateAdded: 2,
                      url: 'url-child2'},
                     {id: 'new', title: 'New Title', dateAdded: 2,
-                     url: 'url://new'},
+                     url: 'http://new'},
                 ]});
             check(model);
             expect(model.bms_by_id.get('new')).to.include({
@@ -406,7 +450,7 @@ describe('model', function() {
                     {id: 'child2', title: 'Child 2', dateAdded: 2,
                      url: 'url-child2'},
                     {id: 'new', title: 'New Title', dateAdded: 2,
-                     url: 'url://new'},
+                     url: 'http://new'},
                 ]});
             check(model);
             expect(model.bms_by_id.get('new')).to.include({
@@ -534,16 +578,19 @@ describe('model', function() {
         let model: M.StashState;
         beforeEach(function() {
             model = simple_state();
+            check(model);
             expect(model.bookmarks).to.equal(model.bms_by_id.get('root'));
         });
 
         it('creates windows with pre-populated tabs', function() {
             model._window(2)._update(mkwin({focused: true}, [
-                    {id: 2, title: 'Tab 1', url: 'url1', favIconUrl: 'fav1',
-                     hidden: false, active: false, pinned: false},
-                    {id: 3, title: 'Tab 2', url: 'url2', favIconUrl: 'fav2',
-                     hidden: false, active: false, pinned: false},
-                ]));
+                {id: 2, title: 'Tab 1',
+                 url: 'http://url1', favIconUrl: 'http://fav1',
+                 hidden: false, active: false, pinned: false},
+                {id: 3, title: 'Tab 2',
+                 url: 'http://url2', favIconUrl: 'http://fav2',
+                 hidden: false, active: false, pinned: false},
+            ]));
             expect(model.wins_by_id.get(2)).to.deep.include({
                 isWindow: true,
                 id: 2, focused: true, type: 'normal', children: [
@@ -551,12 +598,14 @@ describe('model', function() {
                     model.tabs_by_id.get(3),
                 ]});
             expect(model.tabs_by_id.get(2)).to.include({
-                id: 2, title: 'Tab 1', url: 'url1', favIconUrl: 'fav1',
+                id: 2, title: 'Tab 1',
+                url: 'http://url1', favIconUrl: 'http://fav1',
                 hidden: false, active: false, pinned: false, isTab: true,
                 parent: model.wins_by_id.get(2), index: 0,
             });
             expect(model.tabs_by_id.get(3)).to.include({
-                id: 3, title: 'Tab 2', url: 'url2', favIconUrl: 'fav2',
+                id: 3, title: 'Tab 2',
+                url: 'http://url2', favIconUrl: 'http://fav2',
                 hidden: false, active: false, pinned: false, isTab: true,
                 parent: model.wins_by_id.get(2), index: 1,
             });
@@ -583,14 +632,14 @@ describe('model', function() {
 
                model._tab(2)._update({
                    id: 2, windowId: 1, index: 1, title: 'New Tab',
-                   url: 'newtab', favIconUrl: 'favicon', hidden: false,
-                   active: true, pinned: false
+                   url: 'http://newtab', favIconUrl: 'http://favicon',
+                   hidden: false, active: true, pinned: false
                });
                expect(model.tabs_by_id.get(2)).to.include({
                    id: 2, parent: model.wins_by_id.get(1), index: 1,
                    title: 'New Tab',
-                   url: 'newtab', favIconUrl: 'favicon', hidden: false,
-                   active: true, pinned: false
+                   url: 'http://newtab', favIconUrl: 'http://favicon',
+                   hidden: false, active: true, pinned: false
                });
                expect(model.wins_by_id.get(1)).to.deep.include({
                    children: [
@@ -601,14 +650,14 @@ describe('model', function() {
 
                model._tab(3)._update({
                    id: 3, windowId: 1, index: 0, title: 'First Tab',
-                   url: 'first', favIconUrl: 'first', hidden: false,
-                   active: false, pinned: false,
+                   url: 'http://first', favIconUrl: 'http://first',
+                   hidden: false, active: false, pinned: false,
                });
                expect(model.tabs_by_id.get(3)).to.include({
                    id: 3, parent: model.wins_by_id.get(1), index: 0,
                    title: 'First Tab',
-                   url: 'first', favIconUrl: 'first', hidden: false,
-                   active: false, pinned: false,
+                   url: 'http://first', favIconUrl: 'http://first',
+                   hidden: false, active: false, pinned: false,
                });
                expect(model.wins_by_id.get(1)).to.deep.include({
                    children: [
@@ -625,18 +674,18 @@ describe('model', function() {
 
             model._tab(2)._update({
                 id: 2, windowId: 1, index: 1, title: 'New Tab',
-                url: 'newtab', favIconUrl: 'favicon', hidden: false,
-                active: true, pinned: false
+                url: 'http://newtab', favIconUrl: 'http://favicon',
+                hidden: false, active: true, pinned: false
             });
             model._tab(3)._update({
                 id: 3, windowId: 1, index: 2, title: 'New Tab #2',
-                url: 'newtab2', favIconUrl: 'favicon', hidden: false,
-                active: true, pinned: false
+                url: 'http://newtab2', favIconUrl: 'http://favicon',
+                hidden: false, active: true, pinned: false
             });
             model._tab(4)._update({
                 id: 4, windowId: 1, index: 3, title: 'New Tab #3',
-                url: 'newtab3', favIconUrl: 'favicon', hidden: false,
-                active: true, pinned: false
+                url: 'http://newtab3', favIconUrl: 'http://favicon',
+                hidden: false, active: true, pinned: false
             });
             check(model);
         }
@@ -694,11 +743,11 @@ describe('model', function() {
         it('moves tabs between windows', function() {
             move_remove_tab_state();
             model._window(2)._update(mkwin({}, [
-                {id: 5, title: 'Mambo #5', url: 'mambo',
-                 favIconUrl: 'mambo',
+                {id: 5, title: 'Mambo #5', url: 'http://mambo',
+                 favIconUrl: 'http://mambo',
                  hidden: false, active: false, pinned: false},
-                {id: 6, title: 'words long', url: 'words',
-                 favIconUrl: 'words',
+                {id: 6, title: 'words long', url: 'http://words',
+                 favIconUrl: 'http://words',
                  hidden: false, active: false, pinned: false},
             ]));
             check(model);
@@ -734,7 +783,7 @@ describe('model', function() {
             model._tab_replaced(2, 1);
             expect(model.tabs_by_id.get(1)).to.equal(undefined);
             expect(model.tabs_by_id.get(2)!.id).to.equal(2);
-            expect(model.tabs_by_id.get(2)!.url).to.equal('url://1');
+            expect(model.tabs_by_id.get(2)!.url).to.equal('http://1');
             expect(model.wins_by_id.get(1)).to.deep.include({
                 children: [
                     model.tabs_by_id.get(2),
@@ -744,13 +793,13 @@ describe('model', function() {
         });
 
         it('updates tab URLs', function() {
-            expect(model.tabs_by_id.get(1)!.url).to.equal('url://1');
-            expect(model.items_by_url.get(OU('url://1'))).to.contain(
+            expect(model.tabs_by_id.get(1)!.url).to.equal('http://1');
+            expect(model.items_by_url.get(OU('http://1'))).to.contain(
                 model.tabs_by_id.get(1)!);
 
             model._tab(1)._update({id: 1, url: 'bar://'});
             expect(model.tabs_by_id.get(1)!.url).to.equal('bar://');
-            expect(model.items_by_url.get(OU('url://1'))).to.equal(undefined);
+            expect(model.items_by_url.get(OU('http://1'))).to.equal(undefined);
             expect(model.items_by_url.get(OU('bar://'))).to.contain(
                 model.tabs_by_id.get(1)!);
             check(model);
@@ -768,16 +817,17 @@ describe('model', function() {
         let model: M.StashState;
         beforeEach(function() {
             model = simple_state();
-            model._bookmark('1')._update({url: 'url://1', title: '1',
+            check(model);
+            model._bookmark('1')._update({url: 'http://1', title: '1',
                                         dateAdded: 1,
                                         parentId: 'root', index: 0});
-            model._bookmark('1prime')._update({url: 'url://1', title: '1-prime',
+            model._bookmark('1prime')._update({url: 'http://1', title: '1-prime',
                                              dateAdded: 2,
                                              parentId: 'root', index: 1});
-            model._bookmark('2')._update({id: '2', url: 'url://2', title: '2',
+            model._bookmark('2')._update({id: '2', url: 'http://2', title: '2',
                                         dateAdded: 3,
                                         parentId: 'root', index: 2});
-            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
+            expect(model.items_by_url.get(OU('http://1'))).to.include.members([
                 model.bms_by_id.get('1'),
                 model.bms_by_id.get('1prime'),
             ]);
@@ -789,7 +839,7 @@ describe('model', function() {
 
         it('unlinks a duplicate bookmark when it is deleted', function() {
             model._bookmark('1prime')._remove();
-            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
+            expect(model.items_by_url.get(OU('http://1'))).to.include.members([
                 model.bms_by_id.get('1'),
             ]);
             check(model);
@@ -797,10 +847,10 @@ describe('model', function() {
 
         it('moves a bookmark from one URL set to another when its URL changes',
            function() {
-               model._bookmark('1prime')._update({url: 'url://2'});
-               expect(model.items_by_url.get(OU('url://1'))).to.include
+               model._bookmark('1prime')._update({url: 'http://2'});
+               expect(model.items_by_url.get(OU('http://1'))).to.include
                    .members([model.bms_by_id.get('1')]);
-               expect(model.items_by_url.get(OU('url://2'))).to.include
+               expect(model.items_by_url.get(OU('http://2'))).to.include
                    .members([
                        model.bms_by_id.get('2'),
                        model.bms_by_id.get('1prime'),
@@ -817,40 +867,42 @@ describe('model', function() {
         });
 
         it('links duplicate tabs together', function() {
-            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
-                model.bms_by_id.get('1'),
-                model.tabs_by_id.get(1),
-                model.tabs_by_id.get(4),
-            ]);
+            expect(model.items_by_url.get(OU('http://1/bookmark')))
+                .to.include.members([
+                    model.bms_by_id.get('1'),
+                    model.tabs_by_id.get(1),
+                    model.tabs_by_id.get(4),
+                ]);
         });
 
         it('links bookmarks with tabs with the same URLs', function() {
-            expect(model.items_by_url.get(OU('url://2'))).to.include.members([
-                model.bms_by_id.get('2'),
-                model.tabs_by_id.get(7),
-            ]);
+            expect(model.items_by_url.get(OU('http://2/bookmark')))
+                .to.include.members([
+                    model.bms_by_id.get('2'),
+                    model.tabs_by_id.get(8),
+                ]);
         });
 
         it('unlinks a tab when it is closed', function() {
             model._tab(3)._remove();
-            expect(model.items_by_url.get(OU('url://1'))).to.include.members([
-                model.bms_by_id.get('1'),
-                model.tabs_by_id.get(1),
-            ]);
+            expect(model.items_by_url.get(OU('http://1/bookmark')))
+                .to.include.members([
+                    model.bms_by_id.get('1'),
+                    model.tabs_by_id.get(1),
+                ]);
             check(model);
         });
 
         it('moves a tab from one URL set to another when its URL changes',
            function() {
-               model._tab(7)._update({id: 7, url: 'newtab'});
-               expect(model.items_by_url.get(OU('url://1'))).to.include
-                   .members([
+               model._tab(7)._update({id: 7, url: 'http://newtab'});
+               expect(model.items_by_url.get(OU('http://1/bookmark')))
+                   .to.include.members([
                        model.bms_by_id.get('1'),
                        model.tabs_by_id.get(1),
                    ]);
-               expect(model.items_by_url.get(OU('newtab'))).to.include.members([
-                   model.tabs_by_id.get(7),
-               ]);
+               expect(model.items_by_url.get(OU('http://newtab')))
+                   .to.include.members([model.tabs_by_id.get(7)]);
                check(model);
            });
 
@@ -873,5 +925,111 @@ describe('model', function() {
                 ]);
             check(model);
         });
+    });
+
+    describe('related favicons and tabs/bookmarks', function() {
+        let model: M.StashState;
+        beforeEach(function() {
+            model = simple_state();
+            check(model);
+        });
+
+        it('relates bookmark favicons to the correct tab favicons', function() {
+            model._tab(42)._update({
+                id: 42, windowId: 42, index: 0,
+                title: 'Google',
+                url: 'http://google.com/some-url',
+                favIconUrl: 'http://google.com/favicon.ico'});
+            model._bookmark('goog')._update({
+                id: 'goog', parentId: 'root', index: 5,
+                title: 'Google',
+                dateAdded: 42,
+                url: 'http://google.com/some-other-url',
+            });
+            model._bookmark('fb')._update({
+                id: 'fb', parentId: 'root', index: 6,
+                title: 'Facebook',
+                dateAdded: 42,
+                url: 'http://facebook.com/some-other-url',
+            });
+
+            expect(model._bookmark('goog').favicon)
+                .to.equal(model._tab(42).favicon);
+            expect(model._bookmark('fb').favicon)
+                .to.not.equal(model._tab(42).favicon);
+            check(model);
+
+            model._tab(42)._update({
+                url: 'http://facebook.com/ads',
+                favIconUrl: 'http://facebook.com/favicon.ico',
+            });
+
+            expect(model._bookmark('goog').favicon)
+                .to.not.equal(model._tab(42).favicon);
+            expect(model._bookmark('fb').favicon)
+                .to.equal(model._tab(42).favicon);
+            check(model);
+        });
+
+        it('updates favicons correctly when navigating between tabs',
+           function() {
+               model._tab(42)._update({
+                   id: 42, windowId: 42, index: 0, title: 'Amabook',
+                   url: "http://amabook.com",
+                   favIconUrl: "http://amabook.com/favicon.ico",
+               });
+               check(model);
+
+               // NOTE: we omit the check() call in the following two mutations
+               // because status: 'loading' tabs violate the invariant that the
+               // favicon cache has the correct icon for the tab.  This is
+               // because 'loading' is technically an intermediate state where
+               // the URL and favicons may not match.  We still check all the
+               // invariants at the end of the test once everything should have
+               // converged.
+
+               model._tab(42)._update({
+                   id: 42, windowId: 42, index: 0, title: 'Amabook',
+                   url: "http://faceazon.com",
+                   favIconUrl: "http://amabook.com/favicon.ico",
+                   status: 'loading',
+               });
+               expect(model.favicon_cache.get('http://amabook.com'))
+                   .to.deep.include({
+                       value: "http://amabook.com/favicon.ico"
+                   });
+               expect(model.favicon_cache.get('http://faceazon.com'))
+                   .to.deep.include({value: undefined});
+               //check(model);
+
+               model._tab(42)._update({
+                   id: 42, windowId: 42, index: 0, title: 'Amabook',
+                   url: "http://faceazon.com",
+                   favIconUrl: "http://faceazon.com/favicon.ico",
+                   status: 'loading',
+               });
+               expect(model.favicon_cache.get('http://amabook.com'))
+                   .to.deep.include({
+                       value: "http://amabook.com/favicon.ico"
+                   });
+               expect(model.favicon_cache.get('http://faceazon.com'))
+                   .to.deep.include({value: undefined});
+               //check(model);
+
+               model._tab(42)._update({
+                   id: 42, windowId: 42, index: 0, title: 'Amabook',
+                   url: "http://faceazon.com",
+                   favIconUrl: "http://faceazon.com/favicon.ico",
+               });
+               expect(model.favicon_cache.get('http://amabook.com'))
+                   .to.deep.include({
+                       value: "http://amabook.com/favicon.ico"
+                   });
+               expect(model.favicon_cache.get('http://faceazon.com'))
+                   .to.deep.include({
+                       value: "http://faceazon.com/favicon.ico"
+                   });
+               check(model);
+           });
     });
 });

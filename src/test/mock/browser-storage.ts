@@ -1,27 +1,4 @@
-import {expect} from 'chai';
-
-class MockEventDispatcher<Fn extends Function> {
-    _listeners: Fn[] = [];
-    _pending: any[] = [];
-
-    addListener(l: Fn) {
-        expect(l).to.be.a('function');
-        this._listeners.push(l);
-    }
-
-    send(...args: any[]) {
-        this._pending.push(args);
-    }
-
-    drain(count: number) {
-        expect(this._pending.length).to.equal(count);
-        while (this._pending.length > 0) {
-            let p = this._pending;
-            this._pending = [];
-            for (let ev of p) for (let f of this._listeners) f(...ev);
-        }
-    }
-}
+import {MockEventDispatcher} from './events';
 
 class MockStorageArea {
     _area: browser.storage.StorageName;

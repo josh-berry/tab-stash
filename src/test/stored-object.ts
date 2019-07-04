@@ -1,6 +1,16 @@
 import {expect} from 'chai';
 import storage_mock from './mock/browser-storage';
 
+async function drain(): Promise<number> {
+    let count = 0;
+    while (true) {
+        const c = await storage_mock.events.drain();
+        count += c;
+        if (c == 0) break;
+    }
+    return count;
+}
+
 describe('stored-object', function() {
     beforeEach(function() {
         storage_mock.reset();
@@ -48,14 +58,14 @@ describe('stored-object', function() {
                 fired = true;
             });
             await browser.storage.local.set({foo: 5});
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
             expect(fired).to.equal(true);
         });
 
         it('delivers events on object update', async function() {
             let fired = false;
             await browser.storage.local.set({foo: 5});
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             browser.storage.onChanged.addListener((changes, area) => {
                 expect(changes.foo.oldValue).to.equal(5);
@@ -64,14 +74,14 @@ describe('stored-object', function() {
                 fired = true;
             });
             await browser.storage.local.set({foo: 10});
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
             expect(fired).to.equal(true);
         });
 
         it('delivers events on object deletion', async function() {
             let fired = false;
             await browser.storage.local.set({foo: 5});
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             browser.storage.onChanged.addListener((changes, area) => {
                 expect(changes.foo.oldValue).to.equal(5);
@@ -80,7 +90,7 @@ describe('stored-object', function() {
                 fired = true;
             });
             await browser.storage.local.remove('foo');
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
             expect(fired).to.equal(true);
         });
     });
@@ -151,7 +161,7 @@ describe('stored-object', function() {
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await browser.storage.local.set({foo: {a: 42}});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                expect(o).to.deep.equal(Object.assign({}, DEFAULTS, {a: 42}));
            });
@@ -159,12 +169,12 @@ describe('stored-object', function() {
         it('updates objects which have been updated out-of-band',
            async function() {
                await browser.storage.local.set({foo: {a: 42}});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await browser.storage.local.set({foo: {a: 17}});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                expect(o).to.deep.equal(Object.assign({}, DEFAULTS, {a: 17}));
            });
@@ -172,12 +182,12 @@ describe('stored-object', function() {
         it('updates objects which have been deleted out-of-band',
            async function() {
                await browser.storage.local.set({foo: {a: 42}});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await browser.storage.local.remove('foo');
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                expect(o).to.deep.equal(Object.assign({}, DEFAULTS));
            });
@@ -188,7 +198,7 @@ describe('stored-object', function() {
             expect(o).to.deep.equal(DEFAULTS);
 
             await o.set(OVERRIDES);
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             expect(await browser.storage.local.get('foo'))
                 .to.deep.equal({foo: OVERRIDES});
@@ -199,12 +209,12 @@ describe('stored-object', function() {
            async function() {
                const OVERRIDES = {a: 42, bar: 'fred'};
                await browser.storage.local.set({foo: OVERRIDES});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await o.set({a: 17});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                expect(await browser.storage.local.get('foo'))
                    .to.deep.equal({foo: Object.assign({}, OVERRIDES, {a: 17})});
@@ -216,12 +226,12 @@ describe('stored-object', function() {
            async function() {
                const OVERRIDES = {a: 42, bar: 'fred'};
                await browser.storage.local.set({foo: OVERRIDES});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                let o = await StoredObject.get('local', 'foo', DEFAULTS);
 
                await o.set({a: 1});
-               storage_mock.events.drain(1);
+               expect(await drain()).to.equal(1);
 
                expect(await browser.storage.local.get('foo'))
                    .to.deep.equal({foo: {bar: 'fred'}});
@@ -233,7 +243,7 @@ describe('stored-object', function() {
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
 
             await o.delete();
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             expect(await browser.storage.local.get()).to.deep.equal({});
             expect(o).to.deep.equal(DEFAULTS);
@@ -244,7 +254,7 @@ describe('stored-object', function() {
 
             await o.set({a: 2});
             await o.delete();
-            storage_mock.events.drain(2);
+            expect(await drain()).to.equal(2);
 
             expect(await browser.storage.local.get()).to.deep.equal({});
             expect(o).to.deep.equal(DEFAULTS);
@@ -254,7 +264,7 @@ describe('stored-object', function() {
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
 
             await o.delete();
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
 
@@ -266,7 +276,7 @@ describe('stored-object', function() {
 
             await o.set({a: 5});
             await o.delete();
-            storage_mock.events.drain(2);
+            expect(await drain()).to.equal(2);
 
             let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
 
@@ -277,10 +287,10 @@ describe('stored-object', function() {
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
 
             await o.delete();
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             await o.set({a: 2});
-            storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
 
@@ -290,14 +300,14 @@ describe('stored-object', function() {
         it('drops keys it does not recognize on save', async function() {
             const DATA = {foo: {asdf: 'qwer'}};
             await browser.storage.sync.set(DATA);
-            await storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             let o = await StoredObject.get('sync', 'foo', DEFAULTS);
             expect(o).to.deep.equal(DEFAULTS);
             expect(await browser.storage.sync.get()).to.deep.equal(DATA);
 
             await o.set({a: 1});
-            await storage_mock.events.drain(1);
+            expect(await drain()).to.equal(1);
 
             expect(await browser.storage.sync.get()).to.deep.equal({foo: {}});
             expect(o).to.deep.equal(DEFAULTS);

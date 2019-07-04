@@ -11,6 +11,8 @@
     "@types/mocha": "*",
     "chai": "*",
     "css-loader": "*",
+    "fake-indexeddb": "^2.1.1",
+    "idb": "^4.0.3",
     "mocha": "*",
     "ts-loader": "*",
     "typescript": "*",

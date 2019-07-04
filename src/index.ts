@@ -9,6 +9,8 @@ import {
     mostRecentUnnamedFolderId,
 } from './stash';
 import Options from './options-model';
+import {CacheService} from './cache-service';
+
 
 
 //
@@ -188,6 +190,15 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
     }
 
 })().catch(console.log);
+
+
+
+//
+// Spin up the cache service(s), used by the UI for storing various bits of
+// metadata such as favicons.
+//
+
+CacheService.start('favicons').catch(console.log);
 
 
 

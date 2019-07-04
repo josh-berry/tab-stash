@@ -6,8 +6,9 @@
             'open': tab && ! tab.hidden}"
    target="_blank" :href="url" :title="bestTitle"
    @click.prevent.stop="open">
-  <img v-if="favicon" class="icon"
-       :src="favicon" :srcset="favicon ? favicon + ' 2x' : ''"
+  <img v-if="favIconUrl || (favicon && favicon.value)" class="icon"
+       :src="favIconUrl || favicon.value"
+       :srcset="(favIconUrl || favicon.value) + ' 2x'"
        referrerpolicy="no-referrer"
        alt="">
   <span class="text">{{bestTitle}}</span>
@@ -46,6 +47,7 @@ export default {
         index: Number,
         title: String,
         url: String,
+        favicon: Object,
         related: Array,
 
         // Tabs only
@@ -75,35 +77,6 @@ export default {
         bestTitle: function() {
             if (this.tab && this.tab.title) return this.tab.title;
             return this.bm.title;
-        },
-
-        favicon: function() {
-            try {
-                // See if we have an open tab and a favicon URL we can use.
-                if (this.tab && this.tab.favIconUrl) return this.tab.favIconUrl;
-
-                // Fallback to Google if we can't pull a favicon URL from an
-                // open tab.
-                //
-                // XXX use firefox internal for this if possible... not super
-                // happy hitting Google for favicons since it leaks info about
-                // what domains are in use :/
-                let url = new URL(this.url);
-
-                // Blacklist a bunch of things Google will have no idea about
-                if (! url.host) return '';
-                if (url.host.startsWith('127.')) return '';
-                if (url.host.startsWith('192.168.')) return '';
-                if (url.host.startsWith('10.')) return '';
-                if (url.host.startsWith('172.16.')) return '';
-                if (url.hostname === 'localhost') return '';
-                if (url.hostname.endsWith('.local')) return '';
-
-                return `https://www.google.com/s2/favicons?domain=${url.host}`;
-            } catch (e) {
-                console.warn("Failed to parse URL: ", this.url, e);
-            }
-            return '';
         },
     },
 

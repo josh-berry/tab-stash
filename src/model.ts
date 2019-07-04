@@ -27,8 +27,9 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU NON-`_` METHODS.
 
-import {DeferQueue, OpenableURL, urlToOpen} from './util';
+import {DeferQueue, OpenableURL, urlToOpen, namedPromises} from './util';
 
+import {Cache, CacheEntry} from './cache-client';
 
 // These model objects are designed to look like plain old objects for Vue's
 // consumption.  They are created and mutated internally by StashState methods,
@@ -45,6 +46,9 @@ import {DeferQueue, OpenableURL, urlToOpen} from './util';
 // not create the properties on the objects at all and Vue won't know to watch
 // them for changes.
 
+export type FaviconCache = Cache<string>;
+export type FaviconCacheEntry = CacheEntry<string>;
+
 export interface ModelItem {
     readonly state: StashState;
     readonly id: number | string;
@@ -57,6 +61,7 @@ export interface ModelParent extends ModelItem {
 export interface ModelLeaf extends ModelItem {
     title?: string;
     url?: string;
+    favicon?: FaviconCacheEntry;
 
     parent?: ModelParent;
     index?: number;
@@ -136,6 +141,7 @@ export class Tab implements ModelLeaf {
 
     title?: string = undefined;
     url?: string = undefined;
+    favicon?: FaviconCacheEntry = undefined;
     favIconUrl?: string = undefined;
     hidden: boolean = false;
     active: boolean = false;
@@ -169,6 +175,20 @@ export class Tab implements ModelLeaf {
             this.state._reposition(this, t.windowId, t.index);
         }
 
+        // The /status/ check is necessary because sometimes Firefox may send us
+        // events where a tab has a new URL, but an old favicon (pointing to the
+        // URL the tab is navigating away from).  We want to ignore these
+        // intermediate states.  We should get another callback with status
+        // 'complete' once navigation is complete.
+        if (this.url && this.favIconUrl
+            && (t.status === undefined || t.status == 'complete'))
+        {
+            try {
+                let url = new URL(urlToOpen(this.url));
+                this.state.favicon_cache.set(url.origin, this.favIconUrl);
+            } catch (e) {}
+        }
+
         return this;
     }
 
@@ -197,6 +217,7 @@ export class Bookmark implements ModelParent, ModelLeaf {
 
     title?: string = undefined;
     url?: string = undefined;
+    favicon?: FaviconCacheEntry = undefined;
     dateAdded?: number = undefined;
 
     parent?: Bookmark = undefined;
@@ -286,6 +307,8 @@ export class Bookmark implements ModelParent, ModelLeaf {
 
 // See module documentation
 export class StashState {
+    favicon_cache: FaviconCache;
+
     bms_by_id: Map<string, Bookmark> = new Map();
     wins_by_id: Map<number, Window> = new Map();
     tabs_by_id: Map<number, Tab> = new Map();
@@ -362,11 +385,13 @@ export class StashState {
         // once we have a complete state.
         //
 
-        let bm_p = browser.bookmarks.getSubTree("");
-        let win_p = browser.windows.getAll(
-            {populate: true, windowTypes: ['normal']});
+        const p = await namedPromises({
+            bm: browser.bookmarks.getSubTree(""),
+            wins: browser.windows.getAll(
+                {populate: true, windowTypes: ['normal']}),
+        });
 
-        state = new StashState((await bm_p)[0], await win_p);
+        state = new StashState(p.bm[0], p.wins, Cache.open('favicons'));
 
         // Once we have finished building the state object, bring it up-to-date
         // with any events that were delivered while we were querying the
@@ -382,8 +407,11 @@ export class StashState {
 
     // Don't call this (except for testing).  Call make() instead.
     constructor(bookmarks_root: browser.bookmarks.BookmarkTreeNode,
-                windows: browser.windows.Window[])
+                windows: browser.windows.Window[],
+                favicons: FaviconCache)
     {
+        this.favicon_cache = favicons;
+
         this.bookmarks = this._bookmark(bookmarks_root.id);
         this.bookmarks._update(bookmarks_root);
 
@@ -498,9 +526,6 @@ export class StashState {
             if (i.related.length <= 0) {
                 this.items_by_url.delete(urlToOpen(i.url!));
             }
-
-            i.url = undefined;
-            i.related = undefined;
         }
 
         if (url) {
@@ -514,6 +539,16 @@ export class StashState {
 
             i.url = url;
             i.related = related;
+            try {
+                i.favicon = this.favicon_cache.get(new URL(ourl).origin);
+            } catch (e) {
+                i.favicon = undefined;
+            }
+
+        } else {
+            i.url = undefined;
+            i.related = undefined;
+            i.favicon = undefined;
         }
     }
 }

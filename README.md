@@ -123,14 +123,6 @@ appear on all computers linked to your Firefox Sync account.
 If you wish to stop using Tab Stash entirely, you can still retrieve your
 stashed tabs in the "Tab Stash" folder of your bookmarks.
 
-### Site Icons and Google
-
-Like many other extensions, Tab Stash shares the domain names of tabs that you
-stash with Google, for the purpose of obtaining the site's icon.  If you are
-already logged into Google, Google may be able to identify you using login
-cookies sent as part of the request.  However, no other personally-identifying
-information is shared, and the full URL of the tab is never disclosed.
-
 ### Extension Permissions
 
 When you first install it, Tab Stash will ask for the following permissions.

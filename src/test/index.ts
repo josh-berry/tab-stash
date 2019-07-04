@@ -4,7 +4,7 @@
 
 import './mock/browser-runtime';
 import './mock/browser-storage';
-
+import './mock/indexeddb';
 
 
 //
@@ -14,3 +14,5 @@ import './mock/browser-storage';
 require('./util');
 require('./model');
 require('./stored-object');
+require('./cache-client');
+require('./cache-service');

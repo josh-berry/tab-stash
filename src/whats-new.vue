@@ -22,6 +22,14 @@
           is no longer available (e.g. it was closed and removed from Firefox's
           cache), Tab Stash will restore it to the normal website view.</li>
       </ul>
+      <L :subtext="`Icons are locally-sourced from websites using only `
+                   + `sustainable fetching practices.  Certified 100% `
+                   + `inorganic, non-GMO, gluten-free.  Ask your doctor about `
+                   + `side effects.`"
+         issue="3" v="Improved">your privacy by replacing the Google icon
+        service with a local cache of website icons.  Note that <b>some of your
+        website icons may go missing</b> until you visit the site and the cache
+        can be populated&mdash;this is normal.</L>
       <L issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
         tab it had just opened if multiple individual tabs are opened from the
         stash list in quick succession.</L>

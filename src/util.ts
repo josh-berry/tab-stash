@@ -9,6 +9,8 @@
 export type AsyncReturnTypeOf<T extends (...args: any) => any> =
     ReturnType<T> extends Promise<infer U> ? U : void;
 
+type Promised<T extends Promise<any>> = T extends Promise<infer V> ? V : void;
+
 // A "marker" type for a string which is a URL that is actually openable by Tab
 // Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
 // actually exist, it's just used to force an explicit cast so you can't use a
@@ -100,6 +102,23 @@ export function asyncEvent<
     } as T;
 }
 
+// Waits for a bunch of named promises.  The advantage to using this is it
+// allows you to fire off a bunch of stuff in parallel and then wait for it all
+// at once, which should in theory minimize overall latency.
+//
+// Use it like: await namedPromises(...)
+export async function namedPromises<T extends {[k: string]: Promise<any>}>(
+    promises: T): Promise<{[k in keyof T]: Promised<T[k]>}>
+{
+    let objects: any = {};
+
+    for (let k of Object.getOwnPropertyNames(promises) as (keyof T)[]) {
+        objects[k] = await promises[k];
+    }
+
+    return objects as {[k in keyof T]: Promised<T[k]>};
+}
+
 // Returns a function which, when called, arranges to call the async function
 // /fn/ immediately, but only if it's not already running.
 //
@@ -185,4 +204,27 @@ export class DeferQueue {
         this._events = null;
         if (evq) for (let [fn, args] of evq) fn(...args);
     }
+}
+
+// Similar to a defer queue, an async queue is a queue of async operations that
+// is run serially.  Unlike nonReentrant(), which coalesces multiple calls into
+// a single actual call, AsyncQueue strictly runs each of its functions in
+// order, waiting for the previous one to complete before starting the next.
+//
+// Use it like:
+//
+// const q = AsyncQueue();
+//
+// q(async () => { ... });
+// q(async () => { ... });
+
+export function AsyncQueue(): (_: () => Promise<void>) => Promise<void> {
+    let tail = Promise.resolve();
+
+    return (fn: () => Promise<void>) => {
+        tail = tail.catch(console.log).finally(() => {
+            return fn();
+        });
+        return tail;
+    };
 }

@@ -2,7 +2,7 @@
 
 import Vue from 'vue/dist/vue.runtime.esm';
 
-import {nonReentrant, asyncEvent} from './util';
+import {asyncEvent, namedPromises} from './util';
 import {rootFolder} from './stash';
 
 import StashList from './stash-list.vue';
@@ -13,34 +13,36 @@ import Options from './options-model';
 
 
 window.addEventListener('load', asyncEvent(async function() {
-    let state_p = StashState.make();
-    let root_p = rootFolder();
-    let win_p = browser.windows.getCurrent();
-    let curtab_p = browser.tabs.getCurrent();
-    let extinfo_p = browser.management.getSelf();
-    let localopts_p = Options.local();
-    let syncopts_p = Options.sync();
+    const p = await namedPromises({
+        state: StashState.make(),
+        root: rootFolder(),
+        win: browser.windows.getCurrent(),
+        curtab: browser.tabs.getCurrent(),
+        extinfo: browser.management.getSelf(),
+        localopts: Options.local(),
+        syncopts: Options.sync(),
+    });
 
-    let [state, root, win, curtab, extinfo, localopts, syncopts] = [
-        await state_p, await root_p, await win_p, await curtab_p,
-        await extinfo_p, await localopts_p, await syncopts_p];
-
-    if (curtab) {
+    if (p.curtab) {
         document.body.classList.add('tab-view');
     }
 
-    const vue = new (Vue.extend(StashList))({data: {
-        unstashed_tabs: state.wins_by_id.get(win.id),
-        stashed_tabs: state.bms_by_id.get(root.id),
-        root_id: root.id,
-        my_version: extinfo.version,
-        local_options: localopts,
-        sync_options: syncopts,
-    }});
-
-    window.stash_state = state;
-    window.stash_root = state.bms_by_id.get(root.id);
-    window.stash_win = state.wins_by_id.get(win.id);
+    const vue = new (Vue.extend(StashList))({
+        data: {
+            unstashed_tabs: p.state.wins_by_id.get(p.win.id),
+            stashed_tabs: p.state.bms_by_id.get(p.root.id),
+            root_id: p.root.id,
+            my_version: p.extinfo.version,
+            local_options: p.localopts,
+            sync_options: p.syncopts,
+        },
+    });
 
     vue.$mount('#app');
+
+    // For debugging purposes only...
+    window.stash_state = p.state;
+    window.stash_root = p.state.bms_by_id.get(p.root.id);
+    window.stash_win = p.state.wins_by_id.get(p.win.id);
+    window.vue = vue;
 }));
