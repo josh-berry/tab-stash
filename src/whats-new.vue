@@ -11,7 +11,7 @@
   <div class="folder-list">
 
     <Version v="2.4">
-      <L issue="24" v="Added">support for stashing tabs which are in Reader
+      <L :issue="24" v="Added">support for stashing tabs which are in Reader
         View.  Due to Firefox security restrictions, there are a couple caveats
         to be aware of:</L>
       <ul>
@@ -22,7 +22,7 @@
           is no longer available (e.g. it was closed and removed from Firefox's
           cache), Tab Stash will restore it to the normal website view.</li>
       </ul>
-      <L issue="2" v="Added">a record of which groups are visible and which
+      <L :issue="2" v="Added">a record of which groups are visible and which
         are collapsed.  If you hide a group, we will now remember that, and
         we won't show you its contents again unless you ask (even if you restart
         your browser).</L>
@@ -30,11 +30,11 @@
                    + `sustainable fetching practices.  Certified 100% `
                    + `inorganic, non-GMO, gluten-free.  Ask your doctor about `
                    + `side effects.`"
-         issue="3" v="Improved">your privacy by replacing the Google icon
+         :issue="3" v="Improved">your privacy by replacing the Google icon
         service with a local cache of website icons.  Note that <b>some of your
         website icons may go missing</b> until you visit the site and the cache
         can be populated&mdash;this is normal.</L>
-      <L issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
+      <L :issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
         tab it had just opened if multiple individual tabs are opened from the
         stash list in quick succession.</L>
     </Version>
@@ -51,8 +51,8 @@
     </Version>
 
     <Version v="2.3">
-      <L issue="6" v="Added">the ability to stash multiple selected tabs at once
-        in <a href="https://www.mozilla.org/en-US/firefox/64.0/releasenotes/">Firefox 64</a>
+      <L :issue="6" v="Added">the ability to stash multiple selected tabs at
+        once in <a href="https://www.mozilla.org/en-US/firefox/64.0/releasenotes/">Firefox 64</a>
         and newer.  Just Ctrl/Cmd- or Shift-click on the tabs you want to
         stash, and then click any
         <img class="inl" src="icons/stash-dark.svg" alt="multi-stash">
