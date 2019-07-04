@@ -9,6 +9,7 @@ import StashList from './stash-list.vue';
 
 import {StashState} from './model';
 import Options from './options-model';
+import {Cache} from './cache-client';
 
 
 
@@ -35,12 +36,14 @@ window.addEventListener('load', asyncEvent(async function() {
             my_version: p.extinfo.version,
             local_options: p.localopts,
             sync_options: p.syncopts,
+            metadata_cache: Cache.open('bookmarks'),
         },
     });
 
     vue.$mount('#app');
 
     // For debugging purposes only...
+    window.metadata_cache = Cache.open('bookmarks');
     window.stash_state = p.state;
     window.stash_root = p.state.bms_by_id.get(p.root.id);
     window.stash_win = p.state.wins_by_id.get(p.win.id);

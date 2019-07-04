@@ -199,6 +199,7 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 //
 
 CacheService.start('favicons').catch(console.log);
+CacheService.start('bookmarks').catch(console.log);
 
 
 

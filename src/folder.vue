@@ -85,6 +85,8 @@ import {
     closeTabs, hideStashedTabs, refocusAwayFromTabs,
 } from 'stash';
 
+import {Cache} from './cache-client';
+
 import Draggable from 'vuedraggable';
 import EditableLabel from './editable-label.vue';
 import Tab from './tab.vue';
@@ -108,14 +110,25 @@ export default {
         // Bookmark folder
         dateAdded: Number,
         allowRenameDelete: Boolean,
-    },
 
-    data: () => ({
-        collapsed: false,
-    }),
+        metadata: Object,
+    },
 
     computed: {
         altkey: altKeyName,
+
+        collapsed: {
+            get() {
+                const m = this.metadata.value;
+                if (m) return !! m.collapsed;
+                return false;
+            },
+            set(collapsed) {
+                let m = {...this.metadata.value};
+                m.collapsed = collapsed;
+                Cache.open('bookmarks').set(this.metadata.key, m);
+            },
+        },
 
         isWindow: function() { return ! this.id; },
         defaultTitle: function() {

@@ -22,7 +22,8 @@
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
             ref="unstashed" :children="unstashed_tabs.children"
             :filter="unstashedFilter" :userFilter="search_filter"
-            :isItemStashed="isItemStashed">
+            :isItemStashed="isItemStashed"
+            :metadata="metadata_cache.get('')">
     </folder>
     <!-- XXX This is presently disabled because it exposes a bug in
          Vue.Draggable, wherein if the draggable goes away as the result of a
@@ -42,7 +43,8 @@
   </div>
   <folder-list ref="stashed" :folders="stashed_tabs.children"
                :userFilter="search_filter"
-               :hideIfEmpty="searchtext !== ''">
+               :hideIfEmpty="searchtext !== ''"
+               :metadataCache="metadata_cache">
   </folder-list>
   <footer class="page footer status-text">
     Tab Stash {{my_version}} &mdash;

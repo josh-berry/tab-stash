@@ -22,6 +22,10 @@
           is no longer available (e.g. it was closed and removed from Firefox's
           cache), Tab Stash will restore it to the normal website view.</li>
       </ul>
+      <L issue="2" v="Added">a record of which groups are visible and which
+        are collapsed.  If you hide a group, we will now remember that, and
+        we won't show you its contents again unless you ask (even if you restart
+        your browser).</L>
       <L :subtext="`Icons are locally-sourced from websites using only `
                    + `sustainable fetching practices.  Certified 100% `
                    + `inorganic, non-GMO, gluten-free.  Ask your doctor about `

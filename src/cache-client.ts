@@ -38,6 +38,10 @@ export type CacheEntry<Content extends CacheContent> = {
 export class Cache<Content extends CacheContent> {
     private _local_cache: Map<string, CacheEntry<Content>> = new Map();
 
+    // Vue wants a plain old array it can watch--it doesn't understand how to
+    // monitor Maps for changes.
+    private _local_cache_for_vue: CacheEntry<Content>[] = [];
+
     private _name: string;
     private _service: browser.runtime.Port;
 
@@ -116,6 +120,7 @@ export class Cache<Content extends CacheContent> {
         if (! ent) {
             ent = {key, value: undefined, requested: false};
             this._local_cache.set(key, ent);
+            this._local_cache_for_vue.push(ent);
         }
         return ent;
     }
