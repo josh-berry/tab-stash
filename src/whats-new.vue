@@ -37,6 +37,11 @@
       <L :issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
         tab it had just opened if multiple individual tabs are opened from the
         stash list in quick succession.</L>
+      <L :issue="27" v="Fixed">an issue in which Tab Stash mistakenly allows the
+        stashing of tabs showing local files (<code>file:///...</code> URLs).
+        Tab Stash cannot restore these tabs due to Firefox security
+        restrictions, so we treat them as system tabs which aren't
+        stashable.</L>
     </Version>
 
     <Version v="2.3.1">

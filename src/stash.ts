@@ -65,6 +65,7 @@ export function isURLStashable(urlstr: string): boolean {
                 }
             case 'moz-extension:':
             case 'chrome:':
+            case 'file:':
                 return false;
         }
     } catch (e) {

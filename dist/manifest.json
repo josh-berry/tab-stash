@@ -52,7 +52,8 @@
             "32": "icons/stash-one-mid.svg"
         },
         "browser_style": true,
-        "show_matches": ["<all_urls>"]
+        "show_matches": ["<all_urls>"],
+        "hide_matches": ["file:///*"]
     },
     "sidebar_action": {
         "default_title": "Tab Stash",
