@@ -109,6 +109,7 @@ export class Cache<Content extends CacheContent> {
     set(key: string, value: Content): CacheEntry<Content> {
         const ent = this._cached(key);
         ent.value = value;
+        ent.requested = true; // since we're about to send an update
         this._send({type: 'entry', key, value});
         return ent;
     }

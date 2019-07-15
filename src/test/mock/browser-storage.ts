@@ -1,12 +1,12 @@
-import {MockEventDispatcher} from './events';
+import * as events from './events';
 
 class MockStorageArea {
     _area: browser.storage.StorageName;
     _storage: {[k: string]: string} = {};
-    _events: MockEventDispatcher<StorageChangedFn>;
+    _events: events.MockEventDispatcher<StorageChangedFn>;
 
     constructor(area: browser.storage.StorageName,
-                events: MockEventDispatcher<StorageChangedFn>)
+                events: events.MockEventDispatcher<StorageChangedFn>)
     {
         this._area = area;
         this._events = events;
@@ -72,10 +72,14 @@ type StorageChangedFn = (changes: browser.storage.ChangeDict,
 
 export default (() => {
     let exports = {
-        events: new MockEventDispatcher<StorageChangedFn>(),
+        events: new events.MockEventDispatcher<StorageChangedFn>(''),
 
         reset() {
-            exports.events = new MockEventDispatcher<StorageChangedFn>();
+            events.expect_empty();
+            events.trace(false);
+
+            exports.events = new events.MockEventDispatcher<StorageChangedFn>(
+                'storage.onChanged');
 
             if (! (<any>globalThis).browser) (<any>globalThis).browser = {};
 

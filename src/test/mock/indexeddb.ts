@@ -9,14 +9,6 @@ export default (() => {
             // else.
             (<any>indexedDB)._databases = new Map();
         },
-
-        drain(): Promise<number> {
-            // Hack to wait on indexedDB queued events.  Wish fake-indexeddb
-            // actually exposed an API for this...
-            return new Promise(resolve => {
-                setImmediate(() => resolve(0));
-            });
-        },
     };
 
     exports.reset();

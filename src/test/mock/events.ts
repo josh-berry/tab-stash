@@ -1,38 +1,85 @@
 import {expect} from 'chai';
 
-export class MockEventDispatcher<Fn extends Function> {
+let verbose = false;
+
+let queue: (() => void)[] = [];
+let resolve: (() => void) | undefined;
+let reject: ((e: Error) => void) | undefined;
+let requested_count: number = 0;
+let delivered_count: number = 0;
+
+type Args<F extends (...args: any[]) => any> =
+    F extends (...args: infer A) => any ? A : void;
+
+export class MockEventDispatcher<Fn extends (...args: any[]) => void> {
+    name: string;
     _listeners: Fn[] = [];
-    _pending: any[] = [];
-    _imm: any;
-    _drained: number = 0;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 
     addListener(l: Fn) {
         expect(l).to.be.a('function');
         this._listeners.push(l);
     }
 
-    send(...args: any[]) {
-        this._pending.push(args);
-        if (! this._imm) this._imm = setImmediate(() => this._drain());
-    }
-
-    drain(): Promise<number> {
-        return new Promise(resolve => {
-            setImmediate(() => {
-                this._drain();
-                resolve(this._drained);
-                this._drained = 0;
-            });
+    send(...args: Args<Fn>) {
+        queue.push(() => {
+            if (verbose) console.log(`[${this.name}] `, ...args);
+            for (const fn of this._listeners) fn(...args);
         });
+        if (resolve) setImmediate(deliver);
     }
+}
 
-    _drain() {
-        this._imm = undefined;
+export function drain(count: number): Promise<void> {
+    if (resolve || reject) {
+        throw new Error(`Tried to call drain() re-entrantly`);
+    }
+    expect(requested_count, `requested_count`).to.equal(0);
+    expect(delivered_count, `delivered_count`).to.equal(0);
 
-        let p = this._pending;
-        this._pending = [];
+    if (verbose) console.log(`Draining ${count} events`);
 
-        for (let ev of p) for (let f of this._listeners) f(...ev);
-        this._drained += p.length;
+    return new Promise((res, rej) => {
+        requested_count = count;
+        resolve = res;
+        reject = rej;
+        if (queue.length > 0) setImmediate(deliver);
+    });
+}
+
+export function expect_empty() {
+    expect(resolve, `event waiter (resolve)`).to.be.undefined;
+    expect(reject, `event waiter (reject)`).to.be.undefined;
+    expect(requested_count, `requested events count`).to.equal(0);
+    expect(delivered_count, `delivered events count`).to.equal(0);
+    expect(queue.length, `event queue length`).to.equal(0);
+}
+
+export function trace(t: boolean) {
+    verbose = t;
+}
+
+function deliver() {
+    const q = queue;
+    queue = [];
+
+    for (const fn of q) fn();
+    delivered_count += q.length;
+
+    if (resolve && reject && delivered_count >= requested_count) {
+        if (delivered_count > requested_count) {
+            reject(new Error(`Delivered ${delivered_count} events, but expected only ${requested_count} events`));
+            delivered_count -= requested_count;
+        } else {
+            delivered_count = 0;
+            resolve();
+        }
+
+        requested_count = 0;
+        resolve = undefined;
+        reject = undefined;
     }
 }

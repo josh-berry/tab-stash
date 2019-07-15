@@ -200,7 +200,10 @@ export class CacheService {
     }
 
     // For testing purposes
-    get generation() { return this._gen; }
+    get generation(): number { return this._gen; }
+    get gen_update_done(): Promise<void> {
+        return this._mutate_gen(async () => undefined);
+    }
 
     // Internal stuff past this point
 

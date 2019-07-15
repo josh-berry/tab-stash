@@ -1,24 +1,32 @@
-import {MockEventDispatcher} from './events';
+import * as events from './events';
+
+let verbose = false;
 
 class MockPort {
+    id: string;
     name?: string;
     error?: object;
-    onDisconnect = new MockEventDispatcher<(p: MockPort) => void>();
-    onMessage = new MockEventDispatcher<(msg: any) => void>();
+    onDisconnect: events.MockEventDispatcher<(p: MockPort) => void>;
+    onMessage: events.MockEventDispatcher<(msg: any) => void>;
 
     private _peer: MockPort;
 
-    static make_pair(name?: string): [MockPort, MockPort] {
-        const left = new MockPort(name);
-        const right = new MockPort(name);
-        left._peer = right;
-        right._peer = left;
-        return [left, right];
+    static make_pair(id: number, name?: string): [MockPort, MockPort] {
+        const client = new MockPort(`C${id}`, name);
+        const server = new MockPort(`S${id}`, name);
+        client._peer = server;
+        server._peer = client;
+        return [client, server];
     }
 
-    constructor(name?: string) {
+    constructor(id: string, name?: string) {
         this._peer = undefined!; // set later in make_pair()
+        this.id = id;
         this.name = name;
+        this.onDisconnect = new events.MockEventDispatcher(
+            `${this.id}.onDisconnect`);
+        this.onMessage = new events.MockEventDispatcher(
+            `${this.id}.onMessage`);
     }
 
     disconnect() {
@@ -30,28 +38,32 @@ class MockPort {
     postMessage(msg: any) {
         if (this.error) return;
         if (this._peer.error) return;
-        this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)));
-    }
 
-    async drain(): Promise<number> {
-        let count = 0;
-        count += await this.onDisconnect.drain();
-        count += await this.onMessage.drain();
-        return count;
+        if (verbose) console.log(`${this.id} -> ${this._peer.id}`, msg);
+        this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)));
     }
 }
 
 export default (() => {
     const exports = {
-        onConnect: new MockEventDispatcher<(p: MockPort) => void>(),
+        onConnect: new events.MockEventDispatcher<(p: MockPort) => void>(''),
 
         client_ports: [] as MockPort[],
         server_ports: [] as MockPort[],
 
+        trace(t: boolean) { verbose = t; },
+
         reset() {
+            events.expect_empty();
+            events.trace(false);
+
+            verbose = false;
+
             if (! (<any>globalThis).browser) (<any>globalThis).browser = {};
 
-            exports.onConnect = new MockEventDispatcher();
+            exports.onConnect = new events.MockEventDispatcher('rt.onConnect');
+            exports.client_ports = [];
+            exports.server_ports = [];
 
             (<any>globalThis).browser.runtime = {
                 getPlatformInfo() {
@@ -63,23 +75,22 @@ export default (() => {
                 onConnect: exports.onConnect,
 
                 connect(extn_id?: string, info?: {name?: string}): MockPort {
+                    const id = exports.client_ports.length;
                     const name = info && info.name;
-                    const [client, server] = MockPort.make_pair(name);
-                    exports.onConnect.send(server);
+                    const [client, server] = MockPort.make_pair(id, name);
+
                     exports.client_ports.push(client);
                     exports.server_ports.push(server);
+                    exports.onConnect.send(server);
+
+                    if (verbose) {
+                        console.log(`New connection ${name}: C${id} -> S{$id}`);
+                    }
+
                     return client;
                 }
             };
         },
-
-        async drain(): Promise<number> {
-            let count = 0;
-            count += await exports.onConnect.drain();
-            for (const p of exports.client_ports) count += await p.drain();
-            for (const p of exports.server_ports) count += await p.drain();
-            return count;
-        }
     };
 
     exports.reset();
