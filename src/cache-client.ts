@@ -73,18 +73,22 @@ export class Cache<Content extends CacheContent> {
         this._service.onMessage.addListener(msg => {
             const m = msg as Message<Content>;
             switch (m.type) {
-                case 'entry': {
-                    const ent = this._local_cache.get(m.key);
-                    if (ent) ent.value = m.value;
+                case 'update': {
+                    for (const e of m.entries) {
+                        const ent = this._local_cache.get(e.key);
+                        if (ent) ent.value = e.value;
+                    }
                     break;
                 }
 
-                case 'expiring': {
-                    const ent = this._local_cache.get(m.key);
-                    if (ent) ent.value = undefined;
-                    // We never delete stuff from _local_cache because it might
-                    // mean Vue doesn't receive updates for things that are
-                    // dropped and later re-added to the cache :/
+                case 'expired': {
+                    for (const k of m.keys) {
+                        const ent = this._local_cache.get(k);
+                        if (ent) ent.value = undefined;
+                        // We never delete stuff from _local_cache because it
+                        // might mean Vue doesn't receive updates for things
+                        // that are dropped and later re-added to the cache :/
+                    }
                     break;
                 }
 
@@ -100,7 +104,7 @@ export class Cache<Content extends CacheContent> {
     get(key: string): CacheEntry<Content> {
         const ent = this._cached(key);
         if (! ent.requested) {
-            this._send({type: 'fetch', key});
+            this._send({type: 'fetch', keys: [key]});
             ent.requested = true;
         }
         return ent;
@@ -110,7 +114,7 @@ export class Cache<Content extends CacheContent> {
         const ent = this._cached(key);
         ent.value = value;
         ent.requested = true; // since we're about to send an update
-        this._send({type: 'entry', key, value});
+        this._send({type: 'update', entries: [{key, value}]});
         return ent;
     }
 

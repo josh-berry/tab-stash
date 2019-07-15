@@ -216,10 +216,10 @@ export class CacheService {
             const m = msg as Message<CacheContent>;
             switch (m.type) {
                 case 'fetch':
-                    this._onFetch(port, m.key).catch(console.log);
+                    this._onFetch(port, m.keys).catch(console.log);
                     break;
-                case 'entry':
-                    this._onEntry(port, m.key, m.value).catch(console.log);
+                case 'update':
+                    this._onEntry(port, m.entries).catch(console.log);
                     break;
                 default:
                     // Perhaps we are speaking different protocol versions;
@@ -236,30 +236,44 @@ export class CacheService {
         });
     }
 
-    async _onFetch(port: browser.runtime.Port, key: string) {
+    async _onFetch(port: browser.runtime.Port, keys: string[]) {
         const txn = await this._db.transaction('cache', 'readwrite');
-        const ent = await txn.store.get(key);
 
-        // We drop fetch messages that have no entry in the cache; this is safe
-        // since there's nothing client-side that's waiting for a response per
-        // se.  If that changes in future client implementations, we can adjust
-        // the semantics of EntryMessage (or add a separate not-found message)
-        // accordingly.
-        if (! ent) return;
+        const entries = [];
+        const puts = [];
 
-        // We post early to reduce latency on the client side, even though
+        for (const key of keys) {
+            const ent = await txn.store.get(key);
+
+            // We drop entries that have no entry in the cache; this is safe
+            // since there's nothing client-side that's waiting for a response
+            // per se.  If that changes in future client implementations, we can
+            // adjust the semantics of EntryMessage (or add a separate not-found
+            // message) accordingly.
+            if (! ent) continue;
+
+            entries.push({key: ent.key, value: ent.value});
+            ent.agen = this._gen;
+            puts.push(txn.store.put(ent));
+        }
+
+        // We send early to reduce latency on the client side, even though
         // there's risk of a conflict and the client receiving stale data.
-        this._send(port, {type: 'entry', key, value: ent.value});
+        this._send(port, {type: 'update', entries});
 
-        ent.agen = this._gen;
-        await txn.store.put(ent);
+        // XXX batch this
+        for (const p of puts) await p;
         await txn.done;
     }
 
-    async _onEntry(port: browser.runtime.Port, key: string, value: CacheContent)
+    async _onEntry(port: browser.runtime.Port,
+                   entries: {key: string, value: CacheContent}[])
     {
-        await this._db.put('cache', {key, value, agen: this._gen});
-        this._broadcast({type: 'entry', key, value});
+        // XXX batch me
+        for (const ent of entries) {
+            await this._db.put('cache', {...ent, agen: this._gen});
+        }
+        this._broadcast({type: 'update', entries});
     }
 
     _inc_gen(): Promise<void> {
@@ -278,6 +292,7 @@ export class CacheService {
     }
 
     async _gc() {
+        const expired = [];
         const txn = this._db.transaction('cache', 'readwrite');
         let cursor = await txn.store.openCursor();
         while (cursor) {
@@ -286,14 +301,15 @@ export class CacheService {
             ent.agen = Math.floor(ent.agen / 2);
 
             if (ent.agen <= 0) {
+                expired.push(ent.key);
                 cursor.delete();
-                this._broadcast({type: 'expiring', key: ent.key});
             } else {
                 cursor.update(ent);
             }
             cursor = await cursor.continue();
         }
         await txn.done;
+        this._broadcast({type: 'expired', keys: expired});
     }
 
     // Type-safe methods for sending messages

@@ -5,7 +5,7 @@ import mock_runtime from './mock/browser-runtime';
 import mock_indexeddb from './mock/indexeddb';
 
 import {
-    Message, EntryMessage, /*ExpiringMessage,*/ FetchMessage
+    Message, UpdateMessage, /*ExpiredMessage,*/ FetchMessage
 } from '../cache-proto';
 
 class MockClient {
@@ -20,12 +20,12 @@ class MockClient {
     }
 
     fetch(key: string) {
-        this.port.postMessage(<FetchMessage>{type: 'fetch', key});
+        this.port.postMessage(<FetchMessage>{type: 'fetch', keys: [key]});
     }
 
     set(key: string, value: string) {
         this.port.postMessage(
-                <EntryMessage<string>>{type: 'entry', key, value});
+                <UpdateMessage<string>>{type: 'update', entries: [{key, value}]});
     }
 
     read(): Message<string> {
@@ -94,22 +94,22 @@ describe('cache-service', function() {
             client.set('foo', 'bar');
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'entry', key: 'foo', value: 'bar'});
+                {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
 
             client.set('bar', 'fred');
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'entry', key: 'bar', value: 'fred'});
+                {type: 'update', entries: [{key: 'bar', value: 'fred'}]});
 
             client.fetch('foo');
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'entry', key: 'foo', value: 'bar'});
+                {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
 
             client.fetch('bar');
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'entry', key: 'bar', value: 'fred'});
+                {type: 'update', entries: [{key: 'bar', value: 'fred'}]});
         });
 
         // It's unclear how to test this given our inability to check for events
@@ -127,9 +127,9 @@ describe('cache-service', function() {
                await events.drain(3);
 
                expect(c1.read()).to.deep.equal(
-                   {type: 'entry', key: 'foo', value: 'bar'});
+                   {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
                expect(c2.read()).to.deep.equal(
-                   {type: 'entry', key: 'foo', value: 'bar'});
+                   {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
            });
 
     });
@@ -219,14 +219,14 @@ describe('cache-service', function() {
 
         it('notifies all clients about entries that have expired',
            async function() {
-               const expiring = {type: 'expiring', key: 'foo'};
+               const expired = {type: 'expired', keys: ['foo']};
                const c1 = new MockClient();
                await events.drain(1);
 
                c1.set('foo', 'bar');
                await events.drain(2);
                expect(c1.read()).to.deep.equal(
-                   {type: 'entry', key: 'foo', value: 'bar'});
+                   {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
 
                for (let i = 0; i < 15; ++i) {
                    new MockClient();
@@ -238,8 +238,8 @@ describe('cache-service', function() {
                await service.gen_update_done;
                await events.drain(17); // expiration notices
 
-               expect(c1.read()).to.deep.equal(expiring);
-               expect(c2.read()).to.deep.equal(expiring);
+               expect(c1.read()).to.deep.equal(expired);
+               expect(c2.read()).to.deep.equal(expired);
            });
     });
 });

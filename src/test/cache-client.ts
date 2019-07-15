@@ -3,7 +3,7 @@ import {expect} from 'chai';
 import * as events from './mock/events';
 import mock_runtime from './mock/browser-runtime';
 
-import {Message, EntryMessage, ExpiringMessage} from '../cache-proto';
+import {Message, UpdateMessage, ExpiredMessage} from '../cache-proto';
 import {Cache} from '../cache-client';
 
 class MockCacheService {
@@ -21,17 +21,22 @@ class MockCacheService {
             port.onMessage.addListener(msg => {
                 const m = <Message<string>>msg;
                 switch (m.type) {
-                    case 'entry': {
-                        this.entries.set(m.key, m.value);
+                    case 'update': {
+                        for (const ent of m.entries) {
+                            this.entries.set(ent.key, ent.value);
+                        }
                         break;
                     }
                     case 'fetch': {
-                        let ent = this.entries.get(m.key);
-                        if (! ent) return;
-                        port.postMessage(<EntryMessage<string>>{
-                            type: 'entry',
-                            key: m.key,
-                            value: ent,
+                        const entries = [];
+                        for (const key of m.keys) {
+                            let ent = this.entries.get(key);
+                            if (! ent) continue;
+                            entries.push({key, value: ent});
+                        }
+                        port.postMessage(<UpdateMessage<string>>{
+                            type: 'update',
+                            entries,
                         });
                         break;
                     }
@@ -45,8 +50,10 @@ class MockCacheService {
 
     set(key: string, value: string) {
         this.entries.set(key, value);
+        const msg: UpdateMessage<string> = {
+            type: 'update', entries: [{key, value}]};
         for (const p of this.ports) {
-            p.postMessage(<EntryMessage<string>>{type: 'entry', key, value});
+            p.postMessage(msg);
         }
     }
 
@@ -54,7 +61,7 @@ class MockCacheService {
         expect(this.entries.has(key)).to.be.true;
         this.entries.delete(key);
         for (const p of this.ports) {
-            p.postMessage(<ExpiringMessage>{type: 'expiring', key});
+            p.postMessage(<ExpiredMessage>{type: 'expired', keys: [key]});
         }
     }
 }

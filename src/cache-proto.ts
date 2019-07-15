@@ -21,26 +21,25 @@ export interface CacheContentObject {[key: string]: CacheContent}
 // All of the messages that may be sent or received by client or service.
 export type Message<Entry extends CacheContent>
     = FetchMessage
-    | EntryMessage<Entry>
-    | ExpiringMessage
+    | UpdateMessage<Entry>
+    | ExpiredMessage
     ;
 
 // Sent by the client to request the service's value for a particular key.  The
 // expected response is an EntryMessage.
 export type FetchMessage = {
     type: 'fetch',
-    key: string,
+    keys: string[],
 };
 
 // Can be sent independently by either the client or the service to notify the
-// other of an update, or sent in response to a FetchMessage.
-export type EntryMessage<Entry extends CacheContent> = {
-    type: 'entry',
-    key: string,
-    value: Entry,
+// other of update(s), or sent in response to a FetchMessage.
+export type UpdateMessage<Entry extends CacheContent> = {
+    type: 'update',
+    entries: {key: string, value: Entry}[],
 };
 
-export type ExpiringMessage = {
-    type: 'expiring',
-    key: string,
+export type ExpiredMessage = {
+    type: 'expired',
+    keys: string[],
 };
