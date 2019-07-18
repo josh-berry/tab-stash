@@ -107,6 +107,32 @@ describe('cache-service', function() {
                                            {key: 'bar', value: 'fred'}]});
         });
 
+        it('resets the generation of accessed entries', async function() {
+            const c1 = new MockClient();
+            await events.drain(1);
+            expect(service.gen_testonly).to.equal(1);
+
+            c1.set([{key: 'foo', value: 'bar'}]);
+            await events.drain(2);
+
+            const c2 = new MockClient();
+            await events.drain(1);
+            await service.next_mutation_testonly;
+            expect(service.gen_testonly).to.equal(2);
+            expect(await service._db.get('cache', 'foo'))
+                .to.deep.equal({key: 'foo', value: 'bar', agen: 1});
+
+            c2.fetch(['foo']);
+            await events.drain(2);
+
+            new MockClient();
+            await events.drain(1);
+            await service.next_mutation_testonly;
+            expect(service.gen_testonly).to.equal(3);
+            expect(await service._db.get('cache', 'foo'))
+                .to.deep.equal({key: 'foo', value: 'bar', agen: 2});
+        });
+
         // It's unclear how to test this given our inability to check for events
         // that never happen. :/
         //
@@ -289,6 +315,24 @@ describe('cache-service', function() {
                        .to.deep.equal(new Set(['foo', 'extra']));
                }
            });
+
+        it('handles updates and GC at the same time', async function() {
+            const c1 = new MockClient();
+            await events.drain(1);
+            await service.next_mutation_testonly;
+
+            c1.set([{key: 'foo', value: 'bar'}]);
+            await events.drain(2);
+            expect(c1.read()).to.deep.equal({type: 'update', entries: [
+                {key: 'foo', value: 'bar'}]});
+
+            service.force_gc_on_next_mutation_testonly();
+
+            c1.set([{key: 'foo', value: 'cronch'}]);
+            await events.drain(2);
+            expect(c1.read()).to.deep.equal({type: 'update', entries: [
+                {key: 'foo', value: 'cronch'}]});
+        });
 
         it('batches updates and evictions together', async function() {
             const c1 = new MockClient();

@@ -294,6 +294,14 @@ export class CacheService {
     }
 
     async _mutate(): Promise<void> {
+        // Collects the set of updated entries to be reported to clients.
+        //
+        // NOTE: We use a Map here and convert to an array later so that if we
+        // end up seeing the same entry multiple times through this loop (due to
+        // concurrent delete/update cycles for the same entry), we always take
+        // the latest value.
+        let updated = new Map();
+
         if (this._pending.inc_gen) {
             if (this._gen < GC_THRESHOLD) {
                 ++this._gen;
@@ -306,16 +314,10 @@ export class CacheService {
                 // Since GC must touch every element anyway, we pass along the
                 // pending updates and let GC opportunistically handle some of
                 // the updates.
-                await this._gc(this._pending.updates);
+                updated = await this._gc(this._pending.updates);
             }
             this._pending.inc_gen = false;
         }
-
-        // NOTE: We use a Map here and convert to an array later so that if we
-        // end up seeing the same entry multiple times through this loop (due to
-        // concurrent delete/update cycles for the same entry), we always take
-        // the latest value.
-        const updated = new Map();
 
         for (const [key, value] of this._pending.updates) {
             const txn = this._db.transaction('cache', 'readwrite');
@@ -352,7 +354,8 @@ export class CacheService {
         if (entries.length > 0) this._broadcast({type: 'update', entries});
     }
 
-    async _gc(updates: Map<string, CacheContent | undefined>) {
+    async _gc(updates: Map<string, CacheContent | undefined>): Promise<Map<string, CacheContent>> {
+        const updated = new Map();
         const expired = [];
         const txn = this._db.transaction('cache', 'readwrite');
         let cursor = await txn.store.openCursor();
@@ -363,6 +366,7 @@ export class CacheService {
             if (updates.has(ent.key)) {
                 ent.agen = this._gen;
                 ent.value = updates.get(ent.key) || ent.value;
+                updated.set(ent.key, ent.value);
                 updates.delete(ent.key);
             } else {
                 ent.agen = Math.floor(ent.agen / 2);
@@ -382,6 +386,8 @@ export class CacheService {
         if (expired.length > 0) {
             this._broadcast({type: 'expired', keys: expired});
         }
+
+        return updated;
     }
 
     // Type-safe methods for sending messages
