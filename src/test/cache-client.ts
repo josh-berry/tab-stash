@@ -48,21 +48,19 @@ class MockCacheService {
         });
     }
 
-    set(key: string, value: string) {
-        this.entries.set(key, value);
-        const msg: UpdateMessage<string> = {
-            type: 'update', entries: [{key, value}]};
-        for (const p of this.ports) {
-            p.postMessage(msg);
-        }
+    set(entries: {key: string, value: string}[]) {
+        for (const ent of entries) this.entries.set(ent.key, ent.value);
+        const msg: UpdateMessage<string> = {type: 'update', entries};
+        for (const p of this.ports) p.postMessage(msg);
     }
 
-    evict(key: string) {
-        expect(this.entries.has(key)).to.be.true;
-        this.entries.delete(key);
-        for (const p of this.ports) {
-            p.postMessage(<ExpiredMessage>{type: 'expired', keys: [key]});
+    evict(keys: string[]) {
+        for (const k of keys) {
+            expect(this.entries.has(k)).to.be.true;
+            this.entries.delete(k);
         }
+        const msg: ExpiredMessage = {type: 'expired', keys};
+        for (const p of this.ports) p.postMessage(msg);
     }
 }
 
@@ -138,7 +136,7 @@ describe('cache-client', function() {
 
         it("ignores updates from the service it's not interested in",
            async function() {
-               service.set('foo', 'bar');
+               service.set([{key: 'foo', value: 'bar'}]);
                await events.drain(1); // broadcast from service
 
                expect(cache.get('foo').value).to.be.undefined;
@@ -148,43 +146,55 @@ describe('cache-client', function() {
         it("applies updates from the service to previously-requested objects",
            async function() {
                service.entries.set('foo', 'bar');
+               service.entries.set('bar', 'baz');
 
                // Request objects either by updating them or by fetching them
                cache.get('foo');
-               await events.drain(2); // fetch/response
+               cache.get('bar');
+               await events.drain(4); // fetch/response
 
                expect(cache.get('foo').value).to.equal('bar');
+               expect(cache.get('bar').value).to.equal('baz');
 
                // Apply an update
-               service.set('foo', 'extra');
+               service.set([{key: 'foo', value: 'extra'},
+                            {key: 'bar', value: 'crunchy'}]);
                await events.drain(1); // broadcast from service
 
                expect(cache.get('foo').value).to.equal('extra');
+               expect(cache.get('bar').value).to.equal('crunchy');
            });
 
         it("applies updates from the service to previously-set objects",
            async function() {
                cache.set('foo', 'bar');
-               await events.drain(1); // update
+               cache.set('bar', 'baz');
+               await events.drain(2); // update
 
                expect(cache.get('foo').value).to.equal('bar');
+               expect(cache.get('bar').value).to.equal('baz');
 
-               service.set('foo', 'extra');
+               service.set([{key: 'foo', value: 'extra'},
+                            {key: 'bar', value: 'crunchy'}]);
                await events.drain(1); // broadcast from service
 
                expect(cache.get('foo').value).to.equal('extra');
+               expect(cache.get('bar').value).to.equal('crunchy');
            });
 
         it('discards content deleted from the service', async function() {
             cache.set('foo', 'bar');
+            cache.set('bar', 'baz');
+            await events.drain(2); // update
 
-            await events.drain(1); // update
             expect(cache.get('foo').value).to.equal('bar');
+            expect(cache.get('bar').value).to.equal('baz');
 
-            service.evict('foo');
+            service.evict(['foo', 'bar']);
 
             await events.drain(1); // eviction
             expect(cache.get('foo').value).to.be.undefined;
+            expect(cache.get('bar').value).to.be.undefined;
         });
     });
 });
