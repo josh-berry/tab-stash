@@ -42,6 +42,10 @@
         Tab Stash cannot restore these tabs due to Firefox security
         restrictions, so we treat them as system tabs which aren't
         stashable.</L>
+      <L :issue="28" v="Fixed">an issue where some tabs would be restored to the
+        wrong window. If you try to restore a group of tabs and then quickly
+        switch to another window, we will now ensure all tabs appear in the
+        original window even though it's no longer active.</L>
     </Version>
 
     <Version v="2.3.1">

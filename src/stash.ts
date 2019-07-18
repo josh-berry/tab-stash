@@ -498,7 +498,7 @@ export async function restoreTabs(
         }
 
         ps.push(browser.tabs.create({
-            active: false, url: urlToOpen(url), index}));
+            active: false, url: urlToOpen(url), windowId: winid, index}));
         ++index;
     }
 
