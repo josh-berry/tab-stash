@@ -106,7 +106,7 @@ import {
     /* wrap, unwrap */
 } from 'idb';
 
-import {AsyncQueue} from './util';
+import {nonReentrant} from './util';
 
 import {CacheContent, Message} from './cache-proto';
 
@@ -160,14 +160,27 @@ export class CacheService {
     private _db: IDBPDatabase<CacheSchema>;
     private _gen: number;
 
+    private _clients = new Set<browser.runtime.Port>();
+
     // We can see multiple client connections show up in quick succession, so we
     // use an AsyncQueue to enforce a global ordering of generation
     // numbers/garbage collections.  This global ordering is important because
     // we don't want to accidentally trigger two concurrent GCs and wind up
     // prematurely aging items in the cache.
-    private _mutate_gen = AsyncQueue();
+    private _mutate_task: () => Promise<void>;
 
-    private _clients = new Set<browser.runtime.Port>();
+    // Pending database mutations, applied by the _mutate_task, which batches
+    // things together by virtue of it being nonReentrant().
+    private _pending = {
+        // Generation needs to be incremented (might trigger GC)
+        inc_gen: false,
+
+        // Cache entries which have been accessed or modified.  Mere accesses
+        // are recorded with the value `undefined`.  Modifications are recorded
+        // with the actual CacheContent (which can be `null`, but never
+        // `undefined`).
+        updates: new Map<string, CacheContent | undefined>(),
+    };
 
     static async start(name: string): Promise<CacheService> {
         const path = `cache:${name}`;
@@ -197,18 +210,24 @@ export class CacheService {
         this._path = path;
         this._db = db;
         this._gen = gen;
+        this._mutate_task = nonReentrant(() => this._mutate());
     }
 
     // For testing purposes
-    get generation(): number { return this._gen; }
-    get gen_update_done(): Promise<void> {
-        return this._mutate_gen(async () => undefined);
+    get gen_testonly(): number { return this._gen; }
+    get next_mutation_testonly(): Promise<void> {
+        return this._mutate_task();
+    }
+    force_gc_on_next_mutation_testonly() {
+        if (this._gen < GC_THRESHOLD) this._gen = GC_THRESHOLD;
+        this._pending.inc_gen = true;
     }
 
     // Internal stuff past this point
 
     _onConnect(port: browser.runtime.Port) {
-        this._inc_gen();
+        this._pending.inc_gen = true;
+        this._mutate_task();
 
         this._clients.add(port);
 
@@ -237,10 +256,9 @@ export class CacheService {
     }
 
     async _onFetch(port: browser.runtime.Port, keys: string[]) {
-        const txn = await this._db.transaction('cache', 'readwrite');
+        const txn = await this._db.transaction('cache');
 
         const entries = [];
-        const puts = [];
 
         for (const key of keys) {
             const ent = await txn.store.get(key);
@@ -253,31 +271,30 @@ export class CacheService {
             if (! ent) continue;
 
             entries.push({key: ent.key, value: ent.value});
-            ent.agen = this._gen;
-            puts.push(txn.store.put(ent));
+            if (! this._pending.updates.has(key)) {
+                this._pending.updates.set(key, undefined);
+            }
         }
 
         // We send early to reduce latency on the client side, even though
         // there's risk of a conflict and the client receiving stale data.
         this._send(port, {type: 'update', entries});
 
-        // XXX batch this
-        for (const p of puts) await p;
         await txn.done;
+        this._mutate_task();
     }
 
     async _onEntry(port: browser.runtime.Port,
                    entries: {key: string, value: CacheContent}[])
     {
-        // XXX batch me
         for (const ent of entries) {
-            await this._db.put('cache', {...ent, agen: this._gen});
+            this._pending.updates.set(ent.key, ent.value);
         }
-        this._broadcast({type: 'update', entries});
+        this._mutate_task();
     }
 
-    _inc_gen(): Promise<void> {
-        return this._mutate_gen(async () => {
+    async _mutate(): Promise<void> {
+        if (this._pending.inc_gen) {
             if (this._gen < GC_THRESHOLD) {
                 ++this._gen;
                 await this._db.put('options', this._gen, 'generation');
@@ -286,19 +303,70 @@ export class CacheService {
                 this._gen = Math.floor(this._gen / 2);
                 await this._db.put('options', this._gen, 'generation');
 
-                await this._gc();
+                // Since GC must touch every element anyway, we pass along the
+                // pending updates and let GC opportunistically handle some of
+                // the updates.
+                await this._gc(this._pending.updates);
             }
-        });
+            this._pending.inc_gen = false;
+        }
+
+        // NOTE: We use a Map here and convert to an array later so that if we
+        // end up seeing the same entry multiple times through this loop (due to
+        // concurrent delete/update cycles for the same entry), we always take
+        // the latest value.
+        const updated = new Map();
+
+        for (const [key, value] of this._pending.updates) {
+            const txn = this._db.transaction('cache', 'readwrite');
+            let ent = await txn.store.get(key);
+
+            if (! ent) {
+                if (value !== undefined) {
+                    ent = {key, value, agen: this._gen};
+                } else {
+                    // How did we touch something that doesn't exist?
+                    await txn.done;
+                    this._pending.updates.delete(key);
+                    console.warn('Touched nonexistent key:', key);
+                    continue;
+                }
+            }
+
+            ent.agen = this._gen;
+            if (value !== undefined) ent.value = value;
+
+            await txn.store.put(ent);
+            await txn.done;
+
+            if (value !== undefined) updated.set(key, value);
+            this._pending.updates.delete(key);
+        }
+
+        // If we reach this point, _pending.updates is now empty; anything
+        // values we actually changed went into /updated/.  We just need to
+        // munge /updated/ and send a notice to everyone that some stuff has
+        // changed.
+        const entries = [];
+        for (const [key, value] of updated) entries.push({key, value});
+        if (entries.length > 0) this._broadcast({type: 'update', entries});
     }
 
-    async _gc() {
+    async _gc(updates: Map<string, CacheContent | undefined>) {
         const expired = [];
         const txn = this._db.transaction('cache', 'readwrite');
         let cursor = await txn.store.openCursor();
+
         while (cursor) {
             const ent = {...cursor.value};
 
-            ent.agen = Math.floor(ent.agen / 2);
+            if (updates.has(ent.key)) {
+                ent.agen = this._gen;
+                ent.value = updates.get(ent.key) || ent.value;
+                updates.delete(ent.key);
+            } else {
+                ent.agen = Math.floor(ent.agen / 2);
+            }
 
             if (ent.agen <= 0) {
                 expired.push(ent.key);
@@ -308,8 +376,12 @@ export class CacheService {
             }
             cursor = await cursor.continue();
         }
+
         await txn.done;
-        this._broadcast({type: 'expired', keys: expired});
+
+        if (expired.length > 0) {
+            this._broadcast({type: 'expired', keys: expired});
+        }
     }
 
     // Type-safe methods for sending messages

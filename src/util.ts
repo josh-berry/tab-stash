@@ -205,26 +205,3 @@ export class DeferQueue {
         if (evq) for (let [fn, args] of evq) fn(...args);
     }
 }
-
-// Similar to a defer queue, an async queue is a queue of async operations that
-// is run serially.  Unlike nonReentrant(), which coalesces multiple calls into
-// a single actual call, AsyncQueue strictly runs each of its functions in
-// order, waiting for the previous one to complete before starting the next.
-//
-// Use it like:
-//
-// const q = AsyncQueue();
-//
-// q(async () => { ... });
-// q(async () => { ... });
-
-export function AsyncQueue(): (_: () => Promise<void>) => Promise<void> {
-    let tail = Promise.resolve();
-
-    return (fn: () => Promise<void>) => {
-        tail = tail.catch(console.log).finally(() => {
-            return fn();
-        });
-        return tail;
-    };
-}

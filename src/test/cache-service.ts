@@ -40,7 +40,7 @@ describe('cache-service', function() {
     let service: typeof CacheService = undefined!;
 
     async function reset_service() {
-        await service.gen_update_done;
+        await service.next_mutation_testonly;
         events.expect_empty();
         service = undefined!;
         delete require.cache[require.resolve('../cache-service')];
@@ -52,7 +52,7 @@ describe('cache-service', function() {
     }
 
     async function reset() {
-        if (service) await service.gen_update_done;
+        if (service) await service.next_mutation_testonly;
         service = undefined!;
         delete require.cache[require.resolve('../cache-service')];
 
@@ -127,38 +127,82 @@ describe('cache-service', function() {
                    {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
            });
 
+        it('batches multiple updates together', async function() {
+            const c1 = new MockClient();
+            const c2 = new MockClient();
+            await events.drain(2);
+
+            c1.set([{key: 'foo', value: 'bar'}]);
+            c2.set([{key: 'bar', value: 'baz'}]);
+            await events.drain(2);
+
+            const res = {type: 'update', entries: [
+                {key: 'foo', value: 'bar'},
+                {key: 'bar', value: 'baz'},
+            ]};
+
+            await events.drain(2);
+            expect(c1.read()).to.deep.equal(res);
+            expect(c2.read()).to.deep.equal(res);
+        });
     });
 
     describe('garbage collection', function() {
         it('increments its generation number for each new client',
            async function() {
-               expect(service.generation).to.equal(0);
+               expect(service.gen_testonly).to.equal(0);
 
                new MockClient();
                await events.drain(1);
-               await service.gen_update_done;
-               expect(service.generation).to.equal(1);
+               await service.next_mutation_testonly;
+               expect(service.gen_testonly).to.equal(1);
 
                new MockClient();
                await events.drain(1);
-               await service.gen_update_done;
-               expect(service.generation).to.equal(2);
+               await service.next_mutation_testonly;
+               expect(service.gen_testonly).to.equal(2);
+           });
+
+        it('batches generation increments if multiple clients connect quickly',
+           async function() {
+               expect(service.gen_testonly).to.equal(0);
+
+               new MockClient();
+               new MockClient();
+               await events.drain(2);
+               await service.next_mutation_testonly;
+               expect(service.gen_testonly).to.equal(1);
+
+               new MockClient();
+               new MockClient();
+               new MockClient();
+               await events.drain(3);
+               await service.next_mutation_testonly;
+               expect(service.gen_testonly).to.equal(2);
            });
 
         it('stores its generation number persistently', async function() {
             new MockClient();
             new MockClient();
             await events.drain(2);
-            await service.gen_update_done;
+            await service.next_mutation_testonly;
+
+            expect(await service._db.get('options', 'generation'), 'initial')
+                .to.equal(1);
+            expect(service.gen_testonly).to.equal(1);
+
+            new MockClient();
+            await events.drain(1);
+            await service.next_mutation_testonly;
 
             expect(await service._db.get('options', 'generation'), 'initial')
                 .to.equal(2);
-            expect(service.generation).to.equal(2);
+            expect(service.gen_testonly).to.equal(2);
 
             await reset_service();
             expect(await service._db.get('options', 'generation'), 'post-reset')
                 .to.equal(2);
-            expect(service.generation).to.equal(2);
+            expect(service.gen_testonly).to.equal(2);
         });
 
         it('keeps unused entries around for at least two generations',
@@ -171,7 +215,7 @@ describe('cache-service', function() {
 
                new MockClient();
                await events.drain(1);
-               await service.gen_update_done;
+               await service.next_mutation_testonly;
                expect(await service._db.get('cache', 'foo')).to.deep.equal({
                    key: 'foo',
                    value: 'bar',
@@ -180,7 +224,7 @@ describe('cache-service', function() {
 
                new MockClient();
                await events.drain(1);
-               await service.gen_update_done;
+               await service.next_mutation_testonly;
                expect(await service._db.get('cache', 'foo')).to.deep.equal({
                    key: 'foo',
                    value: 'bar',
@@ -194,14 +238,14 @@ describe('cache-service', function() {
             c.set([{key: 'foo', value: 'bar'},
                    {key: 'xtra', value: 'crunchy'}]);
             await events.drain(2);
-            await service.gen_update_done;
+            await service.next_mutation_testonly;
 
             // Assumes GC_THRESHOLD == 16
             for (let i = 0; i < 15; ++i) {
                 new MockClient();
                 await events.drain(1);
-                await service.gen_update_done;
-                expect(service.generation, `iteration ${i}`).to.equal(i+2);
+                await service.next_mutation_testonly;
+                expect(service.gen_testonly, `iteration ${i}`).to.equal(i+2);
                 expect(await service._db.get('cache', 'foo'), `iteration ${i}`)
                     .to.deep.equal({key: 'foo', value: 'bar', agen: 1});
                 expect(await service._db.get('cache', 'xtra'), `iteration ${i}`)
@@ -210,10 +254,11 @@ describe('cache-service', function() {
 
             new MockClient();
             await events.drain(1);
-            await service.gen_update_done;
+            await service.next_mutation_testonly;
             await events.drain(17); // eviction notices
             expect(await service._db.get('cache', 'foo')).to.be.undefined;
             expect(await service._db.get('cache', 'xtra')).to.be.undefined;
+            expect(await service._db.get('options', 'generation')).to.equal(8);
         });
 
         it('notifies all clients about entries that have expired',
@@ -229,15 +274,12 @@ describe('cache-service', function() {
                        {key: 'foo', value: 'bar'},
                        {key: 'extra', value: 'crunchy'}]});
 
-               for (let i = 0; i < 15; ++i) {
-                   new MockClient();
-               }
-               await events.drain(15);
+               service.force_gc_on_next_mutation_testonly();
 
                const c2 = new MockClient();
                await events.drain(1);
-               await service.gen_update_done;
-               await events.drain(17); // expiration notices
+               await service.next_mutation_testonly;
+               await events.drain(2); // expiration notices
 
                const c1exp = c1.read() as ExpiredMessage;
                const c2exp = c2.read() as ExpiredMessage;
@@ -247,5 +289,57 @@ describe('cache-service', function() {
                        .to.deep.equal(new Set(['foo', 'extra']));
                }
            });
+
+        it('batches updates and evictions together', async function() {
+            const c1 = new MockClient();
+            await events.drain(1);
+            await service.next_mutation_testonly;
+
+            c1.set([{key: 'foo', value: 'bar'},
+                    {key: 'bar', value: 'fred'},
+                    {key: 'extra', value: 'crunchy'}]);
+            await events.drain(2);
+
+            expect(c1.read()).to.deep.equal(
+                {type: 'update', entries: [
+                    {key: 'foo', value: 'bar'},
+                    {key: 'bar', value: 'fred'},
+                    {key: 'extra', value: 'crunchy'}]});
+
+            c1.set([{key: 'super', value: 'spicy'},
+                    {key: 'extra', value: 'crispy'}]);
+            const c2 = new MockClient();
+            service.force_gc_on_next_mutation_testonly();
+            await events.drain(6); // connect + 1 update + 2 notices + 2 evicts
+
+            for (const c of [c1, c2]) {
+                const expired = new Set<string>();
+                const updated = new Map<string, string>();
+                expect(c.recvd.length).to.equal(2);
+                for (const msg of c.recvd) {
+                    switch (msg.type) {
+                        case 'expired':
+                            for (const k of msg.keys) {
+                                expect(expired.has(k), k).to.be.false;
+                                expired.add(k);
+                            }
+                            break;
+                        case 'update':
+                            for (const e of msg.entries) {
+                                expect(updated.has(e.key), e.key).to.be.false;
+                                updated.set(e.key, e.value);
+                            }
+                            break;
+                        default:
+                            expect(msg.type).to.satisfy(
+                                (x: string) => x == 'expired' || x == 'update');
+                    }
+                }
+                expect(expired).to.deep.equal(new Set(['foo', 'bar']));
+                if (c == c2) continue;
+                expect(updated).to.deep.equal(new Map([['super', 'spicy'],
+                                                       ['extra', 'crispy']]));
+            }
+        });
     });
 });
