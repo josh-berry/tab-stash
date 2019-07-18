@@ -151,7 +151,7 @@ describe('cache-client', function() {
                // Request objects either by updating them or by fetching them
                cache.get('foo');
                cache.get('bar');
-               await events.drain(4); // fetch/response
+               await events.drain(2); // fetch/response
 
                expect(cache.get('foo').value).to.equal('bar');
                expect(cache.get('bar').value).to.equal('baz');
@@ -169,7 +169,7 @@ describe('cache-client', function() {
            async function() {
                cache.set('foo', 'bar');
                cache.set('bar', 'baz');
-               await events.drain(2); // update
+               await events.drain(1); // update
 
                expect(cache.get('foo').value).to.equal('bar');
                expect(cache.get('bar').value).to.equal('baz');
@@ -185,7 +185,7 @@ describe('cache-client', function() {
         it('discards content deleted from the service', async function() {
             cache.set('foo', 'bar');
             cache.set('bar', 'baz');
-            await events.drain(2); // update
+            await events.drain(1); // update
 
             expect(cache.get('foo').value).to.equal('bar');
             expect(cache.get('bar').value).to.equal('baz');

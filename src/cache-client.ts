@@ -21,7 +21,9 @@
 // broadcast in quick succession; if this is a concern (and it's REALLY worth
 // the extra complexity), code changes are required. :)
 
-import {CacheContent, Message} from './cache-proto';
+import {
+    CacheContent, Message, FetchMessage, UpdateMessage,
+} from './cache-proto';
 
 // Ugly global object which keeps track of all the open caches, so we only have
 // one client per cache per JS environment.
@@ -31,19 +33,28 @@ const CACHES = new Map<string, Cache<any>>();
 export type CacheEntry<Content extends CacheContent> = {
     key: string,
     value: Content | undefined,
-    requested: boolean,
+    fetched: boolean, // Whether this item has EVER been fetched
 };
 
 // The cache.
 export class Cache<Content extends CacheContent> {
+    private _name: string;
+    private _service: browser.runtime.Port;
+
     private _local_cache: Map<string, CacheEntry<Content>> = new Map();
 
     // Vue wants a plain old array it can watch--it doesn't understand how to
     // monitor Maps for changes.
     private _local_cache_for_vue: CacheEntry<Content>[] = [];
 
-    private _name: string;
-    private _service: browser.runtime.Port;
+    // The set of items we need to send fetch requests for; each entry in the
+    // set corresponds to a key in /_local_cache/.  Fetches are batched and
+    // sent in the background to reduce the overhead of making multiple requests
+    // together; if this set exists, a request is being prepared.
+    private _fetching: Set<string> | undefined;
+
+    // Same as above, except for updates (via set()).
+    private _updating: Map<string, Content> | undefined;
 
     static open<Content extends CacheContent>(name: string): Cache<Content> {
         let cache = CACHES.get(name);
@@ -103,9 +114,13 @@ export class Cache<Content extends CacheContent> {
 
     get(key: string): CacheEntry<Content> {
         const ent = this._cached(key);
-        if (! ent.requested) {
-            this._send({type: 'fetch', keys: [key]});
-            ent.requested = true;
+        if (! ent.fetched) {
+            if (! this._fetching) {
+                this._fetching = new Set();
+                setTimeout(() => this._send_fetches());
+            }
+            this._fetching.add(ent.key);
+            ent.fetched = true;
         }
         return ent;
     }
@@ -113,8 +128,14 @@ export class Cache<Content extends CacheContent> {
     set(key: string, value: Content): CacheEntry<Content> {
         const ent = this._cached(key);
         ent.value = value;
-        ent.requested = true; // since we're about to send an update
-        this._send({type: 'update', entries: [{key, value}]});
+        ent.fetched = true; // since we're about to send an update
+
+        if (! this._updating) {
+            this._updating = new Map();
+            setTimeout(() => this._send_updates());
+        }
+        this._updating.set(key, value);
+
         return ent;
     }
 
@@ -123,14 +144,34 @@ export class Cache<Content extends CacheContent> {
     _cached(key: string): CacheEntry<Content> {
         let ent = this._local_cache.get(key);
         if (! ent) {
-            ent = {key, value: undefined, requested: false};
+            ent = {key, value: undefined, fetched: false};
             this._local_cache.set(key, ent);
             this._local_cache_for_vue.push(ent);
         }
         return ent;
     }
 
-    _send(m: Message<Content>) {
-        this._service.postMessage(m);
+    _send_fetches() {
+        if (! this._fetching) return;
+
+        this._service.postMessage(<FetchMessage>{
+            type: 'fetch',
+            keys: Array.from(this._fetching),
+        });
+
+        this._fetching = undefined;
+    }
+
+    _send_updates() {
+        if (! this._updating) return;
+
+        const entries = [];
+        for (const [key, value] of this._updating) entries.push({key, value});
+
+        this._service.postMessage(<UpdateMessage<Content>>{
+            type: 'update', entries
+        });
+
+        this._updating = undefined;
     }
 }

@@ -14,7 +14,7 @@ class MockFaviconCache {
     _entry(key: string): M.FaviconCacheEntry {
         let i = this.cache.get(key);
         if (! i) {
-            i = {key, value: undefined, requested: true};
+            i = {key, value: undefined, fetched: true};
             this.cache.set(key, i);
         }
         return i;
