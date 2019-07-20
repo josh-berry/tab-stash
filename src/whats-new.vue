@@ -12,40 +12,37 @@
 
     <Version v="2.4">
       <L :issue="24" v="Added">support for stashing tabs which are in Reader
-        View.  Due to Firefox security restrictions, there are a couple caveats
-        to be aware of:</L>
+        View.  Due to Firefox security restrictions, there are some caveats:</L>
       <ul>
         <li>The "Stash this tab" icon will not appear in the address bar for
           Reader View pages.  You can instead use the right-click menu to stash
           individual Reader View tabs.</li>
         <li>Tab Stash cannot restore tabs directly to Reader View, so if a tab
           is no longer available (e.g. it was closed and removed from Firefox's
-          cache), Tab Stash will restore it to the normal website view.</li>
+          cache), we will restore it to the normal website view.</li>
       </ul>
       <L :issue="2" v="Added">a record of which groups are visible and which
-        are collapsed.  If you hide a group, we will now remember that, and
+        are collapsed.  If you collapse a group, we will now remember that, and
         we won't show you its contents again unless you ask (even if you restart
         your browser).</L>
       <L :subtext="`Icons are locally-sourced from websites using only `
                    + `sustainable fetching practices.  Certified 100% `
-                   + `inorganic, non-GMO, gluten-free.  Ask your doctor about `
-                   + `side effects.`"
+                   + `inorganic, non-GMO, gluten-free.`"
          :issue="3" v="Improved">your privacy by replacing the Google icon
         service with a local cache of website icons.  Note that <b>some of your
-        website icons may go missing</b> until you visit the site and the cache
+        website icons will go missing</b> until you visit the site and the cache
         can be populated&mdash;this is normal.</L>
       <L :issue="25" v="Fixed">an issue causing Tab Stash to mistakenly close a
-        tab it had just opened if multiple individual tabs are opened from the
-        stash list in quick succession.</L>
-      <L :issue="27" v="Fixed">an issue in which Tab Stash mistakenly allows the
-        stashing of tabs showing local files (<code>file:///...</code> URLs).
-        Tab Stash cannot restore these tabs due to Firefox security
-        restrictions, so we treat them as system tabs which aren't
-        stashable.</L>
+        tab that was just opened if multiple tabs are restored in quick
+        succession.</L>
+      <L :issue="27" v="Fixed">an issue in which Tab Stash mistakenly allows
+        stashing tabs with local files (<code>file:///...</code> URLs).  Tab
+        Stash cannot restore these tabs due to Firefox security restrictions, so
+        we now treat them as system tabs which aren't stashable.</L>
       <L :issue="28" v="Fixed">an issue where some tabs would be restored to the
-        wrong window. If you try to restore a group of tabs and then quickly
-        switch to another window, we will now ensure all tabs appear in the
-        original window even though it's no longer active.</L>
+        wrong window if you quickly switch windows while a restore is happening.
+        We will now ensure all tabs appear in the correct window even if it's no
+        longer active.</L>
     </Version>
 
     <Version v="2.3.1">
