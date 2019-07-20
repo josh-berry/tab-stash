@@ -27,7 +27,7 @@
   },
   "scripts": {
     "build": "webpack",
-    "build-rel": "webpack --mode production --devtool false",
+    "build-rel": "webpack --mode production --devtool nosources-source-map",
     "test": "mocha ./dist/test.js"
   }
 }

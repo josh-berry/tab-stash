@@ -1,5 +1,6 @@
 node_modules
 dist/*.js
+dist/*.js.map
 releases/tab-stash-src-*
 releases/tab-stash-*.zip
 releases/tab-stash-src-*.tar.gz

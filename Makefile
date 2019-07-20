@@ -86,7 +86,7 @@ clean-working-tree:
 
 node_modules package-lock.json: package.json
 	npm install
-	touch node_modules
+	touch node_modules package-lock.json
 
 node_modules: package-lock.json
 
@@ -96,6 +96,6 @@ distclean: clean
 .PHONY: distclean
 
 clean:
-	rm -f dist/*.js
+	rm -f dist/*.js dist/*.js.map
 	find dist -type f -name .DS_Store |xargs rm
 .PHONY: clean
