@@ -19,11 +19,11 @@ import {CacheService} from './cache-service';
 //
 
 function menu(idprefix: string, contexts: browser.menus.ContextType[],
-              def: string[][])
+              def: string[][], parentId?: string)
 {
     for (let [id, title] of def) {
         if (id) {
-            browser.menus.create({contexts, title, id: idprefix + id});
+            browser.menus.create({contexts, title, parentId, id: idprefix + id});
         } else {
             browser.menus.create({contexts, type: 'separator', enabled: false});
         }
@@ -36,6 +36,7 @@ menu('1:', ['tab', 'page', 'tools_menu'], [
     ['', ''],
     ['stash_all', 'Stash Tabs'],
     ['stash_one', 'Stash This Tab'],
+    ['stash_one_group', 'Stash This Tab to a Group'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
     ['', ''],
     ['copy_all', 'Copy Tabs to Stash'],
@@ -43,6 +44,16 @@ menu('1:', ['tab', 'page', 'tools_menu'], [
     ['', ''],
     ['options', 'Options...'],
 ]);
+
+(async () => {
+  const managed_urls = await tabStashTree();
+
+  const groups = (managed_urls.children || [])
+    .filter(bookmark => bookmark.type === 'folder')
+    .map(folder => (['stash_one_group:' + folder.id, folder.title]));
+
+  menu('1:', ['tab', 'page', 'tools_menu'], groups, '1:stash_one_group');
+})().catch(err => console.error(err));
 
 // These should only have like 6 items each
 menu('2:', ['browser_action'], [
@@ -104,7 +115,7 @@ const show_stash_if_desired = (() => {
 })();
 
 
-const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
+const commands: {[key: string]: (t: browser.tabs.Tab, options?: { folderId: string }) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
     // permission to do so per Firefox's API rules.
@@ -128,6 +139,11 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
             folderId: await mostRecentUnnamedFolderId(),
             close: true,
         });
+    },
+
+    stash_one_group: async function(tab: browser.tabs.Tab, options?: { folderId: string }) {
+      show_stash_if_desired();
+      await stashTabs([tab], { ...options, close: true })
     },
 
     stash_one_newgroup: async function(tab: browser.tabs.Tab) {
@@ -161,9 +177,16 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
 
 browser.menus.onClicked.addListener((info, tab) => {
     // #cast We only ever create menu items with string IDs
-    const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, '');
-    console.assert(commands[cmd]);
-    commands[cmd](tab).catch(console.log);
+    let cmd = (<string>info.menuItemId).replace(/^[^:]*:/, '');
+    if (cmd.includes(':')) {
+      let folderId;
+      [cmd, folderId] = cmd.split(':');
+      console.assert(commands[cmd]);
+      commands[cmd](tab, {folderId}).catch(console.log);
+    } else {
+      console.assert(commands[cmd]);
+      commands[cmd](tab).catch(console.log);
+    }
 });
 
 browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
