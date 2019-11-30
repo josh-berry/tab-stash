@@ -70,14 +70,19 @@ your Firefox toolbar.
 On **Mac**:
 
 - Show stashed tabs in sidebar: *Ctrl+Shift+S*
-- Stash all open tabs: *Ctrl+Shift+T*
+- Stash all (or selected) open tabs: *Ctrl+Shift+T*
 - Stash the active tab: *Ctrl+Shift+W*
 
 On **Windows**, **Linux** and other platforms:
 
 - Show stashed tabs in sidebar: *Ctrl+Alt+S*
-- Stash all open tabs: *Ctrl+Alt+T*
+- Stash all (or selected) open tabs: *Ctrl+Alt+T*
 - Stash the active tab: *Ctrl+Alt+W*
+
+**NOTE:** The "*Stash all ...*" keyboard shortcuts described above will stash
+all tabs if only one tab is selected.  But if you have selected multiple tabs
+using Shift+Click or Cmd/Ctrl+Click, then only the selected tabs will be
+stashed.
 
 ### Stashing Multiple Tabs at Once
 
