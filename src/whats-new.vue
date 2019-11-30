@@ -10,6 +10,9 @@
 
   <div class="folder-list">
 
+    <Version v="2.5">
+    </Version>
+
     <Version v="2.4">
       <L :issue="24" v="Added">support for stashing tabs which are in Reader
         View.  Due to Firefox security restrictions, there are some caveats:</L>
