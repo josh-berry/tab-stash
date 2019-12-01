@@ -165,6 +165,21 @@ Here's why we need each of them:
 
 ## Developer Corner
 
+First of all, thanks for your interest in contributing to Tab Stash!  The best
+way to get your new feature or bugfix included is to open a pull request in
+GitHub.  Please make sure you've read and followed the *Code Style* section
+below, and included adequate comments and notes in your commit message for
+reviewers to understand what you're trying to do and why.
+
+Importantly, *don't expect your pull request to be merged right away*.  You will
+likely get at least one round of constructive feedback; this is to help catch
+bugs and ensure the code stays maintainable for the next person who wants to
+contribute.  I hope you will take this feedback in the spirit in which it's
+given--as reflecting our shared desire to make Tab Stash the best it can
+possibly be.
+
+*-- Josh*
+
 ### Building Tab Stash for Development
 
 You must have [Node.js](https://nodejs.org/) installed, which provides the `npm`
@@ -206,6 +221,32 @@ code stripped.  Two package files will be generated, both of which can be
 uploaded to addons.mozilla.org--the first, `tab-stash-X.Y.zip`, is the actual
 extension.  The second, `tab-stash-src-X.Y.tar.gz`, is the source to go along
 with it.
+
+### Code Style
+
+- **Indentation:** Four spaces (no tabs) per indentation level.
+- **Line Length:** No lines should be longer than 80 columns.
+  - When wrapping, please line up your wrapped line with the relevant opening
+    '(' or '[' on the previous line.  (Emacs does this correctly by default.)
+  - If there's no grouping character to line up with, indent wrapped lines an
+    additional four spaces.
+- **Comments:** Where it's not immediately obvious, please write comments
+  explaining *why* your code is doing what it's doing.  Use `//` comments, not
+  `/* */` comments.
+- **Variable Names:** Use your best judgment--the larger the scope, the more
+  descriptive the name should be.  Single-letter variable names are fine if the
+  contents/usage of the variable are obvious in context and the variable's scope
+  fits on a single (small) screen.
+  - *Constants* are written `LIKE_THIS`.
+  - *Class Names* are written `LikeThis`.
+  - *Function and Argument Names* are written `likeThis` for arguments and
+    public functions or `like_this` for private functions.
+  - *Local Variable Names* are written `like_this`.  Prefer `const` for local
+    variables when possible, or `let` when necessary.  Don't use `var`.
+
+The existing code does not always follow these guidelines consistently; if you
+find inconsistencies, please feel free to correct them (but please submit
+corrections in commits which are separate from functional changes).
 
 ### Editing Icons
 
