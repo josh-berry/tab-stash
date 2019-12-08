@@ -17,6 +17,8 @@
         duplicates if multiple stashes are in progress.  This bug happens very
         rarely, but is serious enough I've decided to remove the feature until a
         solution can be found.</L>
+      <L :issue="34" v="Improved">the color of the Tab Stash icon so it is
+        visible in both dark and light themes.</L>
     </Version>
 
     <Version v="2.4">
