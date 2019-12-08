@@ -264,9 +264,7 @@ async function bookmarkTabs(
 
     } else {
         // If we're adding to an existing folder, skip bookmarks which already
-        // exist in that folder.  These won't be picked up by
-        // gcDuplicateBookmarks() below since we purposefully exclude the folder
-        // we are adding to/just created (see below for why).
+        // exist in that folder.
         //
         // Note, however, that these tabs are still considered "saved" for the
         // purposes of this function, because the already appear in the folder.
@@ -328,95 +326,7 @@ async function bookmarkTabs(
     }
     for (let p of ps) await p;
 
-    // In the background, remove any duplicate bookmarks in other tab-stash
-    // folders.  gcDuplicateBookmarks() prefers to keep bookmarks that appear
-    // earlier in the tree over those that appear later.  We purposefully
-    // exclude the folder we just created/added to, since the user expressed a
-    // preference to have open tabs saved to this folder (and not other
-    // folders).  So it's better to remove from OTHER folders even if they
-    // appear first.
-    //
-    // We also avoid touching URLs that weren't explicitly saved, since that may
-    // be surprising to users (there are corner cases where we might have
-    // duplicates if the user decides to rename a named folder to have a
-    // default/temporary name once again).
-    gcDuplicateBookmarks(root.id, new Set([folderId]),
-                         new Set(tabs.map(t => t.url))).catch(console.log);
-
     return tabs;
-}
-
-export async function gcDuplicateBookmarks(
-    root_id: string,
-    ignore_folder_ids: Set<string>,
-    urls_to_check: Set<string>
-): Promise<void> {
-    let folders = (await browser.bookmarks.getSubTree(root_id))[0].children
-        || [];
-
-    // We want to preserve/ignore duplicates in folders which are ignored
-    // (/ignored_folder_ids/), and folders which were explicitly-named by the
-    // user (i.e. folders which do not have a "default" name of the date/time at
-    // which they were created).  These are "preserved folders".
-    let should_preserve_folder = (f: browser.bookmarks.BookmarkTreeNode) =>
-        (ignore_folder_ids && ignore_folder_ids.has(f.id))
-        || ! getFolderNameISODate(f.title);
-
-    // We do two passes--first, we look at preserved folders and add all their
-    // URLs to the /seen_urls/ set.  Then, we look at all the NON-prserved
-    // folders and remove URLs that we've already seen.
-    //
-    // The intention here is that by default, we remove duplicates that show up
-    // later in the bookmarks tree, EXCEPT for preserved folders--we prefer to
-    // keep duplicates in those folders instead, and we want to REMOVE
-    // duplicates in non-preserved folders even if they show up earlier in the
-    // tree.
-
-    // Pass 1 - Note which bookmarks exist in preserved folders.
-    let seen_urls = new Set();
-    for (let f of folders) {
-        if (! f.children) continue;
-        if (! should_preserve_folder(f)) continue;
-
-        for (let b of f.children) if (b.url) seen_urls.add(b.url);
-    }
-
-    // Pass 2 - Remove bookmarks from non-preserved folders.
-    let ps = [];
-    for (let f of folders) {
-        if (! f.children) continue;
-        if (should_preserve_folder(f)) continue;
-
-        // Remove any bookmarks which we have already seen.  Keep track of how
-        // many we removed so we know when the folder is empty and can itself be
-        // removed.
-        let rmcount = 0;
-        for (let b of f.children) {
-            if (! b.url) continue;
-
-            if (urls_to_check.has(b.url) && seen_urls.has(b.url)) {
-                ps.push(browser.bookmarks.remove(b.id));
-                ++rmcount;
-            } else {
-                seen_urls.add(b.url);
-            }
-        }
-
-        if (rmcount == f.children.length) {
-            // This folder should be empty.  Remove it (using regular remove()
-            // so if it's not actually empty, the remove will fail).
-            //
-            // First, however, wait for outstanding removes so we don't try to
-            // remove a folder that has stuff that's still in the process of
-            // being removed.
-            for (let p of ps) try {await p} catch(e) {console.log(e)};
-            ps = [];
-
-            ps.push(browser.bookmarks.remove(f.id));
-        }
-    }
-
-    for (let p of ps) try {await p} catch(e) {console.log(e)};
 }
 
 export async function restoreTabs(

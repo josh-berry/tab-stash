@@ -11,6 +11,12 @@
   <div class="folder-list">
 
     <Version v="2.5">
+      <L :subtext="`Sorry for the inconvenience. :/`"
+         :issue="31" v="Removed">the bookmark de-duplication feature.  There is
+        a bug in which de-duplication may remove bookmarks which are not
+        duplicates if multiple stashes are in progress.  This bug happens very
+        rarely, but is serious enough I've decided to remove the feature until a
+        solution can be found.</L>
     </Version>
 
     <Version v="2.4">

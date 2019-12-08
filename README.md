@@ -27,8 +27,6 @@ see your tabs.
 - Restore and delete entire groups of tabs, or individual tabs within a group
 - Drag and drop stashed tabs and groups to re-organize them
 - Rename tab groups, or keep the automatically-generated names
-- Intelligent migration of duplicate tabs to the newest groups (for unnamed
-  groups; tabs in named groups are not disturbed)
 
 ## Usage Tips
 
