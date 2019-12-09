@@ -264,7 +264,7 @@ export default {
                     t => t && ! t.hidden && ! t.pinned
                            && ! this.isItemStashed(t));
 
-                await refocusAwayFromTabs(Array.concat(hide_tabs, close_tabs));
+                await refocusAwayFromTabs(hide_tabs.concat(close_tabs));
 
                 hideStashedTabs(hide_tabs).catch(console.log);
                 browser.tabs.remove(close_tabs.map(t => t.id))

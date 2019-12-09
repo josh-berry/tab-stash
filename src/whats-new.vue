@@ -19,6 +19,8 @@
         solution can be found.</L>
       <L :issue="34" v="Improved">the color of the Tab Stash icon so it is
         visible in both dark and light themes.</L>
+      <L v="Fixed">an issue preventing the "Close all open tabs" button from
+        working correctly in newer versions of Firefox.</L>
     </Version>
 
     <Version v="2.4">
