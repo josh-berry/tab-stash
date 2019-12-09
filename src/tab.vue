@@ -13,17 +13,15 @@
        alt="">
   <span class="text">{{bestTitle}}</span>
   <ButtonBox>
-    <img v-if="isBookmark" src="icons/restore-del.svg"
-         class="action restore-remove"
-         title="Open this tab and delete it from the group"
-         @click.prevent.stop="openRemove">
-    <img v-else src="icons/stash-one-dark.svg" class="action stash one"
-         :title="`Stash this tab (hold ${altkey} to keep tab open)`"
-         @click.prevent.stop="stash">
-    <img src="icons/delete.svg" class="action remove"
-         :title="isBookmark ? 'Delete this tab from the group'
-                            : 'Close this tab'"
-         @click.prevent.stop="remove">
+    <Button v-if="isBookmark" 
+            class="restore-remove" @action="openRemove"
+            tooltip="Open this tab and delete it from the group" />
+    <Button v-else
+            class="stash one" @action="stash"
+            :tooltip="`Stash this tab (hold ${altkey} to keep tab open)`" />
+    <Button class="remove" @action="remove"
+            :tooltip="isBookmark ? 'Delete this tab from the group'
+                                 : 'Close this tab'" />
   </ButtonBox>
 </a>
 </template>
@@ -35,10 +33,11 @@ import {
     restoreTabs, stashTabs,
     closeTabs,
 } from './stash';
-import ButtonBox from 'button-box.vue';
+import ButtonBox from 'button-box.vue'; 
+import Button from 'button.vue';
 
 export default {
-    components: {ButtonBox},
+    components: {ButtonBox, Button},
 
     props: {
         // Common

@@ -7,10 +7,9 @@
              @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
              v-model="searchtext">
       <ButtonBox>
-        <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
-             :class="{action: true, collapse: true}"
-             title="Hide all tabs so only group names are showing"
-             @click.prevent.stop="collapseAll">
+        <Button :class="{collapse: collapsed, expand: ! collapsed}"
+                title="Hide all tabs so only group names are showing"
+                @action="collapseAll" />
       </ButtonBox>
     </div>
     <Notification v-if="recently_updated"
@@ -60,6 +59,7 @@ import {isInFolder} from './model';
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
 import ButtonBox from './button-box.vue';
+import Button from './button.vue';
 import Notification from './notification.vue';
 
 export default {
@@ -67,6 +67,7 @@ export default {
         FolderList,
         Folder,
         ButtonBox,
+        Button,
         Notification,
     },
 

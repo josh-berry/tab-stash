@@ -4,20 +4,18 @@
     <slot></slot>
   </div>
   <ButtonBox>
-    <img src="icons/cancel.svg" class="action cancel"
-         title="Dismiss notification"
-         @click.prevent.stop="dismiss">
+    <Button class="cancel" name="Dismiss" tooltip="Dismiss notification"
+            @action="dismiss" />
   </ButtonBox>
 </aside>
 </template>
 
 <script>
 import ButtonBox from './button-box.vue';
+import Button from './button.vue';
 
 export default {
-    components: {
-        ButtonBox,
-    },
+    components: {ButtonBox, Button},
 
     props: {
         onActivate: Function,

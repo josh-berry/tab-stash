@@ -31,16 +31,16 @@
     "browser_action": {
         "default_title": "Stash all (or selected) open tabs",
         "default_icon": {
-            "16": "icons/stash-dark.svg",
-            "32": "icons/stash-dark.svg"
+            "16": "icons/dark/stash.svg",
+            "32": "icons/dark/stash.svg"
         },
         "theme_icons": [{
             "light": "icons/stash-light.svg",
-            "dark": "icons/stash-dark.svg",
+            "dark": "icons/dark/stash.svg",
             "size": 16
         }, {
             "light": "icons/stash-light.svg",
-            "dark": "icons/stash-dark.svg",
+            "dark": "icons/dark/stash.svg",
             "size": 32
         }],
         "browser_style": true

@@ -14,48 +14,39 @@
                       :enabled="! isWindow && allowRenameDelete"
                       @update:value="rename"></editable-label>
       <ButtonBox class="collapse-btnbox">
-        <img :src="`icons/collapse-${collapsed ? 'closed' : 'open'}.svg`"
-             :class="{action: true, collapse: true}"
-             title="Hide the tabs for this group"
-             @click.prevent.stop="collapsed = ! collapsed">
+        <Button :class="{collapse: collapsed, expand: ! collapsed}"
+                tooltip="Hide the tabs for this group"
+                @action="collapsed = ! collapsed" />
       </ButtonBox>
       <ButtonBox class="action-btnbox" v-if="! isWindow">
-        <img src="icons/stash-dark.svg" class="action stash here"
-             :title="`Stash all (or selected) open tabs to this group (hold ${altkey} to keep tabs open)`"
-             @click.prevent.stop="stash">
-        <img src="icons/stash-one-dark.svg" class="action stash one here"
-             :title="`Stash the active tab to this group (hold ${altkey} to keep tab open)`"
-             @click.prevent.stop="stashOne">
-        <img src="icons/restore.svg" class="action restore"
-             title="Open all tabs in this group"
-             @click.prevent.stop="restoreAll">
-        <img v-if="allowRenameDelete"
-             src="icons/restore-del.svg" class="action restore-remove"
-             title="Open all tabs in the group and delete the group"
-             @click.prevent.stop="restoreAndRemove">
-        <img v-if="allowRenameDelete && ! collapsed"
-             src="icons/delete.svg" class="action remove"
-             title="Delete this group"
-             @click.prevent.stop="remove">
+        <Button class="stash here" @action="stash"
+                :tooltip="`Stash all (or selected) open tabs to this group `
+                        + `(hold ${altkey} to keep tabs open)`" />
+        <Button class="stash one here" @action="stashOne"
+                :tooltip="`Stash the active tab to this group `
+                        + `(hold ${altkey} to keep tabs open)`" />
+        <Button class="restore" @action="restoreAll"
+                tooltip="Open all tabs in this group" />
+        <Button v-if="allowRenameDelete"
+                class="restore-remove" @action="restoreAndRemove"
+                tooltip="Open all tabs in the group and delete the group" />
+        <Button v-if="allowRenameDelete && ! collapsed"
+                class="remove" @action="remove"
+                tooltip="Delete this group" />
       </ButtonBox>
       <ButtonBox class="action-btnbox" v-else>
-        <img src="icons/stash-dark.svg" class="action stash newgroup"
-             :title="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`"
-             @click.prevent.stop="stash">
-        <img src="icons/new-empty-group.svg" class="action stash"
-             title="Create a new empty group"
-             @click.prevent.stop="newGroup">
-        <img v-if="! collapsed" src="icons/delete.svg" class="action remove"
-             :title="
+        <Button class="stash" @action="stash"
+             :tooltip="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`" />
+        <Button class="stash newgroup" @action="newGroup"
+             tooltip="Create a new empty group" />
+        <Button v-if="! collapsed" class="remove" @action="remove"
+             :tooltip="
 `Click: Close all unstashed tabs
-${altkey}+Click: Close/hide all stashed tabs`"
-             @click.prevent.stop="remove">
-        <img v-if="! collapsed" src="icons/delete-opened.svg"
-             class="action remove"
-             :title="
+${altkey}+Click: Close/hide all stashed tabs`" />
+        <Button v-if="! collapsed" class="remove opened" @action="removeOpen"
+             :tooltip="
 `Click: Close all open tabs
-${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
-             @click.prevent.stop="removeOpen">
+${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
       </ButtonBox>
     </div>
   </div>
@@ -91,9 +82,10 @@ import Draggable from 'vuedraggable';
 import EditableLabel from './editable-label.vue';
 import Tab from './tab.vue';
 import ButtonBox from './button-box.vue';
+import Button from './button.vue';
 
 export default {
-    components: {Draggable, EditableLabel, Tab, ButtonBox},
+    components: {Draggable, EditableLabel, Tab, ButtonBox, Button},
 
     props: {
         // View filter functions

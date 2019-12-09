@@ -6,9 +6,8 @@
       <div class="header">
         <span class="folder-name">Version {{v}}</span>
         <ButtonBox class="collapse-btnbox">
-          <img :src="`icons/collapse-${is_collapsed ? 'closed' : 'open'}.svg`"
-               :class="{action: true, collapse: true}"
-               @click.prevent.stop="collapsed = ! is_collapsed">
+          <Button :class="{collapse: is_collapsed, expand: ! is_collapsed}"
+                  @action="collapsed = ! is_collapsed" />
         </ButtonBox>
       </div>
     </div>
@@ -20,10 +19,11 @@
 
 <script lang="ts">
 import ButtonBox from '../button-box.vue';
+import Button from '../button.vue';
 import {cmpVersions} from '../util';
 
 export default {
-    components: {ButtonBox},
+    components: {ButtonBox, Button},
     props: {v: String},
     inject: ['the_last_notified_version'],
     data: () => ({collapsed: undefined}),

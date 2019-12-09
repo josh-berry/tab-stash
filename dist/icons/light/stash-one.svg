@@ -12,11 +12,8 @@
    viewBox="0 0 96 96"
    height="96"
    width="96"
-   sodipodi:docname="logo-dark.svg"
-   inkscape:version="0.92.2 5c3e80d, 2017-08-06"
-   inkscape:export-filename="/Users/des/src/tab-stash/dist/icons/logo-64.png"
-   inkscape:export-xdpi="64"
-   inkscape:export-ydpi="64">
+   sodipodi:docname="stash-one.svg"
+   inkscape:version="0.92.2 5c3e80d, 2017-08-06">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -26,23 +23,23 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1466"
-     inkscape:window-height="977"
-     id="namedview9"
+     inkscape:window-width="1135"
+     inkscape:window-height="876"
+     id="namedview4512"
      showgrid="true"
-     inkscape:zoom="8.0208333"
-     inkscape:cx="25.558441"
+     inkscape:zoom="6.1979167"
+     inkscape:cx="48"
      inkscape:cy="48"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-x="1218"
+     inkscape:window-y="192"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10">
     <inkscape:grid
        type="xygrid"
-       id="grid817"
-       empspacing="2"
+       id="grid5057"
        spacingx="3"
-       spacingy="3" />
+       spacingy="3"
+       empspacing="2" />
   </sodipodi:namedview>
   <metadata
      id="metadata16">
@@ -52,24 +49,12 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <defs
      id="defs14" />
-  <path
-     d="M 74.25,24 H 70.5 V 6 A 7.5,6 0 0 0 63,0 H 33 a 7.5,6 0 0 0 -7.5,6 v 18 h -3.75 a 3.75,3 0 0 0 0,6 h 52.5 a 3.75,3 0 1 0 0,-6 z"
-     id="path5"
-     inkscape:connector-curvature="0"
-     fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
-  <path
-     id="path8"
-     d="m 27,54 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
-     inkscape:connector-curvature="0"
-     fill="context-fill"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
   <path
      id="path10"
      d="m 6,42 v 30 c 0,12 6,18 18,18 H 72 C 84,90 90,84 90,72 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 78 H 18 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
@@ -84,8 +69,8 @@
      fill="context-fill"
      style="fill:#0c0c0d;fill-opacity:0.80000001" />
   <path
-     d="m 27,42 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
-     id="path832"
+     d="M 74.373047,-0.11328125 A 3.7138296,3.7138296 0 0 0 71.759766,0.86132812 L 48,22.027344 24.240234,0.86132812 A 3.7138296,3.7138296 0 1 0 19.300781,6.40625 l 26.228516,23.367188 a 3.7138296,3.7138296 0 0 0 4.941406,0 L 76.699219,6.40625 a 3.7138296,3.7138296 0 0 0 -2.326172,-6.51953125 z"
+     id="path917"
      inkscape:connector-curvature="0"
      fill="context-fill"
      style="fill:#0c0c0d;fill-opacity:0.80000001" />

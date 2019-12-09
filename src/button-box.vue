@@ -10,8 +10,6 @@
 
 <script lang="ts">
 export default {
-    props: {classes: Object},
-    //data: () => ({}),
 }
 </script>
 

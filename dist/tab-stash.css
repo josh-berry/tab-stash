@@ -68,24 +68,40 @@ input:focus {
     color: #404040;
     cursor: default;
 }
-img.action {
+button.action {
+    border: none;
     width: 24px;
     height: 24px;
     padding: 4px 4px;
+    background-size: 16px 16px;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 nav.action-container {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
 }
-nav.action-container img.action:first-child {
+nav.action-container .action:first-child {
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
 }
-nav.action-container img.action:last-child {
+nav.action-container .action:last-child {
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
 }
+
+/* Specific Actions */
+.action.collapse { background-image: url(icons/light/collapse-closed.svg); }
+.action.expand { background-image: url(icons/light/collapse-open.svg); }
+.action.cancel { background-image: url(icons/light/cancel.svg); }
+.action.stash { background-image: url(icons/light/stash.svg); }
+.action.stash.one { background-image: url(icons/light/stash-one.svg); }
+.action.stash.newgroup { background-image: url(icons/light/new-empty-group.svg); }
+.action.restore { background-image: url(icons/light/restore.svg); }
+.action.restore-remove { background-image: url(icons/light/restore-del.svg); }
+.action.remove { background-image: url(icons/light/delete.svg); }
+.action.remove.opened { background-image: url(icons/light/delete-opened.svg); }
 .action-container:hover .action {
     background-color: rgba(0, 0, 0, 0);
 }

@@ -72,7 +72,7 @@
         once in <a href="https://www.mozilla.org/en-US/firefox/64.0/releasenotes/">Firefox 64</a>
         and newer.  Just Ctrl/Cmd- or Shift-click on the tabs you want to
         stash, and then click any
-        <img class="inl" src="icons/stash-dark.svg" alt="multi-stash">
+        <img class="inl" src="icons/dark/stash.svg" alt="multi-stash">
         button.</L>
       <L v="Added">the ability to manage collapsed groups in the sidebar.  When
         you hover over a collapsed group, the group's "Stash..." and "Open..."

@@ -7,12 +7,12 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   id="svg10"
-   version="1.1"
-   viewBox="0 0 96 96"
-   height="96"
    width="96"
-   sodipodi:docname="stash-one-dark.svg"
+   height="96"
+   viewBox="0 0 96 96"
+   version="1.1"
+   id="svg10"
+   sodipodi:docname="stash.svg"
    inkscape:version="0.92.2 5c3e80d, 2017-08-06">
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -23,23 +23,24 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1135"
-     inkscape:window-height="876"
-     id="namedview4512"
+     inkscape:window-width="1078"
+     inkscape:window-height="764"
+     id="namedview5971"
      showgrid="true"
-     inkscape:zoom="6.1979167"
+     inkscape:zoom="5.6041667"
      inkscape:cx="48"
      inkscape:cy="48"
-     inkscape:window-x="1218"
-     inkscape:window-y="192"
+     inkscape:window-x="1222"
+     inkscape:window-y="347"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10">
     <inkscape:grid
        type="xygrid"
-       id="grid5057"
-       spacingx="3"
+       id="grid6516"
+       dotted="false"
+       empspacing="2"
        spacingy="3"
-       empspacing="2" />
+       spacingx="3" />
   </sodipodi:namedview>
   <metadata
      id="metadata16">
@@ -56,15 +57,27 @@
   <defs
      id="defs14" />
   <path
-     id="path10"
+     d="m 27,54 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     id="path8"
+     inkscape:connector-curvature="0"
+     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+  <path
      d="m 6,42 v 30 c 0,12 6,18 18,18 H 72 C 84,90 90,84 90,72 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 V 78 H 18 V 42 c 0,0 0,-6 -6,-6 -6,0 -6,6 -6,6 z"
+     id="path10"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="csssscsccccsc"
      fill="context-fill"
      style="fill:#0c0c0d;fill-opacity:0.80000001" />
   <path
-     d="m 27,66 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      id="path3702"
+     d="m 27,66 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
+     inkscape:connector-curvature="0"
+     fill="context-fill"
+     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+  <path
+     id="path832"
+     d="m 27,42 a 3,3 0 1 0 0,6 h 42 a 3,3 0 1 0 0,-6 z"
      inkscape:connector-curvature="0"
      fill="context-fill"
      style="fill:#0c0c0d;fill-opacity:0.80000001" />
