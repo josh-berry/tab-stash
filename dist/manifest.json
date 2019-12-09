@@ -5,8 +5,8 @@
     "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
     "homepage_url": "https://github.com/josh-berry/tab-stash",
     "icons": {
-        "48": "icons/logo-mid.svg",
-        "96": "icons/logo-mid.svg"
+        "48": "icons/logo.svg",
+        "96": "icons/logo.svg"
     },
     "applications": {
         "gecko": {
@@ -31,16 +31,16 @@
     "browser_action": {
         "default_title": "Stash all (or selected) open tabs",
         "default_icon": {
-            "16": "icons/dark/stash.svg",
-            "32": "icons/dark/stash.svg"
+            "16": "icons/light/stash.svg",
+            "32": "icons/light/stash.svg"
         },
         "theme_icons": [{
-            "light": "icons/stash-light.svg",
-            "dark": "icons/dark/stash.svg",
+            "light": "icons/dark/stash.svg",
+            "dark": "icons/light/stash.svg",
             "size": 16
         }, {
-            "light": "icons/stash-light.svg",
-            "dark": "icons/dark/stash.svg",
+            "light": "icons/dark/stash.svg",
+            "dark": "icons/light/stash.svg",
             "size": 32
         }],
         "browser_style": true
@@ -48,8 +48,8 @@
     "page_action": {
         "default_title": "Stash this tab",
         "default_icon": {
-            "16": "icons/stash-one-mid.svg",
-            "32": "icons/stash-one-mid.svg"
+            "16": "icons/stash-one.svg",
+            "32": "icons/stash-one.svg"
         },
         "browser_style": true,
         "show_matches": ["<all_urls>"],
@@ -58,8 +58,8 @@
     "sidebar_action": {
         "default_title": "Tab Stash",
         "default_icon": {
-            "16": "icons/logo-mid.svg",
-            "32": "icons/logo-mid.svg"
+            "16": "icons/logo.svg",
+            "32": "icons/logo.svg"
         },
         "default_panel": "stash-list.html",
         "browser_style": true
