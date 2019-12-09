@@ -256,8 +256,9 @@ span.folder-name, .folder-item > .text {
  * Mods for when in tab view -- uses a multi-column display format
  ***/
 
-body.tab-view {
+html.tab-view {
     background: #efefef;
+    scrollbar-color: #d8d8d8 #efefef;
 }
 
 .tab-view header {
@@ -278,7 +279,7 @@ body.tab-view {
 .tab-view .folder {
     flex: 1 1 25rem;
     margin: calc(var(--margin) / 2);
-    background: #ffffff;
+    background-color: #ffffff;
     border: 1px solid #c0c0c0;
     box-shadow: 2px 2px 4px #c0c0c0;
 
@@ -348,4 +349,124 @@ body.tab-view {
 .whats-new img.inl {
     height: 16px;
     vertical-align: bottom;
+}
+
+
+
+/*
+ * Dark theme; this is at the bottom so it takes precedence over
+ * everything else above.
+ */
+@media (prefers-color-scheme: dark) {
+    html, body {
+        background-color: #2a2a2e;
+        color: #f9f9fa;
+        scrollbar-color: #48484e #242426;
+    }
+    body.options { background-color: #202023; color: #f9f9fa; }
+    a, a:visited { color: #e0e0e2; }
+    .whats-new a, a.open, a.open:visited { color: #80bfff; }
+
+    .tab:hover { background-color: rgba(255, 255, 255, 0.06); }
+
+    .status-text, .status-text a, .whats-new .issue {
+        color: #a0a4ac;
+    }
+    .status-text a:hover, .whats-new a:hover {
+        color: #80bfff;
+    }
+
+    input { color: #f9f9fa; }
+    input:focus {
+        background-color: #2a2a2e;
+        border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    aside.notification {
+        background-color: rgba(128, 191, 255, 0.16); /* matches a.open */
+    }
+    aside.notification:hover {
+        background-color: rgba(128, 191, 255, 0.24);
+    }
+
+    .action-container:hover .action {
+        background-color: rgba(255, 255, 255, 0);
+    }
+    .action-container:hover .action:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+    .action-container:hover .action:active {
+        background-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
+    .action.expand { background-image: url(icons/dark/collapse-open.svg); }
+    .action.cancel { background-image: url(icons/dark/cancel.svg); }
+    .action.stash { background-image: url(icons/dark/stash.svg); }
+    .action.stash.one { background-image: url(icons/dark/stash-one.svg); }
+    .action.stash.newgroup { background-image: url(icons/dark/new-empty-group.svg); }
+    .action.restore { background-image: url(icons/dark/restore.svg); }
+    .action.restore-remove { background-image: url(icons/dark/restore-del.svg); }
+    .action.remove { background-image: url(icons/dark/delete.svg); }
+    .action.remove.opened { background-image: url(icons/dark/delete-opened.svg); }
+    .action-container:hover .action.stash, .whats-new .improved {
+        background-color: #3d6899;
+    }
+    .action-container:hover .action.stash:hover {
+        background-color: #4779b2;
+    }
+    .action-container:hover .action.stash:active {
+        background-color: #518acc;
+    }
+    .action-container:hover .action.restore, .whats-new .added {
+        background-color: #337f42;
+    }
+    .action-container:hover .action.restore:hover {
+        background-color: #3d994f;
+    }
+    .action-container:hover .action.restore:active {
+        background-color: #47b25c;
+    }
+    .action-container:hover .action.restore-remove, .whats-new .fixed {
+        background-color: #727216;
+    }
+    .action-container:hover .action.restore-remove:hover {
+        background-color: #8c8c1c;
+    }
+    .action-container:hover .action.restore-remove:active {
+        background-color: #a5a521;
+    }
+    .action-container:hover .action.remove, .whats-new .removed {
+        background-color: #7f5151;
+    }
+    .action-container:hover .action.remove:hover {
+        background-color: #996161;
+    }
+    .action-container:hover .action.remove:active {
+        background-color: #b27272;
+    }
+
+    .folder .header {
+        border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .folder-name.disabled { color: #c0c0c0; }
+
+    .sortable-ghost { background-color: rgba(255, 255, 255, 0.08); }
+
+    html.tab-view {
+        background-color: #2a2a2e;
+        scrollbar-color: #48484e #2a2a2e;
+    }
+    .tab-view .folder {
+        background-color: #48484e;
+        border-color: #3a3a3e;
+        box-shadow: 2px 2px 4px #3a3a3e;
+    }
+
+    .tab-view .collapsed.folder {
+        background: #3a3a3e;
+        border-color: #3a3a3e;
+        box-shadow: 2px 2px 4px #3a3a3e;
+    }
 }

@@ -25,7 +25,7 @@ window.addEventListener('load', asyncEvent(async function() {
     });
 
     if (p.curtab) {
-        document.body.classList.add('tab-view');
+        document.documentElement.classList.add('tab-view');
     }
 
     const vue = new (Vue.extend(StashList))({

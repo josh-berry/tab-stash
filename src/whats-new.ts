@@ -7,7 +7,7 @@ import Options from "./options-model";
 
 (async function() {
     if (await browser.tabs.getCurrent()) {
-        document.body.classList.add('tab-view');
+        document.documentElement.classList.add('tab-view');
     }
 
     let extinfo = await browser.management.getSelf();

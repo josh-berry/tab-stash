@@ -8,12 +8,10 @@
     <!-- XXX this doesn't work yet:
     <link rel="icon" media="inverted-colors: inverted" href="../icons/logo-light.svg">
     -->
+    <link rel="stylesheet" type="text/css" href="tab-stash.css">
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension-mac.css">
     <style type="text/css">
-      html, body {
-          font-size: 11pt;
-      }
       ul {
           list-style: none;
           padding: 0;
@@ -30,6 +28,7 @@
           margin: 2ex 0;
       }
       input[type=number] {
+          border: 1px solid #c0c0c0;
           max-width: 5em;
       }
       .advanced {
@@ -42,7 +41,7 @@
     </style>
   </head>
 
-  <body>
+  <body class="options">
     <div id="vue"></div>
   </body>
 </html>

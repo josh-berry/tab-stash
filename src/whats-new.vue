@@ -11,6 +11,11 @@
   <div class="folder-list">
 
     <Version v="2.5">
+      <L :subtext="Oooooh, spooookyyy~" :issue="16" v="Added">support for dark
+         mode.  Tab Stash detects dark mode based on the <em>system</em> theme,
+         not the browser theme.  So if you want to use dark mode with Tab Stash,
+         you'll have to turn it on in your system settings, and Firefox will
+         select the appropriate color scheme.</L>
       <L :subtext="`Sorry for the inconvenience. :/`"
          :issue="31" v="Removed">the bookmark de-duplication feature.  There is
         a bug in which de-duplication may remove bookmarks which are not
