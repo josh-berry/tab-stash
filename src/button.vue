@@ -1,8 +1,8 @@
 <template>
 <button class="action" :title="tooltip"
         @click.prevent.stop="act">
-  <span>{{name}}</span>
-</button>
+  <!-- XXX do something with {{name}} for blind users -->
+  </button>
 </template>
 
 <script lang="ts">
