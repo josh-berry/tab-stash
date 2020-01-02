@@ -92,10 +92,6 @@ export default {
             const bg = bgKeyPressed(ev);
 
             await restoreTabs([this.url], {background: bg});
-
-            if (! bg && curtab && ! curtab.pinned) {
-                await browser.tabs.remove([curtab.id]);
-            }
         }),
 
         remove: asyncEvent(async function() {
@@ -126,10 +122,6 @@ export default {
             // If this is just a tab and not a bookmark, we don't remove the
             // tab, since openRemove indicates the user wanted to switch to the
             // tab.
-
-            if (! bg && curtab && ! curtab.pinned) {
-                await browser.tabs.remove([curtab.id]);
-            }
         }),
 
         _removeBM: async function(ev) {
