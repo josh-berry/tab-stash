@@ -32,13 +32,14 @@
     <li v-if="meta_show_advanced" class="advanced">
       <div>When stashing a single tab:</div>
       <ul>
-        <li><label for="new_folder_timeout_min">
-            Append to an existing unnamed stash only if it was updated in the
-            last
+        <li title="If the top-most stash has a name, or is older than this, a new, unnamed stash will be created instead.">
+          <label for="new_folder_timeout_min">
+            Append to the top-most stash only if it was created in the last
             <input type="number" id="new_folder_timeout_min"
                    v-model="new_folder_timeout_min" min="0">
             minutes
-        </label></li>
+          </label>
+        </li>
       </ul>
     </li>
   </ul>

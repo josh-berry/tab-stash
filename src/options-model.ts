@@ -19,7 +19,7 @@ const SYNC_DEFAULTS = {
     // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
     // If the most recent unnamed folder is older than <X> minutes ago, we will
     // create a new folder instead of appending to the existing one.
-    new_folder_timeout_min: <number>10,
+    new_folder_timeout_min: <number>5,
 };
 
 const LOCAL_DEFAULTS = {

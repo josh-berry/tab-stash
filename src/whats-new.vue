@@ -16,8 +16,8 @@
         in your system settings (not just in the browser).  Firefox will then
         automatically select the appropriate color scheme.</L>
       <L v="Improved">behavior when stashing single tabs.  If the top-most stash
-        hasn't been updated in a bit, Tab Stash will create a new one for you
-        rather than adding to the old one.</L>
+        wasn't created recently, Tab Stash will create a new one for you rather
+        than adding to the old one.</L>
       <L :issue="37" v="Improved">behavior when restoring tabs.  We no longer
         close the Tab Stash tab just because you clicked on something in your
         stash; we leave it open in the background instead.</L>

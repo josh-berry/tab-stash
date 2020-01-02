@@ -48,9 +48,9 @@ export async function mostRecentUnnamedFolderId() {
     if (! getFolderNameISODate(topmost.title)) return undefined;
 
     // Did something create/update this folder recently?
-    // #cast dateGroupModified is always present on folders
+    // #cast dateAdded is always present on folders
     const age_cutoff = Date.now() - options.new_folder_timeout_min *60*1000;
-    if (topmost.dateGroupModified! < age_cutoff) {
+    if (topmost.dateAdded! < age_cutoff) {
         return undefined;
     }
 
