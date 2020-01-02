@@ -53,6 +53,10 @@ input {
     background: transparent;
     min-width: 2em;
     text-overflow: ellipsis;
+
+    /* repeated here because Firefox seems to style inputs differently from
+       everything else, and this needs to be explicitly specified... */
+    font: caption;
 }
 input:focus {
     background-color: #ffffff;
