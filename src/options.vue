@@ -36,7 +36,7 @@
             Append to an existing unnamed stash only if it was updated in the
             last
             <input type="number" id="new_folder_timeout_min"
-                   v-model="new_folder_timeout_min">
+                   v-model="new_folder_timeout_min" min="0">
             minutes
         </label></li>
       </ul>
@@ -76,7 +76,7 @@
               <input type="number" id="autodiscard_interval_min"
                      :disabled="after_stashing_tab !== 'hide'
                                 || ! autodiscard_hidden_tabs"
-                     v-model="autodiscard_interval_min">
+                     v-model="autodiscard_interval_min" min="1">
               minutes
           </li></label>
           <label for="autodiscard_min_keep_tabs"><li>
@@ -84,7 +84,7 @@
               <input type="number" id="autodiscard_min_keep_tabs"
                      :disabled="after_stashing_tab !== 'hide'
                                 || ! autodiscard_hidden_tabs"
-                     v-model="autodiscard_min_keep_tabs">
+                     v-model="autodiscard_min_keep_tabs" min="0">
               hidden and visible tabs loaded at all times
           </li></label>
           <label for="autodiscard_target_age_min"><li>
@@ -92,7 +92,7 @@
               <input type="number" id="autodiscard_target_age_min"
                      :disabled="after_stashing_tab !== 'hide'
                                 || ! autodiscard_hidden_tabs"
-                     v-model="autodiscard_target_age_min">
+                     v-model="autodiscard_target_age_min" min="1">
               minutes, but...
           </li></label>
           <label for="autodiscard_target_tab_count"><li>
@@ -100,7 +100,8 @@
               <input type="number" id="autodiscard_target_tab_count"
                      :disabled="after_stashing_tab !== 'hide'
                                 || ! autodiscard_hidden_tabs"
-                     v-model="autodiscard_target_tab_count">
+                     v-model="autodiscard_target_tab_count"
+                     :min="autodiscard_min_keep_tabs">
               tabs loaded
           </li></label>
         </ul>
