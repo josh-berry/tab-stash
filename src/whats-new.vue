@@ -18,9 +18,9 @@
       <L v="Improved">behavior when stashing single tabs.  If the top-most stash
         hasn't been updated in a bit, Tab Stash will create a new one for you
         rather than adding to the old one.</L>
-      <L :issue="37" v="Improved">behavior when restoring single tabs.  We no
-        longer close the Tab Stash tab just because you clicked something in
-        your stash; we leave it open in the background instead.</L>
+      <L :issue="37" v="Improved">behavior when restoring tabs.  We no longer
+        close the Tab Stash tab just because you clicked on something in your
+        stash; we leave it open in the background instead.</L>
       <L :issue="34" v="Improved">the UI's appearance in small ways, including
         the color of the Tab Stash icon, which is now neutral so it is visible
         in both dark and light themes.</L>

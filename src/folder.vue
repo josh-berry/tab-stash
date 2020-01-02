@@ -201,12 +201,6 @@ export default {
 
             await restoreTabs(this.children.map(item => item.url),
                              {background: bg});
-
-            // If we ourselves are open in a tab (and not the sidebar or a
-            // popup), close the tab so the user doesn't have to.
-            if (! bg && curtab && ! curtab.pinned) {
-                await browser.tabs.remove([curtab.id]);
-            }
         }),
 
         remove: asyncEvent(async function(ev) {
@@ -284,12 +278,6 @@ export default {
 
             // Discard opened tabs as requested.
             await browser.bookmarks.removeTree(this.id);
-
-            // If we ourselves are open in a tab (and not the sidebar or a
-            // popup), close the tab so the user doesn't have to.
-            if (! bg && curtab && ! curtab.pinned) {
-                await browser.tabs.remove([curtab.id]);
-            }
         }),
 
         rename: function(title) {
