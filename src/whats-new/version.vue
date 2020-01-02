@@ -2,14 +2,12 @@
   <section :class="{folder: true,
                     'action-container': true,
                     collapsed: is_collapsed}">
-    <div class="panel-section-header">
-      <div class="header">
-        <span class="folder-name">Version {{v}}</span>
-        <ButtonBox class="collapse-btnbox">
-          <Button :class="{collapse: is_collapsed, expand: ! is_collapsed}"
-                  @action="collapsed = ! is_collapsed" />
-        </ButtonBox>
-      </div>
+    <div class="header">
+      <span class="folder-name">Version {{v}}</span>
+      <ButtonBox class="collapse-btnbox">
+        <Button :class="{collapse: is_collapsed, expand: ! is_collapsed}"
+                @action="collapsed = ! is_collapsed" />
+      </ButtonBox>
     </div>
     <ul class="contents">
       <slot/>

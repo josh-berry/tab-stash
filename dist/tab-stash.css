@@ -1,17 +1,17 @@
-/* NOTE: box-sizing: border-box is in effect in extension.css */
-/* base text color: #222426 */
 html {
     --margin: 1.5rem;
+    font: caption;
+    -moz-user-select: none;
+    color: #222426;
+}
+html, body {
+    margin: 0;
+    padding: 0;
 }
 
 .hidden { display: none !important; }
 
-#app {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
-.panel-list-item:hover { cursor: pointer; }
+.tab:hover { cursor: pointer; background-color: rgba(0, 0, 0, 0.05)}
 a, a:visited { color: #44484c; text-decoration: none; }
 .whats-new a, a.open, a.open:visited { color: #287acc; }
 
@@ -20,6 +20,7 @@ header .searchbar, aside.notification {
     display: grid;
     grid-template-columns: 1fr 0fr;
     align-items: center;
+    margin-left: -3px;
 }
 aside.notification {
     background-color: rgba(40, 122, 204, 0.16); /* 287acc */
@@ -48,8 +49,8 @@ aside.notification .contents {
 /* Search and other input boxes */
 input {
     border: 2px solid rgba(0, 0, 0, 0);
+    padding: 1px;
     background: transparent;
-    font: caption;
     min-width: 2em;
     text-overflow: ellipsis;
 }
@@ -148,31 +149,29 @@ nav.action-container .action:last-child {
     background-color: #ccb3b3;
 }
 
-/* Don't show the "stash this tab" button on folders when we are the
-   current tab (and not the sidebar) */
-.tab-view .action.stash.one.here {
-    display: none;
-}
-
 /* Folder headings */
 .folder .header {
-    padding: 0; margin: 0;
+    margin: 6px 0;
+    padding: 6px 16px 4px;
     display: grid;
     grid-template-columns: 0fr 1fr 0fr 0fr;
     align-items: center;
+    border-bottom: 1px solid rgb(0, 0, 0, 0.16);
 }
+
 .folder-name {
     grid-row: 1;
     grid-column: 1 / 4;
     display: block;
+    font: caption;
     font-weight: bold;
     font-size: 13pt;
-    margin: 0 3px 0 -5px;
-    padding: 3px 3px;
+    padding: 2px;
+    margin-left: -4px;
     border: 2px solid rgba(0, 0, 0, 0);
     border-radius: 2px;
 }
-.folder-name.disabled { color: rgba(128, 128, 128); }
+.folder-name.disabled { color: rgba(128, 128, 128); } 
 .folder .header nav.action-btnbox {
     grid-row: 2;
     grid-column: 1;
@@ -190,15 +189,12 @@ nav.action-container .action:last-child {
 .folder:hover .header .folder-name {
     grid-column: 1 / 3;
 }
-.folder .panel-section-list {
-    min-height: 12px;
-    padding-bottom: 0;
-}
 .folder .contents {
     margin-bottom: 1em;
 }
-.folder .panel-section-header {
-    padding-bottom: 6px;
+.folder .contents .tabs {
+    min-height: 12px;
+    padding-bottom: 0;
 }
 
 /* Tab entries and other folder contents (e.g. count of hidden tabs) */
@@ -206,10 +202,8 @@ nav.action-container .action:last-child {
     display: grid;
     grid-template-columns: 22px 1fr 0fr;
     align-items: center;
-    /* copied from panel-list-item so it applies to things that aren't
-       selectable as well */
     padding: 0 16px;
-    height: 24px;
+    height: 24px; /* matches .action height XXX */
 }
 .folder-item > * {
     margin: 0 3px;
@@ -228,31 +222,22 @@ nav.action-container .action:last-child {
     grid-column: 3;
 }
 .folder-item:hover > nav { display: flex; }
-.folder-item > nav > .action {
-    width: 22px;
-    height: 22px;
-    line-height: 22px;
-    border-radius: 0;
-    margin: 0;
-    padding: 3px 3px;
-}
 span.folder-name, .folder-item > .text {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-/* Collapsing folders */
+/* Collapsed folders */
 .tab-view .folder .header nav.action-btnbox,
 .collapsed.folder .header nav.action-btnbox {
     display: none;
     grid-row: 1;
     grid-column: 3;
-    margin-right: 4px;
 }
 .tab-view .folder:hover .header nav.action-btnbox,
 .collapsed.folder:hover .header nav.action-btnbox { display: flex; }
-.collapsed .panel-section-header { padding-bottom: 4px; }
+.collapsed.folder .header { margin-bottom: 0px; }
 .collapsed.folder .contents { display: none; }
 .collapsed.folder .action.collapse { display: inline-block; }
 
@@ -305,12 +290,19 @@ body.tab-view {
     border: 1px solid #d8d8d8;
     box-shadow: 2px 2px 4px #d8d8d8;
 }
-.tab-view .panel-section-header { padding-top: 11px; }
-.tab-view .folder .header {
-    flex: 0 0 auto;
+
+.tab-view .folder .header { flex: 0 0 auto; }
+.tab-view .folder .header nav {
+    margin-left: 3px;
 }
 
 .tab-view .folder .contents { flex: 1 1 auto; }
+
+/* Don't show the "stash this tab" button on folders when we are the
+   current tab (and not the sidebar) */
+.tab-view .action.stash.one.here {
+    display: none;
+}
 
 
 

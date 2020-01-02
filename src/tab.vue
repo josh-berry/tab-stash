@@ -1,6 +1,5 @@
 <template>
-<a :class="{'panel-list-item': true,
-            'action-container': true,
+<a :class="{'action-container': true,
             'tab': true,
             'saved': !!bm,
             'open': tab && ! tab.hidden}"

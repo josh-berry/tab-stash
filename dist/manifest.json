@@ -43,7 +43,7 @@
             "dark": "icons/light/stash.svg",
             "size": 32
         }],
-        "browser_style": true
+        "browser_style": false
     },
     "page_action": {
         "default_title": "Stash this tab",
@@ -51,7 +51,7 @@
             "16": "icons/stash-one.svg",
             "32": "icons/stash-one.svg"
         },
-        "browser_style": true,
+        "browser_style": false,
         "show_matches": ["<all_urls>"],
         "hide_matches": ["file:///*"]
     },
@@ -62,7 +62,7 @@
             "32": "icons/logo.svg"
         },
         "default_panel": "stash-list.html",
-        "browser_style": true
+        "browser_style": false
     },
     "options_ui": {
         "page": "options.html",

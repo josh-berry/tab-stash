@@ -5,53 +5,51 @@
               collapsed: collapsed,
               hidden: hideIfEmpty && visibleChildren.length == 0,
               }">
-  <div class="panel-section-header">
-    <div class="header">
-      <editable-label :class="{'folder-name': true,
-                               'disabled': isWindow || ! allowRenameDelete}"
-                      :value="nonDefaultTitle"
-                      :defaultValue="defaultTitle"
-                      :enabled="! isWindow && allowRenameDelete"
-                      @update:value="rename"></editable-label>
-      <ButtonBox class="collapse-btnbox">
-        <Button :class="{collapse: collapsed, expand: ! collapsed}"
-                tooltip="Hide the tabs for this group"
-                @action="collapsed = ! collapsed" />
-      </ButtonBox>
-      <ButtonBox class="action-btnbox" v-if="! isWindow">
-        <Button class="stash here" @action="stash"
-                :tooltip="`Stash all (or selected) open tabs to this group `
+  <div class="header">
+    <editable-label :class="{'folder-name': true,
+                            'disabled': isWindow || ! allowRenameDelete}"
+                    :value="nonDefaultTitle"
+                    :defaultValue="defaultTitle"
+                    :enabled="! isWindow && allowRenameDelete"
+                    @update:value="rename"></editable-label>
+    <ButtonBox class="collapse-btnbox">
+      <Button :class="{collapse: collapsed, expand: ! collapsed}"
+              tooltip="Hide the tabs for this group"
+              @action="collapsed = ! collapsed" />
+    </ButtonBox>
+    <ButtonBox class="action-btnbox" v-if="! isWindow">
+      <Button class="stash here" @action="stash"
+              :tooltip="`Stash all (or selected) open tabs to this group `
                         + `(hold ${altkey} to keep tabs open)`" />
-        <Button class="stash one here" @action="stashOne"
-                :tooltip="`Stash the active tab to this group `
+      <Button class="stash one here" @action="stashOne"
+              :tooltip="`Stash the active tab to this group `
                         + `(hold ${altkey} to keep tabs open)`" />
-        <Button class="restore" @action="restoreAll"
-                tooltip="Open all tabs in this group" />
-        <Button v-if="allowRenameDelete"
-                class="restore-remove" @action="restoreAndRemove"
-                tooltip="Open all tabs in the group and delete the group" />
-        <Button v-if="allowRenameDelete && ! collapsed"
-                class="remove" @action="remove"
-                tooltip="Delete this group" />
-      </ButtonBox>
-      <ButtonBox class="action-btnbox" v-else>
-        <Button class="stash" @action="stash"
-             :tooltip="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`" />
-        <Button class="stash newgroup" @action="newGroup"
-             tooltip="Create a new empty group" />
-        <Button v-if="! collapsed" class="remove" @action="remove"
-             :tooltip="
+      <Button class="restore" @action="restoreAll"
+              tooltip="Open all tabs in this group" />
+      <Button v-if="allowRenameDelete"
+              class="restore-remove" @action="restoreAndRemove"
+              tooltip="Open all tabs in the group and delete the group" />
+      <Button v-if="allowRenameDelete && ! collapsed"
+              class="remove" @action="remove"
+              tooltip="Delete this group" />
+    </ButtonBox>
+    <ButtonBox class="action-btnbox" v-else>
+      <Button class="stash" @action="stash"
+              :tooltip="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`" />
+      <Button class="stash newgroup" @action="newGroup"
+              tooltip="Create a new empty group" />
+      <Button v-if="! collapsed" class="remove" @action="remove"
+              :tooltip="
 `Click: Close all unstashed tabs
 ${altkey}+Click: Close/hide all stashed tabs`" />
-        <Button v-if="! collapsed" class="remove opened" @action="removeOpen"
-             :tooltip="
+      <Button v-if="! collapsed" class="remove opened" @action="removeOpen"
+              :tooltip="
 `Click: Close all open tabs
 ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
-      </ButtonBox>
-    </div>
+    </ButtonBox>
   </div>
   <div class="contents">
-    <draggable :options="{group: 'tab'}" ref="drag" class="panel-section-list"
+    <draggable :options="{group: 'tab'}" ref="drag" class="tabs"
                @add="move" @update="move">
       <tab v-for="item of filteredChildren"
            :key="item.id" v-bind="item"
