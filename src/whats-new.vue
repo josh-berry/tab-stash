@@ -11,21 +11,22 @@
   <div class="folder-list">
 
     <Version v="2.5">
-      <L :subtext="Oooooh, spooookyyy~" :issue="16" v="Added">support for dark
+      <L subtext="Oooooh, spooookyyy~" :issue="16" v="Added">support for dark
          mode.  Tab Stash detects dark mode based on the <em>system</em> theme,
          not the browser theme.  So if you want to use dark mode with Tab Stash,
          you'll have to turn it on in your system settings, and Firefox will
          select the appropriate color scheme.</L>
+      <L :issue="34" v="Improved">the UI's appearance in small ways, including
+        the color of the Tab Stash icon, which is now neutral so it is visible
+        in both dark and light themes.</L>
+      <L v="Fixed">an issue preventing the "Close all open tabs" button from
+        working correctly in newer versions of Firefox.</L>
       <L :subtext="`Sorry for the inconvenience. :/`"
          :issue="31" v="Removed">the bookmark de-duplication feature.  There is
         a bug in which de-duplication may remove bookmarks which are not
         duplicates if multiple stashes are in progress.  This bug happens very
         rarely, but is serious enough I've decided to remove the feature until a
         solution can be found.</L>
-      <L :issue="34" v="Improved">the color of the Tab Stash icon so it is
-        visible in both dark and light themes.</L>
-      <L v="Fixed">an issue preventing the "Close all open tabs" button from
-        working correctly in newer versions of Firefox.</L>
     </Version>
 
     <Version v="2.4">
