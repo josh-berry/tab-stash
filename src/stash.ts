@@ -36,14 +36,28 @@ export async function tabStashTree() {
 }
 
 export async function mostRecentUnnamedFolderId() {
-    let root = await rootFolder();
-    let topmost = (await browser.bookmarks.getChildren(root.id))[0];
-    if (topmost && topmost.type === 'folder'
-        && getFolderNameISODate(topmost.title))
-    {
-        return topmost.id;
+    const options = await Options.sync();
+    const root = await rootFolder();
+    const topmost = (await browser.bookmarks.getChildren(root.id))[0];
+
+    // Is there a top-most item under the root folder, and is it a folder?
+    if (! topmost) return undefined;
+    if (topmost.type !== 'folder') return undefined;
+
+    // Does the folder have a name which looks like a default name?
+    if (! getFolderNameISODate(topmost.title)) return undefined;
+
+    // Did something create/update this folder recently?
+    // #cast dateGroupModified is always present on folders
+    const age_cutoff = Date.now() - options.new_folder_timeout_min *60*1000;
+    if (topmost.dateGroupModified! < age_cutoff) {
+        return undefined;
     }
-    return undefined;
+
+    // If so, we can put new stuff here by default.  (Otherwise we should
+    // probably assume this isn't recent enough and a new folder should be
+    // created.)
+    return topmost.id;
 }
 
 export function isURLStashable(urlstr: string): boolean {

@@ -48,4 +48,6 @@ window.addEventListener('load', asyncEvent(async function() {
     window.stash_root = p.state.bms_by_id.get(p.root.id);
     window.stash_win = p.state.wins_by_id.get(p.win.id);
     window.vue = vue;
+    window.sync_options = p.syncopts;
+    window.local_options = p.localopts;
 }));

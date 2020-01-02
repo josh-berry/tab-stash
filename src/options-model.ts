@@ -15,6 +15,11 @@ const SYNC_DEFAULTS = {
     // When the user clicks one of the "stash" buttons in the browser
     // toolbar, do we show the "sidebar", "tab", or "none" (of the above)?
     open_stash_in: <'sidebar' | 'tab' | 'none'>'sidebar',
+
+    // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
+    // If the most recent unnamed folder is older than <X> minutes ago, we will
+    // create a new folder instead of appending to the existing one.
+    new_folder_timeout_min: <number>10,
 };
 
 const LOCAL_DEFAULTS = {

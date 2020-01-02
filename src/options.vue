@@ -28,6 +28,19 @@
           Don't automatically show the stash
       </li></label>
     </ul>
+
+    <li v-if="meta_show_advanced" class="advanced">
+      <div>When stashing a single tab:</div>
+      <ul>
+        <li><label for="new_folder_timeout_min">
+            Append to an existing unnamed stash only if it was updated in the
+            last
+            <input type="number" id="new_folder_timeout_min"
+                   v-model="new_folder_timeout_min">
+            minutes
+        </label></li>
+      </ul>
+    </li>
   </ul>
 
   <hr>
