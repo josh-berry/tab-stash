@@ -12,10 +12,12 @@
 
     <Version v="2.5">
       <L subtext="Oooooh, spooookyyy~" :issue="16" v="Added">support for dark
-         mode.  Tab Stash detects dark mode based on the <em>system</em> theme,
-         not the browser theme.  So if you want to use dark mode with Tab Stash,
-         you'll have to turn it on in your system settings, and Firefox will
-         select the appropriate color scheme.</L>
+        mode.  To use Tab Stash's dark theme, you must have dark mode turned on
+        in your system settings (not just in the browser).  Firefox will then
+        automatically select the appropriate color scheme.</L>
+      <L v="Improved">behavior when stashing single tabs.  If the top-most stash
+        hasn't been updated in a bit, Tab Stash will create a new one for you
+        rather than adding to the old one.</L>
       <L :issue="34" v="Improved">the UI's appearance in small ways, including
         the color of the Tab Stash icon, which is now neutral so it is visible
         in both dark and light themes.</L>
