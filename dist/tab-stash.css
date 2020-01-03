@@ -11,7 +11,7 @@ html, body {
 
 .hidden { display: none !important; }
 
-.tab:hover { cursor: pointer; background-color: rgba(0, 0, 0, 0.05)}
+.tab:hover { cursor: pointer; background-color: rgba(0, 0, 0, 0.08)}
 a, a:visited { color: #44484c; text-decoration: none; }
 .whats-new a, a.open, a.open:visited { color: #287acc; }
 
@@ -60,7 +60,7 @@ input {
 }
 input:focus {
     background-color: #ffffff;
-    border: 2px solid rgba(128, 128, 128, 0.8);
+    border: 2px solid rgba(0, 0, 0, 0.32);
 }
 
 /* Actions */
@@ -111,10 +111,10 @@ nav.action-container .action:last-child {
     background-color: rgba(0, 0, 0, 0);
 }
 .action-container:hover .action:hover {
-    background-color: rgba(0, 0, 0, 0.06);
+    background-color: rgba(0, 0, 0, 0.08);
 }
 .action-container:hover .action:active {
-    background-color: rgba(0, 0, 0, 0.12);
+    background-color: rgba(0, 0, 0, 0.16);
 }
 .action-container:hover .action.stash, .whats-new .improved {
     background-color: #cce5ff;
