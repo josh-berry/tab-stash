@@ -371,7 +371,7 @@ html.tab-view {
     a, a:visited { color: #e0e0e2; }
     .whats-new a, a.open, a.open:visited { color: #80bfff; }
 
-    .tab:hover { background-color: rgba(255, 255, 255, 0.06); }
+    .tab:hover { background-color: rgba(255, 255, 255, 0.16); }
 
     .status-text, .status-text a, .whats-new .issue {
         color: #a0a4ac;
@@ -383,24 +383,24 @@ html.tab-view {
     input { color: #f9f9fa; }
     input:focus {
         background-color: #2a2a2e;
-        border-color: rgba(255, 255, 255, 0.24);
+        border-color: rgba(255, 255, 255, 0.32);
     }
 
     aside.notification {
-        background-color: rgba(128, 191, 255, 0.16); /* matches a.open */
+        background-color: rgba(128, 191, 255, 0.32); /* matches a.open */
     }
     aside.notification:hover {
-        background-color: rgba(128, 191, 255, 0.24);
+        background-color: rgba(128, 191, 255, 0.48);
     }
 
     .action-container:hover .action {
         background-color: rgba(255, 255, 255, 0);
     }
     .action-container:hover .action:hover {
-        background-color: rgba(255, 255, 255, 0.08);
+        background-color: rgba(255, 255, 255, 0.16);
     }
     .action-container:hover .action:active {
-        background-color: rgba(255, 255, 255, 0.16);
+        background-color: rgba(255, 255, 255, 0.32);
     }
 
     .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
@@ -451,12 +451,12 @@ html.tab-view {
     }
 
     .folder .header {
-        border-color: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.32);
     }
 
     .folder-name.disabled { color: #c0c0c0; }
 
-    .sortable-ghost { background-color: rgba(255, 255, 255, 0.08); }
+    .sortable-ghost { background-color: rgba(255, 255, 255, 0.16); }
 
     html.tab-view {
         background-color: #2a2a2e;
