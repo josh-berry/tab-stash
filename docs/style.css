@@ -1,0 +1,116 @@
+/* Global page settings and layout */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: white;
+    color: #222426;
+    font: caption;
+    font-size: 12pt;
+    display: flex;
+    flex-direction: column;
+}
+
+a, a:visited, a:hover { color: #287acc; }
+a:hover { background-color: rgba(0, 0, 0, 0.08); }
+a:active { background-color: rgba(0, 0, 0, 0.16); }
+
+header, main, footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 2rem;
+}
+
+header >div, main > div, footer > div {
+    width: 800px;
+    max-width: 100%;
+    margin: 1rem 0;
+}
+
+img {
+    max-width: 100%;
+}
+
+pre {
+    background-color: #efefef;
+    padding: 0.5ex 1ex;
+    border-radius: 0.5ex;
+}
+
+
+
+/* Header */
+
+header {
+    /*background-color: #287acc;*/
+    background: linear-gradient(160deg, #287acc, #3d6899);
+    color: white;
+}
+
+header h1 {
+    font-size: 30pt;
+    line-height: 115%;
+    margin: 1ex 0;
+}
+header h1 #logo {
+    height: 30pt;
+    vertical-align: bottom;
+}
+header h2 {
+    margin: 0;
+    font-weight: normal;
+    font-size: 15pt;
+    font-style: italic;
+    color: #f9f9fa;
+}
+header nav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-top-left-radius: 1ex;
+    border-top-right-radius: 1ex;
+    background-color: rgba(255, 255, 255, 0.16);
+    clip-path: border-box;
+    overflow: hidden; /* needed to get clip-path to work */
+}
+header a {
+    display: inline-block;
+    padding: 1ex 2ex;
+    text-decoration: none;
+}
+header h1 a {
+    padding: 0;
+    background-color: inherit;
+}
+header h1 a:hover {
+    text-decoration: none;
+    box-shadow: 0 0 0 0.5ex rgba(0, 0, 0, 0.08);
+    border-radius: 0.25ex;
+}
+header h1 a:active {
+    box-shadow: 0 0 0 0.5ex rgba(0, 0, 0, 0.16);
+}
+header a, header a:visited, header a:hover, header a:active {
+    color: white;
+}
+header a:hover, header a:active {
+    text-decoration: underline;
+}
+
+a.install, a.install:visited {
+    background-color: #47b25c;
+    font-weight: bold;
+}
+a.install:hover { background-color: #3f9e52; }
+a.install:active { background-color: #378947; }
+
+
+
+/* Footer */
+footer {
+    color: #889099;
+    font-style: italic;
+    font-size: 11pt;
+    text-align: center;
+}

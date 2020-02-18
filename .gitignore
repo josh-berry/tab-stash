@@ -1,7 +1,17 @@
+# Large image files for the AMO listing
 marketing
+
+# Website
+docs/.bundle
+docs/_site
+docs/vendor
+
+# Generated during build
 node_modules
 dist/*.js
 dist/*.js.map
+
+# Release engineering
 releases/tab-stash-src-*
 releases/tab-stash-*.zip
 releases/tab-stash-src-*.tar.gz

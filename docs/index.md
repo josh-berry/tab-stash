@@ -15,7 +15,7 @@ other computers or mobile devices (using Firefox Sync, if configured).  You
 don't need to keep track of yet another account, and no other cloud service can
 see your tabs.
 
-<img src="docs/screenshot.png" alt="Screenshot" width="100%"/>
+<img src="screenshot.png" alt="Screenshot" width="100%"/>
 
 ## Features
 
