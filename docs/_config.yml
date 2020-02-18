@@ -13,3 +13,5 @@ plugins:
   #- jekyll-readme-index
   - jekyll-titles-from-headings
   - jekyll-relative-links
+
+theme: jekyll-theme-minimal
