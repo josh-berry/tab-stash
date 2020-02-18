@@ -5,7 +5,7 @@ html, body {
     padding: 0;
     background-color: white;
     color: #222426;
-    font: caption;
+    font-family: Segoe UI, Helvetica Neue, sans-serif;
     font-size: 12pt;
     display: flex;
     flex-direction: column;
@@ -20,6 +20,12 @@ header, main, footer {
     flex-direction: column;
     align-items: center;
     padding: 0 2rem;
+}
+
+@media (max-width: 40rem) {
+    header, main, footer {
+        padding: 0 1rem;
+    }
 }
 
 header >div, main > div, footer > div {
