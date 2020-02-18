@@ -1,7 +1,6 @@
 title: Tab Stash
 description: Clear your tabs, clear your mind.  Only for Firefox.
-theme:
-layouts_dir: _layouts
+theme: jekyll-theme-minimal
 include:
   - index.md
   - contributing.md
@@ -13,5 +12,3 @@ plugins:
   #- jekyll-readme-index
   - jekyll-titles-from-headings
   - jekyll-relative-links
-
-theme: jekyll-theme-minimal
