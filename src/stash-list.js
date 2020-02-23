@@ -3,7 +3,7 @@
 import Vue from 'vue/dist/vue.runtime.esm';
 
 import {asyncEvent, namedPromises} from './util';
-import {rootFolder} from './stash';
+import {rootFolder, rootFolderWarning} from './stash';
 
 import StashList from './stash-list.vue';
 
@@ -22,6 +22,7 @@ window.addEventListener('load', asyncEvent(async function() {
         extinfo: browser.management.getSelf(),
         localopts: Options.local(),
         syncopts: Options.sync(),
+        warning: rootFolderWarning(),
     });
 
     if (p.curtab) {
@@ -37,6 +38,7 @@ window.addEventListener('load', asyncEvent(async function() {
             local_options: p.localopts,
             sync_options: p.syncopts,
             metadata_cache: Cache.open('bookmarks'),
+            root_folder_warning: p.warning,
         },
     });
 

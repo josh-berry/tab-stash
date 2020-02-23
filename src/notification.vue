@@ -29,7 +29,6 @@ export default {
     methods: {
         activate: function(ev) {
             this.$emit('activate');
-            this.dismissed = true;
         },
 
         dismiss: function(ev) {

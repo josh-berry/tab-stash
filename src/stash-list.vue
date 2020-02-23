@@ -16,6 +16,9 @@
                   @activate="showWhatsNew" @dismiss="hideWhatsNew">
       You've been updated to Tab Stash {{my_version}}.  See what's new!
     </Notification>
+    <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
+      {{root_folder_warning[0]}}
+    </Notification>
   </header>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
@@ -53,7 +56,7 @@
 </template>
 
 <script>
-import {isURLStashable} from './stash';
+import {isURLStashable, rootFolderWarning} from './stash';
 import {isInFolder} from './model';
 
 import FolderList from './folder-list.vue';
@@ -106,7 +109,7 @@ export default {
                 let lower = this.searchtext.normalize().toLowerCase();
                 return txt => txt.normalize().toLowerCase().includes(lower);
             }
-        }
+        },
     },
 
     methods: {
