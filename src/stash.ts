@@ -1,6 +1,6 @@
 import Options from './options-model';
 
-import {urlToOpen, namedPromises} from './util';
+import {urlToOpen} from './util';
 
 type BookmarkTreeNode = browser.bookmarks.BookmarkTreeNode;
 
