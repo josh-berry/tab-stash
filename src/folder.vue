@@ -49,7 +49,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     </ButtonBox>
   </div>
   <div class="contents">
-    <draggable :options="{group: 'tab'}" ref="drag" class="tabs"
+    <draggable group="tab" ref="drag" class="tabs"
                @add="move" @update="move">
       <tab v-for="item of filteredChildren"
            :key="item.id" v-bind="item"
