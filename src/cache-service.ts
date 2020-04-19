@@ -112,12 +112,13 @@ import {CacheContent, Message} from './cache-proto';
 
 // When the global generation number hits at least /GC_THRESHOLD/, we trigger a
 // collection, as described above.
-const GC_THRESHOLD = 16 /* generations */;
+export const GC_THRESHOLD = 4 /* generations */;
 
 
 
 // All of the services we have constructed--this map ensures they are singletons
 const SERVICES = new Map<string, CacheService>();
+(<any>globalThis).__cache_services = SERVICES;
 
 // Forward connection requests to the appropriate service.
 browser.runtime.onConnect.addListener(port => {
@@ -222,16 +223,20 @@ export class CacheService {
         if (this._gen < GC_THRESHOLD) this._gen = GC_THRESHOLD;
         this._pending.inc_gen = true;
     }
-    async dump_testonly() {
-        const ret = [];
+    async dump_testonly(): Promise<any> {
+        const cache = [];
         const txn = this._db.transaction('cache', 'readonly');
         let cursor = await txn.store.openCursor();
         while (cursor) {
-            ret.push(cursor.value);
+            cache.push(cursor.value);
             cursor = await cursor.continue();
         }
         await txn.done;
-        return ret;
+
+        return {
+            cache,
+            generation: (await this._db.get('options', 'generation')) || 0,
+        };
     }
     async clear_testonly() {
         this._pending = {inc_gen: false, updates: new Map()};

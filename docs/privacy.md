@@ -44,5 +44,12 @@ Here's why we need each of them:
   to open the stash in the sidebar or a new tab) in the browser's local and
   synced storage.
 
+- **Store unlimited amount of client-side data**: Tab Stash keeps a cache of
+  website icons on your local computer, so they do not have to be fetched from
+  the Internet (which can be a very slow process, depending on the website).  To
+  accommodate users whose stashes may grow very large, we ask to store lots of
+  data so the cache can hold all the icons.  Icons are removed from the cache
+  automatically once they're no longer needed.
+
 - **Menus**: Used to provide additional options for Tab Stash in the right-click
   menu of a page and the tab bar.

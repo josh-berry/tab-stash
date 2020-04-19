@@ -181,8 +181,8 @@ export class Tab implements ModelLeaf {
                 this.favIconUrl = t.favIconUrl;
                 this.favicon = undefined;
                 try {
-                    let url = new URL(urlToOpen(t.url));
-                    this.favicon = this.state.favicon_cache.set(url.origin, t.favIconUrl);
+                    this.favicon = this.state.favicon_cache.set(
+                        urlToOpen(t.url), t.favIconUrl);
                 } catch (e) {}
             } else {
                 // We ignore favicons when the tab is still loading, because
@@ -545,7 +545,7 @@ export class StashState {
             i.url = url;
             i.related = related;
             try {
-                i.favicon = this.favicon_cache.get(new URL(ourl).origin);
+                i.favicon = this.favicon_cache.get(ourl);
             } catch (e) {
                 i.favicon = undefined;
             }

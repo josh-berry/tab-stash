@@ -36,6 +36,7 @@ class MockClient {
 }
 
 describe('cache-service', function() {
+    const GC_THRESHOLD = require('../cache-service').GC_THRESHOLD;
     let CacheService = require('../cache-service').CacheService;
     let service: typeof CacheService = undefined!;
 
@@ -266,8 +267,8 @@ describe('cache-service', function() {
             await events.drain(2);
             await service.next_mutation_testonly;
 
-            // Assumes GC_THRESHOLD == 16
-            for (let i = 0; i < 15; ++i) {
+            // Assumes GC_THRESHOLD == 8
+            for (let i = 0; i < (GC_THRESHOLD - 1); ++i) {
                 new MockClient();
                 await events.drain(1);
                 await service.next_mutation_testonly;
@@ -281,10 +282,11 @@ describe('cache-service', function() {
             new MockClient();
             await events.drain(1);
             await service.next_mutation_testonly;
-            await events.drain(17); // eviction notices
+            await events.drain(GC_THRESHOLD + 1); // eviction notices
             expect(await service._db.get('cache', 'foo')).to.be.undefined;
             expect(await service._db.get('cache', 'xtra')).to.be.undefined;
-            expect(await service._db.get('options', 'generation')).to.equal(8);
+            expect(await service._db.get('options', 'generation'))
+                .to.equal(GC_THRESHOLD / 2);
         });
 
         it('notifies all clients about entries that have expired',

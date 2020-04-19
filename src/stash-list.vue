@@ -4,7 +4,7 @@
     <Menu class="menu">
       <template #summary><div class="action mainmenu"></div></template>
       <button @click="showOptions">Options...</button>
-      <button @click="refreshFavicons">Refresh Website Icons</button>
+      <button @click="fetchMissingFavicons">Fetch Missing Icons</button>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
       <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
@@ -67,6 +67,7 @@
 import {asyncEvent, urlsInTree, urlToOpen} from './util';
 import {isURLStashable, rootFolderWarning, tabStashTree} from './stash';
 import {isInFolder} from './model';
+import {Cache} from './cache-client';
 
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
@@ -155,18 +156,24 @@ export default {
             this.local_options.set({last_notified_version: this.my_version});
         },
 
-        refreshFavicons: asyncEvent(async function() {
-            const urls = new Set(urlsInTree(await tabStashTree())
-                    .map(url => new URL(urlToOpen(url)).origin))
-                .values();
+        fetchMissingFavicons: asyncEvent(async function() {
+            const cache = Cache.open('favicons')
+            const urls = new Set(urlsInTree(await tabStashTree())).values()
 
             const fiber = async () => {
                 let tab = await browser.tabs.create({active: false, pinned: true});
                 try {
                     for (const url of urls) {
+                        const favicon = await cache.get(url);
+                        if (favicon && favicon.value) continue;
+
                         console.log(`Refreshing favicon for ${url}`)
                         try {
                             tab = await siteInfo(url, tab.id);
+                            // We use url, not tab.url, here so that the favicon
+                            // will get set even if the tab is redirected to
+                            // another URL.
+                            if (tab.favIconUrl) await cache.set(url, tab.favIconUrl);
                         } catch (e) {
                             console.error(`While refreshing favicon for ${url}:`, e);
                         }
@@ -197,7 +204,7 @@ function siteInfo(url, tabId) {
             if (timeout === undefined && ! tab.favIconUrl) {
                 // Wait a bit longer to see if we get an update with a
                 // favicon (e.g. because it's loaded asynchronously).
-                timeout = setTimeout(() => handler(id, info, tab), 2000);
+                timeout = setTimeout(() => handler(id, info, tab), 4000);
                 return;
             }
 

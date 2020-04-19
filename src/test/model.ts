@@ -61,7 +61,7 @@ describe('model', function() {
         function check_related(item: M.ModelLeaf) {
             if (item.url) {
                 try {
-                    let u = new URL(urlToOpen(item.url)).origin;
+                    const u = urlToOpen(item.url);
                     expect(item.favicon, `${item.id} has a Favicon object`)
                         .to.not.be.undefined;
                     expect(item.favicon, `${item.id} has the right Favicon`)
@@ -956,7 +956,7 @@ describe('model', function() {
                 id: 'goog', parentId: 'root', index: 5,
                 title: 'Google',
                 dateAdded: 42,
-                url: 'http://google.com/some-other-url',
+                url: 'http://google.com/some-url',
             });
             model._bookmark('fb')._update({
                 id: 'fb', parentId: 'root', index: 6,
@@ -972,7 +972,7 @@ describe('model', function() {
             check(model);
 
             model._tab(42)._update({
-                url: 'http://facebook.com/ads',
+                url: 'http://facebook.com/some-other-url',
                 favIconUrl: 'http://facebook.com/favicon.ico',
                 status: 'complete',
             });
