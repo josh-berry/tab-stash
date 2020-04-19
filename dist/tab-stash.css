@@ -1,28 +1,129 @@
+/* Colors */
+
 html {
+    --page-bg: #ffffff;
+    --page-fg: #222426;
+
+    --scroll-bar: #efefef;
+    --scroll-handle: #d8d8d8;
+
+    --group-bg: #ffffff;
+    --group-border: 1px solid #c0c0c0;
+
+    --item-hover-bg: rgba(0, 0, 0, 0.08);
+    --item-active-bg: rgba(0, 0, 0, 0.16);
+
+    --shadow: 2px 2px 4px #c0c0c0;
+    --shadow-faint: 2px 2px 4px #d8d8d8;
+}
+
+html.tab-view {
+    --page-bg: #efefef;
+}
+
+@media (prefers-color-scheme: dark) {
+    html {
+        --page-bg: #2a2a2e;
+        --page-fg: #f9f9fa;
+
+        --scroll-bar: #242426;
+        --scroll-handle: #48484e;
+
+        --group-bg: #48484e;
+        --group-border: 1px solid #3a3a3e;
+
+        --item-hover-bg: rgba(255, 255, 255, 0.16);
+        --item-active-bg: rgba(255, 255, 255, 0.32);
+
+        --shadow: 2px 2px 4px #3a3a3e;
+        --shadow-faint: 2px 2px 4px #3a3a3e;
+    }
+
+    html.tab-view {
+        --page-bg: #2a2a2e;
+        --c-scroll-bar: #2a2a2e;
+    }
+}
+
+/* Metrics */
+html {
+    /* XXX rename me to something more descriptive */
     --margin: 1.5rem;
+
+    --m-menu-w: 12px;
+    --m-menu-h: 6px;
+}
+
+/* Styling */
+
+html {
     font: caption;
     -moz-user-select: none;
-    color: #222426;
 }
 html, body {
+    background-color: var(--page-bg);
+    color: var(--page-fg);
+    scrollbar-color: var(--c-scroll-handle) var(--c-scroll-bar);
     margin: 0;
     padding: 0;
 }
 
 .hidden { display: none !important; }
 
-.tab:hover { cursor: pointer; background-color: rgba(0, 0, 0, 0.08)}
+.tab:hover { cursor: pointer; background-color: var(--item-hover-bg); }
 a, a:visited { color: #44484c; text-decoration: none; }
 .whats-new a, a.open, a.open:visited { color: #287acc; }
 
 header { margin: 4px 16px; }
-header .searchbar, aside.notification {
+header.page {
+    display: grid;
+    grid-template-columns: 0fr 1fr 0fr;
+    align-items: center;
+}
+
+.menu > summary, .menu > summary > .action {
+    display: inline-block;
+    border-radius: 5px 5px 0 0;
+}
+.menu[open] > summary {
+    background-color: var(--item-hover-bg);
+    box-shadow: var(--shadow);
+}
+.menu > nav {
+    padding: var(--m-menu-h) 0;
+    background-color: var(--group-bg);
+    box-shadow: var(--shadow);
+    border: var(--group-border);
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.menu > nav > button, .menu > nav > a {
+    cursor: default;
+    display: flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 var(--m-menu-w);
+    margin: 0;
+    border: none;
+    background: transparent;
+    text-align: left;
+    white-space: nowrap;
+}
+.menu > nav > button:hover, .menu > nav > a:hover {
+    background-color: var(--item-hover-bg);
+}
+.menu > nav > hr {
+    margin: var(--m-menu-h) 0;
+    border: none;
+    border-top: var(--group-border);
+}
+
+aside.notification {
     display: grid;
     grid-template-columns: 1fr 0fr;
     align-items: center;
-    margin-left: -3px;
-}
-aside.notification {
     background-color: rgba(40, 122, 204, 0.16); /* 287acc */
     border-radius: 5px;
     margin-top: var(--margin);
@@ -33,6 +134,7 @@ aside.notification:hover {
 aside.notification .contents {
     margin: 4px 8px;
 }
+
 .page.footer {
     padding: 16px 16px 8px;
     text-align: center;
@@ -64,24 +166,38 @@ input:focus {
 }
 
 /* Actions */
+
+button {
+    display: inline-block;
+    font: caption;
+    vertical-align: middle;
+    white-space: nowrap;
+    color: var(--page-fg);
+}
+
+/* .action is used for icon/toolbar buttons */
 .action {
     display: inline-block;
-    text-align: center;
-    vertical-align: middle;
-    padding: 0 1ex;
-    background-color: rgba(0, 0, 0, 0);
-    color: #404040;
-    cursor: default;
-}
-button.action {
-    border: none;
+    box-sizing: border-box;
     width: 24px;
     height: 24px;
     padding: 4px 4px;
+    text-align: center;
+    vertical-align: middle;
     background-size: 16px 16px;
     background-position: center;
     background-repeat: no-repeat;
+    background-color: transparent;
+    border: none;
+    cursor: default;
 }
+.action:hover {
+    background-color: var(--item-hover-bg);
+}
+.action:active {
+    background-color: var(--item-active-bg);
+}
+
 nav.action-container {
     display: flex;
     flex-direction: row;
@@ -97,6 +213,7 @@ nav.action-container .action:last-child {
 }
 
 /* Specific Actions */
+.action.mainmenu { background-image: url(icons/light/logo.svg); }
 .action.collapse { background-image: url(icons/light/collapse-closed.svg); }
 .action.expand { background-image: url(icons/light/collapse-open.svg); }
 .action.cancel { background-image: url(icons/light/cancel.svg); }
@@ -107,15 +224,7 @@ nav.action-container .action:last-child {
 .action.restore-remove { background-image: url(icons/light/restore-del.svg); }
 .action.remove { background-image: url(icons/light/delete.svg); }
 .action.remove.opened { background-image: url(icons/light/delete-opened.svg); }
-.action-container:hover .action {
-    background-color: rgba(0, 0, 0, 0);
-}
-.action-container:hover .action:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-}
-.action-container:hover .action:active {
-    background-color: rgba(0, 0, 0, 0.16);
-}
+
 .action-container:hover .action.stash, .whats-new .improved {
     background-color: #cce5ff;
 }
@@ -247,7 +356,7 @@ span.folder-name, .folder-item > .text {
 
 /* Drag-and-Drop */
 .sortable-ghost {
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: var(--item-hover-bg);
     opacity: 0.6;
 }
 .sortable-chosen {
@@ -259,11 +368,6 @@ span.folder-name, .folder-item > .text {
 /***
  * Mods for when in tab view -- uses a multi-column display format
  ***/
-
-html.tab-view {
-    background: #efefef;
-    scrollbar-color: #d8d8d8 #efefef;
-}
 
 .tab-view header {
     margin-left: var(--margin);
@@ -283,9 +387,9 @@ html.tab-view {
 .tab-view .folder {
     flex: 1 1 25rem;
     margin: calc(var(--margin) / 2);
-    background-color: #ffffff;
-    border: 1px solid #c0c0c0;
-    box-shadow: 2px 2px 4px #c0c0c0;
+    background-color: var(--group-bg);
+    border: var(--group-border);
+    box-shadow: var(--shadow);
 
     display: flex;
     flex-direction: column;
@@ -293,7 +397,7 @@ html.tab-view {
 .tab-view .collapsed.folder {
     background: #f4f4f4;
     border: 1px solid #d8d8d8;
-    box-shadow: 2px 2px 4px #d8d8d8;
+    box-shadow: var(--shadow-faint);
 }
 
 .tab-view .folder .header { flex: 0 0 auto; }
@@ -362,16 +466,9 @@ html.tab-view {
  * everything else above.
  */
 @media (prefers-color-scheme: dark) {
-    html, body {
-        background-color: #2a2a2e;
-        color: #f9f9fa;
-        scrollbar-color: #48484e #242426;
-    }
-    body.options { background-color: #202023; color: #f9f9fa; }
+    body.options { background-color: #202023; color: var(--page-fg); }
     a, a:visited { color: #e0e0e2; }
     .whats-new a, a.open, a.open:visited { color: #80bfff; }
-
-    .tab:hover { background-color: rgba(255, 255, 255, 0.16); }
 
     .status-text, .status-text a, .whats-new .issue {
         color: #a0a4ac;
@@ -380,7 +477,7 @@ html.tab-view {
         color: #80bfff;
     }
 
-    input { color: #f9f9fa; }
+    input { color: var(--page-fg); }
     input:focus {
         background-color: #2a2a2e;
         border-color: rgba(255, 255, 255, 0.32);
@@ -393,16 +490,7 @@ html.tab-view {
         background-color: rgba(128, 191, 255, 0.48);
     }
 
-    .action-container:hover .action {
-        background-color: rgba(255, 255, 255, 0);
-    }
-    .action-container:hover .action:hover {
-        background-color: rgba(255, 255, 255, 0.16);
-    }
-    .action-container:hover .action:active {
-        background-color: rgba(255, 255, 255, 0.32);
-    }
-
+    .action.mainmenu { background-image: url(icons/dark/logo.svg); }
     .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
     .action.expand { background-image: url(icons/dark/collapse-open.svg); }
     .action.cancel { background-image: url(icons/dark/cancel.svg); }
@@ -458,19 +546,8 @@ html.tab-view {
 
     .sortable-ghost { background-color: rgba(255, 255, 255, 0.16); }
 
-    html.tab-view {
-        background-color: #2a2a2e;
-        scrollbar-color: #48484e #2a2a2e;
-    }
-    .tab-view .folder {
-        background-color: #48484e;
-        border-color: #3a3a3e;
-        box-shadow: 2px 2px 4px #3a3a3e;
-    }
-
     .tab-view .collapsed.folder {
         background: #3a3a3e;
         border-color: #3a3a3e;
-        box-shadow: 2px 2px 4px #3a3a3e;
     }
 }

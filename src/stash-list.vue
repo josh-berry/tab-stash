@@ -1,17 +1,24 @@
 <template>
 <div class="stash-list">
   <header class="page action-container">
-    <div class="searchbar">
-      <input type="search" ref="search"
-             :placeholder="search_placeholder"
-             @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
-             v-model="searchtext">
-      <ButtonBox>
-        <Button :class="{collapse: collapsed, expand: ! collapsed}"
-                title="Hide all tabs so only group names are showing"
-                @action="collapseAll" />
-      </ButtonBox>
-    </div>
+    <Menu class="menu">
+      <template #summary><div class="action mainmenu"></div></template>
+      <button @click="showOptions">Options...</button>
+      <hr/>
+      <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
+      <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
+      <a href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
+      <button @click="showWhatsNew">What's New?</button>
+    </Menu>
+    <input type="search" ref="search"
+           :placeholder="search_placeholder"
+           @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
+           v-model="searchtext">
+    <Button :class="{collapse: collapsed, expand: ! collapsed}"
+            title="Hide all tabs so only group names are showing"
+            @action="collapseAll" />
+  </header>
+  <header class="notifications">
     <Notification v-if="recently_updated"
                   @activate="showWhatsNew" @dismiss="hideWhatsNew">
       You've been updated to Tab Stash {{my_version}}.  See what's new!
@@ -64,6 +71,7 @@ import Folder from './folder.vue';
 import ButtonBox from './button-box.vue';
 import Button from './button.vue';
 import Notification from './notification.vue';
+import Menu from './menu.vue';
 
 export default {
     components: {
@@ -72,6 +80,7 @@ export default {
         ButtonBox,
         Button,
         Notification,
+        Menu,
     },
 
     data: () => ({
@@ -131,6 +140,10 @@ export default {
         isItemStashed(i) {
             return i.related.find(
                 i => i.isBookmark && i.isInFolder(this.root_id));
+        },
+
+        showOptions() {
+            browser.runtime.openOptionsPage().catch(console.log);
         },
 
         showWhatsNew() {
