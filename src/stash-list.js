@@ -46,6 +46,7 @@ window.addEventListener('load', asyncEvent(async function() {
 
     // For debugging purposes only...
     window.metadata_cache = Cache.open('bookmarks');
+    window.favicon_cache = Cache.open('favicons');
     window.stash_state = p.state;
     window.stash_root = p.state.bms_by_id.get(p.root.id);
     window.stash_win = p.state.wins_by_id.get(p.win.id);

@@ -222,6 +222,28 @@ export class CacheService {
         if (this._gen < GC_THRESHOLD) this._gen = GC_THRESHOLD;
         this._pending.inc_gen = true;
     }
+    async dump_testonly() {
+        const ret = [];
+        const txn = this._db.transaction('cache', 'readonly');
+        let cursor = await txn.store.openCursor();
+        while (cursor) {
+            ret.push(cursor.value);
+            cursor = await cursor.continue();
+        }
+        await txn.done;
+        return ret;
+    }
+    async clear_testonly() {
+        this._pending = {inc_gen: false, updates: new Map()};
+
+        const txn = this._db.transaction('cache', 'readwrite');
+        let cursor = await txn.store.openCursor();
+        while (cursor) {
+            cursor.delete();
+            cursor = await cursor.continue();
+        }
+        await txn.done;
+    }
 
     // Internal stuff past this point
 

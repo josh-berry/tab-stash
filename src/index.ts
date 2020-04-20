@@ -178,6 +178,7 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 
 (async () => {
     const localopts = await Options.local();
+    (<any>globalThis).the_local_opts = localopts;
 
     if (localopts.last_notified_version === undefined) {
         // This looks like a fresh install, (or an upgrade from a version that
@@ -198,8 +199,10 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 // metadata such as favicons.
 //
 
-CacheService.start('favicons').catch(console.log);
-CacheService.start('bookmarks').catch(console.log);
+CacheService.start('favicons').catch(console.log)
+    .then(cs => (<any>globalThis).the_favicon_cache = cs);
+CacheService.start('bookmarks').catch(console.log)
+    .then(cs => (<any>globalThis).the_bookmarks_cache = cs);
 
 
 
