@@ -3,12 +3,15 @@
 html {
     --page-bg: #ffffff;
     --page-fg: #222426;
+    --link-fg: #44484c;
 
     --scroll-bar: #efefef;
     --scroll-handle: #d8d8d8;
 
     --group-bg: #ffffff;
     --group-border: 1px solid #c0c0c0;
+
+   --divider-border: 1px solid rgb(0, 0, 0, 0.16);
 
     --item-hover-bg: rgba(0, 0, 0, 0.08);
     --item-active-bg: rgba(0, 0, 0, 0.16);
@@ -25,12 +28,15 @@ html.tab-view {
     html {
         --page-bg: #2a2a2e;
         --page-fg: #f9f9fa;
+        --link-fg: #e0e0e2;
 
         --scroll-bar: #242426;
         --scroll-handle: #48484e;
 
         --group-bg: #48484e;
         --group-border: 1px solid #3a3a3e;
+
+        --divider-border: 1px solid rgba(255, 255, 255, 0.32);
 
         --item-hover-bg: rgba(255, 255, 255, 0.16);
         --item-active-bg: rgba(255, 255, 255, 0.32);
@@ -71,7 +77,7 @@ html, body {
 .hidden { display: none !important; }
 
 .tab:hover { cursor: pointer; background-color: var(--item-hover-bg); }
-a, a:visited { color: #44484c; text-decoration: none; }
+a, a:visited { color: var(--link-fg); text-decoration: none; }
 .whats-new a, a.open, a.open:visited { color: #287acc; }
 
 header { margin: 4px 16px; }
@@ -117,7 +123,7 @@ header.page {
 .menu > nav > hr {
     margin: var(--m-menu-h) 0;
     border: none;
-    border-top: var(--group-border);
+    border-top: var(--divider-border);
 }
 
 aside.notification {
@@ -172,7 +178,7 @@ button {
     font: caption;
     vertical-align: middle;
     white-space: nowrap;
-    color: var(--page-fg);
+    color: var(--link-fg);
 }
 
 /* .action is used for icon/toolbar buttons */
@@ -269,7 +275,7 @@ nav.action-container .action:last-child {
     display: grid;
     grid-template-columns: 0fr 1fr 0fr 0fr;
     align-items: center;
-    border-bottom: 1px solid rgb(0, 0, 0, 0.16);
+    border-bottom: var(--divider-border);
 }
 
 .folder-name {
@@ -467,7 +473,6 @@ span.folder-name, .folder-item > .text {
  */
 @media (prefers-color-scheme: dark) {
     body.options { background-color: #202023; color: var(--page-fg); }
-    a, a:visited { color: #e0e0e2; }
     .whats-new a, a.open, a.open:visited { color: #80bfff; }
 
     .status-text, .status-text a, .whats-new .issue {
@@ -536,10 +541,6 @@ span.folder-name, .folder-item > .text {
     }
     .action-container:hover .action.remove:active {
         background-color: #b27272;
-    }
-
-    .folder .header {
-        border-color: rgba(255, 255, 255, 0.32);
     }
 
     .folder-name.disabled { color: #c0c0c0; }
