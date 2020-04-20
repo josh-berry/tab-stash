@@ -112,6 +112,7 @@ export class Window implements ModelParent {
                     hidden: t.hidden,
                     active: t.active,
                     pinned: t.pinned,
+                    status: t.status || 'complete',
                 });
                 r.parent = this;
                 r.index = i;
@@ -165,8 +166,6 @@ export class Tab implements ModelLeaf {
 
     _update(t: Partial<browser.tabs.Tab>): Tab {
         if (t.title !== undefined) this.title = t.title;
-        if (t.url !== undefined) this.state._update_url(this, t.url);
-        if (t.favIconUrl !== undefined) this.favIconUrl = t.favIconUrl;
         if (t.hidden !== undefined) this.hidden = t.hidden;
         if (t.active !== undefined) this.active = t.active;
         if (t.pinned !== undefined) this.pinned = t.pinned;
@@ -175,18 +174,24 @@ export class Tab implements ModelLeaf {
             this.state._reposition(this, t.windowId, t.index);
         }
 
-        // The /status/ check is necessary because sometimes Firefox may send us
-        // events where a tab has a new URL, but an old favicon (pointing to the
-        // URL the tab is navigating away from).  We want to ignore these
-        // intermediate states.  We should get another callback with status
-        // 'complete' once navigation is complete.
-        if (this.url && this.favIconUrl
-            && (t.status === undefined || t.status == 'complete'))
-        {
-            try {
-                let url = new URL(urlToOpen(this.url));
-                this.state.favicon_cache.set(url.origin, this.favIconUrl);
-            } catch (e) {}
+        if (t.url) {
+            this.state._update_url(this, t.url);
+
+            if (t.favIconUrl && t.status === 'complete') {
+                this.favIconUrl = t.favIconUrl;
+                this.favicon = undefined;
+                try {
+                    let url = new URL(urlToOpen(t.url));
+                    this.favicon = this.state.favicon_cache.set(url.origin, t.favIconUrl);
+                } catch (e) {}
+            } else {
+                // We ignore favicons when the tab is still loading, because
+                // Firefox may send us events where a tab has a new URL, but an
+                // old favicon which is for the URL the tab is navigating away
+                // from.
+                this.favIconUrl = undefined;
+                this.favicon = undefined;
+            }
         }
 
         return this;
