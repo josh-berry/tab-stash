@@ -4,6 +4,7 @@
     <Menu class="menu">
       <template #summary><div class="action mainmenu"></div></template>
       <button @click="showOptions">Options...</button>
+      <button @click="refreshFavicons">Refresh Website Icons</button>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
       <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
@@ -63,7 +64,8 @@
 </template>
 
 <script>
-import {isURLStashable, rootFolderWarning} from './stash';
+import {asyncEvent, urlsInTree, urlToOpen} from './util';
+import {isURLStashable, rootFolderWarning, tabStashTree} from './stash';
 import {isInFolder} from './model';
 
 import FolderList from './folder-list.vue';
@@ -152,8 +154,64 @@ export default {
         hideWhatsNew() {
             this.local_options.set({last_notified_version: this.my_version});
         },
+
+        refreshFavicons: asyncEvent(async function() {
+            const urls = new Set(urlsInTree(await tabStashTree())
+                    .map(url => new URL(urlToOpen(url)).origin))
+                .values();
+
+            const fiber = async () => {
+                let tab = await browser.tabs.create({active: false, pinned: true});
+                try {
+                    for (const url of urls) {
+                        console.log(`Refreshing favicon for ${url}`)
+                        try {
+                            tab = await siteInfo(url, tab.id);
+                        } catch (e) {
+                            console.error(`While refreshing favicon for ${url}:`, e);
+                        }
+                    }
+                } finally {
+                    browser.tabs.remove(tab.id).catch(console.error);
+                }
+            };
+
+            const pending = [];
+            for (let i = 0; i < 4; ++i) pending.push(fiber());
+            while (pending.length > 0) await pending.pop();
+        }),
     },
 };
+
+// Fetch the title and favicon of a site by loading the site in a new tempoorary
+// tab.  The tab should not be used for anything else until this function's
+// Promise resolves.
+function siteInfo(url, tabId) {
+    return new Promise((resolve, reject) => {
+        let timeout;
+
+        const handler = (id, info, tab) => {
+            if (id !== tabId) return;
+            if (info.status !== 'complete') return;
+
+            if (timeout === undefined && ! tab.favIconUrl) {
+                // Wait a bit longer to see if we get an update with a
+                // favicon (e.g. because it's loaded asynchronously).
+                timeout = setTimeout(() => handler(id, info, tab), 2000);
+                return;
+            }
+
+            resolve(tab);
+            if (timeout) clearTimeout(timeout);
+            browser.tabs.onUpdated.removeListener(handler);
+        };
+
+        browser.tabs.update(tabId, {url})
+            .then(() => {
+                browser.tabs.onUpdated.addListener(handler);
+            }).catch(console.error);
+    });
+}
 </script>
 
 <style>
