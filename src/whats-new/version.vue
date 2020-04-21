@@ -16,8 +16,8 @@
 </template>
 
 <script lang="ts">
-import ButtonBox from '../button-box.vue';
-import Button from '../button.vue';
+import ButtonBox from '../components/button-box.vue';
+import Button from '../components/button.vue';
 import {cmpVersions} from '../util';
 
 export default {

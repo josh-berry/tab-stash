@@ -77,10 +77,10 @@ import {
 import {Cache} from './cache-client';
 
 import Draggable from 'vuedraggable';
-import EditableLabel from './editable-label.vue';
+import EditableLabel from './components/editable-label.vue';
 import Tab from './tab.vue';
-import ButtonBox from './button-box.vue';
-import Button from './button.vue';
+import ButtonBox from './components/button-box.vue';
+import Button from './components/button.vue';
 
 export default {
     components: {Draggable, EditableLabel, Tab, ButtonBox, Button},

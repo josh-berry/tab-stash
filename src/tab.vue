@@ -12,7 +12,7 @@
        alt="">
   <span class="text">{{bestTitle}}</span>
   <ButtonBox>
-    <Button v-if="isBookmark" 
+    <Button v-if="isBookmark"
             class="restore-remove" @action="openRemove"
             tooltip="Open this tab and delete it from the group" />
     <Button v-else
@@ -32,8 +32,8 @@ import {
     restoreTabs, stashTabs,
     closeTabs,
 } from './stash';
-import ButtonBox from 'button-box.vue'; 
-import Button from 'button.vue';
+import ButtonBox from './components/button-box.vue';
+import Button from './components/button.vue';
 
 export default {
     components: {ButtonBox, Button},

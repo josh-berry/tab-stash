@@ -71,10 +71,10 @@ import {Cache} from './cache-client';
 
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
-import ButtonBox from './button-box.vue';
-import Button from './button.vue';
-import Notification from './notification.vue';
-import Menu from './menu.vue';
+import ButtonBox from './components/button-box.vue';
+import Button from './components/button.vue';
+import Notification from './components/notification.vue';
+import Menu from './components/menu.vue';
 
 export default {
     components: {
