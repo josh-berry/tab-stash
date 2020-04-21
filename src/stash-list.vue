@@ -15,9 +15,11 @@
            :placeholder="search_placeholder"
            @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
            v-model="searchtext">
-    <Button :class="{collapse: collapsed, expand: ! collapsed}"
-            title="Hide all tabs so only group names are showing"
-            @action="collapseAll" />
+    <ButtonBox>
+      <Button :class="{collapse: collapsed, expand: ! collapsed}"
+              title="Hide all tabs so only group names are showing"
+              @action="collapseAll" />
+    </ButtonBox>
   </header>
   <header class="notifications">
     <Notification v-if="recently_updated"
