@@ -51,13 +51,29 @@ html.tab-view {
     }
 }
 
-/* Metrics */
+/*
+  Metrics.
+
+  Prefixes:
+    --m*  margin
+
+  Suffixes:
+    *-w   width
+    *-h   height
+*/
 html {
     /* XXX rename me to something more descriptive */
     --margin: 1.5rem;
 
     --m-menu-w: 12px;
     --m-menu-h: 6px;
+
+    --m-dialog-w: var(--margin);
+    --m-dialog-h: calc(var(--margin) / 2);
+
+    /* Hack to account for OS scrollbar size in the modal.  I'm just guessing
+       about the size here... */
+    --scrollbar-w: 16px;
 }
 
 /* Styling */
@@ -73,6 +89,35 @@ html, body {
     margin: 0;
     padding: 0;
 }
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: var(--m-dialog-h) calc(var(--m-dialog-w) + var(--scrollbar-w)/2);
+}
+.modal-backdrop > * {
+    max-width: 100%;
+    max-height: 100%;
+}
+.dialog {
+    background-color: var(--group-bg);
+    border: var(--group-border);
+    box-shadow: var(--shadow);
+    padding: var(--m-dialog-h) var(--m-dialog-w);
+    display: grid;
+}
+.dialog, .dialog * {
+    grid-row-gap: var(--m-menu-h);
+    grid-column-gap: var(--m-menu-w);
+    margin: 0;
+}
+
+/* Define a fixed width for progress dialogs so they're not constantly resizing
+   as statuses are changing. */
+.progress > .dialog { width: 50rem; }
+
+/* add some extra vertical margin around the top-level progress */
+.dialog > .progress-item { margin: var(--m-menu-h) 0; }
+.progress-item ul { padding-left: var(--margin); }
 
 .hidden { display: none !important; }
 
@@ -290,7 +335,7 @@ nav.action-container .action:last-child {
     border: 2px solid rgba(0, 0, 0, 0);
     border-radius: 2px;
 }
-.folder-name.disabled { color: rgba(128, 128, 128); } 
+.folder-name.disabled { color: rgba(128, 128, 128); }
 .folder .header nav.action-btnbox {
     grid-row: 2;
     grid-column: 1;

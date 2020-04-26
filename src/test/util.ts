@@ -340,4 +340,153 @@ describe('util', function() {
             expect(count).to.equal(1);
         });
     });
+
+    describe('AsyncChannel', function() {
+        it('Disallows sending once the channel is closed', async function() {
+            const chan = new M.AsyncChannel();
+            chan.send(1);
+            chan.close();
+            expect(() => chan.send(2)).to.throw(ReferenceError);
+        });
+
+        it('Notifies receivers once the channel is closed', async () => {
+            const chan = new M.AsyncChannel();
+            chan.close();
+            expect(await chan.next())
+                .to.deep.equal({done: true, value: undefined});
+            expect(await chan.next())
+                .to.deep.equal({done: true, value: undefined});
+        });
+
+        it('Delivers sent values to newly-incoming receivers', async () => {
+            const chan = new M.AsyncChannel();
+            chan.send(1);
+            expect(await chan.next()).to.deep.equal({done: false, value: 1});
+        });
+
+        it('Delivers sent values to receivers in the order they are waiting',
+           async () => {
+                const chan = new M.AsyncChannel();
+                const p1 = chan.next();
+                const p2 = chan.next();
+                const p3 = chan.next();
+                chan.send(1);
+                chan.send(2);
+                chan.close();
+                expect(await p1).to.deep.equal({done: false, value: 1});
+                expect(await p2).to.deep.equal({done: false, value: 2});
+                expect(await p3).to.deep.equal({done: true, value: undefined});
+           });
+
+        it('Delivers values interleaved with receivers', async function() {
+            const chan = new M.AsyncChannel();
+            const p1 = chan.next();
+            chan.send(1);
+            const p2 = chan.next();
+            const p3 = chan.next();
+            chan.send(2);
+            chan.send(3);
+            expect(await p1).to.deep.equal({done: false, value: 1});
+
+            const p4 = chan.next();
+            expect(await p2).to.deep.equal({done: false, value: 2});
+            chan.send(4);
+            expect(await p3).to.deep.equal({done: false, value: 3});
+            expect(await p4).to.deep.equal({done: false, value: 4});
+            chan.close();
+            expect(await chan.next())
+                .to.deep.equal({done: true, value: undefined});
+        });
+    });
+
+    describe('TaskMonitor', function() {
+        it('Reports cancellation by throwing', function() {
+            expect(() => {
+                const tm = new M.TaskMonitor();
+                tm.cancel();
+                tm.value = 1;
+            }).to.throw(M.TaskCancelled);
+        });
+
+        it('Rejects invalid maximums', function() {
+            const tm = new M.TaskMonitor();
+            expect(() => tm.max = -1).to.throw(RangeError);
+            expect(() => tm.max = 0).to.throw(RangeError);
+            expect(() => tm.max = 1).to.not.throw(RangeError);
+        });
+
+        it("Rejects invalid values", function() {
+            const tm = new M.TaskMonitor();
+            tm.max = 1;
+            expect(() => tm.value = -1).to.throw(RangeError);
+            expect(() => tm.value = 0).to.not.throw(RangeError);
+            expect(() => tm.value = 1).to.not.throw(RangeError);
+            expect(() => tm.value = 1.1).to.throw(RangeError);
+        });
+
+        it('Reports cancellation by throwing only once', function() {
+            const tm = new M.TaskMonitor();
+            tm.cancel();
+            expect(() => tm.value = 1).to.throw(M.TaskCancelled);
+            expect(() => tm.value = 1).to.not.throw;
+        });
+
+        it('Reports cancellation via .cancelled', function() {
+            const tm = new M.TaskMonitor();
+            tm.cancel();
+            expect(tm.cancelled).to.equal(true);
+            expect(() => tm.value = 1).to.not.throw;
+            expect(tm.cancelled).to.equal(true);
+        });
+
+        it('Propagates cancellation to its children', function() {
+            const ptm = new M.TaskMonitor();
+            const ctm = new M.TaskMonitor(ptm);
+            ptm.cancel();
+            expect(ctm.cancelled).to.equal(true);
+        });
+
+        it('Propagates value updates to its parents', function() {
+            const ptm = new M.TaskMonitor();
+            const ctm = new M.TaskMonitor(ptm);
+            ptm.max = 10;
+            ctm.max = 4;
+            expect(ptm.value).to.equal(0);
+            expect(ctm.value).to.equal(0);
+            expect(ctm.weight).to.equal(1);
+            ctm.value = 2;
+            expect(ptm.value).to.equal(0.5);
+            ctm.value = 4;
+            expect(ptm.value).to.equal(1);
+            ctm.value = 3;
+            expect(ptm.value).to.equal(0.75);
+        });
+
+        it('Propagates value updates to grandparents', function() {
+            const tm1 = new M.TaskMonitor();
+            const tm2 = new M.TaskMonitor(tm1);
+
+            tm2.max = 10;
+            const tm2a = new M.TaskMonitor(tm2, '', 5);
+            const tm2b = new M.TaskMonitor(tm2, '', 5);
+
+            tm2a.max = 10;
+            tm2a.value = 5;
+            expect(tm2.value).to.equal(2.5);
+            expect(tm1.value).to.equal(0.25)
+
+            tm2b.max = 10;
+            tm2b.value = 5;
+            expect(tm2.value).to.equal(5);
+            expect(tm1.value).to.equal(0.5);
+
+            tm2a.value = 10;
+            expect(tm2.value).to.equal(7.5);
+            expect(tm1.value).to.equal(0.75);
+
+            tm2b.value = 10;
+            expect(tm2.value).to.equal(10);
+            expect(tm1.value).to.equal(1);
+        });
+    });
 });

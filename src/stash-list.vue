@@ -1,5 +1,8 @@
 <template>
 <div class="stash-list">
+  <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
+             v-on="dialog.on" @close="dialog = undefined">
+  </component>
   <header class="page action-container">
     <Menu class="menu">
       <template #summary><div class="action mainmenu"></div></template>
@@ -66,10 +69,11 @@
 </template>
 
 <script>
-import {asyncEvent, urlsInTree, urlToOpen} from './util';
+import {asyncEvent, urlsInTree, urlToOpen, TaskMonitor} from './util';
 import {isURLStashable, rootFolderWarning, tabStashTree} from './stash';
 import {isInFolder} from './model';
 import {Cache} from './cache-client';
+import {fetchInfoForSites} from './tasks/siteinfo';
 
 import FolderList from './folder-list.vue';
 import Folder from './folder.vue';
@@ -86,11 +90,13 @@ export default {
         Button,
         Notification,
         Menu,
+        ProgressDialog: require('./components/progress-dialog.vue').default,
     },
 
     data: () => ({
         collapsed: false,
         searchtext: '',
+        dialog: undefined,
     }),
 
     computed: {
@@ -159,68 +165,29 @@ export default {
         },
 
         fetchMissingFavicons: asyncEvent(async function() {
-            const cache = Cache.open('favicons')
-            const urls = new Set(urlsInTree(await tabStashTree())).values()
-
-            const fiber = async () => {
-                let tab = await browser.tabs.create({active: false, pinned: true});
-                try {
-                    for (const url of urls) {
-                        const favicon = await cache.get(url);
-                        if (favicon && favicon.value) continue;
-
-                        console.log(`Refreshing favicon for ${url}`)
-                        try {
-                            tab = await siteInfo(url, tab.id);
-                            // We use url, not tab.url, here so that the favicon
-                            // will get set even if the tab is redirected to
-                            // another URL.
-                            if (tab.favIconUrl) await cache.set(url, tab.favIconUrl);
-                        } catch (e) {
-                            console.error(`While refreshing favicon for ${url}:`, e);
-                        }
-                    }
-                } finally {
-                    browser.tabs.remove(tab.id).catch(console.error);
-                }
+            const tm = new TaskMonitor(undefined, "Fetching favicons...");
+            this.dialog = {
+                class: 'ProgressDialog',
+                props: {task: tm},
             };
 
-            const pending = [];
-            for (let i = 0; i < 4; ++i) pending.push(fiber());
-            while (pending.length > 0) await pending.pop();
+            const cache = Cache.open('favicons');
+            const urls = new Set(urlsInTree(await tabStashTree()));
+
+            // This is just an async filter :/
+            for (const url of urls) {
+                const favicon = await cache.get(url);
+                if (favicon && favicon.value) urls.delete(url);
+            }
+
+            for await (const info of fetchInfoForSites(urls, tm)) {
+                if (info.favIconUrl) cache.set(info.url, info.favIconUrl);
+            }
+
+            this.dialog = undefined;
         }),
     },
 };
-
-// Fetch the title and favicon of a site by loading the site in a new tempoorary
-// tab.  The tab should not be used for anything else until this function's
-// Promise resolves.
-function siteInfo(url, tabId) {
-    return new Promise((resolve, reject) => {
-        let timeout;
-
-        const handler = (id, info, tab) => {
-            if (id !== tabId) return;
-            if (info.status !== 'complete') return;
-
-            if (timeout === undefined && ! tab.favIconUrl) {
-                // Wait a bit longer to see if we get an update with a
-                // favicon (e.g. because it's loaded asynchronously).
-                timeout = setTimeout(() => handler(id, info, tab), 4000);
-                return;
-            }
-
-            resolve(tab);
-            if (timeout) clearTimeout(timeout);
-            browser.tabs.onUpdated.removeListener(handler);
-        };
-
-        browser.tabs.update(tabId, {url})
-            .then(() => {
-                browser.tabs.onUpdated.addListener(handler);
-            }).catch(console.error);
-    });
-}
 </script>
 
 <style>
