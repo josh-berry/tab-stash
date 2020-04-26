@@ -1,7 +1,8 @@
 import {AsyncChannel, TaskMonitor, TaskCancelled} from '../util';
 
 export type SiteInfo = {
-    url: string;
+    originalUrl: string;
+    finalUrl?: string;
     title?: string;
     favIconUrl?: string;
 };
@@ -66,7 +67,8 @@ function sendTabTo(url: string, tabId: number): Promise<SiteInfo>
         let bestIcon: string | undefined;
 
         const end = () => {
-            resolve({url, title: bestTitle, favIconUrl: bestIcon});
+            resolve({originalUrl: url, finalUrl: bestURL,
+                     title: bestTitle, favIconUrl: bestIcon});
             if (timeout) clearTimeout(timeout);
             browser.tabs.onUpdated.removeListener(handler);
         };

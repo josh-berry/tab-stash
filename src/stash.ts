@@ -237,7 +237,7 @@ export async function stashTabs(
     // If /close/ is true, closes/hides the stashed tabs according to the user's
     // preferences.
 
-    const saved_tabs = await bookmarkTabs(options.folderId, tabs);
+    const saved_tabs = (await bookmarkTabs(options.folderId, tabs)).tabs;
 
     if (options.close) await hideStashedTabs(saved_tabs);
 }
@@ -341,10 +341,11 @@ export async function isNewTabURL(url: string | undefined): Promise<boolean> {
     }
 }
 
-async function bookmarkTabs(
+export async function bookmarkTabs(
     folderId: string | undefined,
     all_tabs: PartialTabInfo[]
-): Promise<PartialTabInfo[]> {
+): Promise<{tabs: PartialTabInfo[], bookmarks: BookmarkTreeNode[]}>
+{
     // Figure out which of the tabs to save.  We ignore tabs with unparseable
     // URLs or which look like extensions and internal browser things.
     //
@@ -354,7 +355,7 @@ async function bookmarkTabs(
 
     // If there are no tabs to save, early-exit here so we don't unnecessarily
     // create bookmark folders we don't need.
-    if (tabs.length == 0) return tabs;
+    if (tabs.length == 0) return {tabs, bookmarks: []};
 
     // Find or create the root of the stash.
     let root = await rootFolder();
@@ -442,9 +443,11 @@ async function bookmarkTabs(
         }));
         ++tab_index;
     }
-    for (let p of ps) await p;
 
-    return tabs;
+    const bookmarks = [];
+    for (let p of ps) bookmarks.push(await p);
+
+    return {tabs, bookmarks};
 }
 
 export async function restoreTabs(

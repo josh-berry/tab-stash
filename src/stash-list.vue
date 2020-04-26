@@ -7,6 +7,9 @@
     <Menu class="menu">
       <template #summary><div class="action mainmenu"></div></template>
       <button @click="showOptions">Options...</button>
+      <hr/>
+      <button @click="dialog = {class: 'ImportDialog'}">Import...</button>
+      <hr/>
       <button @click="fetchMissingFavicons">Fetch Missing Icons</button>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
@@ -90,6 +93,7 @@ export default {
         Button,
         Notification,
         Menu,
+        ImportDialog: require('./tasks/import.vue').default,
         ProgressDialog: require('./components/progress-dialog.vue').default,
     },
 
@@ -181,7 +185,7 @@ export default {
             }
 
             for await (const info of fetchInfoForSites(urls, tm)) {
-                if (info.favIconUrl) cache.set(info.url, info.favIconUrl);
+                if (info.favIconUrl) cache.set(info.originalUrl, info.favIconUrl);
             }
 
             this.dialog = undefined;

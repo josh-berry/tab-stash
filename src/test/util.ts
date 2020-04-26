@@ -415,13 +415,17 @@ describe('util', function() {
             expect(() => tm.max = 1).to.not.throw(RangeError);
         });
 
-        it("Rejects invalid values", function() {
+        it("Rejects or clamps invalid values", function() {
             const tm = new M.TaskMonitor();
             tm.max = 1;
             expect(() => tm.value = -1).to.throw(RangeError);
+            expect(tm.value).to.equal(0);
             expect(() => tm.value = 0).to.not.throw(RangeError);
+            expect(tm.value).to.equal(0);
             expect(() => tm.value = 1).to.not.throw(RangeError);
-            expect(() => tm.value = 1.1).to.throw(RangeError);
+            expect(tm.value).to.equal(1);
+            expect(() => tm.value = 1.1).to.not.throw(RangeError);
+            expect(tm.value).to.equal(1);
         });
 
         it('Reports cancellation by throwing only once', function() {

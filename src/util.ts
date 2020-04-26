@@ -392,7 +392,7 @@ export class TaskMonitor {
     get value(): number { return this._value; }
     set value(v: number) {
         if (v < 0) throw new RangeError("value must be >= 0");
-        if (v > this._max) throw new RangeError("value must be <= max");
+        if (v > this._max) v = this._max;
 
         const old_value = this._value;
         this._value = v;

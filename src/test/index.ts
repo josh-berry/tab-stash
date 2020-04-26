@@ -16,3 +16,4 @@ require('./model');
 require('./stored-object');
 require('./cache-client');
 require('./cache-service');
+require('./tasks/import');
