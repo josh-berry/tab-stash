@@ -49,5 +49,23 @@ http://example.com/\tasdf
             `,
             [["http://first.com/", "http://second.com/"],
              ["http://alt.com/", "http://whatever.com/"]]);
+
+        itf('parses multiple URLs on the same line',
+             `http://foo http://bar.com/`,
+             [['http://foo', 'http://bar.com/']]);
+
+        itf('parses URLs in Markdown links',
+            `- This is a [markdown link](http://whatever.com)`,
+            [["http://whatever.com"]]);
+
+        itf('parses URLs in raw HTML',
+            `<a href="http://asdf.com/?test={uuid}#hashtag">link</a>`,
+            [["http://asdf.com/?test={uuid}#hashtag"]]);
+
+        itf('ignores file: URLs',
+             `file:///c:/windows/system32`, []);
+
+        itf('ignores mailto and other non-authoritative URLs',
+            `mailto:foo@bar data:asdf`, []);
     });
 });

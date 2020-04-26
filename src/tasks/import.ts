@@ -1,10 +1,24 @@
-import { urlToOpen, TaskMonitor } from '../util';
-import { bookmarkTabs } from '../stash';
+import { TaskMonitor } from '../util';
+import { bookmarkTabs, isURLStashable } from '../stash';
 import { fetchInfoForSites } from './siteinfo';
 import { Cache } from '../cache-client';
 import { FaviconCache } from '../model';
 
 type Bookmark = browser.bookmarks.BookmarkTreeNode;
+
+// This is based on RFC 3986, but is rather more permissive in some ways,
+// because CERTAIN COMPANIES (looking at you, Office365 with your un-encoded
+// "{uuid}" nonsense...) will put illegal characters in their URLs and everyone
+// just sort of tolerates it.
+//
+// It's also rather more restrictive, because we we ignore data: and other URIs
+// which have no authority (the "//foo.com" part before the path).
+//
+// So if we see something that starts out looking like a valid protocol,
+// followed by "://", we just take everything after the "://" as part of the
+// URL, up to a set of commonly-used terminator characters (e.g. quotes, closing
+// brackets/parens, or whitespace).
+const URL_REGEX = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>]+/g;
 
 export function parse(str: string): string[][] {
     const lines = str.split("\n");
@@ -12,18 +26,18 @@ export function parse(str: string): string[][] {
     let group: string[] = [];
 
     for (const l of lines) {
-        const m = l.match(/^\s*(\S+)/);
-        if (! m || m.length < 2) {
+        const m = l.match(URL_REGEX);
+        if ((! m || m.length == 0) && l.match(/^\s*$/)) {
             if (group.length > 0) {
                 ret.push(group);
                 group = [];
             }
-        } else {
-            try {
-                const url = urlToOpen(new URL(m[1]).href);
-                group.push(url);
-            } catch (e) {}
-        }
+        } else if (m) {
+            for (const u of m) {
+                if (! isURLStashable(u)) continue;
+                group.push(u);
+            }
+        } else { /* ignore lines without URLs */ }
     }
 
     if (group.length > 0) ret.push(group);

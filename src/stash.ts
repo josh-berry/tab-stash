@@ -165,12 +165,6 @@ export async function mostRecentUnnamedFolderId() {
 }
 
 export function isURLStashable(urlstr: string): boolean {
-    // NOTE: We don't actually check this here because it is filtered by our
-    //callers; if we see a tab that is pinned at this point, we can safely
-    //assume the user explicitly asked for it to be stashed.
-    //
-    // if (tab.pinned) return false;
-
     try {
         let url = new URL(urlstr);
         switch (url.protocol) {
@@ -182,12 +176,13 @@ export function isURLStashable(urlstr: string): boolean {
                     default: return false;
                 }
             case 'moz-extension:':
+            case 'chrome-extension:': // Hey, you never know...
             case 'chrome:':
             case 'file:':
                 return false;
         }
     } catch (e) {
-        console.warn('Tab with unparseable URL:', urlstr);
+        console.warn('Unparseable URL:', urlstr);
         return false;
     }
 

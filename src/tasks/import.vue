@@ -2,9 +2,8 @@
   <ProgressDialog v-if="task" :task="task"/>
   <Dialog v-else :class="$style.input" @close="$emit('close')">
     <label for="data">
-      Paste your URLs here, one per line. Titles and icons will be loaded
-      automatically by fetching each URL in the background. You can group
-      your URLs by inserting blank lines between them.
+      Paste some text containing URLs here.  Blank lines in the text will
+      separate URLs into different stashes.
     </label>
     <textarea ref="data" id="data" autofocus="true" required="true"
               spellcheck="false" autocomplete="false"></textarea>
