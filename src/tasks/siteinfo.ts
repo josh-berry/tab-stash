@@ -67,8 +67,9 @@ function sendTabTo(url: string, tabId: number): Promise<SiteInfo>
         let bestIcon: string | undefined;
 
         const end = () => {
-            resolve({originalUrl: url, finalUrl: bestURL,
-                     title: bestTitle, favIconUrl: bestIcon});
+            const ret = {originalUrl: url, finalUrl: bestURL,
+                         title: bestTitle, favIconUrl: bestIcon};
+            resolve(ret);
             if (timeout) clearTimeout(timeout);
             browser.tabs.onUpdated.removeListener(handler);
         };
@@ -104,7 +105,11 @@ function sendTabTo(url: string, tabId: number): Promise<SiteInfo>
                 // There is a race where a tab might finish loading before we
                 // reach here, so do at least one explicit fetch of tab info in
                 // case this happens.
-                browser.tabs.get(tabId).then(tab => handler(tabId, {}, tab));
+                browser.tabs.get(tabId).then(tab => {
+                    if (tab.url === url && tab.status === 'complete') {
+                        handler(tabId, {}, tab);
+                    }
+                });
             }).catch(console.error);
     });
 }
