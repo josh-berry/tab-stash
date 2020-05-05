@@ -47,7 +47,7 @@ html.tab-view {
 
     html.tab-view {
         --page-bg: #2a2a2e;
-        --c-scroll-bar: #2a2a2e;
+        --scroll-bar: #2a2a2e;
     }
 }
 
@@ -85,7 +85,7 @@ html {
 html, body {
     background-color: var(--page-bg);
     color: var(--page-fg);
-    scrollbar-color: var(--c-scroll-handle) var(--c-scroll-bar);
+    scrollbar-color: var(--scroll-handle) var(--scroll-bar);
     margin: 0;
     padding: 0;
 }
