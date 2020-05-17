@@ -9,6 +9,7 @@
       <button @click="showOptions">Options...</button>
       <hr/>
       <button @click="dialog = {class: 'ImportDialog'}">Import...</button>
+      <button @click="showExportDialog">Export...</button>
       <hr/>
       <button @click="fetchMissingFavicons">Fetch Missing Icons</button>
       <hr/>
@@ -94,6 +95,7 @@ export default {
         Notification,
         Menu,
         ImportDialog: require('./tasks/import.vue').default,
+        ExportDialog: require('./tasks/export.vue').default,
         ProgressDialog: require('./components/progress-dialog.vue').default,
     },
 
@@ -166,6 +168,13 @@ export default {
         },
         hideWhatsNew() {
             this.local_options.set({last_notified_version: this.my_version});
+        },
+
+        showExportDialog() {
+            this.dialog = {
+                class: 'ExportDialog',
+                props: {stash: this.stashed_tabs.children},
+            };
         },
 
         fetchMissingFavicons: asyncEvent(async function() {

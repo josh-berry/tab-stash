@@ -113,13 +113,18 @@ html, body {
     margin: 0;
 }
 
-.import-dialog .input {
+.export-dialog output, .import-dialog .input {
     display: block;
     border: var(--group-border);
 }
-.import-dialog .input a {
+.export-dialog output a, .import-dialog .input a {
     text-decoration: underline;
     color: var(--userlink-fg);
+}
+
+.export-dialog output h3 {
+    margin-top: 12pt;
+    font-size: 12pt;
 }
 
 /* Define a fixed width for progress dialogs so they're not constantly resizing

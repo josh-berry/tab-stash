@@ -139,6 +139,12 @@ export function getFolderNameISODate(n: string): string | null {
 export const genDefaultFolderName =
     (date: Date) => 'saved-' + date.toISOString();
 
+export function friendlyFolderName(name: string): string {
+    const folderDate = getFolderNameISODate(name);
+    if (folderDate) return `Saved ${new Date(folderDate).toLocaleString()}`;
+    return name;
+}
+
 export async function mostRecentUnnamedFolderId() {
     const options = await Options.sync();
     const root = await rootFolder();
