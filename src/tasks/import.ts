@@ -18,40 +18,152 @@ type Bookmark = browser.bookmarks.BookmarkTreeNode;
 // followed by "://", we just take everything after the "://" as part of the
 // URL, up to a set of commonly-used terminator characters (e.g. quotes, closing
 // brackets/parens, or whitespace).
-const URL_REGEX = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>]+/g;
+const URL_RE = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>]+/g;
 
-export function parse(str: string): string[][] {
-    const lines = str.split("\n");
-    const ret: string[][] = [];
-    let group: string[] = [];
+const MARKDOWN_HEADER_RE = /^#+ (.*)$/;
 
-    for (const l of lines) {
-        const m = l.match(URL_REGEX);
-        if ((! m || m.length == 0) && l.match(/^\s*$/)) {
-            if (group.length > 0) {
-                ret.push(group);
-                group = [];
-            }
-        } else if (m) {
-            for (const u of m) {
-                if (! isURLStashable(u)) continue;
-                group.push(u);
-            }
-        } else { /* ignore lines without URLs */ }
-    }
+export type ParseOptions = {
+    splitOn: '' | 'h' | 'p+h',
+};
 
-    if (group.length > 0) ret.push(group);
+export type BookmarkGroup = {
+    title?: string,
+    urls: string[],
+};
 
-    return ret;
+export function parse(node: Node,
+                      options?: Partial<ParseOptions>): BookmarkGroup[]
+{
+    const parser = new Parser(options);
+    parser.parseChildren(node);
+    return parser.end();
 }
 
-export async function importURLs(url_groups: string[][], tm: TaskMonitor):
+class Parser {
+    readonly options: ParseOptions = {
+        splitOn: 'p+h',
+    };
+
+    building: BookmarkGroup = {urls: []};
+    built: BookmarkGroup[] = [];
+    afterBR: boolean = false;
+
+    constructor(options?: Partial<ParseOptions>) {
+        if (options) this.options = Object.assign({}, this.options, options);
+    }
+
+    end(): BookmarkGroup[] {
+        this.endGroup();
+        return this.built
+            .filter(group => group.urls.length > 0)
+            .map(group => {
+                group.urls = Array.from(new Set(
+                    group.urls.filter(isURLStashable)));
+                return group;
+            });
+    }
+
+    endGroup(titleForNextGroup?: string) {
+        this.built.push(this.building);
+        this.building = {
+            title: titleForNextGroup,
+            urls: []
+        };
+    }
+
+    parseChildren(node: Node) {
+        for (const child of node.childNodes) {
+            switch (child.nodeType) {
+                case Node.ELEMENT_NODE:
+                    const el = child as Element;
+                    this.parseElement(el);
+                    break;
+
+                case Node.TEXT_NODE:
+                    const text = child.nodeValue?.trim();
+                    if (! text) continue;
+
+                    this.afterBR = false;
+
+                    if (['h', 'p+h'].includes(this.options.splitOn)) {
+                        const header = text.match(MARKDOWN_HEADER_RE);
+                        if (header) this.endGroup(header[1]?.trim());
+                    }
+
+                    for (const url of extractURLs(text)) {
+                        this.building.urls.push(url);
+                    }
+                    break;
+
+                default:
+                    // TODO
+                    break;
+            }
+        }
+    }
+
+    parseElement(el: Element) {
+        switch (el.localName) {
+            case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
+                if (['h', 'p+h'].includes(this.options.splitOn)) {
+                    this.endGroup(el.textContent ?? undefined);
+                } else {
+                    this.parseChildren(el);
+                }
+                break;
+
+            case 'p':
+                this.parseChildren(el);
+                if (this.options.splitOn === 'p+h') this.endGroup();
+                break;
+
+            case 'br':
+                if (this.afterBR) {
+                    if (this.options.splitOn === 'p+h') this.endGroup();
+                    this.afterBR = false;
+                } else {
+                    this.afterBR = true;
+                }
+                this.parseChildren(el);
+                break;
+
+            case 'a':
+                const a = el as HTMLAnchorElement;
+                if (a.href) {
+                    this.building.urls.push(a.href);
+                }
+                this.parseChildren(el);
+                break;
+
+            default:
+                this.parseChildren(el);
+                break;
+        }
+
+        if (el.localName !== 'br') this.afterBR = false;
+    }
+}
+
+export function* extractURLs(str: string): Generator<string> {
+    const re = new RegExp(URL_RE);
+    let m;
+    while ((m = re.exec(str)) !== null) {
+        yield m[0];
+    }
+}
+
+export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
     Promise<void>
 {
-    tm.status = "Importing tabs...";
+    tm.status = 'Importing tabs...';
     tm.max = 100;
 
-    const urls = flat(url_groups);
+    // We reverse the order of groups on import because the text/URLs that show
+    // up at the top of the imported list will also show up at the top of the
+    // stash.  Otherwise, the last folder to be created will show up first (so
+    // groups will appear "backwards" once imported).
+    const groups_rev = groups.reverse();
+    const urls = flat(groups_rev.map(g => g.urls));
     const urlset = new Set(urls);
 
     // We start three tasks in parallel: Bookmark creation, fetching of site
@@ -60,13 +172,13 @@ export async function importURLs(url_groups: string[][], tm: TaskMonitor):
     // Task: Creating bookmarks
     const create_bms_p = tm.wspawn(25, async tm => {
         tm.status = "Creating stash folders...";
-        tm.max = url_groups.length;
+        tm.max = groups_rev.length;
         const bm_groups = [];
-        for (const group of url_groups) {
-            bm_groups.push((await bookmarkTabs(undefined, group.map(url => ({
-                url, title: "Importing..."
-            })))).bookmarks);
-            ++tm.value;
+        for (const g of groups_rev) {
+            bm_groups.push((await tm.spawn(tm => bookmarkTabs(
+                undefined,
+                g.urls.map(url => ({url, title: "Importing..."})),
+                {newFolderTitle: g.title, taskMonitor: tm}))).bookmarks);
         }
         return flat(bm_groups);
     });
@@ -93,7 +205,7 @@ export async function importURLs(url_groups: string[][], tm: TaskMonitor):
             }
         }
 
-        const favicon_cache: FaviconCache = Cache.open('favicons')
+        const favicon_cache: FaviconCache = Cache.open('favicons');
         for await (const siteinfo of siteinfo_aiter) {
             const url = siteinfo.finalUrl || siteinfo.originalUrl;
 

@@ -343,7 +343,13 @@ export async function bookmarkTabs(
 ): Promise<{tabs: PartialTabInfo[], bookmarks: BookmarkTreeNode[]}>
 {
     const tm = options?.taskMonitor;
-    if (tm) tm.status = "Creating bookmarks...";
+    if (tm) {
+        if (options?.newFolderTitle) {
+            tm.status = `Creating bookmarks for ${options.newFolderTitle}...`;
+        } else {
+            tm.status = "Creating bookmarks...";
+        }
+    }
 
     // Figure out which of the tabs to save.  We ignore tabs with unparseable
     // URLs or which look like extensions and internal browser things.

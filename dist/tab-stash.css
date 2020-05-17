@@ -4,6 +4,7 @@ html {
     --page-bg: #ffffff;
     --page-fg: #222426;
     --link-fg: #44484c;
+    --userlink-fg: #287acc;
 
     --scroll-bar: #efefef;
     --scroll-handle: #d8d8d8;
@@ -29,6 +30,7 @@ html.tab-view {
         --page-bg: #2a2a2e;
         --page-fg: #f9f9fa;
         --link-fg: #e0e0e2;
+        --userlink-fg: #80bfff;
 
         --scroll-bar: #242426;
         --scroll-handle: #48484e;
@@ -111,6 +113,15 @@ html, body {
     margin: 0;
 }
 
+.import-dialog .input {
+    display: block;
+    border: var(--group-border);
+}
+.import-dialog .input a {
+    text-decoration: underline;
+    color: var(--userlink-fg);
+}
+
 /* Define a fixed width for progress dialogs so they're not constantly resizing
    as statuses are changing. */
 .progress > .dialog { width: 50rem; }
@@ -123,7 +134,7 @@ html, body {
 
 .tab:hover { cursor: pointer; background-color: var(--item-hover-bg); }
 a, a:visited { color: var(--link-fg); text-decoration: none; }
-.whats-new a, a.open, a.open:visited { color: #287acc; }
+.whats-new a, a.open, a.open:visited { color: var(--userlink-fg); }
 
 header { margin: 4px 16px; }
 header.page {
@@ -195,7 +206,7 @@ aside.notification .contents {
     font-style: italic;
 }
 .status-text a:hover, .whats-new a:hover {
-    color: #287acc;
+    color: var(--userlink-fg);
     text-decoration: underline;
 }
 
@@ -218,7 +229,7 @@ input:focus {
 
 /* Actions */
 
-button {
+button, input, select {
     display: inline-block;
     font: caption;
     vertical-align: middle;
@@ -518,13 +529,9 @@ span.folder-name, .folder-item > .text {
  */
 @media (prefers-color-scheme: dark) {
     body.options { background-color: #202023; color: var(--page-fg); }
-    .whats-new a, a.open, a.open:visited { color: #80bfff; }
 
     .status-text, .status-text a, .whats-new .issue {
         color: #a0a4ac;
-    }
-    .status-text a:hover, .whats-new a:hover {
-        color: #80bfff;
     }
 
     input { color: var(--page-fg); }
