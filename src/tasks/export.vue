@@ -31,7 +31,7 @@
                 :class="$style.plaintext">
             <div v-for="f of folders" :key="f.id">
                 <div>## {{friendlyFolderName(f.title)}}</div>
-                <div v-for="bm of leaves(f)" :key="bm.id">- [{{quote_md(bm.title)}}]({{quote_url_md(bm.url)}})</div>
+                <div v-for="bm of leaves(f)" :key="bm.id">- [{{quote_link_md(bm.title)}}]({{quote_url_md(bm.url)}})</div>
                 <div><br/></div>
             </div>
         </output>
@@ -72,7 +72,7 @@ import Vue from 'vue';
 import {Bookmark} from '../model';
 import {friendlyFolderName} from '../stash';
 
-const MD_QUOTABLES_RE = /^[-+*#]|\\|[*_|`]|\]\(|\!\[/g;
+const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
 export default Vue.extend({
@@ -97,10 +97,18 @@ export default Vue.extend({
             return (folder.children ?? []).filter(bm => bm && bm.url);
         },
 
-        quote_md: function(text: string): string {
-            return text.replace(MD_QUOTABLES_RE, x => `\\${x}`);
+        quote_emphasis_md(text: string): string {
+            return text
+                .replace(/(^|\s)([*_]+)(\S)/g, (str, ws, emph, rest) =>
+                    `${ws}${emph.replace(/./g, '\\$&')}${rest}`)
+                .replace(/(\S)([*_]+)(\s|$)/g, (str, rest, emph, ws) =>
+                    `${rest}${emph.replace(/./g, '\\$&')}${ws}`);
         },
-        quote_url_md: function(url: string): string {
+        quote_link_md(text: string): string {
+            return (<any>this).quote_emphasis_md(
+                text.replace(MD_LINK_QUOTABLES_RE, x => `\\${x}`));
+        },
+        quote_url_md(url: string): string {
             return url.replace(MD_URL_QUOTABLES_RE, x => `\\${x}`);
         },
 
