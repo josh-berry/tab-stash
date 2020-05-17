@@ -135,6 +135,7 @@ export default Vue.extend({
     user-select: text;
     -moz-user-select: text;
     cursor: auto;
+    padding: 4px;
 }
 
 .plaintext {
