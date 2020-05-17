@@ -33,6 +33,7 @@ let PLATFORM_INFO = {
 };
 browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
 export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
+export const bgKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Cmd' : 'Ctrl';
 
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;

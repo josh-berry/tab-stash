@@ -25,10 +25,12 @@
               :tooltip="`Stash the active tab to this group `
                         + `(hold ${altkey} to keep tabs open)`" />
       <Button class="restore" @action="restoreAll"
-              tooltip="Open all tabs in this group" />
+              :tooltip="`Open all tabs in this group `
+                      + `(hold ${bgKey} to open in background)`" />
       <Button v-if="allowRenameDelete"
               class="restore-remove" @action="restoreAndRemove"
-              tooltip="Open all tabs in the group and delete the group" />
+              :tooltip="`Open all tabs in the group and delete the group `
+                      + `(hold ${bgKey} to open in background)`" />
       <Button v-if="allowRenameDelete && ! collapsed"
               class="remove" @action="remove"
               tooltip="Delete this group" />
@@ -67,7 +69,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 </template>
 
 <script>
-import {asyncEvent, altKeyName, bgKeyPressed} from './util';
+import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     stashTabsInWindow, stashTabs, restoreTabs,
@@ -106,6 +108,7 @@ export default {
 
     computed: {
         altkey: altKeyName,
+        bgKey: bgKeyName,
 
         collapsed: {
             get() {

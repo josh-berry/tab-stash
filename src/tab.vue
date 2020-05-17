@@ -14,7 +14,8 @@
   <ButtonBox>
     <Button v-if="isBookmark"
             class="restore-remove" @action="openRemove"
-            tooltip="Open this tab and delete it from the group" />
+            :tooltip="`Open this tab and delete it from the group `
+                    + `(hold ${bgKey} to open in background)`" />
     <Button v-else
             class="stash one" @action="stash"
             :tooltip="`Stash this tab (hold ${altkey} to keep tab open)`" />
@@ -26,7 +27,7 @@
 </template>
 
 <script>
-import {asyncEvent, altKeyName, bgKeyPressed} from './util';
+import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, mostRecentUnnamedFolderId,
     restoreTabs, stashTabs,
@@ -61,6 +62,7 @@ export default {
 
     computed: {
         altkey: altKeyName,
+        bgKey: bgKeyName,
 
         tab: function() {
             if (this.isTab) return this;
