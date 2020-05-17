@@ -61,7 +61,8 @@ export default Vue.extend({
 
 .input :global(.input) {
     display: block;
-    overflow: auto;
+    overflow-block: auto;
+    overflow-wrap: anywhere;
     user-select: text;
     -moz-user-select: text;
     cursor: text;
