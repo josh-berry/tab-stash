@@ -1,6 +1,6 @@
 import Options from './options-model';
 
-import {urlToOpen} from './util';
+import {urlToOpen, TaskMonitor} from './util';
 
 type BookmarkTreeNode = browser.bookmarks.BookmarkTreeNode;
 
@@ -338,9 +338,13 @@ export async function isNewTabURL(url: string | undefined): Promise<boolean> {
 
 export async function bookmarkTabs(
     folderId: string | undefined,
-    all_tabs: PartialTabInfo[]
+    all_tabs: PartialTabInfo[],
+    options?: {newFolderTitle?: string, taskMonitor?: TaskMonitor},
 ): Promise<{tabs: PartialTabInfo[], bookmarks: BookmarkTreeNode[]}>
 {
+    const tm = options?.taskMonitor;
+    if (tm) tm.status = "Creating bookmarks...";
+
     // Figure out which of the tabs to save.  We ignore tabs with unparseable
     // URLs or which look like extensions and internal browser things.
     //
@@ -350,7 +354,10 @@ export async function bookmarkTabs(
 
     // If there are no tabs to save, early-exit here so we don't unnecessarily
     // create bookmark folders we don't need.
-    if (tabs.length == 0) return {tabs, bookmarks: []};
+    if (tabs.length == 0) {
+        if (tm) tm.value = tm.max;
+        return {tabs, bookmarks: []};
+    }
 
     // Find or create the root of the stash.
     let root = await rootFolder();
@@ -365,7 +372,7 @@ export async function bookmarkTabs(
         // Create a new folder, if it wasn't specified.
         let folder = await browser.bookmarks.create({
             parentId: root.id,
-            title: genDefaultFolderName(new Date()),
+            title: options?.newFolderTitle ?? genDefaultFolderName(new Date()),
             type: 'folder',
             index: 0, // Newest folders should show up on top
         });
@@ -394,6 +401,8 @@ export async function bookmarkTabs(
         index = existing_bms.length;
     }
 
+    if (tm) tm.max = tabs_to_actually_save.length * 2;
+
     // Now save each tab as a bookmark.
     //
     // Unfortunately, Firefox doesn't have an API to save multiple bookmarks in
@@ -415,7 +424,10 @@ export async function bookmarkTabs(
         }));
         ++index;
     }
-    for (let p of ps) created_bm_ids.add((await p).id);
+    for (let p of ps) {
+        created_bm_ids.add((await p).id);
+        if (tm) ++tm.value;
+    }
     ps = [];
 
     // We now read the folder back to determine the order of the created
@@ -440,7 +452,10 @@ export async function bookmarkTabs(
     }
 
     const bookmarks = [];
-    for (let p of ps) bookmarks.push(await p);
+    for (let p of ps) {
+        bookmarks.push(await p);
+        if (tm) ++tm.value;
+    }
 
     return {tabs, bookmarks};
 }

@@ -400,14 +400,6 @@ describe('util', function() {
     });
 
     describe('TaskMonitor', function() {
-        it('Reports cancellation by throwing', function() {
-            expect(() => {
-                const tm = new M.TaskMonitor();
-                tm.cancel();
-                tm.value = 1;
-            }).to.throw(M.TaskCancelled);
-        });
-
         it('Rejects invalid maximums', function() {
             const tm = new M.TaskMonitor();
             expect(() => tm.max = -1).to.throw(RangeError);
@@ -428,11 +420,15 @@ describe('util', function() {
             expect(tm.value).to.equal(1);
         });
 
-        it('Reports cancellation by throwing only once', function() {
+        it('Reports cancellation by throwing', function() {
             const tm = new M.TaskMonitor();
+            tm.throw_on_cancel();
+            expect(tm.cancelled).to.equal(false);
+            expect(() => tm.value = 1).to.not.throw(M.TaskCancelled);
             tm.cancel();
+            expect(tm.cancelled).to.equal(true);
             expect(() => tm.value = 1).to.throw(M.TaskCancelled);
-            expect(() => tm.value = 1).to.not.throw;
+            expect(() => tm.value = 1).to.throw(M.TaskCancelled);
         });
 
         it('Reports cancellation via .cancelled', function() {
@@ -443,13 +439,6 @@ describe('util', function() {
             expect(tm.cancelled).to.equal(true);
         });
 
-        it('Propagates cancellation to its children', function() {
-            const ptm = new M.TaskMonitor();
-            const ctm = new M.TaskMonitor(ptm);
-            ptm.cancel();
-            expect(ctm.cancelled).to.equal(true);
-        });
-
         it('Propagates value updates to its parents', function() {
             const ptm = new M.TaskMonitor();
             const ctm = new M.TaskMonitor(ptm);
@@ -457,7 +446,6 @@ describe('util', function() {
             ctm.max = 4;
             expect(ptm.value).to.equal(0);
             expect(ctm.value).to.equal(0);
-            expect(ctm.weight).to.equal(1);
             ctm.value = 2;
             expect(ptm.value).to.equal(0.5);
             ctm.value = 4;
@@ -471,8 +459,8 @@ describe('util', function() {
             const tm2 = new M.TaskMonitor(tm1);
 
             tm2.max = 10;
-            const tm2a = new M.TaskMonitor(tm2, '', 5);
-            const tm2b = new M.TaskMonitor(tm2, '', 5);
+            const tm2a = new M.TaskMonitor(tm2, 5);
+            const tm2b = new M.TaskMonitor(tm2, 5);
 
             tm2a.max = 10;
             tm2a.value = 5;

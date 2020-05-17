@@ -1,7 +1,7 @@
 <template>
-<Dialog :class="{progress: true, [$style.progress]: true, cancellable}">
-    <ProgressItem :task="task" />
-    <button v-if="cancellable" @click.prevent.stop="cancel">
+<Dialog :class="{progress: true, [$style.progress]: true, cancellable: cancel}">
+    <ProgressItem :progress="progress" />
+    <button v-if="cancel" @click.prevent.stop="cancel()">
         Cancel
     </button>
 </Dialog>
@@ -16,16 +16,10 @@ export default Vue.extend({
         ProgressItem: require('./progress-item.vue').default,
     },
     props: {
-        cancellable: Boolean,
-        task: Object,
+        cancel: Function,
+        progress: Object,
     },
     methods: {
-        cancel() {
-            if (this.cancellable) {
-                this.task.cancel();
-                this.$emit('cancel');
-            }
-        }
     }
 });
 </script>

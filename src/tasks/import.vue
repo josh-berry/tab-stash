@@ -1,5 +1,5 @@
 <template>
-  <ProgressDialog v-if="task" :task="task"/>
+  <ProgressDialog v-if="progress" :progress="progress"/>
   <Dialog v-else :class="$style.input" @close="$emit('close')">
     <label for="data">
       Paste some text containing URLs here.  Blank lines in the text will
@@ -22,16 +22,14 @@ export default Vue.extend({
         ProgressDialog: require('../components/progress-dialog.vue').default,
     },
 
-    data: () => ({task: undefined}),
+    data: () => ({progress: undefined}),
 
     methods: {
         start() {
-            const tm = new TaskMonitor(undefined, "Importing URLs...");
-            (<any>this).task = tm;
-
             const groups = parse((<any>this.$refs.data).value);
-            importURLs(groups, tm)
-                .finally(() => this.$emit('close'));
+            const task = TaskMonitor.run(tm =>
+                importURLs(groups, tm).finally(() => this.$emit('close')));
+            (<any>this).progress = task.progress;
         }
     }
 });

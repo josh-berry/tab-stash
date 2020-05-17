@@ -45,62 +45,69 @@ export function parse(str: string): string[][] {
     return ret;
 }
 
-export async function importURLs(url_groups: string[][], tm?: TaskMonitor):
+export async function importURLs(url_groups: string[][], tm: TaskMonitor):
     Promise<void>
 {
+    tm.status = "Importing tabs...";
+    tm.max = 100;
+
     const urls = flat(url_groups);
     const urlset = new Set(urls);
 
-    const create_tm = new TaskMonitor(tm, "Creating stash folders...", 0.25);
-    const fetch_tm = new TaskMonitor(tm, "Fetching site info...", 0.5);
-    const update_tm = new TaskMonitor(tm, "Updating bookmarks...", 0.25);
+    // We start three tasks in parallel: Bookmark creation, fetching of site
+    // information, and updating bookmarks with titles, favicons, etc.
 
-    // We start both bookmark creation and site fetching in parallel.
-
-    const create_bms_p = (async(tm: TaskMonitor): Promise<Bookmark[]> => {
+    // Task: Creating bookmarks
+    const create_bms_p = tm.wspawn(25, async tm => {
+        tm.status = "Creating stash folders...";
         tm.max = url_groups.length;
         const bm_groups = [];
         for (const group of url_groups) {
             bm_groups.push((await bookmarkTabs(undefined, group.map(url => ({
                 url, title: "Importing..."
             })))).bookmarks);
-            tm.inc();
+            ++tm.value;
         }
         return flat(bm_groups);
-    })(create_tm);
+    });
 
-    const siteinfo_aiter = fetchInfoForSites(urlset, fetch_tm);
+    // Task: Fetching site info
+    const siteinfo_aiter = tm.wspawn_iter(50, tm => fetchInfoForSites(urlset, tm));
 
-    // Bookmark creation is likely to finish first, so we wait for that here.
-    const bms = await create_bms_p;
-    update_tm.max = bms.length;
+    // Task: Updating bookmarks with site info.  This task awaits the other two
+    // tasks and brings their results together, so we await on this task
+    // directly here.
+    await tm.wspawn(25, async tm => {
+        tm.status = "Updating bookmarks...";
 
-    // Once we have all the bookmarks, we can start update their titles and the
-    // favicon cache with the site info we are finding.
-    const bms_by_url = new Map<string, Bookmark[]>();
-    for (const bm of bms) {
-        const v = bms_by_url.get(bm.url!);
-        if (v) {
-            v.push(bm);
-        } else {
-            bms_by_url.set(bm.url!, [bm]);
-        }
-    }
+        const bms = await create_bms_p;
+        const bms_by_url = new Map<string, Bookmark[]>();
 
-    const favicon_cache: FaviconCache = Cache.open('favicons')
-    for await (const siteinfo of siteinfo_aiter) {
-        const url = siteinfo.finalUrl || siteinfo.originalUrl;
-
-        if (siteinfo.title || siteinfo.finalUrl) {
-            const title = siteinfo.title || siteinfo.originalUrl;
-            for (const bm of bms_by_url.get(siteinfo.originalUrl)!) {
-                await browser.bookmarks.update(bm.id, {url, title});
+        tm.max = bms.length;
+        for (const bm of bms) {
+            const v = bms_by_url.get(bm.url!);
+            if (v) {
+                v.push(bm);
+            } else {
+                bms_by_url.set(bm.url!, [bm]);
             }
         }
-        if (siteinfo.favIconUrl) favicon_cache.set(url, siteinfo.favIconUrl);
 
-        update_tm.inc();
-    }
+        const favicon_cache: FaviconCache = Cache.open('favicons')
+        for await (const siteinfo of siteinfo_aiter) {
+            const url = siteinfo.finalUrl || siteinfo.originalUrl;
+
+            if (siteinfo.title || siteinfo.finalUrl) {
+                const title = siteinfo.title || siteinfo.originalUrl;
+                for (const bm of bms_by_url.get(siteinfo.originalUrl)!) {
+                    await browser.bookmarks.update(bm.id, {url, title});
+                }
+            }
+            if (siteinfo.favIconUrl) favicon_cache.set(url, siteinfo.favIconUrl);
+
+            ++tm.value;
+        }
+    });
 }
 
 // Polyfill for Array.flat(), which isn't available in FF 61.

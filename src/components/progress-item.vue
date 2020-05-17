@@ -2,11 +2,11 @@
     <div :class="{'progress-item': true, [$style.toplevel]: true}">
         <span :class="$style.item">
             <progress :class="$style.progress"
-                      :max="task.max" :value="task.value" />
-            <label :class="$style.status">{{task.status}}</label>
+                      :max="progress.max" :value="progress.value" />
+            <label :class="$style.status">{{progress.status}}</label>
         </span>
-        <ul v-if="task.children.length > 0" :class="$style.children">
-            <Self v-for="c of task.children" :key="c.id" :task="c" />
+        <ul v-if="progress.children.length > 0" :class="$style.children">
+            <Self v-for="c of progress.children" :key="c.id" :progress="c" />
         </ul>
     </div>
 </template>
@@ -22,7 +22,7 @@ export default Vue.extend({
         Self,
     },
     props: {
-        task: Object,
+        progress: Object,
     },
 });
 </script>

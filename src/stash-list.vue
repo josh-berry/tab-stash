@@ -169,12 +169,6 @@ export default {
         },
 
         fetchMissingFavicons: asyncEvent(async function() {
-            const tm = new TaskMonitor(undefined, "Fetching favicons...");
-            this.dialog = {
-                class: 'ProgressDialog',
-                props: {task: tm},
-            };
-
             const cache = Cache.open('favicons');
             const urls = new Set(urlsInTree(await tabStashTree()));
 
@@ -184,11 +178,21 @@ export default {
                 if (favicon && favicon.value) urls.delete(url);
             }
 
-            for await (const info of fetchInfoForSites(urls, tm)) {
-                if (info.favIconUrl) cache.set(info.originalUrl, info.favIconUrl);
-            }
+            const iter = TaskMonitor.run_iter(tm => fetchInfoForSites(urls, tm));
+            this.dialog = {
+                class: 'ProgressDialog',
+                props: {progress: iter.progress, cancel: () => iter.cancel()},
+            };
 
-            this.dialog = undefined;
+            try {
+                for await (const info of iter) {
+                    if (info.favIconUrl) {
+                        cache.set(info.originalUrl, info.favIconUrl);
+                    }
+                }
+            } finally {
+                this.dialog = undefined;
+            }
         }),
     },
 };
