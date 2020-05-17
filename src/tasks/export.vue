@@ -4,10 +4,11 @@
         <form :id="$style.dlg" @submit.prevent.stop="">
             <label for="format">Format:</label>
             <select :id="$style.format" v-model="format">
-                <option value="html">Formatted List</option>
+                <option value="html-noicons">Formatted List</option>
+                <option value="html-icons">Formatted List with Icons</option>
                 <option value="markdown">Markdown</option>
                 <option value="onetab">OneTab</option>
-                <option value="urls">List of URLs</option>
+                <option value="urls-folders">List of URLs</option>
                 <option value="urls-nofolders">List of URLs (no stash names)</option>
             </select>
             <button @click.prevent.stop="select_all">Select All</button>
@@ -15,11 +16,16 @@
         </form>
 
         <!-- HTML format -->
-        <output v-if="format == 'html'" ref="output" :for="$style.dlg">
+        <output v-if="format.startsWith('html-')" ref="output"
+                :for="$style.dlg">
             <div v-for="f of folders" :key="f.id">
                 <h3>{{friendlyFolderName(f.title)}}</h3>
                 <ul>
                     <li v-for="bm of leaves(f)" :key="bm.id">
+                        <img v-if="format.endsWith('-icons')"
+                             :src="bm.favicon && bm.favicon.value"
+                             :srcset="bm.favicon && bm.favicon.value && `${bm.favicon.value} 2x`"
+                             referrerpolicy="no-referrer" alt="" class="icon">
                         <a :href="bm.url">{{bm.title}}</a>
                     </li>
                 </ul>
@@ -46,19 +52,10 @@
         </output>
 
         <!-- List of URLs -->
-        <output v-if="format == 'urls'" ref="output" :for="$style.dlg"
+        <output v-if="format.startsWith('urls-')" ref="output" :for="$style.dlg"
                 :class="$style.plaintext">
             <div v-for="f of folders" :key="f.id">
-                <div>## {{friendlyFolderName(f.title)}}</div>
-                <div v-for="bm of leaves(f)" :key="bm.id">{{bm.url}}</div>
-                <div><br/></div>
-            </div>
-        </output>
-
-        <!-- List of URLs (no folder names) -->
-        <output v-if="format == 'urls-nofolders'" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
-            <div v-for="f of folders" :key="f.id">
+                <div v-if="format.endsWith('-folders')">## {{friendlyFolderName(f.title)}}</div>
                 <div v-for="bm of leaves(f)" :key="bm.id">{{bm.url}}</div>
                 <div><br/></div>
             </div>
@@ -89,7 +86,7 @@ export default Vue.extend({
         exported: function() {}
     },
     data: () => ({
-        format: 'html',
+        format: 'html-noicons',
     }),
     methods: {
         friendlyFolderName,

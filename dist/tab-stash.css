@@ -232,6 +232,12 @@ input:focus {
     border: 2px solid rgba(0, 0, 0, 0.32);
 }
 
+/* Website Icons (favicons) */
+img.icon {
+    width: 16px;
+    height: 16px;
+}
+
 /* Actions */
 
 button, input, select {
@@ -392,8 +398,6 @@ nav.action-container .action:last-child {
 .folder-item > .icon {
     grid-row: 1;
     grid-column: 1;
-    width: 16px;
-    height: 16px;
 }
 .folder-item > .text { grid-row: 1; grid-column: 2; }
 .folder-item > nav {
