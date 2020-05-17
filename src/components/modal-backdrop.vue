@@ -1,12 +1,23 @@
 <template>
 <aside :class="{'modal-backdrop': true, [$style.modal]: true}"
-       v-on="$listeners">
+       tabindex="-1"
+       v-on="$listeners"
+       @keypress.stop="" @keydown.stop="" @keyup.stop=""
+       @click.stop="" @auxclick.stop="" @dblclick.stop=""
+       @mousedown.stop="" @mouseup.stop=""
+       @mouseenter.stop="" @mouseleave.stop=""
+       @mousemove.stop="" @mouseout.stop="" @mouseover.stop="" 
+       @scroll.stop="" @select.stop="" @wheel.stop="">
   <slot></slot>
 </aside>
 </template>
 
-<script>
-export default {}
+<script lang="ts">
+import Vue from 'vue';
+
+export default Vue.extend({
+    mounted() { (<HTMLElement>this.$el).focus(); }
+});
 </script>
 
 <style module>

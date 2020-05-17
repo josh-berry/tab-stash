@@ -35,6 +35,8 @@ export default Vue.extend({
       splitOn: 'p+h' as ParseOptions['splitOn'],
     }),
 
+    mounted() { (<HTMLElement>this.$refs.data).focus(); },
+
     methods: {
         start() {
             const groups = parse(this.$refs.data as Element,
