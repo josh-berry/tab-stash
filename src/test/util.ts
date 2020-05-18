@@ -420,25 +420,6 @@ describe('util', function() {
             expect(tm.value).to.equal(1);
         });
 
-        it('Reports cancellation by throwing', function() {
-            const tm = new M.TaskMonitor();
-            tm.throw_on_cancel();
-            expect(tm.cancelled).to.equal(false);
-            expect(() => tm.value = 1).to.not.throw(M.TaskCancelled);
-            tm.cancel();
-            expect(tm.cancelled).to.equal(true);
-            expect(() => tm.value = 1).to.throw(M.TaskCancelled);
-            expect(() => tm.value = 1).to.throw(M.TaskCancelled);
-        });
-
-        it('Reports cancellation via .cancelled', function() {
-            const tm = new M.TaskMonitor();
-            tm.cancel();
-            expect(tm.cancelled).to.equal(true);
-            expect(() => tm.value = 1).to.not.throw;
-            expect(tm.cancelled).to.equal(true);
-        });
-
         it('Propagates value updates to its parents', function() {
             const ptm = new M.TaskMonitor();
             const ctm = new M.TaskMonitor(ptm);
@@ -479,6 +460,69 @@ describe('util', function() {
             tm2b.value = 10;
             expect(tm2.value).to.equal(10);
             expect(tm1.value).to.equal(1);
+        });
+
+        it('Reports cancellation via .cancelled', function() {
+            const tm = new M.TaskMonitor();
+            expect(tm.cancelled).to.equal(false);
+            tm.cancel();
+            expect(tm.cancelled).to.equal(true);
+            tm.cancel();
+            expect(tm.cancelled).to.equal(true);
+        });
+
+        it("Calls onCancel() only once", function() {
+            const tm = new M.TaskMonitor();
+            let calls = 0;
+
+            tm.max = 2;
+            tm.onCancel = () => ++calls;
+
+            tm.cancel();
+            expect(tm.cancelled).to.equal(true);
+            expect(calls).to.equal(0);
+            expect(tm.onCancel).to.not.be.undefined;
+
+            ++tm.value;
+            expect(tm.cancelled).to.equal(true);
+            expect(calls).to.equal(1);
+            expect(tm.onCancel).to.be.undefined;
+
+            ++tm.value;
+            expect(tm.cancelled).to.equal(true);
+            expect(calls).to.equal(1);
+            expect(tm.onCancel).to.be.undefined;
+        });
+
+        it("Calls parent's onCancel() on a child .value change", function() {
+            const ptm = new M.TaskMonitor();
+            const ctm = new M.TaskMonitor(ptm);
+            let parent_called = 0;
+            let child_called = 0;
+
+            ctm.max = 2;
+
+            expect(ptm.cancelled).to.equal(false);
+            expect(ctm.cancelled).to.equal(false);
+
+            ptm.onCancel = () => { ++parent_called; ctm.cancel(); };
+            ctm.onCancel = () => { ++child_called; };
+            expect(parent_called).to.equal(0);
+            expect(child_called).to.equal(0);
+            expect(ptm.cancelled).to.equal(false);
+            expect(ctm.cancelled).to.equal(false);
+
+            ptm.cancel();
+            expect(parent_called).to.equal(0);
+            expect(child_called).to.equal(0);
+            expect(ptm.cancelled).to.equal(true);
+            expect(ctm.cancelled).to.equal(false);
+
+            ++ctm.value;
+            expect(parent_called).to.equal(1);
+            expect(child_called).to.equal(1);
+            expect(ptm.cancelled).to.equal(true);
+            expect(ctm.cancelled).to.equal(true);
         });
     });
 });

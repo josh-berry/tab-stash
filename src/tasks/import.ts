@@ -174,29 +174,36 @@ export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
         tm.status = "Creating stash folders...";
         tm.max = groups_rev.length;
         const bm_groups = [];
+
         for (const g of groups_rev) {
-            bm_groups.push((await tm.spawn(tm => bookmarkTabs(
-                undefined,
+            if (tm.cancelled) break;
+
+            const res = await tm.spawn(tm => bookmarkTabs(
+                undefined, // Always make new folders
                 g.urls.map(url => ({url, title: "Importing..."})),
-                {newFolderTitle: g.title, taskMonitor: tm}))).bookmarks);
+                {newFolderTitle: g.title, taskMonitor: tm}));
+            bm_groups.push(res);
         }
-        return flat(bm_groups);
+
+        return {
+            bookmarks: flat(bm_groups.map(g => g.bookmarks)),
+            folderIds: <string[]>bm_groups.map(g => g.newFolderId).filter(id => id),
+        };
     });
 
     // Task: Fetching site info
     const siteinfo_aiter = tm.wspawn_iter(50, tm => fetchInfoForSites(urlset, tm));
 
     // Task: Updating bookmarks with site info.  This task awaits the other two
-    // tasks and brings their results together, so we await on this task
-    // directly here.
-    await tm.wspawn(25, async tm => {
+    // tasks and brings their results together.
+    const update_p = tm.wspawn(25, async tm => {
         tm.status = "Updating bookmarks...";
 
-        const bms = await create_bms_p;
+        const {bookmarks, folderIds} = await create_bms_p;
         const bms_by_url = new Map<string, Bookmark[]>();
 
-        tm.max = bms.length;
-        for (const bm of bms) {
+        tm.max = bookmarks.length;
+        for (const bm of bookmarks) {
             const v = bms_by_url.get(bm.url!);
             if (v) {
                 v.push(bm);
@@ -207,19 +214,38 @@ export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
 
         const favicon_cache: FaviconCache = Cache.open('favicons');
         for await (const siteinfo of siteinfo_aiter) {
+            if (tm.cancelled) break;
+
             const url = siteinfo.finalUrl || siteinfo.originalUrl;
 
             if (siteinfo.title || siteinfo.finalUrl) {
                 const title = siteinfo.title || siteinfo.originalUrl;
-                for (const bm of bms_by_url.get(siteinfo.originalUrl)!) {
+                const bms = bms_by_url.get(siteinfo.originalUrl);
+                if (! bms) continue;
+                for (const bm of bms) {
                     await browser.bookmarks.update(bm.id, {url, title});
                 }
             }
+
             if (siteinfo.favIconUrl) favicon_cache.set(url, siteinfo.favIconUrl);
 
             ++tm.value;
         }
+
+        if (tm.cancelled) {
+            // If we were cancelled at any point in this process, delete
+            // whatever we just created. :/
+            for (const fid of folderIds) browser.bookmarks.removeTree(fid);
+        }
     });
+
+    tm.onCancel = () => {
+        create_bms_p.cancel();
+        siteinfo_aiter.cancel();
+        update_p.cancel();
+    };
+
+    await update_p;
 }
 
 // Polyfill for Array.flat(), which isn't available in FF 61.

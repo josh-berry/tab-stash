@@ -193,14 +193,15 @@ async function iChangedMyMind() {
 }
 
 // Cancellation is opt-in; if a task does not support cancellation, calling
-// `cancel()` will have no effect and the task will run to completion.
+// `cancel()` will have no effect and the task will run to completion.  Also,
+// cancellation does not propagate automatically from parent to child; if a
+// parent is cancelled, the child still runs to completion unless the parent
+// explicitly cancels it.
 //
-// On the callee side, by default, `cancel()` does nothing.  Callees can
-// explicitly check for cancellation by checking their TaskMonitor's
+// Callees can explicitly check for cancellation by checking their TaskMonitor's
 // `.cancelled` property at opportune moments and acting accordingly.  If a
-// callee decides to terminate prematurely due to cancellation, it is strongly
-// recommended to throw, reject with, or otherwise return a `TaskCancelled`
-// error.
+// callee decides to terminate prematurely due to cancellation, it the
+// `TaskCancelled` error is offered as a standard way to report this to callers.
 
 async function explicitCancelChecking(tm: TaskMonitor) {
     tm.max = 1000;
@@ -211,25 +212,50 @@ async function explicitCancelChecking(tm: TaskMonitor) {
     }
 }
 
-// If explicitly checking `.cancelled` is too much of a hassle, callees can ask
-// TaskMonitor to throw a `TaskCancelled` exception on their behalf by calling
-// TaskMonitor's `.throw_on_cancel()`.  This exception will be thrown after any
-// update to the TaskMonitor's `.status` or `.value` fields.
+// Sometimes explicitly checking `.cancelled` isn't enough.  For example, a
+// parent task which delegates most of its work to one or two children might not
+// have opportune points at which to check `.cancelled`.  For these situations,
+// TaskMonitor's `.onCancel` property can be set to a function that takes no
+// arguments and returns nothing.
+//
+// Once a task is cancelled, the onCancel() function will be called
+// synchronously on the next update to `.status`, `.value` or `.max`.  This
+// INCLUDES changes to these properties which were propagated from child tasks
+// (e.g. `.value`).  Once an onCancel() function is called, it will not be
+// called again unless `.onCancel` is explicitly reset.
+//
+// The typical use of onCancel() is only to cancel child tasks.  In particular,
+// avoid throwing any exceptions (including TaskCancelled).  Because onCancel()
+// can be called from within the context of child tasks, onCancel() handlers
+// should be very circumspect in what they do--any other cleanup should be
+// handled in the parent itself, and not in onCancel().
+//
+// If onCancel() cancels a child who itself has an onCancel() handler, the
+// child's onCancel() handler will generally be called immediately after the
+// parent's onCancel() returns, IF the child is in the middle of a `.value` (or
+// similar) update.  This allows for rapid propagation of cancellation.
 
-async function implicitCancelChecking(tm: TaskMonitor) {
-    tm.max = 1000;
-    tm.throw_on_cancel();
-    for (const i = 0; i < 1000; ++i) {
-        await doSomething(i);
-        ++tm.value; // May throw TaskCancelled if cancel() was called.
-    }
+async function onCancelHandler(data: any[], tm: TaskMonitor) {
+    tm.max = 1;
+    tm.status = "Parent task (delegates all work to child)";
+
+    const child = tm.spawn(async tm => {
+        tm.max = data.length;
+        tm.status = "Child task (does all the work)";
+
+        for (const x of data) {
+            doSomething(x);
+            ++tm.value;   // If parent was cancelled, onCancel() is called here.
+            if (tm.cancelled) throw new TaskCancelled();
+        }
+    });
+
+    // Simple handler which cancels the child task.  Will be run when the
+    // parent's value is updated due to a change in the child's value.
+    tm.onCancel = () => child.cancel();
+
+    return await child;
 }
-
-// Currently, cancellation does not propagate automatically from parent to child
-// tasks.  If such propagation is desired, it must be done manually.  (I made
-// several attempts at automatic propagation, all of which had bugs or
-// surprising behavior.)  There is not a great way to do manual propagation
-// right now; if there turns out to be a need, I may revisit this later.
 
 // [[EDITOR'S NOTE]] This odd use of multi-line comments makes it easier to edit
 //      and type-check the examples above.  I need only comment out (ha) the
@@ -285,9 +311,12 @@ function _spawn_iter<R>(
 
 export class TaskMonitor {
     readonly progress: Progress;
+    onCancel?: () => void = undefined;
 
-    private _cancel_throws: boolean = false;
     private _cancelled: boolean = false;
+
+    private _parent: TaskMonitor | undefined;
+    private _children: TaskMonitor[] = [];
 
     static run<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
         return _spawn(undefined, 1, fn);
@@ -301,9 +330,19 @@ export class TaskMonitor {
 
     constructor(parent?: TaskMonitor, weight?: number) {
         this.progress = new Progress(parent?.progress, weight);
+        this._parent = parent;
+        if (this._parent) {
+            this._parent._children.push(this);
+        }
     }
 
-    detach() { this.progress._detach(); }
+    detach() {
+        this.progress._detach();
+        if (this._parent) {
+            this._parent._children.splice(this._parent._children.indexOf(this), 1);
+            this._parent = undefined;
+        }
+    }
 
     spawn<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
         return this.wspawn(1, fn);
@@ -328,22 +367,32 @@ export class TaskMonitor {
 
     get cancelled() { return this._cancelled; }
     cancel() { this._cancelled = true; }
-    throw_on_cancel() { this._cancel_throws = true; }
 
     get status() { return this.progress.status; }
     set status(s: string) {
         this.progress.status = s;
-        if (this._cancel_throws && this._cancelled) throw new TaskCancelled();
+        this._cancelCheck();
     }
 
     get value() { return this.progress.value; }
     set value(v: number) {
         this.progress.value = v;
-        if (this._cancel_throws && this._cancelled) throw new TaskCancelled();
+        this._cancelCheck();
     }
 
     get max() { return this.progress.max; }
-    set max(m: number) { this.progress.max = m; }
+    set max(m: number) {
+        this.progress.max = m;
+        this._cancelCheck();
+    }
+
+    private _cancelCheck() {
+        if (this._parent) this._parent._cancelCheck();
+        if (this.onCancel && this._cancelled) {
+            this.onCancel();
+            this.onCancel = undefined;
+        }
+    }
 }
 
 export class Progress {
@@ -393,8 +442,7 @@ export class Progress {
 
     _detach() {
         if (this._parent) {
-            this._parent._children.splice(
-                this._parent._children.indexOf(this), 1);
+            this._parent._children.splice(this._parent._children.indexOf(this), 1);
             this._parent = undefined;
         }
     }

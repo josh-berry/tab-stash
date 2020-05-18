@@ -1,5 +1,5 @@
 <template>
-  <ProgressDialog v-if="progress" :progress="progress"/>
+  <ProgressDialog v-if="progress" :progress="progress" :cancel="cancel"/>
   <Dialog v-else :class="{[$style.input]: true, 'import-dialog': true}"
           @close="$emit('close')">
     <label for="data">
@@ -31,6 +31,7 @@ export default Vue.extend({
     },
 
     data: () => ({
+      cancel: undefined,
       progress: undefined,
       splitOn: 'p+h' as ParseOptions['splitOn'],
     }),
@@ -44,6 +45,8 @@ export default Vue.extend({
 
             const task = TaskMonitor.run(tm =>
                 importURLs(groups, tm).finally(() => this.$emit('close')));
+
+            (<any>this).cancel = () => task.cancel();
             (<any>this).progress = task.progress;
         }
     }

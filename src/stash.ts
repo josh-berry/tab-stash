@@ -342,11 +342,16 @@ export async function isNewTabURL(url: string | undefined): Promise<boolean> {
     }
 }
 
+export type BookmarkTabsResult = {
+    tabs: PartialTabInfo[],
+    bookmarks: BookmarkTreeNode[],
+    newFolderId?: string,
+};
 export async function bookmarkTabs(
     folderId: string | undefined,
     all_tabs: PartialTabInfo[],
     options?: {newFolderTitle?: string, taskMonitor?: TaskMonitor},
-): Promise<{tabs: PartialTabInfo[], bookmarks: BookmarkTreeNode[]}>
+): Promise<BookmarkTabsResult>
 {
     const tm = options?.taskMonitor;
     if (tm) {
@@ -379,6 +384,7 @@ export async function bookmarkTabs(
     // append).
     let tabs_to_actually_save = tabs;
     let index = 0;
+    let newFolderId: undefined | string = undefined;
 
     if (folderId === undefined) {
         // Create a new folder, if it wasn't specified.
@@ -389,6 +395,7 @@ export async function bookmarkTabs(
             index: 0, // Newest folders should show up on top
         });
         folderId = folder.id;
+        newFolderId = folderId;
 
         // When saving to this folder, we want to save all tabs we previously
         // identified as "save-worthy", and we want to insert them at the
@@ -469,7 +476,7 @@ export async function bookmarkTabs(
         if (tm) ++tm.value;
     }
 
-    return {tabs, bookmarks};
+    return {tabs, bookmarks, newFolderId};
 }
 
 export async function restoreTabs(
