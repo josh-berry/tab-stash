@@ -1,6 +1,9 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 
-export {Task, TaskMonitor, Progress, TaskCancelled} from './progress';
+export {
+    TaskHandle, Task, TaskIterator,
+    TaskMonitor, Progress, TaskCancelled,
+} from './progress';
 
 // AsyncReturnTypeOf is the return type of an `async function` (or Promise). So:
 //

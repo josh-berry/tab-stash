@@ -1,4 +1,4 @@
-import {AsyncChannel, TaskMonitor} from '../util';
+import {AsyncChannel, TaskMonitor, Task} from '../util';
 
 export type SiteInfo = {
     originalUrl: string;
@@ -42,12 +42,15 @@ export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
     let fiber_count = Math.min(4, urls.length);
     const fiber_weight = urls.length/fiber_count;
 
+    const fibers: Task<void>[] = [];
     for (let i = 0; i < fiber_count; ++i) {
-        tm.wspawn(fiber_weight, tm => fiber(tm).finally(() => {
+        fibers.push(tm.wspawn(fiber_weight, tm => fiber(tm).finally(() => {
             --fiber_count;
             if (fiber_count == 0) chan.close();
-        }));
+        })));
     }
+
+    tm.onCancel = () => fibers.forEach(f => f.cancel());
 
     return chan;
 }
