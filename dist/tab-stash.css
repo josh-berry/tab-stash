@@ -1,6 +1,8 @@
 /* Colors */
 
 html {
+    --modal-bg: rgba(0, 0, 0, 0.3);
+
     --page-bg: #ffffff;
     --page-fg: #222426;
     --link-fg: #44484c;
@@ -9,13 +11,20 @@ html {
     --scroll-bar: #efefef;
     --scroll-handle: #d8d8d8;
 
+    --ctrl-bg: #ffffff;
+    --ctrl-border-clr: rgba(0, 0, 0, 0.32);
+    --button-bg: rgba(0, 0, 0, 0.08);
+    --button-hover-bg: rgba(0, 0, 0, 0.12);
+    --button-active-bg: rgba(0, 0, 0, 0.16);
+    --select-arrow: url(icons/light/collapse-open.svg);
+
     --group-bg: #ffffff;
     --group-border: 1px solid #c0c0c0;
 
-   --divider-border: 1px solid rgb(0, 0, 0, 0.16);
+    --divider-border: 1px solid rgb(0, 0, 0, 0.16);
 
-    --item-hover-bg: rgba(0, 0, 0, 0.08);
-    --item-active-bg: rgba(0, 0, 0, 0.16);
+    --item-hover-bg: var(--button-bg);
+    --item-active-bg: var(--button-active-bg);
 
     --shadow: 2px 2px 4px #c0c0c0;
     --shadow-faint: 2px 2px 4px #d8d8d8;
@@ -27,6 +36,8 @@ html.tab-view {
 
 @media (prefers-color-scheme: dark) {
     html {
+        --modal-bg: rgba(0, 0, 0, 0.5);
+
         --page-bg: #2a2a2e;
         --page-fg: #f9f9fa;
         --link-fg: #e0e0e2;
@@ -35,13 +46,17 @@ html.tab-view {
         --scroll-bar: #242426;
         --scroll-handle: #48484e;
 
+        --ctrl-bg: #2a2a2e;
+        --ctrl-border-clr: rgba(255, 255, 255, 0.32);
+        --button-bg: rgba(255, 255, 255, 0.16);
+        --button-hover-bg: rgba(255, 255, 255, 0.24);
+        --button-active-bg: rgba(255, 255, 255, 0.32);
+        --select-arrow: url(icons/dark/collapse-open.svg);
+
         --group-bg: #48484e;
         --group-border: 1px solid #3a3a3e;
 
         --divider-border: 1px solid rgba(255, 255, 255, 0.32);
-
-        --item-hover-bg: rgba(255, 255, 255, 0.16);
-        --item-active-bg: rgba(255, 255, 255, 0.32);
 
         --shadow: 2px 2px 4px #3a3a3e;
         --shadow-faint: 2px 2px 4px #3a3a3e;
@@ -58,6 +73,7 @@ html.tab-view {
 
   Prefixes:
     --m*  margin
+    --p*  padding
 
   Suffixes:
     *-w   width
@@ -76,6 +92,14 @@ html {
     /* Hack to account for OS scrollbar size in the modal.  I'm just guessing
        about the size here... */
     --scrollbar-w: 16px;
+
+    --ctrl-border: 1px solid var(--ctrl-border-clr);
+    --ctrl-border-radius: 5px;
+    --p-ctrl-w: 6px;
+    --p-ctrl-h: 3px;
+
+    --p-ephemeral-w: 3px;
+    --p-ephemeral-h: 1.5px;
 }
 
 /* Styling */
@@ -93,7 +117,7 @@ html, body {
 }
 
 .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--modal-bg);
     padding: var(--m-dialog-h) calc(var(--m-dialog-w) + var(--scrollbar-w)/2);
 }
 .modal-backdrop > * {
@@ -115,7 +139,7 @@ html, body {
 
 .export-dialog output, .import-dialog .input {
     display: block;
-    border: var(--group-border);
+    border: var(--ctrl-border);
 }
 .export-dialog output a, .import-dialog .input a {
     text-decoration: underline;
@@ -150,7 +174,7 @@ header.page {
 
 .menu > summary, .menu > summary > .action {
     display: inline-block;
-    border-radius: 5px 5px 0 0;
+    border-radius: var(--ctrl-border-radius) var(--ctrl-border-radius) 0 0;
 }
 .menu[open] > summary {
     background-color: var(--item-hover-bg);
@@ -166,7 +190,7 @@ header.page {
     flex-grow: 1;
 }
 
-.menu > nav > button, .menu > nav > a {
+.menu > nav > a {
     cursor: default;
     display: flex;
     align-items: center;
@@ -174,11 +198,12 @@ header.page {
     padding: 0 var(--m-menu-w);
     margin: 0;
     border: none;
+    color: inherit;
     background: transparent;
     text-align: left;
     white-space: nowrap;
 }
-.menu > nav > button:hover, .menu > nav > a:hover {
+.menu > nav > a:hover {
     background-color: var(--item-hover-bg);
 }
 .menu > nav > hr {
@@ -192,7 +217,7 @@ aside.notification {
     grid-template-columns: 1fr 0fr;
     align-items: center;
     background-color: rgba(40, 122, 204, 0.16); /* 287acc */
-    border-radius: 5px;
+    border-radius: var(--ctrl-border-radius);
     margin-top: var(--margin);
 }
 aside.notification:hover {
@@ -215,21 +240,18 @@ aside.notification .contents {
     text-decoration: underline;
 }
 
-/* Search and other input boxes */
-input {
+/* Ephemeral input boxes (shouldn't look like such until you click on them) */
+.ephemeral {
     border: 2px solid rgba(0, 0, 0, 0);
-    padding: 1px;
+    border-radius: 2px;
     background: transparent;
     min-width: 2em;
     text-overflow: ellipsis;
-
-    /* repeated here because Firefox seems to style inputs differently from
-       everything else, and this needs to be explicitly specified... */
-    font: caption;
+    padding: var(--p-ephemeral-h) var(--p-ephemeral-w);
 }
-input:focus {
-    background-color: #ffffff;
-    border: 2px solid rgba(0, 0, 0, 0.32);
+.ephemeral:focus {
+    background-color: var(--ctrl-bg);
+    border: 2px solid var(--ctrl-border-clr);
 }
 
 /* Website Icons (favicons) */
@@ -238,15 +260,45 @@ img.icon {
     height: 16px;
 }
 
-/* Actions */
-
+/* Form/dialog controls */
 button, input, select {
     display: inline-block;
+
     font: caption;
+    color: var(--page-fg);
+    padding: var(--p-ctrl-h) var(--p-ctrl-w);
+
     vertical-align: middle;
     white-space: nowrap;
-    color: var(--link-fg);
 }
+input {
+    background-color: var(--ctrl-bg);
+    border: var(--ctrl-border);
+}
+button, select {
+    border: none;
+    border-radius: var(--ctrl-border-radius);
+    background-color: var(--button-bg);
+}
+select {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    background-image: var(--select-arrow);
+    background-position: right var(--p-ctrl-w) top 50%;
+    background-size: 12px;
+    background-repeat: no-repeat;
+    padding-right: calc(var(--p-ctrl-w) + 12px);
+}
+option {
+    font: caption;
+    color: var(--ctrl-fg);
+    background-color: var(--ctrl-bg);
+}
+button:hover, select:hover { background-color: var(--button-hover-bg); }
+button:active, select:active { background-color: var(--button-active-bg); }
+
+/* Action/toolbar buttons */
 
 /* .action is used for icon/toolbar buttons */
 .action {
@@ -276,13 +328,14 @@ nav.action-container {
     flex-direction: row;
     flex-wrap: nowrap;
 }
+nav.action-container .action { border-radius: 0; } /* overrides button border */
 nav.action-container .action:first-child {
-    border-top-left-radius: 5px;
-    border-bottom-left-radius: 5px;
+    border-top-left-radius: var(--ctrl-border-radius);
+    border-bottom-left-radius: var(--ctrl-border-radius);
 }
 nav.action-container .action:last-child {
-    border-top-right-radius: 5px;
-    border-bottom-right-radius: 5px;
+    border-top-right-radius: var(--ctrl-border-radius);
+    border-bottom-right-radius: var(--ctrl-border-radius);
 }
 
 /* Specific Actions */
@@ -352,10 +405,7 @@ nav.action-container .action:last-child {
     font: caption;
     font-weight: bold;
     font-size: 13pt;
-    padding: 2px;
     margin-left: -4px;
-    border: 2px solid rgba(0, 0, 0, 0);
-    border-radius: 2px;
 }
 .folder-name.disabled { color: rgba(128, 128, 128); }
 .folder .header nav.action-btnbox {

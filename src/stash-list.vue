@@ -6,19 +6,19 @@
   <header class="page action-container">
     <Menu class="menu">
       <template #summary><div class="action mainmenu"></div></template>
-      <button @click="showOptions">Options...</button>
+      <a @click.prevent.stop="showOptions">Options...</a>
       <hr/>
-      <button @click="dialog = {class: 'ImportDialog'}">Import...</button>
-      <button @click="showExportDialog">Export...</button>
+      <a @click.prevent.stop="dialog = {class: 'ImportDialog'}">Import...</a>
+      <a @click.prevent.stop="showExportDialog">Export...</a>
       <hr/>
-      <button @click="fetchMissingFavicons">Fetch Missing Icons</button>
+      <a @click.prevent.stop="fetchMissingFavicons">Fetch Missing Icons</a>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
       <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
       <a href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
-      <button @click="showWhatsNew">What's New?</button>
+      <a @click.prevent.stop="showWhatsNew">What's New?</a>
     </Menu>
-    <input type="search" ref="search"
+    <input type="search" ref="search" class="ephemeral"
            :placeholder="search_placeholder"
            @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
            v-model="searchtext">

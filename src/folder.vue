@@ -6,7 +6,7 @@
               hidden: hideIfEmpty && visibleChildren.length == 0,
               }">
   <div class="header">
-    <editable-label :class="{'folder-name': true,
+    <editable-label :class="{'folder-name': true, 'ephemeral': true,
                             'disabled': isWindow || ! allowRenameDelete}"
                     :value="nonDefaultTitle"
                     :defaultValue="defaultTitle"
