@@ -3,7 +3,7 @@
     "name": "Tab Stash",
     "version": "2.5",
     "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
-    "homepage_url": "https://github.com/josh-berry/tab-stash",
+    "homepage_url": "https://josh-berry.github.io/tab-stash/",
     "icons": {
         "48": "icons/logo.svg",
         "96": "icons/logo.svg"
