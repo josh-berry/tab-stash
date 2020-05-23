@@ -181,6 +181,7 @@ export function isURLStashable(urlstr: string): boolean {
                     case 'reader': return true;
                     default: return false;
                 }
+            case 'javascript:':
             case 'moz-extension:':
             case 'chrome-extension:': // Hey, you never know...
             case 'chrome:':
