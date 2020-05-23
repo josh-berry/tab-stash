@@ -5,6 +5,7 @@ export type SiteInfo = {
     finalUrl?: string;
     title?: string;
     favIconUrl?: string;
+    error?: Error;
 };
 
 export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
@@ -25,11 +26,18 @@ export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
             while (urls.length > 0) {
                 const url = urls.pop()!;
                 tm.status = url;
-                const info = await sendTabTo(url, tab.id!);
-                // We use url, not tab.url, here so that the caller can relate
-                // URLs back to their original request even if the tab was
-                // redirected to a different URL.
-                chan.send(info);
+                try {
+                    const info = await sendTabTo(url, tab.id!);
+                    // We use url, not tab.url, here so that the caller can
+                    // relate URLs back to their original request even if the
+                    // tab was redirected to a different URL.
+                    chan.send(info);    
+                } catch (e) {
+                    chan.send({
+                        originalUrl: url,
+                        error: e,
+                    });
+                }
                 tm.value = max - urls.length;
                 if (parent_tm.cancelled) break;
             }
@@ -100,6 +108,10 @@ function sendTabTo(url: string, tabId: number): Promise<SiteInfo>
         };
 
         browser.tabs.update(tabId, {url})
+            .catch(e => {
+                console.error(e);
+                reject(e);
+            })
             .then(() => {
                 browser.tabs.onUpdated.addListener(handler);
 
@@ -111,6 +123,6 @@ function sendTabTo(url: string, tabId: number): Promise<SiteInfo>
                         handler(tabId, {}, tab);
                     }
                 });
-            }).catch(console.error);
+            });
     });
 }
