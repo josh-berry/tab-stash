@@ -5,9 +5,12 @@ about: Ask a question.  Use this if no other template seems to fit.
 ---
 
 ### Question
-*What is your question?  Please be as clear and specific as possible. The more information you provide up-front, the easier it will be for us to respond to your question quickly and accurately.*
+<!-- What is your question?  Please be as clear and specific as possible. The more information you provide up-front, the easier it will be to respond to your question quickly and accurately. -->
 
-### Supporting Details
-*Please complete the following information if relevant:*
- - **OS:** [e.g. Mac, Windows, Linux]
- - **Firefox Browser Version:** [e.g. 60.0.2]
+
+### System Details
+<!-- [optional] If your question pertains to a specific version of Tab Stash, please provide your details here. -->
+
+- **OS Version:** *[e.g. Windows 10, or Ubuntu 18.04]*
+- **Browser Version:** *[e.g. Firefox 60.0.2]*
+- **Tab Stash Version:** *[check the Tab Stash entry in `about:addons`]*
