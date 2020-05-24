@@ -1,5 +1,21 @@
 # Contributing to Tab Stash
 
+## For Everyone
+
+Tab Stash has adopted the [Contributor Covenant Code of Conduct][conduct].
+Anyone participating in the Tab Stash community, whether they are writing code,
+filing bugs, or simply posting questions, is asked to follow these standards.
+
+[conduct]: https://www.contributor-covenant.org/version/2/0/code_of_conduct/
+
+In short, before posting please ask yourself: "If this were directed at me, how
+would it make me feel?"  If the answer is negative, think carefully about how to
+re-frame your post---try to focus on specific, observable facts, avoid
+generalizing, and replace emotional language ("this was a huge problem") with
+concrete details ("it took me an hour to recover my data because...").
+
+## For Developers
+
 First of all, thanks for your interest in contributing to Tab Stash!  The best
 way to get your new feature or bugfix included is to open a pull request in
 GitHub.  Please make sure you've read and followed the *Code Style* section
@@ -15,12 +31,12 @@ possibly be.
 
 *-- Josh*
 
-## Getting the Source Code
+### Getting the Source Code
 
 Tab Stash's source code is available
 [on GitHub](https://github.com/josh-berry/tab-stash/).
 
-## Building Tab Stash for Development
+### Building Tab Stash for Development
 
 You must have [Node.js](https://nodejs.org/) installed, which provides the `npm`
 command.  If you are on a UNIX-like system and you have GNU Make available, to
@@ -47,7 +63,7 @@ by following these steps:
 3. Click "*Load Temporary Add-on*".
 4. Browse to the `dist` directory, and select the `manifest.json` file.
 
-## Building Tab Stash for Release
+### Building Tab Stash for Release
 
 Linux and Mac only.  May only be done in a clean tree, and your HEAD commit must
 be pointing at a release tag (or `make` will create one for you with the version
@@ -63,7 +79,7 @@ uploaded to addons.mozilla.org--the first, `tab-stash-X.Y.zip`, is the actual
 extension.  The second, `tab-stash-src-X.Y.tar.gz`, is the source to go along
 with it.
 
-## Code Style
+### Code Style
 
 - **Indentation:** Four spaces (no tabs) per indentation level.
 - **Line Length:** No lines should be longer than 80 columns.
@@ -89,7 +105,7 @@ The existing code does not always follow these guidelines consistently; if you
 find inconsistencies, please feel free to correct them (but please submit
 corrections in commits which are separate from functional changes).
 
-## Editing Icons
+### Editing Icons
 
 We recommend [Inkscape](https://inkscape.org/en/).  Please be sure to follow the
 Firefox [Photon Design Guide](https://design.firefox.com/photon/).
