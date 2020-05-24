@@ -3,7 +3,7 @@
                     'action-container': true,
                     collapsed: is_collapsed}">
     <div class="header">
-      <span class="folder-name">Version {{v}}</span>
+      <span class="folder-name ephemeral">Version {{v}}</span>
       <ButtonBox class="collapse-btnbox">
         <Button :class="{collapse: is_collapsed, expand: ! is_collapsed}"
                 @action="collapsed = ! is_collapsed" />
