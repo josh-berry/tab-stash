@@ -30,4 +30,6 @@ see your tabs.
 
 ## Want to give it a try?
 
-Install Tab Stash from [Mozilla Add-Ons](https://addons.mozilla.org/en-US/firefox/addon/tab-stash/)!
+Install Tab Stash from [Mozilla Add-Ons][amo]!
+
+[amo]: https://addons.mozilla.org/en-US/firefox/addon/tab-stash/
