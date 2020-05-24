@@ -6,7 +6,7 @@
        @click.stop="" @auxclick.stop="" @dblclick.stop=""
        @mousedown.stop="" @mouseup.stop=""
        @mouseenter.stop="" @mouseleave.stop=""
-       @mousemove.stop="" @mouseout.stop="" @mouseover.stop="" 
+       @mousemove.stop="" @mouseout.stop="" @mouseover.stop=""
        @scroll.stop="" @select.stop="" @wheel.stop="">
   <slot></slot>
 </aside>

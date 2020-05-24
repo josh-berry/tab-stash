@@ -31,7 +31,7 @@ export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
                     // We use url, not tab.url, here so that the caller can
                     // relate URLs back to their original request even if the
                     // tab was redirected to a different URL.
-                    chan.send(info);    
+                    chan.send(info);
                 } catch (e) {
                     chan.send({
                         originalUrl: url,
