@@ -5,8 +5,9 @@ html, body {
     padding: 0;
     background-color: white;
     color: #222426;
-    font-family: Segoe UI, Helvetica Neue, sans-serif;
-    font-size: 12pt;
+    font-family: Segoe UI, Helvetica Neue, Arial, sans-serif;
+    font-size: 13pt;
+    line-height: 1.4;
     display: flex;
     flex-direction: column;
 }
@@ -22,7 +23,8 @@ header, main, footer {
     padding: 0 2rem;
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 780px) {
+    html, body { font-size: 12pt; }
     header, main, footer {
         padding: 0 1rem;
     }
@@ -82,7 +84,7 @@ header nav {
 }
 header a {
     display: inline-block;
-    padding: 1ex 2ex;
+    padding: 0.75ex 2ex;
     text-decoration: none;
 }
 header h1 a {
@@ -110,6 +112,13 @@ a.install, a.install:visited {
 }
 a.install:hover { background-color: #3f9e52; }
 a.install:active { background-color: #378947; }
+
+@media (max-width: 780px) {
+    header h1 { font-size: 20pt; margin-top: 0; }
+    header h1 #logo { height: 20pt; }
+    header h2 { font-size: 11pt; }
+    header a { padding: 1ex 1.5ex; }
+}
 
 
 

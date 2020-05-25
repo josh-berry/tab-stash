@@ -1,14 +1,13 @@
 # Tab Stash
 
-Can't keep all your open tabs straight?  Need to clear your plate, but want to
-come back to your tabs later?
+Can't keep all your tabs straight?  Need to clear your plate, but want to come
+back to your tabs later?
 
-Tab Stash is a no-fuss way to save, restore and organize batches of tabs as
-bookmarks.  Sweep your browser window clear of tabs with one click on the Tab
-Stash icon, and save them all into the "Tab Stash" sidebar or tab, conveniently
-organized into groups.  When it's time to go back to that research project, just
-open your stash and restore the group, or restore only that one tab you were
-interested in.
+Tab Stash is a no-fuss way to save and organize batches of tabs as bookmarks.
+Sweep your browser clean with one click of the Tab Stash icon. Your open tabs
+will be stashed away in your bookmarks, conveniently organized into groups.
+When it's time to pick up where you left off, open Tab Stash and restore just
+the tabs or groups you want.
 
 Because Tab Stash stores your tabs as bookmarks, they will even sync to your
 other computers or mobile devices. Uses Firefox Sync, if configured---no need
