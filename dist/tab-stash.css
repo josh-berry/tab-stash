@@ -97,6 +97,8 @@ html {
     --ctrl-border-radius: 5px;
     --p-ctrl-w: 6px;
     --p-ctrl-h: 3px;
+    --m-ctrl-w: 8px;
+    --m-ctrl-h: 6px;
 
     --p-ephemeral-w: 3px;
     --p-ephemeral-h: 1.5px;
@@ -132,8 +134,8 @@ html, body {
     display: grid;
 }
 .dialog, .dialog * {
-    grid-row-gap: var(--m-menu-h);
-    grid-column-gap: var(--m-menu-w);
+    row-gap: var(--m-ctrl-h);
+    column-gap: var(--m-ctrl-w);
     margin: 0;
 }
 

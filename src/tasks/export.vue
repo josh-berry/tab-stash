@@ -2,7 +2,6 @@
     <Dialog :class="{[$style.dlg]: true, 'export-dialog': true}"
             @close="$emit('close')">
         <form :id="$style.dlg" @submit.prevent.stop="">
-            <label for="format">Format:</label>
             <select :id="$style.format" v-model="format">
                 <option value="html-noicons">Formatted List</option>
                 <option value="html-icons">Formatted List with Icons</option>
@@ -127,6 +126,13 @@ export default Vue.extend({
     width: 60rem;
     min-height: 15rem;
     height: 67%;
+}
+
+.dlg form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .dlg output {

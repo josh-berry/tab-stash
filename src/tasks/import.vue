@@ -7,7 +7,7 @@
       extracted and converted into bookmarks in your stash.
     </label>
     <div ref="data" contenteditable="true" id="data" class="input"></div>
-    <div>
+    <div :class="$style.split_mode">
       <label for="splitOn">Split tabs into different groups on:</label>
       <select id="splitOn" v-model="splitOn">
         <option value="p+h">Paragraphs and Headers</option>
@@ -70,5 +70,12 @@ export default Vue.extend({
     -moz-user-select: text;
     cursor: text;
     padding: 4px;
+}
+
+.split_mode {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
 }
 </style>
