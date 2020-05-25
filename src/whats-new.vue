@@ -10,6 +10,27 @@
 
   <div class="folder-list">
 
+    <Version v="2.6">
+      <L :issue="[11, 17]" v="Added">import and export for a variety of formats,
+      including OneTab and Markdown.</L>
+
+      <L v="Added">a main menu with easy access to import/export, options, help,
+      and a new command to fetch missing website icons.</L>
+
+      <L :subtext="`All icons are stored six feet/two meters apart.  Icons `
+         + `without a mask will not be permitted in the alpha channel.`"
+         :issue="47" v="Improved">caching of website icons.  Icons are now
+      stored per page, fixing incorrect icons for Google Drive and other sites
+      which use multiple icons.  <strong>Tab Stash now requires "unlimited local
+      storage" permissions</strong> to ensure we have space to store all those
+      icons.</L>
+
+      <L :issue="[41, 49]" v="Fixed">a rare issue that might cause Tab Stash to
+      stop displaying your stashes if a Firefox sync conflict occurs, or a
+      duplicate "Tab Stash" folder exists.  We now detect situations that might
+      lead to this problem and warn/guide you through resolving it.</L>
+    </Version>
+
     <Version v="2.5">
       <L subtext="Oooooh, spooookyyy~" :issue="16" v="Added">support for dark
         mode.  To use Tab Stash's dark theme, you must have dark mode turned on

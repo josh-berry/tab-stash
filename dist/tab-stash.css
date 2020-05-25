@@ -231,7 +231,7 @@ aside.notification .contents {
     padding: 16px 16px 8px;
     text-align: center;
 }
-.status-text, .status-text a, .whats-new .issue {
+.status-text, .status-text a, .whats-new .issue, .whats-new .issue a {
     color: #889099;
     font-style: italic;
 }
