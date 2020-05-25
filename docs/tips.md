@@ -1,5 +1,10 @@
 # Usage Tips
 
+*Find more usage tips and troubleshooting info, or add your own tips, on the
+[Tab Stash wiki][wiki].*
+
+[wiki]: https://github.com/josh-berry/tab-stash/wiki
+
 ## Easy Access to the Sidebar
 
 For easy access to the "Tab Stash" sidebar, we recommend you place Firefox's
@@ -52,7 +57,7 @@ all tabs if only one tab is selected.  But if you have selected multiple tabs
 using Shift+Click or Cmd/Ctrl+Click, then only the selected tabs will be
 stashed.
 
-## Stashing Multiple Tabs at Once
+## Stashing Only Selected Tabs
 
 In Firefox 64 and newer, if you get distracted and wind up with a bunch of tabs
 mixed together in your window for different tasks, you can select only those
@@ -65,29 +70,34 @@ stash view).  When Tab Stash sees that you have multiple tabs selected, it will
 stash only the selected tabs.
 
 You can still stash individual tabs using the "Stash this tab" buttons in the
-location bar or stash view--these buttons ignore multi-selection and stash only
+location bar or stash view---these buttons ignore multi-selection and stash only
 the currently-visible tab.
-
-## Alternate Ways to Manage Your Stash
-
-To see all your stashed tabs as bookmarks, you can browse to the "*Tab Stash*"
-folder in the Firefox bookmarks editor.  However, restoring a tab and opening a
-bookmark are different--when restoring a tab through the *Tab Stash* sidebar,
-Tab Stash will first search for a matching hidden or recently-closed tab.  If
-there are no matching tabs, only then will Tab Stash open a new tab.
-
-If you want to delete, move, or edit bookmarks saved by Tab Stash, you are free
-to use the built-in Firefox bookmark editor, or any other bookmarks extension
-you like.  Any hidden tabs associated with bookmarks that are deleted or moved
-out of the stash will automatically be closed by Tab Stash to free up system
-resources.
 
 ## Exporting Tabs from Tab Stash
 
-Tab Stash doesn't (yet) have export functionality built-in, but not to worry—Tab
-Stash stores everything in your Firefox bookmarks.  You can use any bookmark
-exporting tool to access your tabs.
+Tab Stash stores all saved tabs as bookmarks.  However, restoring a tab and
+opening a bookmark are different---when restoring a tab through the *Tab Stash*
+interface, Tab Stash will first search for a matching hidden or recently-closed
+tab.  If there are no matching tabs, only then will Tab Stash open a new tab.
 
-If you just want to copy/paste some of your tabs to share with others, you can
-find instructions
-[on the wiki](https://github.com/josh-berry/tab-stash/wiki/Copying-Bookmarks-Out-of-Firefox).
+There are two ways to get your saved tabs out of Tab Stash:
+
+1. Tab Stash 2.6 and later comes with import/export for a variety of
+   formats---simply open the Tab Stash menu and choose "Export...".
+2. Use Firefox or another extension to directly access your bookmarks.  You can
+   do this even if Tab Stash is not working or has been uninstalled.  You can
+   find instructions for copying bookmarks out of Firefox [on the
+   wiki][ff-copying].
+
+[ff-copying]: https://github.com/josh-berry/tab-stash/wiki/Copying-Bookmarks-Out-of-Firefox
+
+To access your bookmarks in Firefox directly, open the Firefox menu and choose
+*Library > Bookmarks > Show All Bookmarks*.  Tab Stash places bookmarks for all
+saved tabs under *Other Bookmarks > Tab Stash*.
+
+## Manually Editing Tab Stash Bookmarks
+
+You may freely delete, move, or edit bookmarks saved by Tab Stash using the
+built-in Firefox bookmark editor, or any other bookmarks extension you like.
+Tab Stash will notice any manual changes to your bookmarks, and close hidden
+tabs associated with bookmarks that are deleted or moved out of the stash.

@@ -27,6 +27,7 @@ see your tabs.
 - Restore and delete entire groups of tabs, or individual tabs within a group
 - Drag and drop stashed tabs and groups to re-organize them
 - Rename tab groups, or keep the automatically-generated names
+- Import and export tabs in a variety of formats (**NEW in v2.6**)
 
 ## Want to give it a try?
 
