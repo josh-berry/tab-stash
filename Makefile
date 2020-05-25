@@ -97,5 +97,5 @@ distclean: clean
 
 clean:
 	rm -f dist/*.js dist/*.js.map
-	find dist -type f -name .DS_Store |xargs rm
+	find dist -type f -name .DS_Store -exec rm {} ';'
 .PHONY: clean
