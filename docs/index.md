@@ -25,6 +25,7 @@ to keep track of yet another account.
 - Restore and delete entire groups of tabs, or individual tabs within a group
 - Drag and drop stashed tabs and groups to re-organize them
 - Rename tab groups, or keep the automatically-generated names
+- Dark mode
 - Import and export tabs in rich text, Markdown, OneTab and more (**NEW in 2.6**)
 
 ## Want to give it a try?
