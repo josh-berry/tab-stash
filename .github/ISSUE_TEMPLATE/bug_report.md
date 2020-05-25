@@ -9,9 +9,9 @@ about: Create a report to help us improve
 ### System Details
 <!-- THIS SECTION IS REQUIRED.  If you leave it out, I will just have to ask you for this information, and your bug will take longer to resolve. :) -->
 
-- **OS Version:** *[e.g. Windows 10, or Ubuntu 18.04]*
-- **Browser Version:** *[e.g. Firefox 60.0.2]*
-- **Tab Stash Version:** *[check the Tab Stash entry in `about:addons`]*
+- **OS Version:** [e.g. Windows 10, or Ubuntu 18.04]
+- **Browser Version:** [e.g. Firefox 60.0.2]
+- **Tab Stash Version:** [check the Tab Stash entry in `about:addons`]
 
 ### Describe the Bug
 <!-- A short description of what the problem is and/or what happened. -->

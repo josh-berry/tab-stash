@@ -11,6 +11,6 @@ about: Ask a question.  Use this if no other template seems to fit.
 ### System Details
 <!-- [optional] If your question pertains to a specific version of Tab Stash, please provide your details here. -->
 
-- **OS Version:** *[e.g. Windows 10, or Ubuntu 18.04]*
-- **Browser Version:** *[e.g. Firefox 60.0.2]*
-- **Tab Stash Version:** *[check the Tab Stash entry in `about:addons`]*
+- **OS Version:** [e.g. Windows 10, or Ubuntu 18.04]
+- **Browser Version:** [e.g. Firefox 60.0.2]
+- **Tab Stash Version:** [check the Tab Stash entry in `about:addons`]
