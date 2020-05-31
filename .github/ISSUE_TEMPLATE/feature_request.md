@@ -10,11 +10,11 @@ about: Suggest an idea for this project
 <!-- What problem are you having that is prompting this feature request?  Why is this feature important to you?  Be as concrete, specific and detailed as possible.  For example, "I have over 1,000,000 tabs stashed across 100,000 groups, and I can never find anything because scrolling takes a long time" clearly illustrates the scale and scope of the problem.  Whereas, "Missing search feature is a huge problem" is likely to be ignored because it doesn't provide any detail about WHY the lack of a search feature is a huge problem. -->
 
 
-### Preferred Solution
+### Preferred Solution(s)
 <!-- Describe your ideal solution.  What is different from today?  What would the solution look like?  How would you use it to solve your problem? -->
 
 
-### Alternative Solutions
+### Alternative Solution(s)
 <!-- Are there any other alternatives that would also solve your problem?  What would those alternatives look like? -->
 
 
