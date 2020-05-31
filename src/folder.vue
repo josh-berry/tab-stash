@@ -41,9 +41,9 @@
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
       <Button v-if="! collapsed" class="remove" @action="remove"
-              :tooltip="
-`Click: Close all unstashed tabs
-${altkey}+Click: Close/hide all stashed tabs`" />
+              :tooltip="`Close all unstashed tabs`" />
+      <Button v-if="! collapsed" class="remove stashed" @action="removeStashed"
+              :tooltip="`Close all stashed tabs`" />
       <Button v-if="! collapsed" class="remove opened" @action="removeOpen"
               :tooltip="
 `Click: Close all open tabs
@@ -221,22 +221,17 @@ export default {
                 await browser.bookmarks.removeTree(this.id);
 
             } else {
-                // This is the "open-tabs" folder.
-                if (ev.altKey) {
-                    // User has asked us to hide all STASHED tabs.
-                    // (Note that this.visibleChildren are the UNSTASHED tabs)
-                    //
-                    // XXX This is similar to the unstashedFilter, but the
-                    // isBookmark test is inverted.
-                    await hideStashedTabs(this.children.filter(
-                        t => t && ! t.hidden && ! t.pinned
-                            && this.isItemStashed(t)));
-                } else {
-                    // User has asked us to hide all unstashed tabs.
-                    await closeTabs(this.visibleChildren);
-                }
-
+                // User has asked us to hide all unstashed tabs.
+                await closeTabs(this.visibleChildren);
             }
+        }),
+
+        removeStashed: asyncEvent(async function(ev) {
+            if (this.id) throw new Error(
+                "Called removeStashed from bookmark folder");
+
+            await hideStashedTabs(this.children.filter(
+                t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t)));
         }),
 
         removeOpen: asyncEvent(async function(ev) {

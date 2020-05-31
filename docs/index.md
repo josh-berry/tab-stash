@@ -17,8 +17,9 @@ to keep track of yet another account.
 
 ## Features
 
-- Stash all your open tabs in one click (in browser toolbar)
-- Stash individual tabs in one click (in address bar)
+- Stash all your open tabs with the Tab Stash toolbar button
+- Select which tabs to stash with Shift+Click and Ctrl+Click (Cmd+Click on Mac)
+- Stash individual tabs with the Tab Stash button in the address bar
 - Show all stashed tabs in an unobtrusive Firefox sidebar
 - Show all stashed tabs in a full-browser tab view
 - Search your stash by typing in the search box at the top of the sidebar/tab
