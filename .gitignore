@@ -15,3 +15,6 @@ dist/*.js.map
 releases/tab-stash-src-*
 releases/tab-stash-*.zip
 releases/tab-stash-src-*.tar.gz
+
+# Data related to issues on GitHub
+issues
