@@ -83,17 +83,18 @@ tab.  If there are no matching tabs, only then will Tab Stash open a new tab.
 There are two ways to get your saved tabs out of Tab Stash:
 
 1. Tab Stash 2.6 and later comes with import/export for a variety of
-   formats---simply open the Tab Stash menu and choose "Export...".
+   formats---in the Tab Stash UI, click the menu icon to the left of the search
+   box and choose "Export...".
 2. Use Firefox or another extension to directly access your bookmarks.  You can
-   do this even if Tab Stash is not working or has been uninstalled.  You can
-   find instructions for copying bookmarks out of Firefox [on the
-   wiki][ff-copying].
+   do this even if Tab Stash is not working or has been uninstalled.  To access
+   your bookmarks in Firefox directly, open the Firefox menu and choose
+   *Library > Bookmarks > Show All Bookmarks*.  Tab Stash places bookmarks for
+   all saved tabs under *Other Bookmarks > Tab Stash*.
 
-[ff-copying]: https://github.com/josh-berry/tab-stash/wiki/Copying-Bookmarks-Out-of-Firefox
+You can find detailed instructions for exporting your stashed tabs
+[on the wiki][export].
 
-To access your bookmarks in Firefox directly, open the Firefox menu and choose
-*Library > Bookmarks > Show All Bookmarks*.  Tab Stash places bookmarks for all
-saved tabs under *Other Bookmarks > Tab Stash*.
+[export]: https://github.com/josh-berry/tab-stash/wiki/Copying-Bookmarks-Out-of-Firefox
 
 ## Manually Editing Tab Stash Bookmarks
 
