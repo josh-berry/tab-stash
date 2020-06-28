@@ -6,10 +6,10 @@
             <select :id="$style.format" v-model="format">
                 <option value="html-noicons">Clickable Links</option>
                 <option value="html-icons">Clickable Links with Icons</option>
-                <option value="markdown">Markdown</option>
-                <option value="onetab">OneTab</option>
                 <option value="urls-folders">List of URLs</option>
                 <option value="urls-nofolders">List of URLs (no stash names)</option>
+                <option value="markdown">Markdown</option>
+                <option value="onetab">OneTab</option>
             </select>
             <nav>
                 <button @click.prevent.stop="select_all">Select All</button>
@@ -90,7 +90,7 @@ export default Vue.extend({
         },
     },
     data: () => ({
-        format: 'html-noicons',
+        format: 'urls-folders',
     }),
     mounted(this: any) { this.$nextTick(() => this.select_all()); },
     watch: {
