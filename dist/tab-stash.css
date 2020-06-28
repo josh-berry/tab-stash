@@ -341,7 +341,7 @@ nav.action-container .action:last-child {
 }
 
 /* Specific Actions */
-.action.mainmenu { background-image: url(icons/light/logo.svg); }
+.action.mainmenu { background-image: url(icons/light/menu.svg); }
 .action.collapse { background-image: url(icons/light/collapse-closed.svg); }
 .action.expand { background-image: url(icons/light/collapse-open.svg); }
 .action.cancel { background-image: url(icons/light/cancel.svg); }
@@ -609,7 +609,7 @@ span.folder-name, .folder-item > .text {
         background-color: rgba(128, 191, 255, 0.48);
     }
 
-    .action.mainmenu { background-image: url(icons/dark/logo.svg); }
+    .action.mainmenu { background-image: url(icons/dark/menu.svg); }
     .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
     .action.expand { background-image: url(icons/dark/collapse-open.svg); }
     .action.cancel { background-image: url(icons/dark/cancel.svg); }
