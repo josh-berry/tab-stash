@@ -42,7 +42,7 @@
                 :class="$style.plaintext">
             <div v-for="f of folders" :key="f.id">
                 <div>## {{friendlyFolderName(f.title)}}</div>
-                <div v-for="bm of leaves(f)" :key="bm.id">- [{{quote_link_md(bm.title)}}]({{quote_url_md(bm.url)}})</div>
+                <div v-for="bm of leaves(f)" :key="bm.id">- [{{quote_link_md(bm.title)}}](<a :href="bm.url">{{quote_url_md(bm.url)}}</a>)</div>
                 <div><br/></div>
             </div>
         </output>
@@ -51,7 +51,7 @@
         <output v-if="format == 'onetab'" ref="output" :for="$style.dlg"
                 :class="$style.plaintext">
             <div v-for="f of folders" :key="f.id">
-                <div v-for="bm of leaves(f)" :key="bm.id">{{bm.url}} | {{bm.title}}</div>
+                <div v-for="bm of leaves(f)" :key="bm.id"><a :href="bm.url">{{bm.url}}</a> | {{bm.title}}</div>
                 <div><br/></div>
             </div>
         </output>
@@ -61,7 +61,7 @@
                 :class="$style.plaintext">
             <div v-for="f of folders" :key="f.id">
                 <div v-if="format.endsWith('-folders')">## {{friendlyFolderName(f.title)}}</div>
-                <div v-for="bm of leaves(f)" :key="bm.id">{{bm.url}}</div>
+                <div v-for="bm of leaves(f)" :key="bm.id"><a :href="bm.url">{{bm.url}}</a></div>
                 <div><br/></div>
             </div>
         </output>
