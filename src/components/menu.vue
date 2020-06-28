@@ -1,6 +1,6 @@
 <template>
 <details ref="details" @toggle="toggle" @focusout="focusout">
-  <summary><slot name="summary">{{name}}</slot></summary>
+  <summary :class="summaryClass"><slot name="summary">{{name}}</slot></summary>
   <nav ref="inner" tabIndex="0" @click="close">
     <slot></slot>
   </nav>
@@ -11,6 +11,7 @@
 export default {
     props: {
         name: String,
+        summaryClass: [String, Object],
     },
     methods: {
         toggle: function() {

@@ -4,8 +4,7 @@
              v-on="dialog.on" @close="dialog = undefined">
   </component>
   <header class="page action-container">
-    <Menu class="menu">
-      <template #summary><div class="action mainmenu"></div></template>
+    <Menu class="menu" summaryClass="action mainmenu">
       <a @click.prevent.stop="showOptions">Options...</a>
       <hr/>
       <a @click.prevent.stop="dialog = {class: 'ImportDialog'}">Import...</a>
