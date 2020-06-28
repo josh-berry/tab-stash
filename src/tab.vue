@@ -26,17 +26,21 @@
 </a>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue';
+
 import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from './util';
 import {
     getFolderNameISODate, mostRecentUnnamedFolderId,
     restoreTabs, stashTabs,
     closeTabs,
 } from './stash';
+import {Tab, Bookmark, ModelLeaf} from './model';
+
 import ButtonBox from './components/button-box.vue';
 import Button from './components/button.vue';
 
-export default {
+export default Vue.extend({
     components: {ButtonBox, Button},
 
     props: {
@@ -64,24 +68,24 @@ export default {
         altkey: altKeyName,
         bgKey: bgKeyName,
 
-        tab: function() {
+        tab(this: any): Tab | undefined {
             if (this.isTab) return this;
-            return this.related.find(t => t.isTab);
+            return this.related.find((t: ModelLeaf) => t.isTab);
         },
 
-        bm: function() {
+        bm(this: any): Bookmark | undefined {
             if (this.isBookmark) return this;
-            return this.related.find(t => t.isBookmark);
+            return this.related.find((t: ModelLeaf) => t.isBookmark);
         },
 
-        bestTitle: function() {
+        bestTitle(this: any): string {
             if (this.tab && this.tab.title) return this.tab.title;
             return this.bm.title;
         },
     },
 
     methods: {
-        stash: asyncEvent(async function(ev) {
+        stash: asyncEvent(async function(this: any, ev) {
             console.assert(this.tab);
             await stashTabs([this.tab], {
                 folderId: await mostRecentUnnamedFolderId(),
@@ -89,14 +93,20 @@ export default {
             });
         }),
 
-        open: asyncEvent(async function(ev) {
-            const curtab = await browser.tabs.getCurrent();
+        open: asyncEvent(async function(this: any, ev) {
             const bg = bgKeyPressed(ev);
 
-            await restoreTabs([this.url], {background: bg});
+            if (this.isTab) {
+                // Switch to the specific tab the user selected (not done using
+                // restoreTabs() since this might pick a different tab if there
+                // are duplicates).
+                await browser.tabs.update(this.id, {active: true});
+            } else {
+                await restoreTabs([this.url], {background: bg});
+            }
         }),
 
-        remove: asyncEvent(async function() {
+        remove: asyncEvent(async function(this: any) {
             let tab = this.tab;
             if (this.isBookmark) {
                 if (tab && tab.hidden) {
@@ -113,20 +123,19 @@ export default {
             }
         }),
 
-        openRemove: asyncEvent(async function(ev) {
-            const curtab = await browser.tabs.getCurrent();
+        openRemove: asyncEvent(async function(this: any, ev) {
             const bg = bgKeyPressed(ev);
 
-            await restoreTabs([this.url], {background: bg});
             if (this.isBookmark) {
+                await restoreTabs([this.url], {background: bg});
                 await this._removeBM();
+            } else {
+                // The UI shouldn't let us openRemove a tab, but just in case...
+                await browser.tabs.update(this.id, {active: true});
             }
-            // If this is just a tab and not a bookmark, we don't remove the
-            // tab, since openRemove indicates the user wanted to switch to the
-            // tab.
         }),
 
-        _removeBM: async function(ev) {
+        _removeBM: async function(this: any) {
             const folder = this.parent;
 
             await browser.bookmarks.remove(this.id);
@@ -150,7 +159,7 @@ export default {
             await browser.bookmarks.remove(folder.id);
         },
     },
-};
+});
 </script>
 
 <style>

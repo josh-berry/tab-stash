@@ -59,6 +59,9 @@ export interface ModelParent extends ModelItem {
 }
 
 export interface ModelLeaf extends ModelItem {
+    isTab?: boolean;
+    isBookmark?: boolean;
+
     title?: string;
     url?: string;
     favicon?: FaviconCacheEntry;
