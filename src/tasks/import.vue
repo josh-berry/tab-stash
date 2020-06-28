@@ -15,7 +15,7 @@
         <option value="">Nothing [all in one group]</option>
       </select>
     </div>
-    <button @click="start">Import</button>
+    <button class="clickme" @click="start">Import</button>
   </Dialog>
 </template>
 

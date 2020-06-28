@@ -7,6 +7,9 @@ html {
     --page-fg: #222426;
     --link-fg: #44484c;
     --userlink-fg: #287acc;
+    --userlink-hover-fg: #448fda;
+    --userlink-hover-bg: var(--button-bg);
+    --userlink-active-fg: #66a3e1;
 
     --scroll-bar: #efefef;
     --scroll-handle: #d8d8d8;
@@ -42,6 +45,8 @@ html.tab-view {
         --page-fg: #f9f9fa;
         --link-fg: #e0e0e2;
         --userlink-fg: #80bfff;
+        --userlink-hover-fg: #57abff;
+        --userlink-active-fg: #2e96ff;
 
         --scroll-bar: #242426;
         --scroll-handle: #48484e;
@@ -117,6 +122,15 @@ html, body {
     margin: 0;
     padding: 0;
 }
+a, a:visited {
+    color: var(--userlink-fg);
+    text-decoration: underline;
+}
+a:hover {
+    background-color: var(--userlink-hover-bg);
+    color: var(--userlink-hover-fg);
+}
+a:active { color: var(--userlink-active-fg); }
 
 .modal-backdrop {
     background-color: var(--modal-bg);
@@ -138,14 +152,22 @@ html, body {
     column-gap: var(--m-ctrl-w);
     margin: 0;
 }
+@media all and (max-width: 30rem) {
+    /* Support narrower dialogs in narrower windows */
+    .dialog { padding: var(--m-dialog-h) var(--m-dialog-h); }
+}
+
+.clickme {
+    box-shadow: 0 0 4px 0px var(--userlink-fg);
+    background-color: var(--userlink-fg);
+    color: var(--page-bg);
+}
+.clickme:hover { background-color: var(--userlink-hover-fg); }
+.clickme:active { background-color: var(--userlink-active-fg); }
 
 .export-dialog output, .import-dialog .input {
     display: block;
     border: var(--ctrl-border);
-}
-.export-dialog output a, .import-dialog .input a {
-    text-decoration: underline;
-    color: var(--userlink-fg);
 }
 
 .export-dialog output h3 {
@@ -164,8 +186,8 @@ html, body {
 .hidden { display: none !important; }
 
 .tab:hover { cursor: pointer; background-color: var(--item-hover-bg); }
-a, a:visited { color: var(--link-fg); text-decoration: none; }
-.whats-new a, a.open, a.open:visited { color: var(--userlink-fg); }
+a.tab, a.tab:visited { color: var(--link-fg); text-decoration: none; }
+a.tab.open, a.tab.open:visited { color: var(--userlink-fg); }
 
 header { margin: 4px 16px; }
 header.page {
@@ -201,6 +223,7 @@ header.page {
     margin: 0;
     border: none;
     color: inherit;
+    text-decoration: none;
     background: transparent;
     text-align: left;
     white-space: nowrap;
@@ -237,7 +260,7 @@ aside.notification .contents {
     color: #889099;
     font-style: italic;
 }
-.status-text a:hover, .whats-new a:hover {
+.status-text a:hover, .whats-new .issue a:hover {
     color: var(--userlink-fg);
     text-decoration: underline;
 }

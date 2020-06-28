@@ -2,16 +2,22 @@
     <Dialog :class="{[$style.dlg]: true, 'export-dialog': true}"
             @close="$emit('close')">
         <form :id="$style.dlg" @submit.prevent.stop="">
+            <label :for="$style.format" :class="$style.format">Format:</label>
             <select :id="$style.format" v-model="format">
-                <option value="html-noicons">Formatted List</option>
-                <option value="html-icons">Formatted List with Icons</option>
+                <option value="html-noicons">Clickable Links</option>
+                <option value="html-icons">Clickable Links with Icons</option>
                 <option value="markdown">Markdown</option>
                 <option value="onetab">OneTab</option>
                 <option value="urls-folders">List of URLs</option>
                 <option value="urls-nofolders">List of URLs (no stash names)</option>
             </select>
-            <button @click.prevent.stop="select_all">Select All</button>
-            <button @click.prevent.stop="copy">Copy</button>
+            <nav>
+                <button @click.prevent.stop="select_all">Select All</button>
+                <button class="clickme" @click.prevent.stop="copy">Copy</button>
+            </nav>
+            <label :class="$style.help">
+                <a href="https://github.com/josh-berry/tab-stash/wiki/Exporting-Tabs-from-Tab-Stash" target="_blank">About Formats...</a>
+            </label>
         </form>
 
         <!-- HTML format -->
@@ -82,11 +88,14 @@ export default Vue.extend({
         folders: function() {
             return this.stash.filter((t: any) => t && t.children);
         },
-        exported: function() {}
     },
     data: () => ({
         format: 'html-noicons',
     }),
+    mounted(this: any) { this.$nextTick(() => this.select_all()); },
+    watch: {
+        format(this: any, val: string) { this.select_all(); },
+    },
     methods: {
         friendlyFolderName,
         leaves: function(folder: Bookmark) {
@@ -119,7 +128,7 @@ export default Vue.extend({
 </script>
 
 <style module>
-.dlg > :global(.dialog) {
+.dlg > * {
     overflow: hidden;
     grid-template-columns: 1fr;
     grid-template-rows: 0fr 1fr;
@@ -128,14 +137,22 @@ export default Vue.extend({
     height: 67%;
 }
 
-.dlg form {
+.dlg > * > form {
     display: flex;
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.dlg output {
+.dlg > * > form > nav { display: flex; flex-direction: row; }
+.dlg > * > form > select, .dlg > * > form > nav { min-width: max-content; }
+.dlg > * > form > .help { flex-grow: 1; text-align: right; }
+
+@media all and (max-width: 20rem) {
+    .dlg > * > form > label.format { display: none; }
+}
+
+.dlg > * > output {
     display: block;
     overflow-block: auto;
     overflow-wrap: anywhere;

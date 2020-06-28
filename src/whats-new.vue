@@ -3,7 +3,7 @@
   <header>
     <h1>What's New in Tab Stash</h1>
 
-    <div class="status-text">
+    <div>
       <a href="stash-list.html">&#x2190; Back to Tab Stash</a>
     </div>
   </header>
