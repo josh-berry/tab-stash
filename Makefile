@@ -1,4 +1,4 @@
-VERSION := $(shell node -e "x=`cat dist/manifest.json`; console.log(x.version)")
+VERSION := $(shell node -e "x=`cat assets/manifest.json`; console.log(x.version)")
 COMMIT := $(shell git rev-parse --short HEAD)
 FULL_VERSION := $(VERSION)-$(COMMIT)
 
@@ -20,8 +20,10 @@ DIST_PKG = $(RELEASE_DIR)/tab-stash-$(FULL_VERSION).zip
 debug: build-dbg
 .PHONY: debug
 
-rel: release-tag pkg-webext pkg-source
-	make -C $(RELEASE_DIR)/$(SRCPKG_DIR) release-tag pkg-webext pkg-source
+rel:
+	$(MAKE) distclean
+	$(MAKE) release-tag pkg-webext pkg-source
+	$(MAKE) -C $(RELEASE_DIR)/$(SRCPKG_DIR) release-tag pkg-webext pkg-source
 	[ -z "$$(diff -Nru dist $(RELEASE_DIR)/$(SRCPKG_DIR)/dist)" ]
 	rm -rf $(RELEASE_DIR)/$(SRCPKG_DIR)
 	@echo ""
@@ -97,6 +99,5 @@ distclean: clean
 .PHONY: distclean
 
 clean:
-	rm -f dist/*.js dist/*.js.map
-	find dist -type f -name .DS_Store -exec rm {} ';'
+	rm -rf dist
 .PHONY: clean

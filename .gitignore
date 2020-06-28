@@ -8,8 +8,7 @@ docs/vendor
 
 # Generated during build
 node_modules
-dist/*.js
-dist/*.js.map
+dist
 
 # Release engineering
 releases/tab-stash-src-*

@@ -10,6 +10,7 @@
     "@types/chai": "*",
     "@types/mocha": "*",
     "chai": "*",
+    "copyfiles": "^2.3.0",
     "css-loader": "*",
     "fake-indexeddb": "^2.1.1",
     "idb": "^4.0.3",
@@ -26,8 +27,8 @@
     "webpack-cli": "*"
   },
   "scripts": {
-    "build": "webpack",
-    "build-rel": "webpack --mode production --devtool nosources-source-map",
+    "build": "webpack && copyfiles -u 1 assets/* dist",
+    "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 assets/* dist",
     "test": "mocha ./dist/test.js"
   }
 }
