@@ -13,6 +13,7 @@
     "copyfiles": "^2.3.0",
     "css-loader": "*",
     "fake-indexeddb": "^2.1.1",
+    "glob": "^7.1.6",
     "idb": "^4.0.3",
     "mocha": "*",
     "ts-loader": "*",

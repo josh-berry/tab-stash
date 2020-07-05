@@ -1,4 +1,5 @@
 const path = require("path");
+const glob = require('glob').sync;
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
@@ -8,7 +9,7 @@ module.exports = {
         "stash-list": "./src/stash-list.js",
         "options": "./src/options.ts",
         "whats-new": "./src/whats-new.ts",
-        "test": "./src/test/index.ts",
+        "test": glob('./src/test/**/*.ts'),
     },
     mode: "development",
     devtool: "eval-source-map",
