@@ -27,7 +27,7 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU NON-`_` METHODS.
 
-import {DeferQueue, OpenableURL, urlToOpen, namedPromises} from './util';
+import {DeferQueue, OpenableURL, urlToOpen, resolveNamed} from './util';
 
 import {Cache, CacheEntry} from './cache-client';
 
@@ -393,7 +393,7 @@ export class StashState {
         // once we have a complete state.
         //
 
-        const p = await namedPromises({
+        const p = await resolveNamed({
             bm: browser.bookmarks.getSubTree(""),
             wins: browser.windows.getAll(
                 {populate: true, windowTypes: ['normal']}),

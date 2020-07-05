@@ -2,7 +2,7 @@
 
 import Vue from 'vue/dist/vue.runtime.esm';
 
-import {asyncEvent, namedPromises} from './util';
+import {asyncEvent, resolveNamed} from './util';
 import {rootFolder, rootFolderWarning} from './stash';
 
 import StashList from './stash-list.vue';
@@ -14,7 +14,7 @@ import {Cache} from './cache-client';
 
 
 window.addEventListener('load', asyncEvent(async function() {
-    const p = await namedPromises({
+    const p = await resolveNamed({
         state: StashState.make(),
         root: rootFolder(),
         win: browser.windows.getCurrent(),

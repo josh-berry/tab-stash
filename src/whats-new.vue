@@ -201,15 +201,46 @@
 </template>
 
 <script lang="ts">
+import Vue from 'vue';
+import launch from './launch-vue';
+
+import Options from "./options-model";
+import {resolveNamed} from './util';
+
 import Version from './whats-new/version.vue';
 import L from './whats-new/item.vue';
 
-export default {
+const Main = Vue.extend({
     components: {
         Version,
         L,
     },
-}
+    provide() {
+        return {the_last_notified_version: this.last_notified_version};
+    },
+    props: {
+      last_notified_version: String,
+    },
+});
+export default Main;
+
+launch(Main, {
+    last_notified_version: (async () => {
+        const r = await resolveNamed({
+            options: Options.local(),
+            extn: browser.management.getSelf(),
+        });
+        (<any>globalThis).options = r.options;
+
+        // If we are caught up to the current version, just show everything.
+        const res = r.options.last_notified_version == r.extn.version
+            ? undefined : r.options.last_notified_version;
+
+        r.options.set({last_notified_version: r.extn.version});
+
+        return res;
+    })(),
+});
 </script>
 
 <style>

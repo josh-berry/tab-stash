@@ -14,7 +14,7 @@ export {
 export type AsyncReturnTypeOf<T extends (...args: any) => any> =
     ReturnType<T> extends Promise<infer U> ? U : void;
 
-type Promised<T extends Promise<any>> = T extends Promise<infer V> ? V : void;
+export type Promised<T> = T extends Promise<infer V> ? V : T;
 
 // A "marker" type for a string which is a URL that is actually openable by Tab
 // Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
@@ -112,17 +112,21 @@ export function asyncEvent<
 // allows you to fire off a bunch of stuff in parallel and then wait for it all
 // at once, which should in theory minimize overall latency.
 //
-// Use it like: await namedPromises(...)
-export async function namedPromises<T extends {[k: string]: Promise<any>}>(
-    promises: T): Promise<{[k in keyof T]: Promised<T[k]>}>
-{
-    let objects: any = {};
+// You can also combine promises with non-promise values and the non-promise
+// values will be returned unchanged.
+//
+// Use it like: await resolveNamed({name: promise(), ...})
+export async function resolveNamed<T extends {[k: string]: any}>(
+    promises: T
+): Promise<{[k in keyof T]: Promised<T[k]>}> {
+    const objects: any = {};
 
-    for (let k of Object.getOwnPropertyNames(promises) as (keyof T)[]) {
-        objects[k] = await promises[k];
+    for (const k of Object.getOwnPropertyNames(promises)) {
+        const p = promises[k];
+        objects[k] = p instanceof Promise ? await p : p;
     }
 
-    return objects as {[k in keyof T]: Promised<T[k]>};
+    return objects;
 }
 
 // Returns a function which, when called, arranges to call the async function
