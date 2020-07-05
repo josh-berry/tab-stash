@@ -3,8 +3,8 @@ import {expect} from 'chai';
 import * as events from './mock/events';
 import mock_runtime from './mock/browser-runtime';
 
-import {Message, UpdateMessage, ExpiredMessage} from '../cache-proto';
-import {Cache} from '../cache-client';
+import {Message, UpdateMessage, ExpiredMessage} from './cache-proto';
+import {Cache} from './cache-client';
 
 class MockCacheService {
     ports = new Set<browser.runtime.Port>();
@@ -65,8 +65,8 @@ class MockCacheService {
 }
 
 function reload_cache(): Cache<string> {
-    delete require.cache[require.resolve('../cache-client')];
-    return require('../cache-client').Cache.open('test');
+    delete require.cache[require.resolve('./cache-client')];
+    return require('./cache-client').Cache.open('test');
 }
 
 describe('cache-client', function() {

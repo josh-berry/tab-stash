@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 
-import {extractURLs} from '../../tasks/import';
+import {extractURLs} from './import';
 
 describe('import', function() {
     describe('extractURLs', function() {

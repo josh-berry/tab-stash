@@ -93,7 +93,7 @@ describe('stored-object', function() {
 
     describe('behaviors', function() {
         storage_mock.reset();
-        let StoredObject = require('../stored-object').default;
+        let StoredObject = require('./stored-object').default;
 
         const DEFAULTS = {
             a: 1,
@@ -108,9 +108,9 @@ describe('stored-object', function() {
             // has a clean environment with which to start.  This hackery is
             // needed because the mocks have to simulate persistent/global
             // state, after all. :)
-            delete require.cache[require.resolve('../stored-object')];
+            delete require.cache[require.resolve('./stored-object')];
             storage_mock.reset();
-            StoredObject = require('../stored-object').default;
+            StoredObject = require('./stored-object').default;
         });
 
         it('retrieves the same object when asked multiple times',

@@ -9,7 +9,8 @@ module.exports = {
         "stash-list": "./src/stash-list.js",
         "options": "./src/options.ts",
         "whats-new": "./src/whats-new.ts",
-        "test": glob('./src/test/**/*.ts'),
+        "test": glob('./src/mock/**/*.ts')
+            .concat(glob('./src/**/*.test.ts')),
     },
     mode: "development",
     devtool: "eval-source-map",

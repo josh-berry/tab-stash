@@ -6,7 +6,7 @@ import mock_indexeddb from './mock/indexeddb';
 
 import {
     Message, UpdateMessage, ExpiredMessage, FetchMessage
-} from '../cache-proto';
+} from './cache-proto';
 
 class MockClient {
     port: browser.runtime.Port;
@@ -36,30 +36,30 @@ class MockClient {
 }
 
 describe('cache-service', function() {
-    const GC_THRESHOLD = require('../cache-service').GC_THRESHOLD;
-    let CacheService = require('../cache-service').CacheService;
+    const GC_THRESHOLD = require('./cache-service').GC_THRESHOLD;
+    let CacheService = require('./cache-service').CacheService;
     let service: typeof CacheService = undefined!;
 
     async function reset_service() {
         await service.next_mutation_testonly;
         events.expect_empty();
         service = undefined!;
-        delete require.cache[require.resolve('../cache-service')];
+        delete require.cache[require.resolve('./cache-service')];
         expect(await (<any>indexedDB).databases()).to.deep.include({
             name: 'cache:test', version: 1});
 
-        CacheService = require('../cache-service').CacheService;
+        CacheService = require('./cache-service').CacheService;
         service = await CacheService.start('test');
     }
 
     async function reset() {
         if (service) await service.next_mutation_testonly;
         service = undefined!;
-        delete require.cache[require.resolve('../cache-service')];
+        delete require.cache[require.resolve('./cache-service')];
 
         mock_runtime.reset();
         mock_indexeddb.reset();
-        CacheService = require('../cache-service').CacheService;
+        CacheService = require('./cache-service').CacheService;
         service = await CacheService.start('test');
     }
 
