@@ -7,7 +7,7 @@ module.exports = {
     entry: {
         "index": "./src/index.ts",
         "stash-list": "./src/stash-list.js",
-        "options": "./src/options.ts",
+        "options": "./src/options.vue",
         "whats-new": "./src/whats-new/index.vue",
         "test": glob('./src/mock/**/*.ts')
             .concat(glob('./src/**/*.test.ts')),

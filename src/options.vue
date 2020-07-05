@@ -129,6 +129,9 @@
 </template>
 
 <script lang="ts">
+import Vue from 'vue';
+import launch from './launch-vue';
+
 import Options from './options-model';
 
 const prop = (area: string, name: string) => ({
@@ -149,9 +152,13 @@ function options() {
     return ret;
 }
 
-export default {
+const Main = Vue.extend({
+    props: {sync: Object, local: Object},
     computed: options(),
-}
+});
+export default Main;
+
+launch(Main, {sync: Options.sync(), local: Options.local()});
 </script>
 
 <style>
