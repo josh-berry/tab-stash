@@ -202,13 +202,13 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import launch from './launch-vue';
+import launch from '../launch-vue';
 
-import Options from "./options-model";
-import {resolveNamed} from './util';
+import Options from "../options-model";
+import {resolveNamed} from '../util';
 
-import Version from './whats-new/version.vue';
-import L from './whats-new/item.vue';
+import Version from './version.vue';
+import L from './item.vue';
 
 const Main = Vue.extend({
     components: {
