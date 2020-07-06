@@ -29,19 +29,19 @@
 <script lang="ts">
 import Vue from 'vue';
 
-import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from './util';
+import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from '../util';
 import {
     getFolderNameISODate, mostRecentUnnamedFolderId,
     restoreTabs, stashTabs,
     closeTabs,
-} from './stash';
-import {Tab, Bookmark, ModelLeaf} from './model';
-
-import ButtonBox from './components/button-box.vue';
-import Button from './components/button.vue';
+} from '../stash';
+import {Tab, Bookmark, ModelLeaf} from '../model';
 
 export default Vue.extend({
-    components: {ButtonBox, Button},
+    components: {
+        Button: require('../components/button.vue').default,
+        ButtonBox: require('../components/button-box.vue').default,
+    },
 
     props: {
         // Common

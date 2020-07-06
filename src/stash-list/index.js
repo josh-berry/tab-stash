@@ -1,15 +1,15 @@
 "use strict";
 
-import Vue from 'vue/dist/vue.runtime.esm';
+import Vue from 'vue';
 
-import {asyncEvent, resolveNamed} from './util';
-import {rootFolder, rootFolderWarning} from './stash';
+import {asyncEvent, resolveNamed} from '../util';
+import {rootFolder, rootFolderWarning} from '../stash';
 
-import StashList from './stash-list.vue';
+import StashList from './index.vue';
 
-import {StashState} from './model';
-import Options from './options-model';
-import {Cache} from './cache-client';
+import {StashState} from '../model';
+import Options from '../options-model';
+import {Cache} from '../cache-client';
 
 
 

@@ -72,30 +72,23 @@
 </template>
 
 <script>
-import {asyncEvent, urlsInTree, urlToOpen, TaskMonitor} from './util';
-import {isURLStashable, rootFolderWarning, tabStashTree} from './stash';
-import {isInFolder} from './model';
-import {Cache} from './cache-client';
-import {fetchInfoForSites} from './tasks/siteinfo';
-
-import FolderList from './folder-list.vue';
-import Folder from './folder.vue';
-import ButtonBox from './components/button-box.vue';
-import Button from './components/button.vue';
-import Notification from './components/notification.vue';
-import Menu from './components/menu.vue';
+import {asyncEvent, urlsInTree, urlToOpen, TaskMonitor} from '../util';
+import {isURLStashable, rootFolderWarning, tabStashTree} from '../stash';
+import {isInFolder} from '../model';
+import {Cache} from '../cache-client';
+import {fetchInfoForSites} from '../tasks/siteinfo';
 
 export default {
     components: {
-        FolderList,
-        Folder,
-        ButtonBox,
-        Button,
-        Notification,
-        Menu,
-        ImportDialog: require('./tasks/import.vue').default,
-        ExportDialog: require('./tasks/export.vue').default,
-        ProgressDialog: require('./components/progress-dialog.vue').default,
+        Button: require('../components/button.vue').default,
+        ButtonBox: require('../components/button-box.vue').default,
+        ExportDialog: require('../tasks/export.vue').default,
+        Folder: require('./folder.vue').default,
+        FolderList: require('./folder-list.vue').default,
+        ImportDialog: require('../tasks/import.vue').default,
+        Menu: require('../components/menu.vue').default,
+        Notification: require('../components/notification.vue').default,
+        ProgressDialog: require('../components/progress-dialog.vue').default,
     },
 
     data: () => ({

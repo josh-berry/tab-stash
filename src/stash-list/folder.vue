@@ -51,14 +51,14 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     </ButtonBox>
   </div>
   <div class="contents">
-    <draggable group="tab" ref="drag" class="tabs"
+    <Draggable group="tab" ref="drag" class="tabs"
                @add="move" @update="move">
       <tab v-for="item of filteredChildren"
            :key="item.id" v-bind="item"
            :class="{hidden: (filter && ! filter(item))
                          || (userFilter && ! userFilter(item)),
                     'folder-item': true}"></tab>
-    </draggable>
+    </Draggable>
     <div class="folder-item" v-if="userHiddenChildren.length > 0">
       <span class="text status-text hidden-count">
         + {{userHiddenChildren.length}} filtered
@@ -69,23 +69,23 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 </template>
 
 <script>
-import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from './util';
+import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from '../util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     stashTabsInWindow, stashTabs, restoreTabs,
     closeTabs, hideStashedTabs, refocusAwayFromTabs,
-} from 'stash';
+} from '../stash';
 
-import {Cache} from './cache-client';
-
-import Draggable from 'vuedraggable';
-import EditableLabel from './components/editable-label.vue';
-import Tab from './tab.vue';
-import ButtonBox from './components/button-box.vue';
-import Button from './components/button.vue';
+import {Cache} from '../cache-client';
 
 export default {
-    components: {Draggable, EditableLabel, Tab, ButtonBox, Button},
+    components: {
+        Button: require('../components/button.vue').default,
+        ButtonBox: require('../components/button-box.vue').default,
+        Draggable: require('vuedraggable'),
+        EditableLabel: require('../components/editable-label.vue').default,
+        Tab: require('./tab.vue').default,
+    },
 
     props: {
         // View filter functions

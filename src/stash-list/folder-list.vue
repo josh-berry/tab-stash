@@ -1,22 +1,23 @@
 <template>
-<draggable class="sortable-list folder-list" @update="move">
-  <folder v-for="f in folders" v-if="f && f.children"
+<Draggable class="sortable-list folder-list" @update="move">
+  <Folder v-for="f in folders" v-if="f && f.children"
           :key="f.id"
           :id="f.id" :children="f.children" :allowRenameDelete="true"
           :title="f.title" :dateAdded="f.dateAdded"
           :filter="filter" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
           :metadata="metadataCache.get(f.id)"
           ref="folders">
-  </folder>
-</draggable>
+  </Folder>
+</Draggable>
 </template>
 
 <script>
-import Draggable from 'vuedraggable';
-import Folder from './folder.vue';
-
 export default {
-    components: {Draggable, Folder},
+    components: {
+        Draggable: require('vuedraggable'),
+        Folder: require('./folder.vue').default,
+    },
+
     props: {
         folders: Array,
         filter: Function,
