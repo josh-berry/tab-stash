@@ -6,12 +6,6 @@
               hidden: hideIfEmpty && visibleChildren.length == 0,
               }">
   <div class="header">
-    <editable-label :class="{'folder-name': true, 'ephemeral': true,
-                            'disabled': isWindow || ! allowRenameDelete}"
-                    :value="nonDefaultTitle"
-                    :defaultValue="defaultTitle"
-                    :enabled="! isWindow && allowRenameDelete"
-                    @update:value="rename"></editable-label>
     <ButtonBox class="collapse-btnbox">
       <Button :class="{collapse: collapsed, expand: ! collapsed}"
               tooltip="Hide the tabs for this group"
@@ -49,6 +43,15 @@
 `Click: Close all open tabs
 ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     </ButtonBox>
+    <!-- This is at the end so it gets put in front of the buttons etc.
+         Important to ensure the focused box-shadow gets drawn over the buttons,
+         rather than behind them. -->
+    <editable-label :class="{'folder-name': true, 'ephemeral': true,
+                            'disabled': isWindow || ! allowRenameDelete}"
+                    :value="nonDefaultTitle"
+                    :defaultValue="defaultTitle"
+                    :enabled="! isWindow && allowRenameDelete"
+                    @update:value="rename"></editable-label>
   </div>
   <div class="contents">
     <Draggable group="tab" ref="drag" class="tabs"

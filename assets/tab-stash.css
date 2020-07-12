@@ -107,6 +107,8 @@ html {
 
     --p-ephemeral-w: 3px;
     --p-ephemeral-h: 1.5px;
+    --m-ephemeral-w: 2px;
+    --m-ephemeral-h: 2px;
 }
 
 /* Styling */
@@ -121,6 +123,10 @@ html, body {
     scrollbar-color: var(--scroll-handle) var(--scroll-bar);
     margin: 0;
     padding: 0;
+}
+:focus {
+    box-shadow: 0 0 2px 2px highlight;
+    outline: none;
 }
 a, a:visited {
     color: var(--userlink-fg);
@@ -164,6 +170,7 @@ a:active { color: var(--userlink-active-fg); }
 }
 .clickme:hover { background-color: var(--userlink-hover-fg); }
 .clickme:active { background-color: var(--userlink-active-fg); }
+.clickme:focus { box-shadow: 0 0 2px 2px highlight; } /* XXX dup of :focus */
 
 .export-dialog output, .import-dialog .input {
     display: block;
@@ -267,16 +274,16 @@ aside.notification .contents {
 
 /* Ephemeral input boxes (shouldn't look like such until you click on them) */
 .ephemeral {
-    border: 2px solid rgba(0, 0, 0, 0);
+    margin: var(--m-ephemeral-h) var(--m-ephemeral-w);
+    padding: var(--p-ephemeral-h) var(--p-ephemeral-w);
+    border: none;
     border-radius: 2px;
     background: transparent;
     min-width: 2em;
     text-overflow: ellipsis;
-    padding: var(--p-ephemeral-h) var(--p-ephemeral-w);
 }
 .ephemeral:focus {
     background-color: var(--ctrl-bg);
-    border: 2px solid var(--ctrl-border-clr);
 }
 
 /* Website Icons (favicons) */
@@ -431,7 +438,7 @@ nav.action-container .action:last-child {
     font: caption;
     font-weight: bold;
     font-size: 13pt;
-    margin-left: -4px;
+    margin-left: -3px;
 }
 .folder-name.disabled { color: rgba(128, 128, 128); }
 .folder .header nav.action-btnbox {
