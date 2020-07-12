@@ -517,9 +517,6 @@ span.folder-name, .folder-item > .text {
     background-color: var(--item-hover-bg);
     opacity: 0.6;
 }
-.sortable-chosen {
-    opacity: 0.6;
-}
 
 
 
