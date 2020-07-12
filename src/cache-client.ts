@@ -21,25 +21,24 @@
 // broadcast in quick succession; if this is a concern (and it's REALLY worth
 // the extra complexity), code changes are required. :)
 
-import {
-    CacheContent, Message, FetchMessage, UpdateMessage,
-} from './cache-proto';
+import {Send, NanoPort} from './util/nanoservice';
+import {ServicePort, FetchMessage, UpdateMessage} from './cache-proto';
 
 // Ugly global object which keeps track of all the open caches, so we only have
 // one client per cache per JS environment.
 const CACHES = new Map<string, Cache<any>>();
 
 // A cache entry, exposed to the consumer thru Cache.get().
-export type CacheEntry<Content extends CacheContent> = {
+export type CacheEntry<Content extends Send> = {
     key: string,
     value: Content | undefined,
     fetched: boolean, // Whether this item has EVER been fetched
 };
 
 // The cache.
-export class Cache<Content extends CacheContent> {
+export class Cache<Content extends Send> {
     private _name: string;
-    private _service: browser.runtime.Port;
+    private _service: ServicePort<Content>;
 
     private _local_cache: Map<string, CacheEntry<Content>> = new Map();
 
@@ -56,15 +55,12 @@ export class Cache<Content extends CacheContent> {
     // Same as above, except for updates (via set()).
     private _updating: Map<string, Content> | undefined;
 
-    static open<Content extends CacheContent>(name: string): Cache<Content> {
+    static open<Content extends Send>(name: string): Cache<Content> {
         let cache = CACHES.get(name);
         if (cache) {
             return cache;
         } else {
-            cache = new Cache(
-                name,
-                browser.runtime.connect(undefined, {name: `cache:${name}`})
-            );
+            cache = new Cache(name, NanoPort.connect(`cache:${name}`));
         }
 
         CACHES.set(name, cache);
@@ -72,18 +68,12 @@ export class Cache<Content extends CacheContent> {
         return cache;
     }
 
-    // DON'T call this directly -- use open() instead.
-    constructor(name: string, conn: browser.runtime.Port) {
+    private constructor(name: string, conn: ServicePort<Content>) {
         this._name = name;
         this._service = conn;
 
-        this._service.onDisconnect.addListener(port => {
-            console.log(`cache:${this._name}: Lost connection to service`);
-        });
-
-        this._service.onMessage.addListener(msg => {
-            const m = msg as Message<Content>;
-            switch (m.type) {
+        this._service.onNotify = m => {
+            switch (m.$type) {
                 case 'update': {
                     for (const e of m.entries) {
                         const ent = this._local_cache.get(e.key);
@@ -103,13 +93,12 @@ export class Cache<Content extends CacheContent> {
                     break;
                 }
 
-                case 'fetch': // should never be received from service
                 default:
                     // Perhaps we are speaking different protocol versions;
                     // ignore unknown messages.
                     console.warn(`cache:${this._name}: Received unknown message: ${JSON.stringify(m)}`);
             }
-        });
+        };
     }
 
     get(key: string): CacheEntry<Content> {
@@ -154,8 +143,8 @@ export class Cache<Content extends CacheContent> {
     _send_fetches() {
         if (! this._fetching) return;
 
-        this._service.postMessage(<FetchMessage>{
-            type: 'fetch',
+        this._service.notify(<FetchMessage>{
+            $type: 'fetch',
             keys: Array.from(this._fetching),
         });
 
@@ -168,8 +157,8 @@ export class Cache<Content extends CacheContent> {
         const entries = [];
         for (const [key, value] of this._updating) entries.push({key, value});
 
-        this._service.postMessage(<UpdateMessage<Content>>{
-            type: 'update', entries
+        this._service.notify(<UpdateMessage<Content>>{
+            $type: 'update', entries
         });
 
         this._updating = undefined;

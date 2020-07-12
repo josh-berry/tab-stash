@@ -3,55 +3,60 @@ import {expect} from 'chai';
 import * as events from './mock/events';
 import mock_runtime from './mock/browser-runtime';
 
-import {Message, UpdateMessage, ExpiredMessage} from './cache-proto';
+import * as NS from './util/nanoservice';
+import {
+    ClientMsg, ServiceMsg, UpdateMessage, ExpiredMessage, ClientPort
+} from './cache-proto';
 import {Cache} from './cache-client';
 
-class MockCacheService {
-    ports = new Set<browser.runtime.Port>();
+class MockCacheService extends NS.NanoService<ClientMsg<string>, ServiceMsg<string>>
+{
+    ports = new Set<ClientPort<string>>();
     entries = new Map<string, string>();
 
     constructor() {
-        browser.runtime.onConnect.addListener(port => {
-            this.ports.add(port);
+        super('cache:test');
+    }
 
-            port.onDisconnect.addListener(p => {
-                this.ports.delete(port);
-            });
+    onConnect(port: ClientPort<string>) {
+        this.ports.add(port);
+    }
 
-            port.onMessage.addListener(msg => {
-                const m = <Message<string>>msg;
-                switch (m.type) {
-                    case 'update': {
-                        for (const ent of m.entries) {
-                            this.entries.set(ent.key, ent.value);
-                        }
-                        break;
-                    }
-                    case 'fetch': {
-                        const entries = [];
-                        for (const key of m.keys) {
-                            let ent = this.entries.get(key);
-                            if (! ent) continue;
-                            entries.push({key, value: ent});
-                        }
-                        port.postMessage(<UpdateMessage<string>>{
-                            type: 'update',
-                            entries,
-                        });
-                        break;
-                    }
-                    default:
-                        expect(m, `unknown message`).to.be.undefined;
-                        break;
+    onDisconnect(port: ClientPort<string>) {
+        this.ports.delete(port);
+    }
+
+    onNotify(port: ClientPort<string>, m: ClientMsg<string>) {
+        switch (m.$type) {
+            case 'update': {
+                for (const ent of m.entries) {
+                    this.entries.set(ent.key, ent.value);
                 }
-            });
-        });
+                break;
+            }
+            case 'fetch': {
+                const entries = [];
+                for (const key of m.keys) {
+                    let ent = this.entries.get(key);
+                    if (! ent) continue;
+                    entries.push({key, value: ent});
+                }
+                port.notify(<UpdateMessage<string>>{
+                    $type: 'update',
+                    entries,
+                });
+                break;
+            }
+            default:
+                expect(m, `unknown message`).to.be.undefined;
+                break;
+        }
     }
 
     set(entries: {key: string, value: string}[]) {
         for (const ent of entries) this.entries.set(ent.key, ent.value);
-        const msg: UpdateMessage<string> = {type: 'update', entries};
-        for (const p of this.ports) p.postMessage(msg);
+        const msg: UpdateMessage<string> = {$type: 'update', entries};
+        for (const p of this.ports) p.notify(msg);
     }
 
     evict(keys: string[]) {
@@ -59,8 +64,8 @@ class MockCacheService {
             expect(this.entries.has(k)).to.be.true;
             this.entries.delete(k);
         }
-        const msg: ExpiredMessage = {type: 'expired', keys};
-        for (const p of this.ports) p.postMessage(msg);
+        const msg: ExpiredMessage = {$type: 'expired', keys};
+        for (const p of this.ports) p.notify(msg);
     }
 }
 
@@ -72,6 +77,7 @@ function reload_cache(): Cache<string> {
 describe('cache-client', function() {
     beforeEach(() => {
         mock_runtime.reset();
+        (<any>NS.registry).reset();
     });
     afterEach(events.expect_empty);
 

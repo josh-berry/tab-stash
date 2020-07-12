@@ -5,29 +5,28 @@ import mock_runtime from './mock/browser-runtime';
 import mock_indexeddb from './mock/indexeddb';
 
 import {
-    Message, UpdateMessage, ExpiredMessage, FetchMessage
+    ServicePort, ServiceMsg, UpdateMessage, ExpiredMessage, FetchMessage
 } from './cache-proto';
+import * as NS from './util/nanoservice';
 
 class MockClient {
-    port: browser.runtime.Port;
-    recvd: Message<string>[] = [];
+    port: ServicePort<string>;
+    recvd: ServiceMsg<string>[] = [];
 
     constructor() {
-        this.port = browser.runtime.connect(undefined, {name: 'cache:test'});
-        this.port.onMessage.addListener(msg => {
-            this.recvd.push(<Message<string>>msg);
-        });
+        this.port = NS.NanoPort.connect('cache:test');
+        this.port.onNotify = msg => this.recvd.push(msg);
     }
 
     fetch(keys: string[]) {
-        this.port.postMessage(<FetchMessage>{type: 'fetch', keys});
+        this.port.notify(<FetchMessage>{$type: 'fetch', keys});
     }
 
     set(entries: {key: string, value: string}[]) {
-        this.port.postMessage(<UpdateMessage<string>>{type: 'update', entries});
+        this.port.notify(<UpdateMessage<string>>{$type: 'update', entries});
     }
 
-    read(): Message<string> {
+    read(): ServiceMsg<string> {
         if (this.recvd.length <= 0) {
             throw new Error(`Tried to read with no messages in the buffer`);
         }
@@ -48,6 +47,8 @@ describe('cache-service', function() {
         expect(await (<any>indexedDB).databases()).to.deep.include({
             name: 'cache:test', version: 1});
 
+        mock_runtime.reset();
+        (<any>NS.registry).reset();
         CacheService = require('./cache-service').CacheService;
         service = await CacheService.start('test');
     }
@@ -59,6 +60,7 @@ describe('cache-service', function() {
 
         mock_runtime.reset();
         mock_indexeddb.reset();
+        (<any>NS.registry).reset();
         CacheService = require('./cache-service').CacheService;
         service = await CacheService.start('test');
     }
@@ -94,18 +96,18 @@ describe('cache-service', function() {
             client.set([{key: 'foo', value: 'bar'}]);
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
+                {$type: 'update', entries: [{key: 'foo', value: 'bar'}]});
 
             client.set([{key: 'bar', value: 'fred'}]);
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'update', entries: [{key: 'bar', value: 'fred'}]});
+                {$type: 'update', entries: [{key: 'bar', value: 'fred'}]});
 
             client.fetch(['foo', 'bar']);
             await events.drain(2);
             expect(client.read()).to.deep.equal(
-                {type: 'update', entries: [{key: 'foo', value: 'bar'},
-                                           {key: 'bar', value: 'fred'}]});
+                {$type: 'update', entries: [{key: 'foo', value: 'bar'},
+                                            {key: 'bar', value: 'fred'}]});
         });
 
         it('resets the generation of accessed entries', async function() {
@@ -149,9 +151,9 @@ describe('cache-service', function() {
                await events.drain(3);
 
                expect(c1.read()).to.deep.equal(
-                   {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
+                   {$type: 'update', entries: [{key: 'foo', value: 'bar'}]});
                expect(c2.read()).to.deep.equal(
-                   {type: 'update', entries: [{key: 'foo', value: 'bar'}]});
+                   {$type: 'update', entries: [{key: 'foo', value: 'bar'}]});
            });
 
         it('batches multiple updates together', async function() {
@@ -163,7 +165,7 @@ describe('cache-service', function() {
             c2.set([{key: 'bar', value: 'baz'}]);
             await events.drain(2);
 
-            const res = {type: 'update', entries: [
+            const res = {$type: 'update', entries: [
                 {key: 'foo', value: 'bar'},
                 {key: 'bar', value: 'baz'},
             ]};
@@ -298,7 +300,7 @@ describe('cache-service', function() {
                        {key: 'extra', value: 'crunchy'}]);
                await events.drain(2);
                expect(c1.read()).to.deep.equal(
-                   {type: 'update', entries: [
+                   {$type: 'update', entries: [
                        {key: 'foo', value: 'bar'},
                        {key: 'extra', value: 'crunchy'}]});
 
@@ -312,7 +314,7 @@ describe('cache-service', function() {
                const c1exp = c1.read() as ExpiredMessage;
                const c2exp = c2.read() as ExpiredMessage;
                for (const exp of [c1exp, c2exp]) {
-                   expect(exp.type).to.equal('expired');
+                   expect(exp.$type).to.equal('expired');
                    expect(new Set(exp.keys))
                        .to.deep.equal(new Set(['foo', 'extra']));
                }
@@ -325,14 +327,14 @@ describe('cache-service', function() {
 
             c1.set([{key: 'foo', value: 'bar'}]);
             await events.drain(2);
-            expect(c1.read()).to.deep.equal({type: 'update', entries: [
+            expect(c1.read()).to.deep.equal({$type: 'update', entries: [
                 {key: 'foo', value: 'bar'}]});
 
             service.force_gc_on_next_mutation_testonly();
 
             c1.set([{key: 'foo', value: 'cronch'}]);
             await events.drain(2);
-            expect(c1.read()).to.deep.equal({type: 'update', entries: [
+            expect(c1.read()).to.deep.equal({$type: 'update', entries: [
                 {key: 'foo', value: 'cronch'}]});
         });
 
@@ -347,7 +349,7 @@ describe('cache-service', function() {
             await events.drain(2);
 
             expect(c1.read()).to.deep.equal(
-                {type: 'update', entries: [
+                {$type: 'update', entries: [
                     {key: 'foo', value: 'bar'},
                     {key: 'bar', value: 'fred'},
                     {key: 'extra', value: 'crunchy'}]});
@@ -363,7 +365,7 @@ describe('cache-service', function() {
                 const updated = new Map<string, string>();
                 expect(c.recvd.length).to.equal(2);
                 for (const msg of c.recvd) {
-                    switch (msg.type) {
+                    switch (msg.$type) {
                         case 'expired':
                             for (const k of msg.keys) {
                                 expect(expired.has(k), k).to.be.false;
@@ -377,7 +379,7 @@ describe('cache-service', function() {
                             }
                             break;
                         default:
-                            expect(msg.type).to.satisfy(
+                            expect((<any>msg).$type).to.satisfy(
                                 (x: string) => x == 'expired' || x == 'update');
                     }
                 }

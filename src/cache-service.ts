@@ -107,8 +107,9 @@ import {
 } from 'idb';
 
 import {nonReentrant} from './util';
+import {Send, NanoService} from './util/nanoservice';
 
-import {CacheContent, Message} from './cache-proto';
+import {ClientPort, ClientMsg, ServiceMsg} from './cache-proto';
 
 // When the global generation number hits at least /GC_THRESHOLD/, we trigger a
 // collection, as described above.
@@ -116,26 +117,13 @@ export const GC_THRESHOLD = 4 /* generations */;
 
 
 
-// All of the services we have constructed--this map ensures they are singletons
-const SERVICES = new Map<string, CacheService>();
-(<any>globalThis).__cache_services = SERVICES;
-
-// Forward connection requests to the appropriate service.
-browser.runtime.onConnect.addListener(port => {
-    const svc = SERVICES.get(port.name);
-    if (! svc) return;
-    svc._onConnect(port);
-});
-
-
-
 // indexedDB schema for the persistent representation of the cache.
-interface CacheSchema extends DBSchema {
+interface CacheSchema<Content extends Send> extends DBSchema {
     cache: {
         key: string, // URL.origin. Follows the form: "http[s]://host:80"
         value: {
             key: string,
-            value: CacheContent,
+            value: Content,
             agen: number, // access generation number
         },
         indexes: {},
@@ -148,7 +136,6 @@ interface CacheSchema extends DBSchema {
 }
 
 
-
 // A cache service.  Start it (in the background thread/index.js) with
 // CacheService.start().
 //
@@ -156,12 +143,13 @@ interface CacheSchema extends DBSchema {
 //
 // There is no JS API here (apart from start()) because the real API is
 // browser.runtime messages from the cache-client.
-export class CacheService {
-    private _path: string;
-    private _db: IDBPDatabase<CacheSchema>;
+export class CacheService<Content extends Send>
+    extends NanoService<ClientMsg<Content>, ServiceMsg<Content>>
+{
+    private _db: IDBPDatabase<CacheSchema<Content>>;
     private _gen: number;
 
-    private _clients = new Set<browser.runtime.Port>();
+    private _clients = new Set<ClientPort<Content>>();
 
     // We can see multiple client connections show up in quick succession, so we
     // use an AsyncQueue to enforce a global ordering of generation
@@ -180,15 +168,13 @@ export class CacheService {
         // are recorded with the value `undefined`.  Modifications are recorded
         // with the actual CacheContent (which can be `null`, but never
         // `undefined`).
-        updates: new Map<string, CacheContent | undefined>(),
+        updates: new Map<string, Content | undefined>(),
     };
 
-    static async start(name: string): Promise<CacheService> {
+    static async start<C extends Send>(name: string): Promise<CacheService<C>> {
         const path = `cache:${name}`;
-        let svc = SERVICES.get(path);
-        if (svc) return svc;
 
-        const db = await openDB<CacheSchema>(path, 1, {
+        const db = await openDB<CacheSchema<C>>(path, 1, {
             upgrade(db, oldVersion, newVersion, txn) {
                 db.createObjectStore('cache', {
                     keyPath: 'key',
@@ -201,14 +187,12 @@ export class CacheService {
 
         const gen = (await db.get('options', 'generation')) || 0;
 
-        svc = new CacheService(path, db, gen);
-        SERVICES.set(path, svc);
-        return svc;
+        return new CacheService(path, db, gen);
     }
 
     // Don't call this -- call start() instead.
-    constructor(path: string, db: IDBPDatabase<CacheSchema>, gen: number) {
-        this._path = path;
+    constructor(path: string, db: IDBPDatabase<CacheSchema<Content>>, gen: number) {
+        super(path);
         this._db = db;
         this._gen = gen;
         this._mutate_task = nonReentrant(() => this._mutate());
@@ -252,40 +236,35 @@ export class CacheService {
 
     // Internal stuff past this point
 
-    _onConnect(port: browser.runtime.Port) {
+    onConnect(port: ClientPort<Content>) {
         this._pending.inc_gen = true;
         this._mutate_task();
 
         this._clients.add(port);
-
-        port.onMessage.addListener(msg => {
-            const m = msg as Message<CacheContent>;
-            switch (m.type) {
-                case 'fetch':
-                    this._onFetch(port, m.keys).catch(console.log);
-                    break;
-                case 'update':
-                    this._onEntry(port, m.entries).catch(console.log);
-                    break;
-                default:
-                    // Perhaps we are speaking different protocol versions;
-                    // ignore unknown messages.
-                    console.warn(`${this._path}: Received unknown message: ${JSON.stringify(m)}`);
-            }
-        });
-
-        port.onDisconnect.addListener(p => {
-            if (p.error) {
-                console.warn(`Port disconnected: ${JSON.stringify(p.error)}`);
-            }
-            this._clients.delete(port);
-        });
     }
 
-    async _onFetch(port: browser.runtime.Port, keys: string[]) {
+    onDisconnect(port: ClientPort<Content>) {
+        if (port.error) {
+            console.warn(`Port disconnected: ${JSON.stringify(port.error)}`);
+        }
+        this._clients.delete(port);
+    }
+
+    onNotify(port: ClientPort<Content>, msg: ClientMsg<Content>) {
+        switch (msg.$type) {
+            case 'fetch':
+                this._onFetch(port, msg.keys).catch(console.log);
+                break;
+            case 'update':
+                this._onEntry(port, msg.entries).catch(console.log);
+                break;
+        }
+    }
+
+    private async _onFetch(port: ClientPort<Content>, keys: string[]) {
         const txn = await this._db.transaction('cache');
 
-        const entries = [];
+        const entries: {key: string, value: Content}[] = [];
 
         for (const key of keys) {
             const ent = await txn.store.get(key);
@@ -305,14 +284,14 @@ export class CacheService {
 
         // We send early to reduce latency on the client side, even though
         // there's risk of a conflict and the client receiving stale data.
-        this._send(port, {type: 'update', entries});
+        port.notify({$type: 'update', entries});
 
         await txn.done;
         this._mutate_task();
     }
 
-    async _onEntry(port: browser.runtime.Port,
-                   entries: {key: string, value: CacheContent}[])
+    private async _onEntry(port: ClientPort<Content>,
+                           entries: {key: string, value: Content}[])
     {
         for (const ent of entries) {
             this._pending.updates.set(ent.key, ent.value);
@@ -320,7 +299,7 @@ export class CacheService {
         this._mutate_task();
     }
 
-    async _mutate(): Promise<void> {
+    private async _mutate(): Promise<void> {
         // Collects the set of updated entries to be reported to clients.
         //
         // NOTE: We use a Map here and convert to an array later so that if we
@@ -378,10 +357,12 @@ export class CacheService {
         // changed.
         const entries = [];
         for (const [key, value] of updated) entries.push({key, value});
-        if (entries.length > 0) this._broadcast({type: 'update', entries});
+        if (entries.length > 0) this._broadcast({$type: 'update', entries});
     }
 
-    async _gc(updates: Map<string, CacheContent | undefined>): Promise<Map<string, CacheContent>> {
+    private async _gc(
+        updates: Map<string, Content | undefined>
+    ): Promise<Map<string, Content>> {
         const updated = new Map();
         const expired = [];
         const txn = this._db.transaction('cache', 'readwrite');
@@ -411,18 +392,13 @@ export class CacheService {
         await txn.done;
 
         if (expired.length > 0) {
-            this._broadcast({type: 'expired', keys: expired});
+            this._broadcast({$type: 'expired', keys: expired});
         }
 
         return updated;
     }
 
-    // Type-safe methods for sending messages
-    _send(port: browser.runtime.Port, m: Message<CacheContent>) {
-        port.postMessage(m);
-    }
-
-    _broadcast(m: Message<CacheContent>) {
-        for (const c of this._clients) c.postMessage(m);
+    private _broadcast(m: ServiceMsg<Content>) {
+        for (const c of this._clients) c.notify(m);
     }
 }
