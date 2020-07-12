@@ -72,13 +72,21 @@
 </template>
 
 <script>
-import {asyncEvent, urlsInTree, urlToOpen, TaskMonitor} from '../util';
-import {isURLStashable, rootFolderWarning, tabStashTree} from '../stash';
-import {isInFolder} from '../model';
+import Vue, {PropType} from 'vue';
+
+import launch from '../launch-vue';
+import {
+    asyncEvent, urlsInTree, urlToOpen, TaskMonitor, resolveNamed,
+} from '../util';
+import {
+    isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
+} from '../stash';
+import {isInFolder, StashState} from '../model';
+import Options from '../options-model';
 import {Cache} from '../cache-client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
-export default {
+const Main = Vue.extend({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -89,6 +97,17 @@ export default {
         Menu: require('../components/menu.vue').default,
         Notification: require('../components/notification.vue').default,
         ProgressDialog: require('../components/progress-dialog.vue').default,
+    },
+
+    props: {
+        unstashed_tabs: Object,
+        stashed_tabs: Object,
+        root_id: String,
+        my_version: String,
+        local_options: Object,
+        sync_options: Object,
+        metadata_cache: Object,
+        root_folder_warning: Object,
     },
 
     data: () => ({
@@ -196,7 +215,38 @@ export default {
             }
         }),
     },
-};
+});
+
+export default Main;
+
+launch(Main, async() => {
+    const p = await resolveNamed({
+        state: StashState.make(),
+        root: rootFolder(),
+        win: browser.windows.getCurrent(),
+        curtab: browser.tabs.getCurrent(),
+        extinfo: browser.management.getSelf(),
+        localopts: Options.local(),
+        syncopts: Options.sync(),
+        warning: rootFolderWarning(),
+    });
+
+    // For debugging purposes only...
+    window.metadata_cache = Cache.open('bookmarks');
+    window.favicon_cache = Cache.open('favicons');
+    window.stash_state = p.state;
+
+    return {
+        unstashed_tabs: p.state.wins_by_id.get(p.win.id),
+        stashed_tabs: p.state.bms_by_id.get(p.root.id),
+        root_id: p.root.id,
+        my_version: p.extinfo.version,
+        local_options: p.localopts,
+        sync_options: p.syncopts,
+        metadata_cache: Cache.open('bookmarks'),
+        root_folder_warning: p.warning,
+    };
+});
 </script>
 
 <style>
