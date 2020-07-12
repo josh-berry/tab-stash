@@ -1,6 +1,6 @@
 <template>
     <ModalBackdrop @click="$emit('close')"
-                   @keydown.esc.prevent="$emit('close')">
+                   @keydown.esc.prevent.stop="$emit('close')">
         <div ref="dialog" class="dialog" v-bind="$attrs" v-on="$listeners"
              @click.stop="">
             <slot></slot>

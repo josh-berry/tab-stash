@@ -1,11 +1,11 @@
 <template>
 <details ref="details" :class="$style.details"
-         @toggle="toggle" @keydown.esc.prevent="close">
+         @toggle="toggle" @keydown.esc.prevent.stop="close">
   <!-- NOTE: This isn't quite the same as <modal-backdrop> because it doesn't
        contain the thing we're showing. -->
-  <div :class="$style.modal" @click="close"></div>
+  <div :class="$style.modal" @click.prevent.stop="close"></div>
   <summary :class="{[$style.summary]: true, [summaryClass]: true}"><slot name="summary">{{name}}</slot></summary>
-  <nav ref="inner" :class="$style.nav" tabIndex="0" @click="close" @focusout="focusout">
+  <nav ref="inner" :class="$style.nav" tabIndex="0" @click.prevent.stop="close" @focusout="focusout">
     <slot></slot>
   </nav>
 </details>
