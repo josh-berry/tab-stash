@@ -138,6 +138,7 @@ a:hover {
 }
 a:active, a:focus {
     box-shadow: none;
+    background-color: var(--userlink-hover-bg);
     color: var(--userlink-active-fg);
 }
 
