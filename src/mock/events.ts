@@ -8,23 +8,31 @@ let reject: ((e: Error) => void) | undefined;
 let requested_count: number = 0;
 let delivered_count: number = 0;
 
-type Args<F extends (...args: any[]) => any> =
-    F extends (...args: infer A) => any ? A : void;
+type Args<F extends Function> =
+    F extends (...args: infer A) => any ? A : never;
 
-export class MockEventDispatcher<Fn extends (...args: any[]) => void> {
+export class MockEventDispatcher<L extends Function> implements EvListener<L> {
     name: string;
-    _listeners: Fn[] = [];
+    _listeners: Set<L> = new Set();
 
     constructor(name: string) {
         this.name = name;
     }
 
-    addListener(l: Fn) {
+    addListener(l: L) {
         expect(l).to.be.a('function');
-        this._listeners.push(l);
+        this._listeners.add(l);
     }
 
-    send(...args: Args<Fn>) {
+    removeListener(l: L) {
+        expect(l).to.be.a('function');
+        expect(this._listeners).to.include(l);
+        this._listeners.delete(l);
+    }
+
+    hasListener(l: L) { return this._listeners.has(l); }
+
+    send(...args: Args<L>) {
         queue.push(() => {
             if (verbose) console.log(`[${this.name}] `, ...args);
             for (const fn of this._listeners) fn(...args);
@@ -48,6 +56,30 @@ export function drain(count: number): Promise<void> {
         reject = rej;
         if (queue.length > 0) setImmediate(deliver);
     });
+}
+
+export async function waitOne<L extends (...args: any[]) => void, R>(
+    trigger: () => Promise<R>,
+    event: EvListener<L>,
+    listener?: L,
+    drainCount?: number,
+): Promise<[R, Args<L>]> {
+    let resolved = false;
+    let ev: Args<L> | undefined;
+
+    const wrapped: L = ((...args: Args<L>) => {
+        ev = args;
+        event.removeListener(wrapped);
+        resolved = true;
+        if (listener) listener(...args);
+    }) as L;
+    event.addListener(wrapped);
+
+    const p = trigger();
+    await drain(drainCount ?? 1);
+    const value = await p;
+    expect(resolved).to.be.true;
+    return [value, ev!];
 }
 
 export function expect_empty() {
