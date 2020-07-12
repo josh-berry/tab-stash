@@ -11,37 +11,39 @@
 </Draggable>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue, {PropType} from 'vue';
+import {SortableEvent} from 'sortablejs';
+
+import {CacheEntry} from '../cache-client';
+import {ModelLeaf, ModelParent} from '../model';
+
+export default Vue.extend({
     components: {
         Draggable: require('vuedraggable'),
         Folder: require('./folder.vue').default,
     },
 
     props: {
-        folders: Array,
-        filter: Function,
-        userFilter: Function,
+        folders: Array as PropType<ModelParent[]>,
+        filter: Function as PropType<(i: ModelLeaf) => boolean>,
+        userFilter: Function as PropType<(i: ModelLeaf) => boolean>,
 
         // Whether to hide a folder entirely if it has no elements (e.g. because
         // we're filtering at the moment)
         hideIfEmpty: Boolean,
 
-        metadataCache: Object,
+        metadataCache: Object as PropType<CacheEntry<{collapsed: boolean}>>,
     },
 
     methods: {
-        move: function(ev) {
-            browser.bookmarks.move(ev.item.__vue__.id, {
-                index: ev.newIndex,
+        move(ev: SortableEvent) {
+            browser.bookmarks.move((<any>ev.item).__vue__.id, {
+                index: ev.newIndex!,
             }).catch(console.log);
         },
-
-        setCollapsed: function(c) {
-            for (let f of this.$refs.folders) f.collapsed = c;
-        },
     },
-};
+});
 </script>
 
 <style>
