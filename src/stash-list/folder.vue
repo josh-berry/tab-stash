@@ -71,17 +71,21 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 </div>
 </template>
 
-<script>
-import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from '../util';
+<script lang="ts">
+import Vue, {PropType} from 'vue';
+import {SortableEvent} from 'sortablejs';
+
+import {altKeyName, bgKeyName, bgKeyPressed, logErrors} from '../util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     stashTabsInWindow, stashTabs, restoreTabs,
     closeTabs, hideStashedTabs, refocusAwayFromTabs,
 } from '../stash';
 
-import {Cache} from '../cache-client';
+import {Cache, CacheEntry} from '../cache-client';
+import {ModelLeaf, Tab, Window, Bookmark} from '../model';
 
-export default {
+export default Vue.extend({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -93,20 +97,20 @@ export default {
     props: {
         // View filter functions
         filter: Function,
-        userFilter: Function,
+        userFilter: Function as PropType<(item: ModelLeaf) => boolean>,
         isItemStashed: Function,
         hideIfEmpty: Boolean,
 
         // Common
-        id: [String, Number],
-        children: Array, // tabs in this window, OR bookmarks in this folder
+        id: String,
+        children: Array as PropType<ModelLeaf[]>,
         title: String,
 
         // Bookmark folder
         dateAdded: Number,
         allowRenameDelete: Boolean,
 
-        metadata: Object,
+        metadata: Object as PropType<CacheEntry<{collapsed: boolean}>>,
     },
 
     computed: {
@@ -114,41 +118,41 @@ export default {
         bgKey: bgKeyName,
 
         collapsed: {
-            get() {
+            get(): boolean {
                 const m = this.metadata.value;
                 if (m) return !! m.collapsed;
                 return false;
             },
-            set(collapsed) {
+            set(collapsed: boolean) {
                 let m = {...this.metadata.value};
                 m.collapsed = collapsed;
                 Cache.open('bookmarks').set(this.metadata.key, m);
             },
         },
 
-        isWindow: function() { return ! this.id; },
-        defaultTitle: function() {
+        isWindow(): boolean { return ! this.id; },
+        defaultTitle(): string {
             return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
         },
-        nonDefaultTitle: function() {
+        nonDefaultTitle(): string {
             return getFolderNameISODate(this.title) !== null
                 ? '' : this.title;
         },
-        filteredChildren: function() {
+        filteredChildren(): ModelLeaf[] {
             if (this.filter) {
                 return this.children.filter(c => c && c.url && this.filter(c));
             } else {
                 return this.children.filter(c => c && c.url);
             }
         },
-        visibleChildren: function() {
+        visibleChildren(): ModelLeaf[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(this.userFilter);
             } else {
                 return this.filteredChildren;
             }
         },
-        userHiddenChildren: function() {
+        userHiddenChildren(): ModelLeaf[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(
                     c => c && ! this.userFilter(c));
@@ -159,16 +163,16 @@ export default {
     },
 
     methods: {
-        newGroup: asyncEvent(async function(ev) {
+        async newGroup() {logErrors(async() => {
             await browser.bookmarks.create({
                 parentId: (await rootFolder()).id,
                 title: genDefaultFolderName(new Date()),
                 type: 'folder',
                 index: 0, // Newest folders should show up on top
             });
-        }),
+        })},
 
-        stash: asyncEvent(async function(ev) {
+        async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             if (this.id) {
                 // Stashing possibly-selected open tabs into the current group.
                 await stashTabsInWindow(undefined, {
@@ -178,11 +182,11 @@ export default {
             } else {
                 // This is the "Unstashed Tabs" group--stash everything in
                 // "Unstashed Tabs" to a new group.
-                await stashTabs(this.visibleChildren, {close: ! ev.altKey});
+                await stashTabs(this.visibleChildren as Tab[], {close: ! ev.altKey});
             }
-        }),
+        })},
 
-        stashOne: asyncEvent(async function(ev) {
+        async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             // Stashing the front tab to the unstashed-tabs group doesn't make
             // sense
             console.assert(this.id);
@@ -194,68 +198,67 @@ export default {
                 folderId: this.id,
                 close: ! ev.altKey,
             });
-        }),
+        })},
 
-        restoreAll: asyncEvent(async function(ev) {
+        async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
             console.assert(this.id); // Can't restore already-open tabs
 
-            const bg = bgKeyPressed(ev);
-
-            // Figure out which tab WE are.  Do this before opening new tabs,
-            // since that will disturb the browser's focus.
-            let curtab = await browser.tabs.getCurrent();
-
             await restoreTabs(this.children.map(item => item.url),
-                             {background: bg});
-        }),
+                             {background: bgKeyPressed(ev)});
+        })},
 
-        remove: asyncEvent(async function(ev) {
+        async remove() {logErrors(async() => {
             if (this.id) {
                 // If we have any hidden tabs stored for these bookmarks, we
                 // should remove them first.  We do this explicitly to avoid the
                 // momentary reshuffling of hidden tabs into the "Unstashed
                 // Tabs" list which would happen if this was left to the garbage
                 // collector in index.js.
-                let tabs = this.children
-                    .map(bm => bm.related.find(t => t.isTab))
-                    .filter(t => t && t.hidden);
-                await browser.tabs.remove(tabs.map(t => t.id));
+                const tabs = this.children
+                    .map(bm => <Tab | undefined>(
+                            bm.related && bm.related.find(t => t instanceof Tab)))
+                    .filter(t => t?.hidden)
+                    .map(t => t?.id) as number[];
+                await browser.tabs.remove(tabs);
 
                 await browser.bookmarks.removeTree(this.id);
 
             } else {
                 // User has asked us to hide all unstashed tabs.
-                await closeTabs(this.visibleChildren);
+                await closeTabs(this.visibleChildren as Tab[]);
             }
-        }),
+        })},
 
-        removeStashed: asyncEvent(async function(ev) {
+        async removeStashed() {logErrors(async() => {
             if (this.id) throw new Error(
                 "Called removeStashed from bookmark folder");
 
             await hideStashedTabs(this.children.filter(
-                t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t)));
-        }),
+                t => t && ! (<Tab>t).hidden && ! (<Tab>t).pinned
+                       && this.isItemStashed(t)) as Tab[]);
+        })},
 
-        removeOpen: asyncEvent(async function(ev) {
+        async removeOpen(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             console.assert(! this.id);
+            const children = this.children as (Tab | undefined)[];
+
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
-                let tabs = this.children.filter(
+                const tabs = children.filter(
                     t => t && t.hidden && this.isItemStashed(t));
-                await closeTabs(tabs);
+                await closeTabs(tabs as Tab[]);
             } else {
                 // Closes ALL open tabs (stashed and unstashed).  This is just a
                 // convenience button for the "Unstashed Tabs" view.
                 //
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
-                let hide_tabs = this.children.filter(
+                const hide_tabs = children.filter(
                     t => t && ! t.hidden && ! t.pinned
-                           && this.isItemStashed(t));
-                let close_tabs = this.children.filter(
+                           && this.isItemStashed(t)) as Tab[];
+                const close_tabs = children.filter(
                     t => t && ! t.hidden && ! t.pinned
-                           && ! this.isItemStashed(t));
+                           && ! this.isItemStashed(t)) as Tab[];
 
                 await refocusAwayFromTabs(hide_tabs.concat(close_tabs));
 
@@ -263,33 +266,31 @@ export default {
                 browser.tabs.remove(close_tabs.map(t => t.id))
                     .catch(console.log);
             }
-        }),
+        })},
 
-        restoreAndRemove: asyncEvent(async function(ev) {
+        async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             console.assert(this.id); // Can't restore already-open tabs
 
             const bg = bgKeyPressed(ev);
-
-            // Figure out which tab WE are.  Do this before opening new tabs,
-            // since that will disturb the browser's focus.
-            let curtab = await browser.tabs.getCurrent();
 
             await restoreTabs(this.children.map(item => item.url),
                               {background: bg});
 
             // Discard opened tabs as requested.
             await browser.bookmarks.removeTree(this.id);
-        }),
+        })},
 
-        rename: function(title) {
+        rename(title: string) {
             if (title === '') {
                 // Give it a default name based on when the folder was created
                 title = genDefaultFolderName(new Date(this.dateAdded));
             }
-            browser.bookmarks.update(this.id, {title}).catch(console.log);
+
+            // <any> is needed to work around incorrect typing in web-ext-types
+            browser.bookmarks.update(this.id, <any>{title}).catch(console.log);
         },
 
-        move: asyncEvent(async function(ev) {
+        async move(ev: SortableEvent) {logErrors(async() => {
             // Move is somewhat complicated, since we can have a combination of
             // different types of tabs (open tabs vs bookmarks) and folders
             // (folder of open tabs vs folder of bookmarks), and each needs to
@@ -311,24 +312,24 @@ export default {
             //
             // Note that ev.from is the <draggable>, so we want the parent
             // <folder>.
-            const from_folder = ev.from.__vue__.$parent;
-            const item = ev.item.__vue__;
-            const tab = item.tab;
+            const from_folder = (<any>ev.from).__vue__.$parent;
+            const item = (<any>ev.item).__vue__;
+            const tab = (<any>item).tab;
 
             // Note that ev.to.children ALREADY reflects the updated state of
             // the list post-move, so we have to do some weird black-magic math
             // to determine which item got replaced, and thus the final index at
             // which to place the moved item in the model.
-            let new_model_idx;
+            let new_model_idx: number;
             if (this === from_folder) {
                 // Moving within the same folder, so this is a rotation.  The
                 // item was previously removed from oldIndex, so subsequent
                 // items would have rotated upwards, and then when it was
                 // reinserted, items after the new position would have rotated
                 // downwards again.
-                new_model_idx = ev.newIndex < ev.oldIndex
-                    ? ev.to.children[ev.newIndex + 1].__vue__.index
-                    : ev.to.children[ev.newIndex - 1].__vue__.index;
+                new_model_idx = ev.newIndex! < ev.oldIndex!
+                    ? (<any>ev.to.children[ev.newIndex! + 1]).__vue__.index
+                    : (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index;
 
             } else if (this.isWindow && tab) {
                 // Moving a bookmark with an open tab from a bookmark folder to
@@ -338,9 +339,9 @@ export default {
                 // however, we can't rely on oldIndex to tell us which way we're
                 // rotating, so we have to infer based on our neighbors.
                 if (ev.to.children.length > 1) {
-                    let prev_idx = ev.newIndex > 0
-                        ? ev.to.children[ev.newIndex - 1].__vue__.index
-                        : ev.to.children[1].__vue__.index - 1;
+                    const prev_idx: number = ev.newIndex! > 0
+                        ? (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index
+                        : (<any>ev.to.children[1]).__vue__.index - 1;
                     new_model_idx = tab.index < prev_idx
                         ? prev_idx
                         : prev_idx + 1;
@@ -359,9 +360,9 @@ export default {
                 //
                 // (NOTE: index > 1 above, since ev.to.children already contains
                 // the item we are moving.)
-                new_model_idx = ev.newIndex < ev.to.children.length - 1
-                    ? ev.to.children[ev.newIndex + 1].__vue__.index
-                    : ev.to.children[ev.newIndex - 1].__vue__.index + 1;
+                new_model_idx = ev.newIndex! < ev.to.children.length - 1
+                    ? (<any>ev.to.children[ev.newIndex! + 1]).__vue__.index
+                    : (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index + 1;
 
             } else {
                 // Moving from another folder, to an empty folder.  Just assume
@@ -409,9 +410,7 @@ export default {
                 }
 
                 console.assert(tid !== undefined);
-                await browser.tabs.move(tid, {
-                    windowId: this.id, index: new_model_idx,
-                });
+                await browser.tabs.move(tid, {index: new_model_idx});
                 await browser.tabs.show(tid);
 
                 // Remove the restored bookmark
@@ -420,16 +419,16 @@ export default {
                     await this._maybeCleanupEmptyFolder(from_folder, item);
                 }
             }
-        }),
+        })},
 
-        _maybeCleanupEmptyFolder: async function(folder, removing_item) {
+        async _maybeCleanupEmptyFolder(folder: Window | Bookmark, removing_item: ModelLeaf) {
             // If the folder we are removing an item from is empty and has a
             // default name, remove the folder automatically so we don't leave
             // any empty stashes lying around unnecessarily.
 
-            if (folder.isWindow) return;
+            if (folder instanceof Window) return;
             if (folder.id === this.id) return;
-            if (getFolderNameISODate(folder.title) === null) return;
+            if (getFolderNameISODate(folder.title ?? '') === null) return;
 
             // Now we check if the folder is empty, or about to be.  Note that
             // there are three cases here:
@@ -446,10 +445,12 @@ export default {
             //
             // The following paragraph detects case #3 and returns early.
 
-            if (folder.children.length > 1) return;
-            if (folder.children.length === 1
-                && folder.children[0].id !== removing_item.id) {
-                return;
+            if (folder.children) {
+                if (folder.children.length > 1) return;
+                if (folder.children.length === 1
+                    && folder.children[0]?.id !== removing_item.id) {
+                    return;
+                }
             }
 
             // If we reach this point, we have an empty, unnamed bookmark
@@ -457,7 +458,7 @@ export default {
             await browser.bookmarks.remove(folder.id);
         },
     },
-};
+});
 </script>
 
 <style>

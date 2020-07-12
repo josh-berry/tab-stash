@@ -5,7 +5,7 @@
 
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs
 declare namespace browser.tabs {
-    function discard(tab_ids: number[]): Promise;
+    function discard(tab_ids: number[]): Promise<void>;
 }
 
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserSettings

@@ -481,11 +481,11 @@ export async function bookmarkTabs(
 }
 
 export async function restoreTabs(
-    urls: string[],
+    urls: (string | undefined)[],
     options: {background?: boolean}
 ): Promise<browser.tabs.Tab[]> {
     // Remove duplicate URLs so we only try to restore each URL once.
-    urls = Array.from(new Set(urls));
+    const urlset = new Set(urls.filter(url => url) as string[]);
 
     // First collect some info from the browser; done in parallel to reduce
     // latency.
@@ -519,7 +519,7 @@ export async function restoreTabs(
     // Let's figure out which strategy to use for each tab, and kick it off.
     let ps: Promise<browser.tabs.Tab>[] = [];
     let index = wintabs.length;
-    for (const url of urls) {
+    for (const url of urlset) {
         const open = wintabs.find(tab => (tab.url === url
                                           || urlToOpen(tab.url!) === url));
         if (open && open.id !== undefined) {
@@ -571,9 +571,10 @@ export async function restoreTabs(
     if (! options || ! options.background) {
         // Special case: If we were asked to open only one tab AND that tab is
         // already open, just switch to it.
-        if (urls.length == 1 && tabs.length == 0) {
-            const open_tab = wintabs.find(t => t.url === urls[0]
-                                          || urlToOpen(t.url!) === urls[0]);
+        if (urlset.size == 1 && tabs.length == 0) {
+            const url = urlset.values().next().value;
+            const open_tab = wintabs.find(t => t.url === url
+                                          || urlToOpen(t.url!) === url);
             // #undef Since we opened no tabs, yet we were asked to open one
             // URL, the tab must be open and therefore listed in /wintabs/.
             await browser.tabs.update(open_tab!.id, {active: true});

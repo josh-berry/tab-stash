@@ -9,6 +9,7 @@
   "devDependencies": {
     "@types/chai": "*",
     "@types/mocha": "*",
+    "@types/sortablejs": "^1.10.4",
     "chai": "*",
     "copyfiles": "^2.3.0",
     "css-loader": "*",
