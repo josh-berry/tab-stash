@@ -1,4 +1,5 @@
 import StoredObject from './stored-object';
+import {Promised} from './util';
 
 // The default tab stash options.  Sync defaults are stored in
 // browser.storage.sync, and local defaults are stored in browser.storage.local.
@@ -43,9 +44,13 @@ const LOCAL_DEFAULTS = {
     autodiscard_target_age_min: <number>10,
 };
 
-export default {
+const EXPORTS = {
     local: () => StoredObject.get('local', 'options', LOCAL_DEFAULTS),
     sync: () => StoredObject.get('sync', 'options', SYNC_DEFAULTS),
     LOCAL_DEFAULTS,
     SYNC_DEFAULTS,
 };
+export default EXPORTS;
+
+export type LocalOptions = Promised<ReturnType<typeof EXPORTS['local']>>;
+export type SyncOptions = Promised<ReturnType<typeof EXPORTS['sync']>>;

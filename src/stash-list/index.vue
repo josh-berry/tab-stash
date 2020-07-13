@@ -71,18 +71,18 @@
 </div>
 </template>
 
-<script>
+<script lang="ts">
 import Vue, {PropType} from 'vue';
 
 import launch from '../launch-vue';
 import {
-    asyncEvent, urlsInTree, urlToOpen, TaskMonitor, resolveNamed,
+    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors,
 } from '../util';
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
-import {isInFolder, StashState} from '../model';
-import Options from '../options-model';
+import {StashState, Bookmark, Tab} from '../model';
+import Options, { LocalOptions, SyncOptions } from '../options-model';
 import {Cache} from '../cache-client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -100,44 +100,47 @@ const Main = Vue.extend({
     },
 
     props: {
-        unstashed_tabs: Object,
-        stashed_tabs: Object,
+        unstashed_tabs: Object as PropType<Window>,
+        stashed_tabs: Object as PropType<Bookmark>,
         root_id: String,
         my_version: String,
-        local_options: Object,
-        sync_options: Object,
-        metadata_cache: Object,
-        root_folder_warning: Object,
+        local_options: Object as PropType<LocalOptions>,
+        sync_options: Object as PropType<SyncOptions>,
+        metadata_cache: Object as PropType<Cache<{collapsed: boolean}>>,
+        root_folder_warning: Object as PropType<
+            Promised<ReturnType<typeof rootFolderWarning>>>,
     },
 
     data: () => ({
         collapsed: false,
         searchtext: '',
-        dialog: undefined,
+        dialog: undefined as undefined | {class: string, props: any},
     }),
 
     computed: {
-        recently_updated: function() {
+        recently_updated(): boolean {
             return this.local_options.last_notified_version !== this.my_version;
         },
 
-        counts: function() {
+        counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
-            for (let f of this.stashed_tabs.children) {
-                if (f.children) {
+            for (const f of this.stashed_tabs.children!) {
+                if (f?.children) {
                     tabs += f.children.length;
                     groups++;
                 }
             }
             return {tabs, groups};
         },
-        search_placeholder: function() {
+
+        search_placeholder(): string {
             const counts = this.counts;
             const groups = counts.groups == 1 ? 'group' : 'groups';
             const tabs = counts.tabs == 1 ? 'tab' : 'tabs';
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
-        text_matcher: function() {
+
+        text_matcher(): (txt: string) => boolean {
             if (this.searchtext == '') return txt => true;
             try {
                 let re = new RegExp(this.searchtext, 'iu');
@@ -150,24 +153,26 @@ const Main = Vue.extend({
     },
 
     methods: {
-        collapseAll: function(ev) {
+        collapseAll() {
             this.collapsed = ! this.collapsed;
-            this.$refs.unstashed.collapsed = this.collapsed;
-            this.$refs.stashed.setCollapsed(this.collapsed);
+            (<any>this.$refs.unstashed).collapsed = this.collapsed;
+            (<any>this.$refs.stashed).setCollapsed(this.collapsed);
         },
 
-        search_filter: function(i) {
-            return this.text_matcher(i.title) || this.text_matcher(i.url);
+        search_filter(i: Bookmark | Tab) {
+            if (this.searchtext === '') return true;
+            return (i.title && this.text_matcher(i.title))
+                || (i.url && this.text_matcher(i.url));
         },
 
-        unstashedFilter(t) {
-            return ! t.hidden && ! t.pinned
+        unstashedFilter(t: Tab) {
+            return ! t.hidden && ! t.pinned && t.url
                 && isURLStashable(t.url) && ! this.isItemStashed(t);
         },
 
-        isItemStashed(i) {
-            return i.related.find(
-                i => i.isBookmark && i.isInFolder(this.root_id));
+        isItemStashed(i: Tab) {
+            return i.related && i.related.find(
+                i => i instanceof Bookmark && i.isInFolder(this.root_id));
         },
 
         showOptions() {
@@ -188,7 +193,7 @@ const Main = Vue.extend({
             };
         },
 
-        fetchMissingFavicons: asyncEvent(async function() {
+        async fetchMissingFavicons() { logErrors(async() => {
             const cache = Cache.open('favicons');
             const urls = new Set(urlsInTree(await tabStashTree()));
 
@@ -213,7 +218,7 @@ const Main = Vue.extend({
             } finally {
                 this.dialog = undefined;
             }
-        }),
+        })},
     },
 });
 
@@ -232,12 +237,12 @@ launch(Main, async() => {
     });
 
     // For debugging purposes only...
-    window.metadata_cache = Cache.open('bookmarks');
-    window.favicon_cache = Cache.open('favicons');
-    window.stash_state = p.state;
+    (<any>globalThis).metadata_cache = Cache.open('bookmarks');
+    (<any>globalThis).favicon_cache = Cache.open('favicons');
+    (<any>globalThis).stash_state = p.state;
 
     return {
-        unstashed_tabs: p.state.wins_by_id.get(p.win.id),
+        unstashed_tabs: p.state.wins_by_id.get(p.win.id!),
         stashed_tabs: p.state.bms_by_id.get(p.root.id),
         root_id: p.root.id,
         my_version: p.extinfo.version,
