@@ -11,33 +11,34 @@
 </details>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue from 'vue';
+
+export default Vue.extend({
     props: {
         name: String,
-        summaryClass: [String, Object],
+        summaryClass: String,
     },
     methods: {
-        toggle: function() {
-            if (this.$refs.details.open) {
-                this.$refs.inner.focus({preventScroll: true});
-                this.$refs.inner.scrollIntoView(
-                    false, {block: 'nearest', inline: 'nearest'});
+        toggle() {
+            if ((<HTMLDetailsElement>this.$refs.details).open) {
+                (<HTMLElement>this.$refs.inner).focus({preventScroll: true});
+                (<HTMLElement>this.$refs.inner).scrollIntoView(
+                    {block: 'nearest', inline: 'nearest'});
             }
         },
-        focusout: function() {
-            if (this.$refs.inner.closest("details:focus-within") !== this.$refs.details) {
+        focusout() {
+            if ((<HTMLElement>this.$refs.inner).closest("details:focus-within")
+                    !== this.$refs.details)
+            {
                 this.close();
             }
         },
-        close: function() {
-            this.$refs.details.open = false;
-            // Clear focus, since otherwise we will wind up with a focus outline
-            // around the <summary>.
-            //this.$refs.details.blur();
+        close() {
+            (<HTMLDetailsElement>this.$refs.details).open = false;
         },
     },
-}
+});
 </script>
 
 <style module>
