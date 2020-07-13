@@ -30,14 +30,14 @@ class MockPort {
     }
 
     disconnect() {
-        this.error = {message: 'Disconnected'};
-        this._peer.error = {message: 'Disconnected'};
+        this.error = new Error('Disconnected');
+        this._peer.error = new Error('Disconnected');
         this._peer.onDisconnect.send(this);
     }
 
     postMessage(msg: any) {
-        if (this.error) return;
-        if (this._peer.error) return;
+        if (this.error) throw this.error;
+        if (this._peer.error) throw this._peer.error;
 
         if (verbose) console.log(`${this.id} -> ${this._peer.id}`, msg);
         this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)));

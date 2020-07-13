@@ -199,6 +199,54 @@ describe('util/nanoservice', function() {
                 expect(e.request).to.equal('void');
             }
         });
+
+        it('drops notifications to disconnected ports', async function() {
+            const [client, svc] = await portpair('test');
+            svc.disconnect();
+            await events.drain(1);
+            await client.notify(42);
+        });
+
+        it('throws when requesting from a disconnected port', async function() {
+            const [client, svc] = await portpair('test');
+            svc.disconnect();
+            await events.drain(1);
+            try {
+                await client.notify(42);
+                expect(false).to.be.true;
+            } catch(e) {
+                expect(e).to.be.instanceOf(Error);
+                expect(e).to.not.be.instanceOf(M.RemoteNanoError);
+            }
+        });
+
+        it('drops replies to disconnected ports', async function() {
+            const [client, svc] = await portpair('test');
+            const dest = new M.NanoPort(svc);
+            const p = client.request(42);
+            dest.disconnect();
+            await events.drain(2);
+            try {
+                await p;
+                expect(false).to.be.true;
+            } catch (e) {
+                expect(e).to.be.instanceOf(Error);
+                expect(e).to.not.be.instanceOf(M.RemoteNanoError);
+            }
+        });
+
+        it('rejects pending requests when disconnected', async function() {
+            const [client, ] = await portpair('test');
+            const p = client.request(42)
+                .then(() => {throw new Error("Unreachable code");})
+                .catch(e => {
+                    expect(e).to.be.instanceOf(Error);
+                    expect(e).to.not.be.instanceOf(M.RemoteNanoError);
+                });
+            client.disconnect(); // <== key difference from the above test
+            await events.drain(2);
+            await p;
+        });
     });
 
     describe('NanoService', function() {

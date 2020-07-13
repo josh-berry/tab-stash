@@ -100,7 +100,10 @@ export class NanoPort<SentMsg extends Send, ReceivedMsg extends Send> {
     constructor(port: Port) {
         this.port = port;
 
-        this.port.onDisconnect.addListener(() => this.onDisconnect(this));
+        this.port.onDisconnect.addListener(() => {
+            this._flushPendingOnDisconnect();
+            this.onDisconnect(this);
+        });
 
         this.port.onMessage.addListener(((msg: Envelope<ReceivedMsg>) => {
             if (! msg) return;
@@ -120,7 +123,10 @@ export class NanoPort<SentMsg extends Send, ReceivedMsg extends Send> {
 
     get error(): undefined | {message?: string} { return this.port.error; }
 
-    disconnect() { this.port.disconnect(); }
+    disconnect() {
+        this.port.disconnect();
+        this._flushPendingOnDisconnect();
+    }
 
     request(request: SentMsg, options?: {timeout_ms?: number}): Promise<ReceivedMsg> {
         return new Promise((resolve, reject) => {
@@ -143,7 +149,19 @@ export class NanoPort<SentMsg extends Send, ReceivedMsg extends Send> {
     }
 
     notify(notify: SentMsg) {
-        this.port.postMessage({notify} as NotifyEnvelope<SentMsg>);
+        try {
+            this.port.postMessage({notify} as NotifyEnvelope<SentMsg>);
+        } catch (e) {
+            // If we are unable to send due to a disconnected port, the message
+            // is simply dropped.
+        }
+    }
+
+    private _flushPendingOnDisconnect() {
+        for (const [, pending] of this.pending) {
+            pending.reject(new Error("Disconnected"));
+        }
+        this.pending.clear();
     }
 
     private async _handleRequest(msg: RequestEnvelope<ReceivedMsg>) {
@@ -172,7 +190,13 @@ export class NanoPort<SentMsg extends Send, ReceivedMsg extends Send> {
         }
 
         const resmsg: ResponseEnvelope<SentMsg> = {tag: msg.tag, ...res};
-        this.port.postMessage(resmsg);
+
+        try {
+            this.port.postMessage(resmsg);
+        } catch (e) {
+            // If the other side becomes disconnected before we can send the
+            // reply, just drop it.  We should get a disconnection event later.
+        }
     }
 
     private _handleResponse(msg: ResponseEnvelope<ReceivedMsg>) {
