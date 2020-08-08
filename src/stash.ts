@@ -1,15 +1,15 @@
-/// <reference path="browser.d.ts" />
+import {browser, Bookmarks, Tabs} from 'webextension-polyfill-ts';
 
 import * as Options from './model/options';
 
 import {urlToOpen, TaskMonitor} from './util';
 
-type BookmarkTreeNode = browser.bookmarks.BookmarkTreeNode;
+type BookmarkTreeNode = Bookmarks.BookmarkTreeNode;
 
-// Interface used in place of browser.tabs.Tab, defining only the fields we care
-// about for the purposes of stashing and restoring tabs.  Using this interface
-// makes the API more permissive, because we can also take model objects in
-// addition to official browser objects.
+// Interface used in place of Tabs.Tab, defining only the fields we care about
+// for the purposes of stashing and restoring tabs.  Using this interface makes
+// the API more permissive, because we can also take model objects in addition
+// to official browser objects.
 interface PartialTabInfo {
     id?: number,
     title?: string,
@@ -494,7 +494,7 @@ export async function bookmarkTabs(
 export async function restoreTabs(
     urls: (string | undefined)[],
     options: {background?: boolean}
-): Promise<browser.tabs.Tab[]> {
+): Promise<Tabs.Tab[]> {
     // Remove duplicate URLs so we only try to restore each URL once.
     const urlset = new Set(urls.filter(url => url) as string[]);
 
@@ -528,7 +528,7 @@ export async function restoreTabs(
     // 4. Open a new tab.
     //
     // Let's figure out which strategy to use for each tab, and kick it off.
-    let ps: Promise<browser.tabs.Tab>[] = [];
+    const ps: Promise<Tabs.Tab>[] = [];
     let index = wintabs.length;
     for (const url of urlset) {
         const open = wintabs.find(tab => (tab.url === url
@@ -576,7 +576,7 @@ export async function restoreTabs(
 
     // NOTE: Can't do this with .map() since await doesn't work in a nested
     // function context. :/
-    let tabs: browser.tabs.Tab[] = [];
+    let tabs: Tabs.Tab[] = [];
     for (let p of ps) tabs.push(await p);
 
     if (! options || ! options.background) {

@@ -1,4 +1,7 @@
 // istanbul ignore file
+
+import {browser, Tabs, Menus} from 'webextension-polyfill-ts';
+
 import {
     asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
     resolveNamed,
@@ -34,7 +37,7 @@ const model = the.model;
 // correspond to field names in the commands object.
 //
 
-function menu(idprefix: string, contexts: browser.menus.ContextType[],
+function menu(idprefix: string, contexts: Menus.ContextType[],
               def: string[][])
 {
     for (let [id, title] of def) {
@@ -97,7 +100,7 @@ function show_stash_if_desired() {
     }
 }
 
-const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
+const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
     // permission to do so per Firefox's API rules.
@@ -110,31 +113,36 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
         await restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
 
-    stash_all: async function(tab: browser.tabs.Tab) {
+    stash_all: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: true});
     },
 
-    stash_one: async function(tab: browser.tabs.Tab) {
+    stash_one: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
             close: true,
         });
     },
 
-    stash_one_newgroup: async function(tab: browser.tabs.Tab) {
+    stash_one_newgroup: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabs([tab], {close: true});
     },
 
-    copy_all: async function(tab: browser.tabs.Tab) {
+    copy_all: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: false});
     },
 
-    copy_one: async function(tab: browser.tabs.Tab) {
+    copy_one: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
             close: false,
@@ -287,7 +295,7 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
     let tabs = await browser.tabs.query({discarded: false});
     let tab_count = tabs.length;
     let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
-        .sort((a, b) => a.lastAccessed - b.lastAccessed);
+        .sort((a, b) => (a.lastAccessed ?? 0) - (b.lastAccessed ?? 0));
 
     const min_keep_tabs = model.options.local.state.autodiscard_min_keep_tabs;
     const target_tab_count = model.options.local.state.autodiscard_target_tab_count;
@@ -310,7 +318,7 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
         let oldest_tab = candidate_tabs.pop();
         if (! oldest_tab) break;
 
-        let age = now - oldest_tab.lastAccessed;
+        const age = now - (oldest_tab.lastAccessed ?? 0);
         if (age > age_cutoff) {
             --tab_count;
             // #undef We filter no-id tabs out of /candidate_tabs/ above

@@ -24,6 +24,7 @@
 </template>
 
 <script lang="ts">
+import {browser} from 'webextension-polyfill-ts';
 import Vue, {PropType} from 'vue';
 
 import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from '../util';

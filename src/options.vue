@@ -147,8 +147,8 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
 import launch from './launch-vue';
+import Vue from 'vue';
 
 import * as Options from './model/options';
 

@@ -1,17 +1,19 @@
+import {browser, Manifest, Runtime} from 'webextension-polyfill-ts';
+
 import * as events from './events';
 
 let verbose = false;
 
-class MockPort {
+class MockPort implements Runtime.Port {
     id: string;
-    name?: string;
+    name: string;
     error?: object;
-    onDisconnect: events.MockEventDispatcher<(p: MockPort) => void>;
-    onMessage: events.MockEventDispatcher<(msg: any) => void>;
+    onDisconnect: events.MockEventDispatcher<(p: Runtime.Port) => void>;
+    onMessage: events.MockEventDispatcher<(msg: any, p: Runtime.Port) => void>;
 
     private _peer: MockPort;
 
-    static make_pair(id: number, name?: string): [MockPort, MockPort] {
+    static make_pair(id: number, name: string): [MockPort, MockPort] {
         const client = new MockPort(`C${id}`, name);
         const server = new MockPort(`S${id}`, name);
         client._peer = server;
@@ -19,7 +21,7 @@ class MockPort {
         return [client, server];
     }
 
-    constructor(id: string, name?: string) {
+    constructor(id: string, name: string) {
         this._peer = undefined!; // set later in make_pair()
         this.id = id;
         this.name = name;
@@ -42,7 +44,7 @@ class MockPort {
 
         // istanbul ignore next
         if (verbose) console.log(`${this.id} -> ${this._peer.id}`, msg);
-        this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)));
+        this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)), this);
     }
 }
 
@@ -68,10 +70,10 @@ export default (() => {
             exports.client_ports = [];
             exports.server_ports = [];
 
-            (<any>globalThis).browser.runtime = {
+            browser.runtime = {
                 getPlatformInfo() {
                     return new Promise((resolve, reject) => {
-                        resolve({os: 'unknown', arch: 'unknown'});
+                        resolve({os: 'linux', arch: 'x86-64'});
                     });
                 },
 
@@ -79,7 +81,7 @@ export default (() => {
 
                 connect(extn_id?: string, info?: {name?: string}): MockPort {
                     const id = exports.client_ports.length;
-                    const name = info && info.name;
+                    const name = info?.name ? info.name : '<unnamed>';
                     const [client, server] = MockPort.make_pair(id, name);
 
                     exports.client_ports.push(client);
@@ -92,7 +94,27 @@ export default (() => {
                     }
 
                     return client;
-                }
+                },
+
+                async getBackgroundPage() { throw "unimplemented"; },
+                async openOptionsPage() { throw "unimplemented"; },
+                getManifest(): Manifest.ManifestBase { throw "unimplemented"; },
+                getURL(path: string): string { throw "unimplemented"; },
+                async setUninstallURL(url?: string) { throw "unimplemented"; },
+                reload() { throw "unimplemented"; },
+                connectNative(app: string): Runtime.Port { throw "unimplemented"; },
+                async sendMessage() { throw "unimplemented"; },
+                async sendNativeMessage() { throw "unimplemented"; },
+                async getBrowserInfo() { throw "unimplemented"; },
+
+                onStartup: new events.MockEventDispatcher("onStartup"),
+                onInstalled: new events.MockEventDispatcher("onInstalled"),
+                onUpdateAvailable: new events.MockEventDispatcher("onUpdateAvailable"),
+                onConnectExternal: new events.MockEventDispatcher("onConnectExternal"),
+                onMessage: new events.MockEventDispatcher("onMessage"),
+                onMessageExternal: new events.MockEventDispatcher("onMessageExternal"),
+
+                id: 'testing',
             };
         },
     };

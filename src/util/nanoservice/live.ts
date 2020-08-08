@@ -1,3 +1,5 @@
+import {browser, Runtime} from 'webextension-polyfill-ts';
+
 import {logErrors} from '..';
 import {NanoPort, NanoService, NanoTimeoutError, RemoteNanoError} from '.';
 import {
@@ -88,9 +90,6 @@ export class Port<S extends Send, R extends Send>
     onRequest?: (msg: R) => Promise<S>;
     onNotify?: (msg: R) => void;
 
-    // istanbul ignore next
-    get error(): undefined | {message?: string} { return this.port.error; }
-
     private port: RTPort;
     private pending: Map<string, PendingMsg<R>> = new Map();
 
@@ -125,7 +124,7 @@ export class Port<S extends Send, R extends Send>
             }
         }) as (msg: object) => void);
 
-        this._trace('create', {error: this.port.error});
+        this._trace('create');
     }
 
     disconnect() {
@@ -233,7 +232,7 @@ type PendingMsg<M extends Send> = {
     timeout_id: ReturnType<typeof setTimeout>,
 };
 
-type RTPort = browser.runtime.Port;
+type RTPort = Runtime.Port;
 
 function not_implemented(): Promise<any> {
     const e = new Error('No request handler defined');

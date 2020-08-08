@@ -72,6 +72,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 </template>
 
 <script lang="ts">
+import {browser} from 'webextension-polyfill-ts';
 import Vue, {PropType} from 'vue';
 import {SortableEvent} from 'sortablejs';
 

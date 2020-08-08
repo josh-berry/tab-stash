@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import {browser, Runtime} from 'webextension-polyfill-ts';
 
 import * as events from '../../mock/events';
 import mock_runtime from '../../mock/browser-runtime';
@@ -6,7 +7,7 @@ import mock_runtime from '../../mock/browser-runtime';
 import * as M from '.';
 import * as Live from './live';
 
-type Port = browser.runtime.Port;
+type Port = Runtime.Port;
 
 describe('util/nanoservice', function() {
     beforeEach(() => mock_runtime.reset());

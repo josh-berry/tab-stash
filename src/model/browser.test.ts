@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import {Bookmarks, Tabs, Windows} from 'webextension-polyfill-ts';
 
 import {urlToOpen} from '../util';
 
@@ -196,7 +197,7 @@ describe('model', function() {
         }
     };
 
-    const mktab = (t: Partial<browser.tabs.Tab>): browser.tabs.Tab => ({
+    const mktab = (t: Partial<Tabs.Tab>): Tabs.Tab => ({
         id: t.id,
         windowId: t.windowId || 0,
         index: t.index || 0,
@@ -211,11 +212,10 @@ describe('model', function() {
         isArticle: t.isArticle || false,
         isInReaderMode: t.isInReaderMode || false,
         lastAccessed: t.lastAccessed || 0,
-        selected: t.selected || false,
     });
 
-    const mkwin = (w: Partial<browser.windows.Window>,
-                   tabs: Partial<browser.tabs.Tab>[]): browser.windows.Window =>
+    const mkwin = (w: Partial<Windows.Window>,
+                   tabs: Partial<Tabs.Tab>[]): Windows.Window =>
         ({
             id: w.id,
             focused: w.focused || false,
@@ -244,7 +244,7 @@ describe('model', function() {
         dateAdded?: number,
         children?: BM[],
     };
-    const mkbm = (bm: BM): browser.bookmarks.BookmarkTreeNode => ({
+    const mkbm = (bm: BM): Bookmarks.BookmarkTreeNode => ({
         id: bm.id,
         parentId: bm.parentId,
         index: bm.index,

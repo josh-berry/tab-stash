@@ -1,3 +1,5 @@
+import {browser, Tabs} from 'webextension-polyfill-ts';
+
 import {AsyncChannel, TaskMonitor, Task} from '../util';
 
 // How long do we wait for initial loading of the tab to complete?
@@ -72,7 +74,7 @@ export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):
 // Promise resolves.
 export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
     let events: AsyncChannel<TabEvent> | undefined = undefined;
-    let tab: browser.tabs.Tab | undefined = undefined;
+    let tab: Tabs.Tab | undefined = undefined;
     let timeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
     const onTimeout = () => {
@@ -88,7 +90,7 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
         favIconUrl: undefined,
     };
 
-    const capture_info = (tab: browser.tabs.Tab) => {
+    const capture_info = (tab: Tabs.Tab) => {
         trace('capturing', {
             status: tab.status,
             title: tab.title,
@@ -163,7 +165,7 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
 
 async function findReplacementTab(
     events: AsyncChannel<TabEvent>, url: string
-): Promise<browser.tabs.Tab | undefined> {
+): Promise<Tabs.Tab | undefined> {
     const access_cutoff = Date.now() - 500;
     const timeout = setTimeout(() => {
         trace('replacement timed out', url);
@@ -173,7 +175,7 @@ async function findReplacementTab(
         // First we check if the tab has already been reopened elsewhere, and if
         // so, we can return it immediately.
         const recent_tabs = (await browser.tabs.query({currentWindow: true}))
-            .filter(tab => tab.lastAccessed >= access_cutoff
+            .filter(tab => (tab.lastAccessed ?? 0) >= access_cutoff
                         && tab.url === url);
         trace('immediate replacement candidates', recent_tabs);
         if (recent_tabs.length > 0) return recent_tabs[0];
@@ -187,7 +189,7 @@ async function findReplacementTab(
         // would be in; it might even be the default for some weird reason).
         for await (const ev of events) {
             if (! ('tab' in ev)) continue;
-            if (ev.tab.lastAccessed < access_cutoff) {
+            if ((ev.tab.lastAccessed ?? 0) < access_cutoff) {
                 trace('searching for replacement - too old', ev)
                 continue;
             }
@@ -217,17 +219,17 @@ export class TabRemovedError extends Error {
 }
 
 type TabEvent = TabCreated | TabUpdated | TabReplaced | TabRemoved;
-type TabCreated = {$type: 'create', id: number, tab: browser.tabs.Tab};
-type TabUpdated = {$type: 'update', id: number, tab: browser.tabs.Tab};
+type TabCreated = {$type: 'create', id: number, tab: Tabs.Tab};
+type TabUpdated = {$type: 'update', id: number, tab: Tabs.Tab};
 type TabReplaced = {$type: 'replace', id: number, replacedWith: number};
 type TabRemoved = {$type: 'remove', id: number};
 
 function watchForTabEvents(): AsyncChannel<TabEvent> {
     const chan = new AsyncChannel<TabEvent>();
 
-    const onCreated = (tab: browser.tabs.Tab) =>
+    const onCreated = (tab: Tabs.Tab) =>
         chan.send({$type: 'create', id: tab.id!, tab});
-    const onUpdated = (id: number, info: {}, tab: browser.tabs.Tab) =>
+    const onUpdated = (id: number, info: {}, tab: Tabs.Tab) =>
         chan.send({$type: 'update', id, tab});
     const onReplaced = (replacedWith: number, id: number) =>
         chan.send({$type: 'replace', replacedWith, id});

@@ -86,6 +86,7 @@
 </template>
 
 <script lang="ts">
+import {browser} from 'webextension-polyfill-ts';
 import Vue, {PropType} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
