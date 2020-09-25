@@ -10,8 +10,12 @@ export default function<V extends VueConstructor, D>(
 ): Promise<NoPromises<D>> {
     return new Promise((resolve, reject) => {
         window.addEventListener('load', asyncEvent(async function() {
-            if (await browser.tabs.getCurrent()) {
-                document.documentElement.classList.add('tab-view');
+            switch (new URL(document.location.href).searchParams.get('view')) {
+                case 'sidebar':
+                    break;
+                default:
+                    document.documentElement.classList.add('tab-view');
+                    break;
             }
 
             const data = await resolveNamed(

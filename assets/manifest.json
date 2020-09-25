@@ -62,7 +62,7 @@
             "16": "icons/logo.svg",
             "32": "icons/logo.svg"
         },
-        "default_panel": "stash-list.html",
+        "default_panel": "stash-list.html?view=sidebar",
         "browser_style": false
     },
     "options_ui": {
