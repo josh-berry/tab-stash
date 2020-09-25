@@ -4,7 +4,7 @@
     <h1>What's New in Tab Stash</h1>
 
     <div>
-      <a href="stash-list.html">&#x2190; Back to Tab Stash</a>
+      <a :href="pageref('stash-list.html')">&#x2190; Back to Tab Stash</a>
     </div>
   </header>
 
@@ -202,7 +202,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import launch from '../launch-vue';
+import launch, {pageref} from '../launch-vue';
 
 import Options from "../options-model";
 import {resolveNamed} from '../util';
@@ -219,7 +219,10 @@ const Main = Vue.extend({
         return {the_last_notified_version: this.last_notified_version};
     },
     props: {
-      last_notified_version: String,
+        last_notified_version: String,
+    },
+    methods: {
+        pageref,
     },
 });
 export default Main;

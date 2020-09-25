@@ -5,7 +5,7 @@ import {asyncEvent, resolveNamed, Promised} from './util';
 type Data = {[k: string]: any};
 type NoPromises<D extends Data> = {[k in keyof D]: Promised<D[k]>};
 
-export default function<V extends VueConstructor, D>(
+export default function launch<V extends VueConstructor, D>(
     component: V, promises: D | (() => Promise<D>),
 ): Promise<NoPromises<D>> {
     return new Promise((resolve, reject) => {
@@ -28,4 +28,10 @@ export default function<V extends VueConstructor, D>(
             resolve(data);
         }));
     });
+}
+
+// Small helper function to pass our search parameters along to another sibling
+// page in this extension, so the sibling page knows what environment it's in.
+export function pageref(path: string): string {
+    return `${path}${window.location.search}`
 }

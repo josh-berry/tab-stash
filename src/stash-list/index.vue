@@ -66,7 +66,7 @@
   </folder-list>
   <footer class="page footer status-text">
     Tab Stash {{my_version}} &mdash;
-    <a href="whats-new.html">What's New</a>
+    <a :href="pageref('whats-new.html')">What's New</a>
   </footer>
 </div>
 </template>
@@ -74,7 +74,7 @@
 <script lang="ts">
 import Vue, {PropType} from 'vue';
 
-import launch from '../launch-vue';
+import launch, {pageref} from '../launch-vue';
 import {
     urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors,
 } from '../util';
@@ -153,6 +153,8 @@ const Main = Vue.extend({
     },
 
     methods: {
+        pageref,
+
         collapseAll() {
             this.collapsed = ! this.collapsed;
             (<any>this.$refs.unstashed).collapsed = this.collapsed;
@@ -180,7 +182,7 @@ const Main = Vue.extend({
         },
 
         showWhatsNew() {
-            window.location.href = 'whats-new.html';
+            window.location.href = pageref('whats-new.html');
         },
         hideWhatsNew() {
             this.local_options.set({last_notified_version: this.my_version});
