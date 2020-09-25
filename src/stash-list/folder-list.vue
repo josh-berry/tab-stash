@@ -42,6 +42,9 @@ export default Vue.extend({
                 index: ev.newIndex!,
             }).catch(console.log);
         },
+        setCollapsed(c: boolean) {
+            for (const f of (<any>this.$refs.folders)) f.collapsed = c;
+        }
     },
 });
 </script>
