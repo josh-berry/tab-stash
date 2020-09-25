@@ -5,7 +5,7 @@
        contain the thing we're showing. -->
   <div :class="$style.modal" @click.prevent.stop="close"></div>
   <summary :class="{[$style.summary]: true, [summaryClass]: true}"><slot name="summary">{{name}}</slot></summary>
-  <nav ref="inner" :class="$style.nav" tabIndex="0" @click.prevent.stop="close" @focusout="focusout">
+  <nav ref="inner" :class="$style.nav" tabIndex="0" @click.stop="close" @focusout="focusout">
     <slot></slot>
   </nav>
 </details>
