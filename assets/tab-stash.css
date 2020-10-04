@@ -91,12 +91,8 @@ html {
     --m-menu-w: 12px;
     --m-menu-h: 6px;
 
-    --m-dialog-w: var(--margin);
-    --m-dialog-h: calc(var(--margin) / 2);
-
-    /* Hack to account for OS scrollbar size in the modal.  I'm just guessing
-       about the size here... */
-    --scrollbar-w: 16px;
+    --p-dialog-w: var(--margin);
+    --p-dialog-h: calc(var(--margin) / 2);
 
     --ctrl-border: 1px solid var(--ctrl-border-clr);
     --ctrl-border-radius: 5px;
@@ -109,6 +105,12 @@ html {
     --p-ephemeral-h: 1.5px;
     --m-ephemeral-w: 2px;
     --m-ephemeral-h: 2px;
+}
+
+@media all and (max-width: 30rem) {
+    html {
+        --p-dialog-w: calc(var(--margin) / 2);
+    }
 }
 
 /* Styling */
@@ -144,27 +146,23 @@ a:active, a:focus {
 
 .modal-backdrop {
     background-color: var(--modal-bg);
-    padding: var(--m-dialog-h) calc(var(--m-dialog-w) + var(--scrollbar-w)/2);
 }
 .modal-backdrop > * {
     max-width: 100%;
     max-height: 100%;
+    /* Needed so padding is taken into account when sizing child elements */
+    box-sizing: border-box;
 }
 .dialog {
     background-color: var(--group-bg);
     border: var(--group-border);
     box-shadow: var(--shadow);
-    padding: var(--m-dialog-h) var(--m-dialog-w);
+    padding: var(--p-dialog-h) var(--p-dialog-w);
     display: grid;
 }
 .dialog, .dialog * {
     row-gap: var(--m-ctrl-h);
     column-gap: var(--m-ctrl-w);
-    margin: 0;
-}
-@media all and (max-width: 30rem) {
-    /* Support narrower dialogs in narrower windows */
-    .dialog { padding: var(--m-dialog-h) var(--m-dialog-h); }
 }
 
 .clickme {
