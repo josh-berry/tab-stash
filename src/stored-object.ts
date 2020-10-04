@@ -4,59 +4,180 @@
 //
 // The properties must be predefined, with a default value provided for each
 // property.  Values must be scalar values (undefined, null, booleans, numbers
-// and strings)--nested objects/arrays are not supported.
+// and strings)--nested objects are not supported.
+//
+//     const def = {
+//         a: {default: 0, is: aNumber},
+//         b: {default: 0, is: aNumber},
+//     };
+//     const obj = await StoredObject.local('foo', def);
+//     assert(obj.a === 0);
+//     assert(obj.b === 0);
 //
 // To update a property, DO NOT ASSIGN DIRECTLY TO THE PROPERTY.  Use the set()
 // method instead, which can update or reset multiple properties at once by
 // passing an object like so:
 //
-//     let obj = await StoredObject.get('local', 'foo', {a: 0, b: 0});
-//     assert(obj.a === 0);
-//     assert(obj.b === 0);
-//
 //     await obj.set({a: 1, b: 2});
 //     assert(obj.a === 1);
 //     assert(obj.b === 2);
 //
-// You can retrieve the defaults initially provided to the object like so:
-//
-//     let defaults = obj.defaults;
-//
-// And you can delete the stored object from the browser store entirely:
+// You can also delete the stored object from the browser store entirely:
 //
 //     await obj.delete();
 
-type StorableValue = undefined | null | boolean | number | string;
+// A StoredObject looks like this:
+export type StoredObject<D extends StorableDef> =
+    // It has read-only data properties as defined in your definition:
+    StorableData<D> &
+    // And methods, such as:
+    {
+        // A method to update multiple keys at once in the object
+        set(values: Partial<StorableData<D>>): Promise<void>;
 
-type StorableObject<T> = {[K in keyof T]: T[K] & StorableValue}
+        // A method to delete the object entirely
+        delete(): Promise<void>;
+    };
 
-type MetaInfo<T> = {
+// You can create or load StoredObjects by calling one of the factory functions
+// and passing it the key of the specific object you're interested in, along
+// with a structure defining the type of the StoredObject (described below).
+//
+// NOTE: Take care that you do not try to load the same key with different defs
+// in your program.  This is not allowed.
+export default {
+    // sync is for browser-synced storage.  This is generally very small but is
+    // persisted across all of a user's computers.
+    sync<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
+        return _factory('sync', key, def);
+    },
+
+    // local is for browser-local storage.  It's much larger, but not synced.
+    local<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
+        return _factory('local', key, def);
+    },
+};
+
+
+// Here's how to define the type of a StoredObject:
+export interface StorableDef {
+    [k: string]: {
+        // Each property has a default value...
+        default: StorableValue,
+        // ...and a type.
+        is: StorableType,
+    },
+};
+
+// Allowed types (for each "is" property in the map above) are based on MDN's
+// documentation (and experimentation with Firefox).
+type StorableValue = undefined | null | boolean | number | string | StorableValue[];
+
+// Storable types are set in the "is" property of a StorableDef, and are
+// expressed as functions which convert from arbitrary/undefined values the
+// desired type.
+type StorableType = (value: any) => StorableValue;
+
+// Here are the basic types (boolean, string, etc.).  We don't define types for
+// undefined/null right now because they're not very useful on their own.
+export const aBoolean =
+    (value: any): boolean => {
+        switch (value) {
+            case 1: case true: return true;
+            case 0: case false: return false;
+        }
+        switch (value.toString().toLowerCase()) {
+            case 'false': case 'no': return false;
+            case 'true': case 'yes': return true;
+            default:
+                throw new TypeError(`Not a boolean: ${value}`);
+        }
+    };
+export const aNumber =
+    (value: any): number => {
+        const res = Number(value);
+        if (Number.isNaN(res)) throw new TypeError(`Not a number: ${value}`);
+        return res;
+    };
+
+export const aString =
+    (value: any): string => value.toString();
+
+// However, it IS possible to have "some other type OR undefined/null".  For
+// example: maybeUndef(aNumber) is equivalent to number | undefined.
+export const maybeUndef = <V extends StorableValue>(converter: (v: any) => V) =>
+    (value: any): V | undefined => {
+        switch (value) {
+            case undefined: case null: case '': return undefined;
+            default: return converter(value);
+        }
+    };
+
+export const maybeNull = <V extends StorableValue>(converter: (v: any) => V) =>
+    (value: any): V | null => {
+        switch (value) {
+            case undefined: case null: case '': return null;
+            default: return converter(value);
+        }
+    };
+
+// Enum values are also supported, for example anEnum('a', 'b') is the same type
+// as 'a' | 'b'.
+export const anEnum = <V extends string | number>(...cases: V[]) =>
+    (value: any): V => {
+        if (cases.includes(value.toString())) return value;
+        throw new TypeError(`${value}: Not a valid enum value, expected ${cases}`);
+    };
+
+
+
+//
+// Implementation details below this point
+//
+
+
+// Storable data itself, given a definition (these are JUST the properties):
+type StorableData<D extends StorableDef> = {
+    readonly [k in keyof D]: ReturnType<D[k]['is']>;
+};
+
+// Internal data about a particular StoredObject
+type MetaInfo<D extends StorableDef> = {
     store: 'sync' | 'local';
     key: string;
-    defaults: T;
-}
+    def: D;
+};
 
-export default class StoredObject<T extends StorableObject<T>> {
-    static async get<T extends StorableObject<T>>(
-        store: 'sync' | 'local',
-        key: string,
-        defaults: T,
-    ): Promise<StoredObject<T> & T> {
-        let res = LIVE_OBJECTS[store].get(key);
-        if (res) return <StoredObject<T> & T>res;
-
-        res = new StoredObject<T>();
-        let meta: MetaInfo<T> = {store, key, defaults};
-        META.set(res, meta);
-
-        await _animate(res, meta);
-        return <StoredObject<T> & T>res;
+// Construct/retrieve StorableObjects
+async function _factory<D extends StorableDef>(
+    store: 'sync' | 'local',
+    key: string,
+    def: D
+): Promise<StoredObject<D>> {
+    let object = LIVE_OBJECTS[store].get(key);
+    if (object) {
+        const meta = META.get(object);
+        if (meta?.def !== def) {
+            throw new TypeError(`Tried to load object ${key} with a conflicting def`);
+        }
+        return object;
     }
 
-    get defaults(): T { return (<MetaInfo<T>>META.get(this)).defaults; }
+    if ('set' in def) throw new TypeError(`The name 'set' is reserved`);
+    if ('delete' in def) throw new TypeError(`The name 'delete' is reserved`);
 
-    async set(values: browser.storage.StorageObject & Partial<T>): Promise<void>
-    {
+    object = Object.create(base) as StoredObject<D>;
+    const meta = {store, key, def};
+    META.set(object, meta);
+
+    await _animate(object, meta);
+    return object;
+}
+
+const base = {
+    async set<D extends StorableDef>(
+        this: StoredObject<D>, values: Partial<StorableData<D>>
+    ): Promise<void> {
         let meta = META.get(this)!;
 
         // Make sure we have an updated set of stuff first.
@@ -67,30 +188,30 @@ export default class StoredObject<T extends StorableObject<T>> {
         // programmatically change later).
         let data: typeof values = {};
 
-        for (let k of Object.keys(this) as (keyof T)[]) {
+        for (let k of Object.keys(this) as (keyof D)[]) {
             // Carry forward existing values that are non-default and not
             // explicitly specified in /values/.
             if (! (k in values)) {
-                if ((<any>this)[k] !== meta.defaults[k]) {
+                if ((<any>this)[k] !== meta.def[k].default) {
                     data[k] = (<any>this)[k];
                 }
                 continue;
             }
 
-            let v = values[k];
+            const v = meta.def[k].is(values[k]);
 
             // If /values/ explicitly specifies that /k/ should be the default
             // value, omit it from the saved object entirely.
-            if (v === meta.defaults[k]) continue;
+            if (v === meta.def[k].default) continue;
 
             // Otherwise, store it.
             data[k] = v;
         }
 
         return await browser.storage[meta.store].set({[meta.key]: data});
-    }
+    },
 
-    delete(): Promise<void> {
+    async delete<D extends StorableDef>(this: StoredObject<D>): Promise<void> {
         let meta = META.get(this)!;
 
         // The following may or may not trigger a browser.storage.onChanged
@@ -98,8 +219,8 @@ export default class StoredObject<T extends StorableObject<T>> {
         // have to forget about the object manually.
         LIVE_OBJECTS[meta.store].delete(meta.key);
         return browser.storage[meta.store].remove(meta.key);
-    }
-}
+    },
+};
 
 
 
@@ -161,7 +282,7 @@ browser.storage.onChanged.addListener((changes, area) => {
             // Key was removed from the store entirely.  Reset it to defaults,
             // and drop it from LIVE_OBJECTS on the assumption the callers don't
             // want it, either.
-            Object.assign(obj, meta.defaults);
+            for (const k in meta.def) (<any>obj)[k] = meta.def[k].default;
             areaobjs.delete(key);
         }
 
@@ -175,8 +296,8 @@ browser.storage.onChanged.addListener((changes, area) => {
 
 
 
-function _animate<T extends StorableObject<T>>(
-    obj: StoredObject<T>, meta: MetaInfo<T>
+function _animate<D extends StorableDef>(
+    obj: StoredObject<D>, meta: MetaInfo<D>
 ): Promise<void> {
     const liveobj = LIVE_OBJECTS[meta.store].get(meta.key);
     if (liveobj) {
@@ -206,22 +327,20 @@ function _animate<T extends StorableObject<T>>(
     return p;
 }
 
-function _load<T extends StorableObject<T>>(
-    obj: StoredObject<T>, meta: MetaInfo<T>,
-    values: browser.storage.StorageValue
+function _load<D extends StorableDef>(
+    obj: StoredObject<D>, meta: MetaInfo<D>,
+    values: any
 ) {
     // We assign both defaults and the new values here so that if any
     // properties were reset to the default (and removed from storage),
     // Vue will notice those as well.
 
-    Object.assign(obj, meta.defaults);
+    for (const k in meta.def) (<any>obj)[k] = meta.def[k].default;
 
     if (typeof values !== 'object') return;
 
-    for (let k of Object.keys(<object>values)) {
-        if (k in meta.defaults) {
-            (<any>obj)[k] = (<any>values)[k];
-        }
+    for (const k in values) {
+        if (k in meta.def) (<any>obj)[k] = meta.def[k].is(values[k]);
         // Otherwise keys not present in defaults are dropped/ignored.
     }
 }

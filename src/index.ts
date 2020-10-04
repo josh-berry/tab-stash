@@ -186,11 +186,12 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
         // just assume it's a fresh install).  Record our current version number
         // here so we can detect upgrades in the future and show the user a
         // whats-new notification.
-        localopts.last_notified_version =
-            (await browser.management.getSelf()).version;
+        localopts.set({
+            last_notified_version: (await browser.management.getSelf()).version
+        }).catch(console.error);
     }
 
-})().catch(console.log);
+})().catch(console.error);
 
 
 

@@ -1,6 +1,7 @@
 import {expect} from 'chai';
 import * as events from './mock/events';
 import storage_mock from './mock/browser-storage';
+import {aBoolean, aNumber, aString, StorableDef, StoredObject} from './stored-object';
 
 describe('stored-object', function() {
     beforeEach(function() {
@@ -95,13 +96,19 @@ describe('stored-object', function() {
         storage_mock.reset();
         let StoredObject = require('./stored-object').default;
 
-        const DEFAULTS = {
-            a: 1,
-            b: 2,
-            foo: 'bar',
-            bar: 'foo',
-            bool: false,
+        const DEF = {
+            a: {default: 1, is: aNumber},
+            b: {default: 2, is: aNumber},
+            foo: {default: 'bar', is: aString},
+            bar: {default: 'foo', is: aString},
+            bool: {default: false, is: aBoolean},
         };
+
+        const defaults = <D extends StorableDef>(def: D) => Object.keys(def)
+            .reduce((obj: StoredObject<D>, k: keyof D) => {
+                (<any>obj)[k] = def[k].default;
+                return obj;
+            }, {} as StoredObject<D>);
 
         beforeEach(function() {
             // Reload the module and reset the mocks for each test so the test
@@ -115,33 +122,27 @@ describe('stored-object', function() {
 
         it('retrieves the same object when asked multiple times',
            async function() {
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
-               let o2 = await StoredObject.get('local', 'foo', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
+               const o2 = await StoredObject.local('foo', DEF);
                expect(o).to.equal(o2);
            });
 
         it('distinguishes between different objects',
            async function() {
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
-               let o2 = await StoredObject.get('local', 'bar', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
+               const o2 = await StoredObject.local('bar', DEF);
                expect(o).to.not.equal(o2);
            });
 
-        it('retrieves the defaults for an object',
-           async function() {
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
-               expect(o.defaults).to.deep.equal(DEFAULTS);
-           });
-
         it('loads non-existent objects with defaults', async function() {
-            let o = await StoredObject.get('local', 'foo', DEFAULTS);
-            expect(o).to.deep.equal(DEFAULTS);
+            const o = await StoredObject.local('foo', DEF);
+            expect(o).to.deep.include(defaults(DEF));
         });
 
         it('loads existent objects with all defaults', async function() {
             await browser.storage.local.set({foo: {}});
-            let o = await StoredObject.get('local', 'foo', DEFAULTS);
-            expect(o).to.deep.equal(DEFAULTS);
+            const o = await StoredObject.local('foo', DEF);
+            expect(o).to.deep.include(defaults(DEF));
             await events.drain(1);
         });
 
@@ -152,18 +153,18 @@ describe('stored-object', function() {
                await browser.storage.local.set({foo: OVERRIDES});
                await events.drain(1);
 
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
-               expect(o).to.deep.equal(Object.assign({}, DEFAULTS, OVERRIDES));
+               const o = await StoredObject.local('foo', DEF);
+               expect(o).to.deep.include(Object.assign({}, defaults(DEF), OVERRIDES));
            });
 
         it('updates objects which have been created out-of-band',
            async function() {
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
 
                await browser.storage.local.set({foo: {a: 42}});
                await events.drain(1);
 
-               expect(o).to.deep.equal(Object.assign({}, DEFAULTS, {a: 42}));
+               expect(o).to.deep.include(Object.assign({}, defaults(DEF), {a: 42}));
            });
 
         it('updates objects which have been updated out-of-band',
@@ -171,12 +172,12 @@ describe('stored-object', function() {
                await browser.storage.local.set({foo: {a: 42}});
                await events.drain(1);
 
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
 
                await browser.storage.local.set({foo: {a: 17}});
                await events.drain(1);
 
-               expect(o).to.deep.equal(Object.assign({}, DEFAULTS, {a: 17}));
+               expect(o).to.deep.include(Object.assign({}, defaults(DEF), {a: 17}));
            });
 
         it('updates objects which have been deleted out-of-band',
@@ -184,25 +185,25 @@ describe('stored-object', function() {
                await browser.storage.local.set({foo: {a: 42}});
                await events.drain(1);
 
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
 
                await browser.storage.local.remove('foo');
                await events.drain(1);
 
-               expect(o).to.deep.equal(Object.assign({}, DEFAULTS));
+               expect(o).to.deep.include(Object.assign({}, defaults(DEF)));
            });
 
         it('sets values which are not the default', async function() {
             const OVERRIDES = {a: 42, bar: 'fred'};
-            let o = await StoredObject.get('local', 'foo', DEFAULTS);
-            expect(o).to.deep.equal(DEFAULTS);
+            const o = await StoredObject.local('foo', DEF);
+            expect(o).to.deep.include(defaults(DEF));
 
             await o.set(OVERRIDES);
             await events.drain(1);
 
             expect(await browser.storage.local.get('foo'))
                 .to.deep.equal({foo: OVERRIDES});
-            expect(o).to.deep.equal(Object.assign({}, DEFAULTS, OVERRIDES));
+            expect(o).to.deep.include(Object.assign({}, defaults(DEF), OVERRIDES));
         });
 
         it('sets non-default values to other non-default values',
@@ -211,16 +212,39 @@ describe('stored-object', function() {
                await browser.storage.local.set({foo: OVERRIDES});
                await events.drain(1);
 
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
 
                await o.set({a: 17});
                await events.drain(1);
 
                expect(await browser.storage.local.get('foo'))
                    .to.deep.equal({foo: Object.assign({}, OVERRIDES, {a: 17})});
-               expect(o).to.deep.equal(Object.assign({}, DEFAULTS, OVERRIDES,
-                                                     {a: 17}));
+               expect(o).to.deep.include(
+                   Object.assign({}, defaults(DEF), OVERRIDES, {a: 17}));
            });
+
+        it('converts loaded values which are the wrong type', async() => {
+            const OVERRIDES = {a: '42'};
+            await browser.storage.local.set({foo: OVERRIDES});
+            await events.drain(1);
+
+            const o = await StoredObject.local('foo', DEF);
+            expect(o).to.deep.include({a: 42});
+        });
+
+        it('converts saved values which are the wrong type', async() => {
+            const OVERRIDES = {a: 42};
+            await browser.storage.local.set({foo: OVERRIDES});
+            await events.drain(1);
+
+            const o = await StoredObject.local('foo', DEF);
+
+            await o.set({a: '17'});
+            await events.drain(1);
+
+            expect(await browser.storage.local.get('foo'))
+                .to.deep.equal({foo: {a: 17}});
+        });
 
         it('resets non-default values to the default',
            async function() {
@@ -228,7 +252,7 @@ describe('stored-object', function() {
                await browser.storage.local.set({foo: OVERRIDES});
                await events.drain(1);
 
-               let o = await StoredObject.get('local', 'foo', DEFAULTS);
+               const o = await StoredObject.local('foo', DEF);
 
                await o.set({a: 1});
                await events.drain(1);
@@ -236,55 +260,71 @@ describe('stored-object', function() {
                expect(await browser.storage.local.get('foo'))
                    .to.deep.equal({foo: {bar: 'fred'}});
                expect(o)
-                   .to.deep.equal(Object.assign({}, DEFAULTS, {bar: 'fred'}));
+                   .to.deep.include(Object.assign({}, defaults(DEF), {bar: 'fred'}));
+        });
+
+        it('resets non-default values to the default after type-casting', async () => {
+            const OVERRIDES = {a: 42, bar: 'fred'};
+            await browser.storage.local.set({foo: OVERRIDES});
+            await events.drain(1);
+
+            const o = await StoredObject.local('foo', DEF);
+
+            await o.set({a: "1"});
+            await events.drain(1);
+
+            expect(await browser.storage.local.get('foo'))
+                .to.deep.equal({foo: {bar: 'fred'}});
+            expect(o)
+                .to.deep.include(Object.assign({}, defaults(DEF), {bar: 'fred'}));
         });
 
         it('deletes non-existent objects from the store', async function() {
-            let o = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o = await StoredObject.sync('foo', DEF);
 
             await o.delete();
             await events.drain(1);
 
             expect(await browser.storage.local.get()).to.deep.equal({});
-            expect(o).to.deep.equal(DEFAULTS);
+            expect(o).to.deep.include(defaults(DEF));
         });
 
         it('deletes existing objects from the store', async function() {
-            let o = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o = await StoredObject.sync('foo', DEF);
 
             await o.set({a: 2});
             await o.delete();
             await events.drain(2);
 
             expect(await browser.storage.local.get()).to.deep.equal({});
-            expect(o).to.deep.equal(DEFAULTS);
+            expect(o).to.deep.include(defaults(DEF));
         });
 
         it('forgets never-created objects', async function() {
-            let o = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o = await StoredObject.sync('foo', DEF);
 
             await o.delete();
             await events.drain(1);
 
-            let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o2 = await StoredObject.sync('foo', DEF);
 
             expect(o).to.not.equal(o2);
         });
 
         it('forgets deleted objects', async function() {
-            let o = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o = await StoredObject.sync('foo', DEF);
 
             await o.set({a: 5});
             await o.delete();
             await events.drain(2);
 
-            let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o2 = await StoredObject.sync('foo', DEF);
 
             expect(o).to.not.equal(o2);
         });
 
         it('resurrects deleted objects when modified', async function() {
-            let o = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o = await StoredObject.sync('foo', DEF);
 
             await o.delete();
             await events.drain(1);
@@ -292,7 +332,7 @@ describe('stored-object', function() {
             await o.set({a: 2});
             await events.drain(1);
 
-            let o2 = await StoredObject.get('sync', 'foo', DEFAULTS);
+            const o2 = await StoredObject.sync('foo', DEF);
 
             expect(o).to.equal(o2);
         });
@@ -302,15 +342,15 @@ describe('stored-object', function() {
             await browser.storage.sync.set(DATA);
             await events.drain(1);
 
-            let o = await StoredObject.get('sync', 'foo', DEFAULTS);
-            expect(o).to.deep.equal(DEFAULTS);
+            const o = await StoredObject.sync('foo', DEF);
+            expect(o).to.deep.include(defaults(DEF));
             expect(await browser.storage.sync.get()).to.deep.equal(DATA);
 
             await o.set({a: 1});
             await events.drain(1);
 
             expect(await browser.storage.sync.get()).to.deep.equal({foo: {}});
-            expect(o).to.deep.equal(DEFAULTS);
+            expect(o).to.deep.include(defaults(DEF));
         });
     });
 });

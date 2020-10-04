@@ -143,10 +143,10 @@ const prop = (area: string, name: string) => ({
 
 function options() {
     let ret: any = {};
-    for (let k of Object.keys(Options.LOCAL_DEFAULTS)) {
+    for (let k of Object.keys(Options.LOCAL_DEF)) {
         ret[k] = prop('local', k);
     }
-    for (let k of Object.keys(Options.SYNC_DEFAULTS)) {
+    for (let k of Object.keys(Options.SYNC_DEF)) {
         ret[k] = prop('sync', k);
     }
     return ret;
