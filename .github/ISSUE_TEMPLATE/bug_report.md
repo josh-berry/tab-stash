@@ -13,6 +13,12 @@ about: Create a report to help us improve
 - **Browser Version:** [e.g. Firefox 60.0.2]
 - **Tab Stash Version:** [check the Tab Stash entry in `about:addons`]
 
+**Installed Browser Extensions:**
+<!-- This part is optional, but please check to make sure you don't have one of these extensions installed:
+     https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions -->
+- 
+- 
+
 ### Describe the Bug
 <!-- A short description of what the problem is and/or what happened. -->
 
