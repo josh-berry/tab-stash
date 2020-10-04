@@ -6,6 +6,20 @@
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs
 declare namespace browser.tabs {
     function discard(tab_ids: number[]): Promise<void>;
+    function update(
+        tabId: number,
+        updateProperties: {
+            active?: boolean,
+            autoDiscardable?: boolean,
+            highlighted?: boolean,
+            loadReplace?: boolean,
+            muted?: boolean,
+            openerTabId?: boolean,
+            pinned?: boolean,
+            successorTabId?: number,
+            url?: string,
+        },
+    ): Promise<browser.tabs.Tab>;
 }
 
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserSettings

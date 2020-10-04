@@ -212,12 +212,17 @@ export async function stashTabsInWindow(
     // preferences.
     if (windowId === undefined) windowId = browser.windows.WINDOW_ID_CURRENT;
 
-    const tabs = await browser.tabs.query(
-        {windowId, hidden: false, pinned: false});
+    const tabs = await browser.tabs.query({windowId, hidden: false});
     tabs.sort((a, b) => a.index - b.index);
 
     let selected = tabs.filter(t => t.highlighted);
     if (selected.length <= 1) selected = tabs;
+
+    // We filter out pinned tabs AFTER checking how many tabs are selected
+    // because otherwise the user might have a pinned tab focused, and highlight
+    // a single specific tab they want stashed (in additioned to the active
+    // pinned tab), and then ALL tabs would unexpectedly get stashed. [#61]
+    selected = selected.filter(t => ! t.pinned);
 
     await stashTabs(selected, options);
 }
@@ -252,6 +257,10 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
     const opts = await opts_p;
 
     const tids = <number[]>tabs.map(t => t.id).filter(id => id !== undefined);
+
+    // Clear any highlights/selections on tabs we are stashing
+    await Promise.all(
+        tids.map(tid => browser.tabs.update(tid, {highlighted: false})));
 
     switch (opts.after_stashing_tab) {
     case 'hide_discard':
