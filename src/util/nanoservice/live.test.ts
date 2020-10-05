@@ -4,6 +4,7 @@ import * as events from '../../mock/events';
 import mock_runtime from '../../mock/browser-runtime';
 
 import * as M from '.';
+import * as Live from './live';
 
 type Port = browser.runtime.Port;
 
@@ -16,7 +17,7 @@ describe('util/nanoservice', function() {
             name: string
         ): Promise<[M.NanoPort<S, R>, Port]> {
             const [port, [svcport]] = await events.waitOne(
-                async (): Promise<M.NanoPort<S, R>> => M.NanoPort.connect('test'),
+                async (): Promise<M.NanoPort<S, R>> => M.connect('test'),
                 browser.runtime.onConnect);
 
             expect(port).to.not.be.undefined;
@@ -204,7 +205,7 @@ describe('util/nanoservice', function() {
             const [client, svc] = await portpair('test');
             svc.disconnect();
             await events.drain(1);
-            await client.notify(42);
+            client.notify(42);
         });
 
         it('throws when requesting from a disconnected port', async function() {
@@ -212,7 +213,7 @@ describe('util/nanoservice', function() {
             svc.disconnect();
             await events.drain(1);
             try {
-                await client.notify(42);
+                client.notify(42);
                 expect(false).to.be.true;
             } catch(e) {
                 expect(e).to.be.instanceOf(Error);
@@ -222,7 +223,7 @@ describe('util/nanoservice', function() {
 
         it('drops replies to disconnected ports', async function() {
             const [client, svc] = await portpair('test');
-            const dest = new M.NanoPort(svc);
+            const dest = new Live.Port(svc);
             const p = client.request(42);
             dest.disconnect();
             await events.drain(2);
@@ -253,41 +254,39 @@ describe('util/nanoservice', function() {
         beforeEach(() => (<any>M.registry).reset());
 
         it('fires connection events', async function() {
-            const svc = new M.NanoService('test');
             let count = 0;
-            svc.onConnect = () => ++count;
+            M.listen('test', {onConnect() { ++count; }});
 
-            M.NanoPort.connect('test');
+            M.connect('test');
             await events.drain(1);
             expect(count).to.equal(1);
         });
 
         it('fires disconnection events', async function() {
-            const svc = new M.NanoService('test');
             let count = 0;
-            svc.onDisconnect = () => ++count;
+            M.listen('test', {onDisconnect() {++count}});
 
-            M.NanoPort.connect('test').disconnect();
+            M.connect('test').disconnect();
             await events.drain(2);
             expect(count).to.equal(1);
         });
 
         it('receives notifications', async function() {
-            const svc = new M.NanoService('test');
             let notified = false;
-            svc.onNotify = (port, msg) => {
-                expect(port).to.be.instanceOf(M.NanoPort);
+            M.listen('test', {onNotify(port, msg) {
+                expect(port).to.be.instanceOf(Live.Port);
                 expect(msg).to.equal(42);
                 notified = true;
-            };
-            M.NanoPort.connect('test').notify(42);
+            }});
+
+            M.connect('test').notify(42);
             await events.drain(2);
             expect(notified).to.be.true;
         });
 
         it('responds to requests with failure if onRequest() is not defined', async() => {
-            new M.NanoService('test');
-            const p = M.NanoPort.connect('test').request(42);
+            M.listen('test', {});
+            const p = M.connect('test').request(42);
             await events.drain(3);
             try {
                 await p;
@@ -299,24 +298,28 @@ describe('util/nanoservice', function() {
         });
 
         it('responds to requests', async() => {
-            const svc = new M.NanoService<number, number>('test');
-            const port = M.NanoPort.connect('test');
-            svc.onRequest = async(sender, msg) => {
-                expect(msg).to.equal(17);
-                return msg + 2;
-            };
+            M.listen('test', {
+                async onRequest(sender, msg: number) {
+                    expect(msg).to.equal(17);
+                    return msg + 2;
+                }
+            });
+
+            const port = M.connect('test');
             const p = port.request(17);
             await events.drain(3);
             expect(await p).to.equal(19);
         });
 
         it('responds to requests which fail', async() => {
-            const svc = new M.NanoService('test');
-            svc.onRequest = async(sender, msg) => {
-                throw new ReferenceError('oops');
-            };
+            M.listen('test', {
+                async onRequest(sender, msg) {
+                    throw new ReferenceError('oops');
+                }
+            });
+
             try {
-                const p = M.NanoPort.connect('test').request(17);
+                const p = M.connect('test').request(17);
                 await events.drain(3);
                 await p;
                 expect(false).to.be.true;
@@ -328,12 +331,14 @@ describe('util/nanoservice', function() {
         });
 
         it('responds to parallel requests', async() => {
-            const svc = new M.NanoService<number, number>('test');
-            svc.onRequest = async(sender, msg) => {
-                return msg + 4;
-            };
-            const port1 = M.NanoPort.connect('test');
-            const port2 = M.NanoPort.connect('test');
+            M.listen('test', {
+                async onRequest(sender, msg: number) {
+                    return msg + 4;
+                }
+            });
+
+            const port1 = M.connect('test');
+            const port2 = M.connect('test');
             const p1 = port1.request(4);
             const p2 = port2.request(8);
             await events.drain(6);
@@ -342,14 +347,16 @@ describe('util/nanoservice', function() {
         });
 
         it('treats notifications as requests if onNotify() is not defined', async() => {
-            const svc = new M.NanoService<number, number>('test');
+            M.listen('test', {
+                async onRequest(sender, msg: number) {
+                    expect(msg).to.equal(89);
+                    received = true;
+                    return 0;
+                }
+            });
+
             let received = true;
-            svc.onRequest = async(sender, msg) => {
-                expect(msg).to.equal(89);
-                received = true;
-                return 0;
-            };
-            M.NanoPort.connect('test').notify(89);
+            M.connect('test').notify(89);
             await events.drain(2);
             expect(received).to.be.true;
         });

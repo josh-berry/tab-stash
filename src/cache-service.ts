@@ -107,7 +107,7 @@ import {
 } from 'idb';
 
 import {nonReentrant} from './util';
-import {Send, NanoService} from './util/nanoservice';
+import {Send, NanoService, listen} from './util/nanoservice';
 
 import {ClientPort, ClientMsg, ServiceMsg} from './cache-proto';
 
@@ -144,7 +144,7 @@ interface CacheSchema<Content extends Send> extends DBSchema {
 // There is no JS API here (apart from start()) because the real API is
 // browser.runtime messages from the cache-client.
 export class CacheService<Content extends Send>
-    extends NanoService<ClientMsg<Content>, ServiceMsg<Content>>
+    implements NanoService<ClientMsg<Content>, ServiceMsg<Content>>
 {
     private _db: IDBPDatabase<CacheSchema<Content>>;
     private _gen: number;
@@ -187,12 +187,13 @@ export class CacheService<Content extends Send>
 
         const gen = (await db.get('options', 'generation')) || 0;
 
-        return new CacheService(path, db, gen);
+        const svc = new CacheService(db, gen);
+        listen(`cache:${name}`, svc);
+        return svc;
     }
 
     // Don't call this -- call start() instead.
-    constructor(path: string, db: IDBPDatabase<CacheSchema<Content>>, gen: number) {
-        super(path);
+    constructor(db: IDBPDatabase<CacheSchema<Content>>, gen: number) {
         this._db = db;
         this._gen = gen;
         this._mutate_task = nonReentrant(() => this._mutate());

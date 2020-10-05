@@ -21,7 +21,7 @@
 // broadcast in quick succession; if this is a concern (and it's REALLY worth
 // the extra complexity), code changes are required. :)
 
-import {Send, NanoPort} from './util/nanoservice';
+import {Send, connect} from './util/nanoservice';
 import {ServicePort, FetchMessage, UpdateMessage} from './cache-proto';
 
 // Ugly global object which keeps track of all the open caches, so we only have
@@ -60,7 +60,7 @@ export class Cache<Content extends Send> {
         if (cache) {
             return cache;
         } else {
-            cache = new Cache(name, NanoPort.connect(`cache:${name}`));
+            cache = new Cache(name, connect(`cache:${name}`));
         }
 
         CACHES.set(name, cache);

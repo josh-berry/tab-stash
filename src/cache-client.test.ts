@@ -9,13 +9,14 @@ import {
 } from './cache-proto';
 import {Cache} from './cache-client';
 
-class MockCacheService extends NS.NanoService<ClientMsg<string>, ServiceMsg<string>>
+class MockCacheService
+    implements NS.NanoService<ClientMsg<string>, ServiceMsg<string>>
 {
     ports = new Set<ClientPort<string>>();
     entries = new Map<string, string>();
 
     constructor() {
-        super('cache:test');
+        NS.listen('cache:test', this);
     }
 
     onConnect(port: ClientPort<string>) {

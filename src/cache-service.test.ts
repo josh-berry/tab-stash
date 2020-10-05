@@ -14,7 +14,7 @@ class MockClient {
     recvd: ServiceMsg<string>[] = [];
 
     constructor() {
-        this.port = NS.NanoPort.connect('cache:test');
+        this.port = NS.connect('cache:test');
         this.port.onNotify = msg => this.recvd.push(msg);
     }
 
