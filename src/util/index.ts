@@ -5,6 +5,10 @@ export {
     TaskMonitor, Progress, TaskCancelled,
 } from './progress';
 
+// Args is the arguments of a function
+export type Args<F extends Function> =
+    F extends (...args: infer A) => any ? A : never;
+
 // AsyncReturnTypeOf is the return type of an `async function` (or Promise). So:
 //
 // AsyncReturnTypeOf<(...) => Promise<T>> == T
