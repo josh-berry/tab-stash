@@ -1,9 +1,9 @@
 import {expect} from 'chai';
 
-import * as events from '../mock/events';
-import mock_runtime from '../mock/browser-runtime';
+import * as events from '../../mock/events';
+import mock_runtime from '../../mock/browser-runtime';
 
-import * as M from './nanoservice';
+import * as M from '.';
 
 type Port = browser.runtime.Port;
 
