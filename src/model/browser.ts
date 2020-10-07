@@ -27,9 +27,9 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU NON-`_` METHODS.
 
-import {DeferQueue, OpenableURL, urlToOpen, resolveNamed} from './util';
+import {DeferQueue, OpenableURL, urlToOpen, resolveNamed} from '../util';
 
-import {Cache, CacheEntry} from './cache-client';
+import {Cache, CacheEntry} from '../cache-client';
 
 // These model objects are designed to look like plain old objects for Vue's
 // consumption.  They are created and mutated internally by StashState methods,

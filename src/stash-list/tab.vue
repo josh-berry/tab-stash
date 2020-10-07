@@ -35,7 +35,7 @@ import {
     restoreTabs, stashTabs,
     closeTabs,
 } from '../stash';
-import {Tab, Bookmark, ModelLeaf} from '../model';
+import {Tab, Bookmark, ModelLeaf} from '../model/browser';
 
 export default Vue.extend({
     components: {

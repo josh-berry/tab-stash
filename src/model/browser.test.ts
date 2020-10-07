@@ -1,8 +1,8 @@
 import {expect} from 'chai';
 
-import {urlToOpen} from './util';
+import {urlToOpen} from '../util';
 
-import * as M from './model';
+import * as M from './browser';
 
 // XXX move me into a mock file, or remove me entirely and test with the actual
 // favicon cache

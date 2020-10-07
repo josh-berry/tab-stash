@@ -81,7 +81,7 @@ import {
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
-import {StashState, Bookmark, Tab} from '../model';
+import {StashState, Bookmark, Tab} from '../model/browser';
 import Options, {LocalOptions, SyncOptions} from '../model/options';
 import {Cache} from '../cache-client';
 import {fetchInfoForSites} from '../tasks/siteinfo';

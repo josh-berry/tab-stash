@@ -83,7 +83,7 @@ import {
 } from '../stash';
 
 import {Cache, CacheEntry} from '../cache-client';
-import {ModelLeaf, Tab, Window, Bookmark} from '../model';
+import {ModelLeaf, Tab, Window, Bookmark} from '../model/browser';
 
 export default Vue.extend({
     components: {
