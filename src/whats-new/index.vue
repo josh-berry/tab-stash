@@ -204,7 +204,7 @@
 import Vue from 'vue';
 import launch, {pageref} from '../launch-vue';
 
-import Options from "../options-model";
+import Options from "../model/options";
 import {resolveNamed} from '../util';
 
 import Version from './version.vue';

@@ -1,5 +1,5 @@
-import StoredObject, {aBoolean, anEnum, aNumber, aString, maybeUndef} from './stored-object';
-import {Promised} from './util';
+import StoredObject, {aBoolean, anEnum, aNumber, aString, maybeUndef} from '../stored-object';
+import {Promised} from '../util';
 
 // The default tab stash options.  Sync defaults are stored in
 // browser.storage.sync, and local defaults are stored in browser.storage.local.

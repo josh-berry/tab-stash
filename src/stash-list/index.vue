@@ -82,7 +82,7 @@ import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
 import {StashState, Bookmark, Tab} from '../model';
-import Options, { LocalOptions, SyncOptions } from '../options-model';
+import Options, {LocalOptions, SyncOptions} from '../model/options';
 import {Cache} from '../cache-client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 

@@ -132,7 +132,7 @@
 import Vue from 'vue';
 import launch from './launch-vue';
 
-import Options from './options-model';
+import Options from './model/options';
 import {resolveNamed} from './util';
 
 const prop = (area: string, name: string) => ({
@@ -160,7 +160,7 @@ const Main = Vue.extend({
 export default Main;
 
 launch(Main, async() => {
-    const propsData = resolveNamed({
+    const propsData = await resolveNamed({
         sync: Options.sync(),
         local: Options.local(),
     });

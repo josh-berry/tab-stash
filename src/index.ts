@@ -8,7 +8,7 @@ import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
     mostRecentUnnamedFolderId,
 } from './stash';
-import Options from './options-model';
+import Options from './model/options';
 import {CacheService} from './cache-service';
 
 

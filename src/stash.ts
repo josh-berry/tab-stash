@@ -1,4 +1,4 @@
-import Options from './options-model';
+import Options from './model/options';
 
 import {urlToOpen, TaskMonitor} from './util';
 
