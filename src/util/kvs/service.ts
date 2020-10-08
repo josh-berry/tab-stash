@@ -1,4 +1,4 @@
-import {IDBPDatabase} from 'idb';
+import {IDBPDatabase, openDB} from 'idb';
 
 import {KeyValueStore, genericList} from '.';
 import Listener from '../listener';
@@ -9,6 +9,17 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     implements KeyValueStore<K, V>,
                NanoService<Proto.ClientMsg<K, V>, Proto.ServiceMsg<K, V>>
 {
+    static async open<K extends Proto.Key, V extends Proto.Value>(
+        db_name: string,
+        store_name: string,
+    ): Promise<Service<K, V>> {
+        return new Service(await openDB(db_name, 1, {
+            upgrade(db, oldVersion, newVersion, txn) {
+                db.createObjectStore(store_name);
+            }
+        }), store_name);
+    }
+
     readonly name: string;
 
     onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();

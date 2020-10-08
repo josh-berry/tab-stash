@@ -81,6 +81,7 @@ import {
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
+import ui_model from '../ui-model';
 import {StashState, Bookmark, Tab} from '../model/browser';
 import Options, {LocalOptions, SyncOptions} from '../model/options';
 import {Cache} from '../cache-client';
@@ -238,6 +239,8 @@ launch(Main, async() => {
         warning: rootFolderWarning(),
     });
 
+    const model = await ui_model();
+
     // For debugging purposes only...
     (<any>globalThis).metadata_cache = Cache.open('bookmarks');
     (<any>globalThis).favicon_cache = Cache.open('favicons');
@@ -253,6 +256,10 @@ launch(Main, async() => {
             sync_options: p.syncopts,
             metadata_cache: Cache.open('bookmarks'),
             root_folder_warning: p.warning,
+            deleted_items: model.state.deleted_items,
+        },
+        provide: {
+            $model: model,
         },
     };
 });

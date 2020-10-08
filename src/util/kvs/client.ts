@@ -12,7 +12,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     private _port: Proto.ServicePort<K, V>;
 
     constructor(name_or_port: string | Proto.ServicePort<K, V>) {
-        if (typeof name_or_port === 'string') name_or_port = connect(name);
+        if (typeof name_or_port === 'string') name_or_port = connect(name_or_port);
 
         this._port = name_or_port;
         this._port.onNotify = msg => {

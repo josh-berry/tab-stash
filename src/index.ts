@@ -1,8 +1,6 @@
-"use strict";
-
 import {
     AsyncReturnTypeOf,
-    asyncEvent, urlsInTree, urlToOpen, nonReentrant,
+    asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
 } from './util';
 import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
@@ -10,8 +8,10 @@ import {
 } from './stash';
 import Options from './model/options';
 import {CacheService} from './cache-service';
+import service_model from './service-model';
 
-
+//let model: Model;
+logErrors(service_model); //.then(m => {model = m});
 
 //
 // User-triggered commands thru menu items, etc.  IDs in the menu items

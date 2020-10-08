@@ -82,8 +82,10 @@ import {
     closeTabs, hideStashedTabs, refocusAwayFromTabs,
 } from '../stash';
 
+import {Model} from '../model';
 import {Cache, CacheEntry} from '../cache-client';
-import {ModelLeaf, Tab, Window, Bookmark} from '../model/browser';
+import {ModelLeaf, Tab, Window, Bookmark, FaviconCacheEntry} from '../model/browser';
+import {DeletedItem} from '../model/deleted-items';
 
 export default Vue.extend({
     components: {
@@ -93,6 +95,8 @@ export default Vue.extend({
         EditableLabel: require('../components/editable-label.vue').default,
         Tab: require('./tab.vue').default,
     },
+
+    inject: ['$model'],
 
     props: {
         // View filter functions
@@ -163,6 +167,9 @@ export default Vue.extend({
     },
 
     methods: {
+        // TODO make Vue injection play nice with TypeScript typing...
+        model() { return (<any>this).$model as Model; },
+
         async newGroup() {logErrors(async() => {
             await browser.bookmarks.create({
                 parentId: (await rootFolder()).id,
@@ -221,7 +228,7 @@ export default Vue.extend({
                     .map(t => t?.id) as number[];
                 await browser.tabs.remove(tabs);
 
-                await browser.bookmarks.removeTree(this.id);
+                await this._deleteSelfAndLog();
 
             } else {
                 // User has asked us to hide all unstashed tabs.
@@ -277,7 +284,7 @@ export default Vue.extend({
                               {background: bg});
 
             // Discard opened tabs as requested.
-            await browser.bookmarks.removeTree(this.id);
+            await this._deleteSelfAndLog();
         })},
 
         rename(title: string) {
@@ -457,8 +464,39 @@ export default Vue.extend({
             // folder.
             await browser.bookmarks.remove(folder.id);
         },
+
+        async _deleteSelfAndLog() {
+            if (! this.id) throw `Expected a bookmark folder`;
+            const toDeletedItem = (item: Bookmarkable): DeletedItem => {
+                if (item.children) {
+                    return {
+                        title: item.title ?? '',
+                        children: (item.children.filter(i => i) as Bookmark[])
+                            .map(i => toDeletedItem(i)),
+                    };
+                } else {
+                    return {
+                        title: item.title ?? item.url ?? '',
+                        url: item.url ?? '',
+                        favIconUrl: item.favicon?.value,
+                    }
+                }
+            };
+            await this.model().deleted_items.add(toDeletedItem(this));
+            await browser.bookmarks.removeTree(this.id);
+        }
     },
 });
+
+// TODO helper type for things that look like a bookmark (including this
+// component).  Fix this by taking a bookmark as a single prop, rather than a
+// bunch of fields of a bookmark as different props...
+type Bookmarkable = {
+    title?: string,
+    url?: string,
+    favicon?: FaviconCacheEntry,
+    children?: (Bookmarkable | undefined)[],
+};
 </script>
 
 <style>

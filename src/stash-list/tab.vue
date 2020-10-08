@@ -35,6 +35,7 @@ import {
     restoreTabs, stashTabs,
     closeTabs,
 } from '../stash';
+import {Model} from '../model';
 import {Tab, Bookmark, ModelLeaf} from '../model/browser';
 
 export default Vue.extend({
@@ -42,6 +43,8 @@ export default Vue.extend({
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
     },
+
+    inject: ['$model'],
 
     props: {
         // Common
@@ -85,6 +88,9 @@ export default Vue.extend({
     },
 
     methods: {
+        // TODO make Vue injection play nice with TypeScript typing...
+        model() { return (<any>this).$model as Model; },
+
         stash: asyncEvent(async function(this: any, ev) {
             console.assert(this.tab);
             await stashTabs([this.tab], {
@@ -135,10 +141,15 @@ export default Vue.extend({
             }
         }),
 
-        _removeBM: async function(this: any) {
+        _removeBM: async function() {
             const folder = this.parent;
 
-            await browser.bookmarks.remove(this.id);
+            await this.model().deleted_items.add({
+                title: this.title,
+                url: this.url,
+                favIconUrl: this.favicon?.value,
+            });
+            await browser.bookmarks.remove(this.id as string);
 
             // If we are the only thing in our parent folder, AND the parent
             // folder has a "default" name, remove the parent folder, so we
