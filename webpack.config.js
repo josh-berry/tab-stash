@@ -22,7 +22,10 @@ module.exports = {
             {test: /\.svg$/, loader: 'file-loader'},
             {test: /\.css$/, use: [
                 'vue-style-loader',
-                {loader: 'css-loader', options: {modules: true}},
+                {loader: 'css-loader', options: {
+                    esModule: false, // to make css-loader 4.x work with vue
+                    modules: true,
+                }},
             ]},
         ],
     },
