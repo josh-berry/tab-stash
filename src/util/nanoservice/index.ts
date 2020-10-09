@@ -54,7 +54,7 @@ export class RemoteNanoError extends Error {
 export class NanoTimeoutError extends Error {
     readonly request: Send;
     constructor(request: Send) {
-        super("Request timeout");
+        super(`Request timeout: ${JSON.stringify(request)}`);
         this.name = 'NanoTimeoutError';
         this.request = request;
     }

@@ -223,7 +223,7 @@ describe('util/nanoservice', function() {
 
         it('drops replies to disconnected ports', async function() {
             const [client, svc] = await portpair('test');
-            const dest = new Live.Port(svc);
+            const dest = new Live.Port('testport', svc);
             const p = client.request(42);
             dest.disconnect();
             await events.drain(2);
