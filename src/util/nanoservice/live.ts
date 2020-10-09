@@ -2,6 +2,7 @@ import {NanoPort, NanoService, NanoTimeoutError, RemoteNanoError} from '.';
 import {
     Envelope, NotifyEnvelope, RequestEnvelope, ResponseEnvelope, Response, Send,
 } from './proto';
+import {makeRandomString} from '../random';
 
 export class SvcRegistry {
     private services = new Map<string, NanoService<Send, Send>>();
@@ -97,9 +98,8 @@ export class Port<S extends Send, R extends Send>
 
     request(request: S, options?: {timeout_ms?: number}): Promise<R> {
         return new Promise((resolve, reject) => {
-            // XXX higher-quality randomness?
-            let tag = Math.random().toString();
-            while (this.pending.has(tag)) tag = Math.random().toString();
+            let tag = makeRandomString(4);
+            while (this.pending.has(tag)) tag = makeRandomString(4);
 
             this.port.postMessage({tag, request} as RequestEnvelope<S>);
 
