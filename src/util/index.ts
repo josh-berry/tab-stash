@@ -104,13 +104,13 @@ export function asyncEvent<
     async_fn: T
 ): T {
     return function(this: U, ...args: any[]): Promise<any> {
-        return async_fn.apply(this, args).catch(console.log);
+        return async_fn.apply(this, args).catch(console.error);
     } as T;
 }
 
 export function logErrors<R>(f: () => Promise<R>): Promise<R> {
     return f().catch(e => {
-        console.log(e);
+        console.error(e);
         throw e;
     });
 }

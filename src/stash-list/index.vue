@@ -244,14 +244,16 @@ launch(Main, async() => {
     (<any>globalThis).stash_state = p.state;
 
     return {
-        unstashed_tabs: p.state.wins_by_id.get(p.win.id!),
-        stashed_tabs: p.state.bms_by_id.get(p.root.id),
-        root_id: p.root.id,
-        my_version: p.extinfo.version,
-        local_options: p.localopts,
-        sync_options: p.syncopts,
-        metadata_cache: Cache.open('bookmarks'),
-        root_folder_warning: p.warning,
+        propsData: {
+            unstashed_tabs: p.state.wins_by_id.get(p.win.id!),
+            stashed_tabs: p.state.bms_by_id.get(p.root.id),
+            root_id: p.root.id,
+            my_version: p.extinfo.version,
+            local_options: p.localopts,
+            sync_options: p.syncopts,
+            metadata_cache: Cache.open('bookmarks'),
+            root_folder_warning: p.warning,
+        },
     };
 });
 </script>

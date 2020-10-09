@@ -227,22 +227,24 @@ const Main = Vue.extend({
 });
 export default Main;
 
-launch(Main, {
-    last_notified_version: (async () => {
-        const r = await resolveNamed({
-            options: Options.local(),
-            extn: browser.management.getSelf(),
-        });
-        (<any>globalThis).options = r.options;
+launch(Main, async() => {
+    const r = await resolveNamed({
+        options: Options.local(),
+        extn: browser.management.getSelf(),
+    });
+    (<any>globalThis).options = r.options;
 
-        // If we are caught up to the current version, just show everything.
-        const res = r.options.last_notified_version == r.extn.version
-            ? undefined : r.options.last_notified_version;
+    // If we are caught up to the current version, just show everything.
+    const version = r.options.last_notified_version == r.extn.version
+        ? undefined : r.options.last_notified_version;
 
-        r.options.set({last_notified_version: r.extn.version});
+    r.options.set({last_notified_version: r.extn.version});
 
-        return res;
-    })(),
+    return {
+        propsData: {
+            last_notified_version: version,
+        },
+    };
 });
 </script>
 
