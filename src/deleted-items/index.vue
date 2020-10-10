@@ -22,7 +22,7 @@
 import Vue, {PropType} from 'vue';
 import launch from '../launch-vue';
 import ui_model from '../ui-model';
-import {Deletion} from '../model/deleted-items';
+import {State, Deletion} from '../model/deleted-items';
 
 const date_formatter = new Intl.DateTimeFormat();
 
@@ -36,7 +36,7 @@ const Main = Vue.extend({
     },
 
     props: {
-        records: Array as PropType<Deletion[]>
+        state: Object as PropType<State>,
     },
 
     computed: {
@@ -45,9 +45,11 @@ const Main = Vue.extend({
             let cutoff = this.startOfToday();
             let records: Deletion[] = [];
 
-            for (const r of Array.from(this.records).reverse()) {
+            for (const r of Array.from(this.state.entries).reverse()) {
                 if (r.deleted_at.valueOf() < cutoff.valueOf()) {
-                    ret.push({title: cutoff.toLocaleDateString(), records});
+                    if (records.length > 0) {
+                        ret.push({title: cutoff.toLocaleDateString(), records});
+                    }
                     records = [];
                     cutoff = new Date(cutoff.valueOf() - 24*60*60*1000);
                 }
@@ -83,7 +85,7 @@ launch(Main, async() => {
     const model = await ui_model();
     return {
         propsData: {
-            records: model.state.deleted_items.entries,
+            state: model.state.deleted_items,
         },
         provide: {
             $model: model,
