@@ -5,11 +5,8 @@
             'open': tab && ! tab.hidden}"
    target="_blank" :href="url" :title="bestTitle"
    @click.prevent.stop="open">
-  <img v-if="favIconUrl || (favicon && favicon.value)" class="icon"
-       :src="favIconUrl || favicon.value"
-       :srcset="(favIconUrl || favicon.value) + ' 2x'"
-       referrerpolicy="no-referrer"
-       alt="">
+  <ItemIcon v-if="favIconUrl || (favicon && favicon.value)"
+       :src="favIconUrl || favicon.value" />
   <span class="text">{{bestTitle}}</span>
   <ButtonBox>
     <Button v-if="isBookmark"
@@ -42,6 +39,7 @@ export default Vue.extend({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
+        ItemIcon: require('../components/item-icon').default,
     },
 
     inject: ['$model'],

@@ -118,6 +118,7 @@ html {
 html {
     font: caption;
     -moz-user-select: none;
+    user-select: none;
 }
 html, body {
     background-color: var(--page-bg);
@@ -130,19 +131,17 @@ html, body {
     box-shadow: 0 0 2px 2px highlight;
     outline: none;
 }
-a, a:visited {
+a[href], a[href]:visited {
     color: var(--userlink-fg);
     text-decoration: underline;
 }
-a:hover {
-    background-color: var(--userlink-hover-bg);
-    color: var(--userlink-hover-fg);
-}
+a:hover { background-color: var(--userlink-hover-bg); }
+a[href]:hover { color: var(--userlink-hover-fg); }
 a:active, a:focus {
     box-shadow: none;
     background-color: var(--userlink-hover-bg);
-    color: var(--userlink-active-fg);
 }
+a[href]:active, a[href]:focus { color: var(--userlink-active-fg); }
 
 .modal-backdrop {
     background-color: var(--modal-bg);
@@ -231,8 +230,8 @@ header.page {
     padding: 0 var(--m-menu-w);
     margin: 0;
     border: none;
-    color: inherit;
-    text-decoration: none;
+    color: inherit !important; /* overrides a[href] */
+    text-decoration: none !important; /* overrides a[href] */
     background: transparent;
     text-align: left;
     white-space: nowrap;
@@ -288,10 +287,13 @@ aside.notification .contents {
     background-color: var(--ctrl-bg);
 }
 
-/* Website Icons (favicons) */
-img.icon {
+/* Website Icons (favicons) and misc. other icons (that aren't buttons) */
+.icon {
     width: 16px;
     height: 16px;
+    background-position: 50% 50%;
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
 }
 
 /* Form/dialog controls */
@@ -374,6 +376,7 @@ nav.action-container .action:last-child {
 }
 
 /* Specific Actions */
+.icon-folder { background-image: url(icons/light/folder.svg); }
 .action.mainmenu { background-image: url(icons/light/mainmenu.svg); }
 .action.collapse { background-image: url(icons/light/collapse-closed.svg); }
 .action.expand { background-image: url(icons/light/collapse-open.svg); }
@@ -462,7 +465,9 @@ nav.action-container .action:last-child {
     grid-column: 1 / 3;
 }
 .folder .contents {
-    margin-bottom: 1em;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1em 0;
 }
 .folder .contents .tabs {
     min-height: 12px;
@@ -472,24 +477,37 @@ nav.action-container .action:last-child {
 /* Tab entries and other folder contents (e.g. count of hidden tabs) */
 .folder-item {
     display: grid;
-    grid-template-columns: 22px 1fr 0fr;
+    grid-template-columns: 0fr 22px 1fr 0fr;
     align-items: center;
     padding: 0 16px;
     height: 24px; /* matches .action height XXX */
+}
+.folder-item-nesting {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
 }
 .folder-item > * {
     margin: 0 3px;
     padding: 0;
 }
-.folder-item > .icon {
+.folder-item > .indent {
     grid-row: 1;
     grid-column: 1;
+    display: flex;
+    flex-direction: row;
+    flex: 0 0;
 }
-.folder-item > .text { grid-row: 1; grid-column: 2; }
+.indent-spacer { display: inline-block; width: 16px; }
+.folder-item > .icon {
+    grid-row: 1;
+    grid-column: 2;
+}
+.folder-item > .text { grid-row: 1; grid-column: 3; }
 .folder-item > nav {
     display: none;
     grid-row: 1;
-    grid-column: 3;
+    grid-column: 4;
 }
 .folder-item:hover > nav { display: flex; }
 span.folder-name, .folder-item > .text {
@@ -639,6 +657,7 @@ span.folder-name, .folder-item > .text {
         background-color: rgba(128, 191, 255, 0.48);
     }
 
+    .icon-folder { background-image: url(icons/dark/folder.svg); }
     .action.mainmenu { background-image: url(icons/dark/mainmenu.svg); }
     .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
     .action.expand { background-image: url(icons/dark/collapse-open.svg); }

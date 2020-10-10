@@ -10,6 +10,7 @@
       <a @click.prevent.stop="dialog = {class: 'ImportDialog'}">Import...</a>
       <a @click.prevent.stop="showExportDialog">Export...</a>
       <hr/>
+      <a href="deleted-items.html" target="_blank">Deleted Items...</a>
       <a @click.prevent.stop="fetchMissingFavicons">Fetch Missing Icons</a>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
