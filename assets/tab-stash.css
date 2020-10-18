@@ -637,6 +637,7 @@ span.folder-name, .folder-item > .text {
     margin-left: 32px;
     margin-right: 16px;
     margin-top: 0;
+    list-style: disc;
 }
 .whats-new ul {
     margin: 0 0 0 32px;
