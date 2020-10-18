@@ -62,7 +62,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                          || (userFilter && ! userFilter(item)),
                     'folder-item': true}"></tab>
     </Draggable>
-    <div class="folder-item" v-if="userHiddenChildren.length > 0">
+    <div class="folder-item disabled" v-if="userHiddenChildren.length > 0">
       <span class="text status-text hidden-count">
         + {{userHiddenChildren.length}} filtered
       </span>

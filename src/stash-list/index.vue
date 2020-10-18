@@ -77,7 +77,7 @@ import Vue, {PropType} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
-    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors,
+    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors, textMatcher,
 } from '../util';
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
@@ -143,14 +143,7 @@ const Main = Vue.extend({
         },
 
         text_matcher(): (txt: string) => boolean {
-            if (this.searchtext == '') return txt => true;
-            try {
-                let re = new RegExp(this.searchtext, 'iu');
-                return txt => re.test(txt);
-            } catch (e) {
-                let lower = this.searchtext.normalize().toLowerCase();
-                return txt => txt.normalize().toLowerCase().includes(lower);
-            }
+            return textMatcher(this.searchtext);
         },
     },
 

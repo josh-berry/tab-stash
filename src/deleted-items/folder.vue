@@ -17,6 +17,12 @@
                   :item="child" class="folder-item">
             <span class="indent indent-spacer"></span>
         </Bookmark>
+        <li v-if="item.filter_count" class="folder-item disabled">
+            <span class="indent indent-spacer"></span>
+            <span class="text status-text hidden-count">
+                + {{item.filter_count}} filtered
+            </span>
+        </li>
     </ul>
 </div>
 </template>

@@ -278,3 +278,26 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
         });
     }
 }
+
+// Maps and filters an array at the same time, removing `undefined`s
+export function filterMap<T>(array: T[], map: (i: T) => T | undefined): T[] {
+    const res = [];
+    for (const i of array) {
+        const m = map(i);
+        if (m !== undefined) res.push(m);
+    }
+    return res;
+}
+
+// Returns a text-matcher function, taking a user search string as input (which
+// may or may not be a regex, and is generally case-insensitive).
+export function textMatcher(query: string): (txt: string) => boolean {
+    if (query === '') return txt => true;
+    try {
+        const re = new RegExp(query, 'iu');
+        return txt => re.test(txt);
+    } catch (e) {
+        const lower = query.normalize().toLocaleLowerCase();
+        return txt => txt.normalize().toLocaleLowerCase().includes(lower);
+    }
+}

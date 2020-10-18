@@ -5,6 +5,8 @@
     <div>
       <a :href="pageref('stash-list.html')">&#x2190; Back to Tab Stash</a>
     </div>
+
+    <slot name="after"></slot>
   </header>
 </template>
 

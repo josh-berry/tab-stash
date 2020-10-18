@@ -500,7 +500,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     padding: 0 16px;
     height: 24px; /* matches .action height XXX */
 }
-.folder-item:hover, .folder-item:focus-within {
+.folder-item:not(.disabled):hover, .folder-item:not(.disabled):focus-within {
     background-color: var(--userlink-hover-bg);
 }
 .folder-item-nesting {

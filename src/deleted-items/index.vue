@@ -1,8 +1,14 @@
 <template>
 <main>
-    <PageHeader>Deleted Items</PageHeader>
+    <PageHeader>
+        <slot>Deleted Items</slot>
+        <input slot="after" type="search" ref="search" class="ephemeral"
+               placeholder="Search Deleted Items"
+               @keyup.esc.prevent="searchtext=''; $refs.search.blur()"
+               v-model="searchtext">
+    </PageHeader>
     <div class="folder-list one-column">
-        <div v-for="group of record_groups" :key="group.title" class="folder">
+        <div v-for="group of filter_results" :key="group.title" class="folder">
             <div class="header">
                 <div class="folder-name">{{group.title}}</div>
             </div>
@@ -12,10 +18,15 @@
                             :id="rec.key" :item="rec.item" />
                     <Bookmark v-else :id="rec.key" :item="rec.item" />
                 </li>
+                <li v-if="group.filter_count > 0" class="folder-item disabled">
+                    <span class="text status-text hidden-count">
+                        + {{group.filter_count}} filtered
+                    </span>
+                </li>
             </ul>
         </div>
     </div>
-    <LoadMore @infinite="loadMore">
+    <LoadMore :identifier="searchtext" @infinite="loadMore">
         <footer slot="no-results" class="page footer status-text">
             No deleted items found.
         </footer>
@@ -30,13 +41,19 @@
 import Vue, {PropType} from 'vue';
 import LoadMore, {StateChanger} from 'vue-infinite-loading';
 
+import {filterMap, logErrors, textMatcher} from '../util';
 import launch from '../launch-vue';
 import ui_model from '../ui-model';
 import {Model} from '../model';
 import * as DI from '../model/deleted-items';
-import { logErrors } from '../util';
 
 const date_formatter = new Intl.DateTimeFormat();
+
+type RecordGroup = FilterCount<{title: string, records: FilteredDeletion[]}>;
+type FilteredDeletion = DI.Deletion & {item: FilteredDeletedItem};
+type FilteredDeletedItem = FilterCount<DI.DeletedItem>;
+
+type FilterCount<F> = F & {filter_count?: number};
 
 const Main = Vue.extend({
     components: {
@@ -52,9 +69,13 @@ const Main = Vue.extend({
         state: Object as PropType<DI.State>,
     },
 
+    data() { return {
+        searchtext: '',
+    }},
+
     computed: {
-        record_groups(): {title: string, records: DI.Deletion[]}[] {
-            const ret: {title: string, records: DI.Deletion[]}[] = [];
+        record_groups(): RecordGroup[] {
+            const ret: RecordGroup[] = [];
             let cutoff = this.startOfToday();
             let records: DI.Deletion[] = [];
 
@@ -73,6 +94,51 @@ const Main = Vue.extend({
             }
 
             return ret;
+        },
+
+        text_matcher(): (txt: string) => boolean {
+            return textMatcher(this.searchtext);
+        },
+
+        filter_results(): RecordGroup[] {
+            if (! this.searchtext) return this.record_groups;
+
+            const mapitem = (i: FilteredDeletedItem): FilteredDeletedItem | undefined => {
+                if (this.text_matcher(i.title)) return i;
+                if ('url' in i && this.text_matcher(i.url)) return i;
+
+                if ('children' in i) {
+                    const mapped: FilteredDeletedItem = {
+                        title: i.title,
+                        children: filterMap(i.children, mapitem),
+                    };
+                    if (mapped.children.length === 0) return undefined;
+
+                    mapped.filter_count = i.children.length - mapped.children.length;
+                    return mapped;
+                }
+
+                return undefined;
+            };
+
+            return filterMap(this.record_groups, rg => {
+                const filtered = filterMap(rg.records, r => {
+                    const i = mapitem(r.item);
+                    if (i) return {
+                        key: r.key,
+                        deleted_at: r.deleted_at,
+                        item: i,
+                    };
+                    return undefined;
+                });
+                if (filtered.length === 0) return undefined;
+
+                return {
+                    title: rg.title,
+                    records: filtered,
+                    filter_count: rg.records.length - filtered.length,
+                };
+            });
         },
     },
 
