@@ -2,7 +2,7 @@
 <div>
   <PageHeader>What's New in Tab Stash</PageHeader>
 
-  <div class="folder-list">
+  <div class="folder-list one-column">
 
     <Version v="2.6">
       <L :issue="[11, 17]" v="Added">import and export for a variety of formats,

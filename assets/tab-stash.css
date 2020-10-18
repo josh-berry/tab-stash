@@ -432,7 +432,18 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     background-color: #ccb3b3;
 }
 
-/* Folder headings */
+/* Folders */
+.folder-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.folder {
+    flex: 1 1 auto;
+    width: 100%;
+}
+
 .folder .header {
     margin: 6px 0;
     padding: 6px 16px 4px;
@@ -572,10 +583,14 @@ span.folder-name, .folder-item > .text {
 }
 
 .tab-view .folder-list {
-    display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    align-items: stretch;
     margin: 0 calc(var(--margin) / 2);
+}
+.tab-view .one-column .folder {
+    flex: 1 1 auto;
+    width: 100%;
 }
 .tab-view .folder {
     flex: 1 1 25rem;
@@ -629,10 +644,6 @@ span.folder-name, .folder-item > .text {
 }
 .whats-new li {
     margin: 8px 0;
-}
-.whats-new section.folder {
-    flex: 1 1 auto;
-    width: 100%;
 }
 
 .whats-new.tab-view .status-text {
