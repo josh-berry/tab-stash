@@ -42,7 +42,22 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         return resp.entries;
     }
 
-    list(): AsyncIterable<Proto.Entry<K, V>> { return genericList(this); }
+    async getEndingAt(
+        bound: K | undefined, limit: number
+    ): Promise<Proto.Entry<K, V>[]> {
+        const resp = await this._port.request({
+            $type: 'getEndingAt', bound, limit});
+        if (resp?.$type !== 'set') return [];
+        return resp.entries;
+    }
+
+    list(): AsyncIterable<Proto.Entry<K, V>> {
+        return genericList((bound, limit) => this.getStartingFrom(bound, limit));
+    }
+
+    listReverse(): AsyncIterable<Proto.Entry<K, V>> {
+        return genericList((bound, limit) => this.getEndingAt(bound, limit));
+    }
 
     async set(entries: Proto.Entry<K, V>[]): Promise<void> {
         await this._port.request({$type: 'set', entries: entries});

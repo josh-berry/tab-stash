@@ -57,7 +57,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         });
     });
 
-    describe('retrieves blocks of entries in key order', () => {
+    describe('retrieves blocks of entries in ascending key order', () => {
         beforeEach(setDefaults);
         it('starting at the beginning', async() =>
             expect(await kvs.getStartingFrom(undefined, 2)).to.deep.equal([
@@ -88,6 +88,40 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
                 {key: 'b', value: 'bob'},
                 {key: 'c', value: 'christine'},
                 {key: 'd', value: 'derek'},
+            ]));
+    });
+
+    describe('retrieves blocks of entries in descending key order', () => {
+        beforeEach(setDefaults);
+        it('starting at the end', async() =>
+            expect(await kvs.getEndingAt(undefined, 2)).to.deep.equal([
+                {key: 'd', value: 'derek'},
+                {key: 'c', value: 'christine'},
+            ]));
+        it('after the end', async() =>
+            expect(await kvs.getEndingAt('e', 2)).to.deep.equal([
+                {key: 'd', value: 'derek'},
+                {key: 'c', value: 'christine'},
+            ]));
+        it('in the middle', async() =>
+            expect(await kvs.getEndingAt('d', 2)).to.deep.equal([
+                {key: 'c', value: 'christine'},
+                {key: 'b', value: 'bob'},
+            ]));
+        it('near the beginning', async() =>
+            expect(await kvs.getEndingAt('b', 2)).to.deep.equal([
+                {key: 'a', value: 'alice'},
+            ]));
+        it('before the beginning', async() =>
+            expect(await kvs.getEndingAt('a', 2)).to.deep.equal([]));
+        it('way before the beginning', async() =>
+            expect(await kvs.getEndingAt('1', 2)).to.deep.equal([]));
+        it('all entries via iterator', async() =>
+            expect(await collect(kvs.listReverse())).to.deep.equal([
+                {key: 'd', value: 'derek'},
+                {key: 'c', value: 'christine'},
+                {key: 'b', value: 'bob'},
+                {key: 'a', value: 'alice'},
             ]));
     });
 

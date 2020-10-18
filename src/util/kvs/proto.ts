@@ -13,7 +13,7 @@ export type ClientPort<K extends Key, V extends Value> =
 
 // All of the messages that may be sent or received by client or service.
 export type ClientMsg<K extends Key, V extends Value> =
-    GetMessage<K, V> | GetStartingFromMessage<K, V> |
+    GetMessage<K, V> | GetStartingFromMessage<K, V> | GetEndingAtMessage<K, V> |
     SetMessage<K, V> | DeleteMessage<K, V> | DeleteAllMessage<K, V> |
     undefined;
 export type ServiceMsg<K extends Key, V extends Value> =
@@ -30,8 +30,26 @@ export type GetMessage<K extends Key, V extends Value> = {
 // Retrieve multiple values when the keys aren't known, starting with values >
 // bound (or the first value, if bound isn't specified).  Only sent from client
 // to service.  Response is a SetMessage with the requested key/value pairs.
+//
+// Entries are returned in ascending key order.
 export type GetStartingFromMessage<K extends Key, V extends Value> = {
     $type: 'getStartingFrom',
+
+    // If bound is undefined, returns entries starting from the smallest key.
+    // Otherwise returns entries with keys > /bound/.
+    bound: K | undefined,
+
+    // How many entries to return.
+    limit: number,
+};
+
+// Retrieve multiple values when the keys aren't known, starting with values <
+// bound (or the last value, if bound isn't specified).  Only sent from client
+// to service.  Response is a SetMessage with the requested key/value pairs.
+//
+// Entries are returned in descending key order.
+export type GetEndingAtMessage<K extends Key, V extends Value> = {
+    $type: 'getEndingAt',
 
     // If bound is undefined, returns entries starting from the smallest key.
     // Otherwise returns entries with keys > /bound/.

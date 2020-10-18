@@ -68,8 +68,33 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         return res;
     }
 
+    async getEndingAt(
+        bound: K | undefined, limit: number
+    ): Promise<Proto.Entry<K, V>[]> {
+        const b = bound ? IDBKeyRange.upperBound(bound, true) : undefined;
+
+        const txn = this._db.transaction(this.name);
+        let cursor = await txn.store.openCursor(b, 'prev');
+
+        const res: Proto.Entry<K, V>[] = [];
+        while (cursor && limit > 0) {
+            // Cast needed because IDB keys can be non-JSON-serializable types,
+            // but we shouldn't have any of those here (if the DB was only ever
+            // interacted with using KVS, which precludes such keys).
+            res.push({key: cursor.primaryKey as K, value: cursor.value});
+            --limit;
+            cursor = await cursor.continue();
+        }
+        await txn.done;
+        return res;
+    }
+
     list(): AsyncIterable<Proto.Entry<K, V>> {
-        return genericList(this);
+        return genericList((bound, limit) => this.getStartingFrom(bound, limit));
+    }
+
+    listReverse(): AsyncIterable<Proto.Entry<K, V>> {
+        return genericList((bound, limit) => this.getEndingAt(bound, limit));
     }
 
     async set(entries: Proto.Entry<K, V>[]): Promise<void> {
@@ -141,6 +166,11 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
                 return {
                     $type: 'set',
                     entries: await this.getStartingFrom(msg.bound, msg.limit),
+                };
+            case 'getEndingAt':
+                return {
+                    $type: 'set',
+                    entries: await this.getEndingAt(msg.bound, msg.limit),
                 };
             case 'set':
                 await this.set(msg.entries);

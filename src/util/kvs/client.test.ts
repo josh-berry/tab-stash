@@ -36,6 +36,15 @@ class MockServicePort implements Proto.ServicePort<string, string> {
                         .map(key => ({key, value: copy(this.entries.get(key))})),
                 };
 
+            case 'getEndingAt':
+                let rkeys = Array.from(this.entries.keys()).sort().reverse();
+                if (msg.bound !== undefined) rkeys = rkeys.filter(x => x < msg.bound!);
+                return {
+                    $type: 'set',
+                    entries: rkeys.slice(0, msg.limit)
+                        .map(key => ({key, value: copy(this.entries.get(key))})),
+                };
+
             case 'set':
                 for (const {key, value} of msg.entries) this.entries.set(key, value);
                 const res = {

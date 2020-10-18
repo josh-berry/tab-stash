@@ -10,7 +10,10 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 
     get(keys: K[]): Promise<Entry<K, V>[]>;
     getStartingFrom(bound: K | undefined, limit: number): Promise<Entry<K, V>[]>;
+    getEndingAt(bound: K | undefined, limit: number): Promise<Entry<K, V>[]>;
+
     list(): AsyncIterable<Entry<K, V>>;
+    listReverse(): AsyncIterable<Entry<K, V>>;
 
     set(entries: Entry<K, V>[]): Promise<void>;
 
@@ -19,11 +22,11 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 }
 
 export async function* genericList<K extends Key, V extends Value>(
-    kvs: KeyValueStore<K, V>,
+    getChunk: (key: K | undefined, limit: number) => Promise<Entry<K, V>[]>,
 ): AsyncIterable<Entry<K, V>> {
     let bound: K | undefined;
     while (true) {
-        const res = await kvs.getStartingFrom(bound, 100);
+        const res = await getChunk(bound, 100);
         if (res.length == 0) break;
         yield* res;
         bound = res[res.length - 1].key;
