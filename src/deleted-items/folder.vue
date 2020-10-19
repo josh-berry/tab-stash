@@ -2,7 +2,7 @@
 <div>
     <div class="folder-item action-container">
         <ItemIcon class="icon-folder" />
-        <span class="text">{{item.title}}</span>
+        <span class="text" :title="tooltip">{{item.title}}</span>
         <ButtonBox v-if="id">
             <button class="action stash" title="Restore"
                     @click.prevent.stop="restore"></button>
@@ -15,6 +15,7 @@
     <ul class="folder-item-nesting">
         <Bookmark v-for="(child, index) of leafChildren" :key="child.url+index"
                   :item="child" :parentId="id" :childIndex="index"
+                  :deleted_at="deleted_at"
                   class="folder-item">
             <span class="indent indent-spacer"></span>
         </Bookmark>
@@ -48,11 +49,15 @@ export default Vue.extend({
     props: {
         id: String,
         item: Object as PropType<DeletedFolder>,
+        deleted_at: Date,
     },
 
     computed: {
         leafChildren(): DeletedItem[] {
             return this.item.children.filter(i => ! ('children' in i));
+        },
+        tooltip(): string {
+            return `${this.item.title}\nDeleted ${this.deleted_at.toLocaleString()}`;
         },
     },
 

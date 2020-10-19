@@ -3,7 +3,7 @@
     <PageHeader>
         <slot>Deleted Items</slot>
         <input slot="after" type="search" ref="search" class="ephemeral"
-               placeholder="Search Deleted Items"
+               placeholder="Search Deleted Items on This Computer"
                @keyup.esc.prevent="searchtext=''; $refs.search.blur()"
                v-model="searchtext">
     </PageHeader>
@@ -15,8 +15,10 @@
             <ul class="contents">
                 <li v-for="rec of group.records" :key="rec.key">
                     <Folder v-if="rec.item.children" 
-                            :id="rec.key" :item="rec.item" />
-                    <Bookmark v-else :id="rec.key" :item="rec.item" />
+                            :id="rec.key" :item="rec.item"
+                            :deleted_at="rec.deleted_at" />
+                    <Bookmark v-else :id="rec.key" :item="rec.item"
+                              :deleted_at="rec.deleted_at" />
                 </li>
                 <li v-if="group.filter_count > 0" class="folder-item disabled">
                     <span class="text status-text hidden-count">
@@ -28,10 +30,10 @@
     </div>
     <LoadMore :identifier="searchtext" @infinite="loadMore">
         <footer slot="no-results" class="page footer status-text">
-            No deleted items found.
+            No deleted items found on this computer.
         </footer>
         <footer slot="no-more" class="page footer status-text">
-            No more deleted items.
+            No more deleted items on this computer.
         </footer>
     </LoadMore>
 </main>
@@ -80,7 +82,7 @@ const Main = Vue.extend({
             let records: DI.Deletion[] = [];
 
             for (const r of this.state.entries) {
-                if (r.deleted_at.valueOf() < cutoff.valueOf()) {
+                while (r.deleted_at.valueOf() < cutoff.valueOf()) {
                     if (records.length > 0) {
                         ret.push({title: cutoff.toLocaleDateString(), records});
                     }

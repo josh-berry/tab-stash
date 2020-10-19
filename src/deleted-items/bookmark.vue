@@ -1,7 +1,7 @@
 <template>
     <div class="folder-item action-container">
         <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
-        <a class="text" :href="item.url" target="_blank"><span>{{item.title}}</span></a>
+        <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
         <ButtonBox>
             <button class="action stash one" title="Restore"
                     @click.prevent.stop="restore"></button>
@@ -33,8 +33,15 @@ export default Vue.extend({
     props: {
         id: String,
         item: Object as PropType<DeletedBookmark>,
+        deleted_at: Date,
         parentId: String,
         childIndex: Number,
+    },
+
+    computed: {
+        tooltip(): string {
+            return `${this.item.title}\nDeleted ${this.deleted_at.toLocaleString()}`;
+        }
     },
 
     methods: {
