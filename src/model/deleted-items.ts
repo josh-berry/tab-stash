@@ -150,4 +150,23 @@ export class Model {
             },
         }]);
     }
+
+    // Cleanup deleted items which are older than the specified date.
+    //
+    // We go directly to the KVS regardless of what's loaded into the model
+    // because that way we are guaranteed to see everything, and we don't want
+    // to pollute the model with stuff we're about to delete.
+    async dropOlderThan(timestamp: number): Promise<void> {
+        while (true) {
+            const to_delete = [];
+            for (const rec of await this._kvs.getStartingFrom(undefined, 50)) {
+                if (Date.parse(rec.value.deleted_at) < timestamp) {
+                    to_delete.push(rec.key);
+                }
+            }
+
+            if (to_delete.length > 0) await this._kvs.delete(to_delete);
+            else break;
+        }
+    }
 };

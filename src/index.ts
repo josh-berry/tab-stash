@@ -1,6 +1,6 @@
 import {
-    AsyncReturnTypeOf,
     asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
+    resolveNamed,
 } from './util';
 import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
@@ -10,8 +10,24 @@ import Options from './model/options';
 import {CacheService} from './cache-service';
 import service_model from './service-model';
 
-//let model: Model;
-logErrors(service_model); //.then(m => {model = m});
+logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
+
+//
+// Start our various services and set global variables used throughout the rest
+// of this file.
+//
+
+const the = await resolveNamed({
+    model: service_model(),
+    sync_options: Options.sync(),
+    local_options: Options.local(),
+
+    favicon_cache: CacheService.start('favicons'),
+    bookmark_cache: CacheService.start('bookmarks'),
+});
+(<any>globalThis).the = the;
+
+
 
 //
 // User-triggered commands thru menu items, etc.  IDs in the menu items
@@ -64,45 +80,22 @@ menu('3:', ['page_action'], [
 
 // show_stash_if_desired() shows either the Tab Stash sidebar, the Tab Stash
 // tab, or nothing, depending on the `open_stash_in` synced setting.
-//
-// The extra layer of scoping is just to hide the SYNC_OPTIONS variable, for
-// safety (since otherwise it would be a global).
-const show_stash_if_desired = (() => {
-    // Ugh, we have to load Options.sync() synchronously here (ha) so it's
-    // synchronously accessible in show_stash_if_desired(), which absolutely
-    // cannot yield to the browser because we will lose the user-event context
-    // and not be able to open the sidebar, instead resulting in the dreaded
-    // error: "sidebarAction.open may only be called from a user input handler".
+function show_stash_if_desired() {
+    switch (the.sync_options.open_stash_in) {
+        case 'none':
+            break;
 
-    // Ugh, the "| undefined" is needed to work around a TypeScript limitation
-    // related to uninitialized local variables -- see:
-    // https://github.com/microsoft/TypeScript/issues/28013
-    let SYNC_OPTIONS: AsyncReturnTypeOf<typeof Options.sync> | undefined;
-    Options.sync().then(opts => {SYNC_OPTIONS = opts});
+        case 'tab':
+            restoreTabs([browser.extension.getURL('stash-list.html')], {})
+                .catch(console.log);
+            break;
 
-    // Actual implementation of show_stash_if_desired().
-    return () => {
-        // SYNC_OPTIONS should almost always be defined since we load it at
-        // startup, but on the off chance the user gets to us before the promise
-        // above returns (which is very very very unlikely), we'll just go with
-        // the default behavior.
-        switch (SYNC_OPTIONS && SYNC_OPTIONS.open_stash_in) {
-            case 'none':
-                break;
-
-            case 'tab':
-                restoreTabs([browser.extension.getURL('stash-list.html')], {})
-                    .catch(console.log);
-                break;
-
-            case 'sidebar':
-            default:
-                browser.sidebarAction.open().catch(console.log);
-                break;
-        }
-    };
-})();
-
+        case 'sidebar':
+        default:
+            browser.sidebarAction.open().catch(console.log);
+            break;
+    }
+}
 
 const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
@@ -176,40 +169,23 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 // user when updates are installed.
 //
 
-(async () => {
-    const localopts = await Options.local();
-    (<any>globalThis).the_local_opts = localopts;
-
-    if (localopts.last_notified_version === undefined) {
-        // This looks like a fresh install, (or an upgrade from a version that
-        // doesn't keep track of the last-notified version, in which case, we
-        // just assume it's a fresh install).  Record our current version number
-        // here so we can detect upgrades in the future and show the user a
-        // whats-new notification.
-        localopts.set({
-            last_notified_version: (await browser.management.getSelf()).version
-        }).catch(console.error);
-    }
-
-})().catch(console.error);
+if (the.local_options.last_notified_version === undefined) {
+    // This looks like a fresh install, (or an upgrade from a version that
+    // doesn't keep track of the last-notified version, in which case, we
+    // just assume it's a fresh install).  Record our current version number
+    // here so we can detect upgrades in the future and show the user a
+    // whats-new notification.
+    logErrors(async() => the.local_options.set({
+        last_notified_version: (await browser.management.getSelf()).version
+    }));
+}
 
 
 
 //
-// Spin up the cache service(s), used by the UI for storing various bits of
-// metadata such as favicons.
-//
-
-CacheService.start('favicons').catch(console.log)
-    .then(cs => (<any>globalThis).the_favicon_cache = cs);
-CacheService.start('bookmarks').catch(console.log)
-    .then(cs => (<any>globalThis).the_bookmarks_cache = cs);
-
-
-
-//
-// Setup the hidden-tab garbage collector.  This GC is triggered by any bookmark
-// event which could possibly change the set of URLs stored in the stash.
+// Setup GC events to close hidden tabs which are removed from the stash.  This
+// GC is triggered by any bookmark event which could possibly change the set of
+// URLs stored in the stash.
 //
 // We garbage-collect (close) hidden tabs with URLs that correspond to bookmarks
 // which are removed from the stash.  Unfortunately, because Firefox doesn't
@@ -225,7 +201,7 @@ CacheService.start('bookmarks').catch(console.log)
 // pile up, which will cause browser slowdowns over time.
 //
 
-(async () => {
+logErrors(async () => {
     let managed_urls = new Set(urlsInTree(await tabStashTree()));
 
     const close_removed_bookmarks = nonReentrant(async function() {
@@ -263,8 +239,7 @@ CacheService.start('bookmarks').catch(console.log)
     browser.bookmarks.onRemoved.addListener(close_removed_bookmarks);
     browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
     browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
-
-})().catch(console.log);
+});
 
 
 
@@ -300,60 +275,81 @@ CacheService.start('bookmarks').catch(console.log)
 // stay within reasonable memory limits.
 //
 
-(async () => {
-    const localopts = await Options.local();
-
-    const discard_old_hidden_tabs = nonReentrant(async function() {
-        // We setTimeout() first because the enable/disable flag could change at
-        // runtime.
-        setTimeout(discard_old_hidden_tabs,
-                   localopts.autodiscard_interval_min * 60 * 1000);
-
-        if (! localopts.autodiscard_hidden_tabs) return;
-
-        let now = Date.now();
-        let tabs = await browser.tabs.query({discarded: false});
-        let tab_count = tabs.length;
-        let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
-            .sort((a, b) => a.lastAccessed - b.lastAccessed);
-
-        const min_keep_tabs = localopts.autodiscard_min_keep_tabs;
-        const target_tab_count = localopts.autodiscard_target_tab_count;
-        const target_age_ms = localopts.autodiscard_target_age_min * 60 * 1000;
-
-        while (tab_count > min_keep_tabs) {
-            // Keep discarding tabs until we have the minimum number of tabs
-            // remaining, we run out of candidates, OR the age of the oldest tab
-            // is less than the cutoff (as a function of the number of
-            // non-discarded tabs).
-            //
-            // You'll have to graph /age_cutoff/ as a function of /tab_count/ to
-            // (literally) see why this makes sense--it's basically a hyperbola
-            // with the vertical asymptote at /MIN_KEEP_TABS/ and the horizontal
-            // asymptote at 0.  I recommend https://www.desmos.com/calculator
-            // for a good graphing calculator.
-            let age_cutoff = (target_tab_count - min_keep_tabs) * target_age_ms
-                / (tab_count - min_keep_tabs);
-
-            let oldest_tab = candidate_tabs.pop();
-            if (! oldest_tab) break;
-
-            let age = now - oldest_tab.lastAccessed;
-            if (age > age_cutoff) {
-                --tab_count;
-                // #undef We filter no-id tabs out of /candidate_tabs/ above
-                await browser.tabs.discard([oldest_tab.id!]);
-            } else {
-                break;
-            }
-        }
-    });
-
-    // We use setTimeout rather than setInterval here because the interval could
-    // change at runtime if the corresponding option is changed.  This will
-    // cause some drift but it's not a big deal--the interval doesn't need to be
-    // exact.
+const discard_old_hidden_tabs = nonReentrant(async function() {
+    // We setTimeout() first because the enable/disable flag could change at
+    // runtime.
     setTimeout(discard_old_hidden_tabs,
-               localopts.autodiscard_interval_min * 60 * 1000);
+                the.local_options.autodiscard_interval_min * 60 * 1000);
 
-})().catch(console.log);
+    if (! the.local_options.autodiscard_hidden_tabs) return;
+
+    let now = Date.now();
+    let tabs = await browser.tabs.query({discarded: false});
+    let tab_count = tabs.length;
+    let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
+        .sort((a, b) => a.lastAccessed - b.lastAccessed);
+
+    const min_keep_tabs = the.local_options.autodiscard_min_keep_tabs;
+    const target_tab_count = the.local_options.autodiscard_target_tab_count;
+    const target_age_ms = the.local_options.autodiscard_target_age_min * 60 * 1000;
+
+    while (tab_count > min_keep_tabs) {
+        // Keep discarding tabs until we have the minimum number of tabs
+        // remaining, we run out of candidates, OR the age of the oldest tab
+        // is less than the cutoff (as a function of the number of
+        // non-discarded tabs).
+        //
+        // You'll have to graph /age_cutoff/ as a function of /tab_count/ to
+        // (literally) see why this makes sense--it's basically a hyperbola
+        // with the vertical asymptote at /MIN_KEEP_TABS/ and the horizontal
+        // asymptote at 0.  I recommend https://www.desmos.com/calculator
+        // for a good graphing calculator.
+        let age_cutoff = (target_tab_count - min_keep_tabs) * target_age_ms
+            / (tab_count - min_keep_tabs);
+
+        let oldest_tab = candidate_tabs.pop();
+        if (! oldest_tab) break;
+
+        let age = now - oldest_tab.lastAccessed;
+        if (age > age_cutoff) {
+            --tab_count;
+            // #undef We filter no-id tabs out of /candidate_tabs/ above
+            await browser.tabs.discard([oldest_tab.id!]);
+        } else {
+            break;
+        }
+    }
+});
+
+// We use setTimeout rather than setInterval here because the interval could
+// change at runtime if the corresponding option is changed.  This will
+// cause some drift but it's not a big deal--the interval doesn't need to be
+// exact.
+setTimeout(discard_old_hidden_tabs,
+            the.local_options.autodiscard_interval_min * 60 * 1000);
+
+
+
+//
+// Setup a periodic background job to cleanup old deleted items.
+//
+// These are items that were previously deleted by the user but have remained
+// deleted for so long they're probably not useful to keep around anymore.  We
+// need this to prevent our usage of local storage from growing unbounded.
+//
+
+const gc_deleted_items = nonReentrant(async function() {
+    // Hard-coded to a day for now, for people who don't restart their browsers
+    // regularly.  If this ever needs to be changed, we can always add an option
+    // for it later.
+    setTimeout(gc_deleted_items, 24*60*60*1000);
+
+    await the.model.deleted_items.dropOlderThan(
+        Date.now() - (the.sync_options.deleted_items_expiration_days * 24*60*60*1000));
+});
+
+// Here we call gc_deleted_items() on browser restart to ensure it happens
+// at least once.
+logErrors(gc_deleted_items);
+
+}); // END FILE-WIDE ASYNC BLOCK
