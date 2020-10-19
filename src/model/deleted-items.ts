@@ -111,7 +111,7 @@ export class Model {
             ? this.state.entries[this.state.entries.length - 1].key
             : undefined;
 
-        const block = await this._kvs.getEndingAt(bound, 1);
+        const block = await this._kvs.getEndingAt(bound, 10);
         this.onSet(block);
         if (block.length === 0) this.state.fullyLoaded = true;
     });
@@ -169,4 +169,64 @@ export class Model {
             else break;
         }
     }
+
+    /*
+    async makeFakeData() {
+        let ts = Date.now();
+        const icons = [
+            'back.svg', 'cancel.svg', 'collapse-closed.svg', 'delete.svg',
+            'logo.svg', 'mainmenu.svg', 'new-empty-group.svg',
+            'restore-del.svg', 'stash-one.svg', 'stash.svg',
+        ];
+        const words = [
+            'deleted', 'internal', 'cat', 'nonsense', 'wakka', 'yakko', 'dot',
+            'gazebo', 'meow', 'mew', 'bark', 'widget', 'boat', 'car', 'rental',
+            'code', 'monad', 'block', 'function', 'trivia', 'noise', 'signal',
+        ];
+        const choose = (a: any[]) => a[Math.floor(Math.random() * a.length)];
+        const genTitle = () => `${choose(words)} ${choose(words)} ${choose(words)}`;
+        const genUrl = () => `https://${choose(words)}.internet/${choose(words)}/${choose(words)}/${choose(words)}.html`;
+        const genIcon = () => `icons/light/${choose(icons)}`;
+
+        for (let i = 0; i < 10000; ++i) {
+            const deleted_at = new Date(ts).toISOString();
+            const key = `${deleted_at}-${makeRandomString(4)}`;
+            ts -= Math.floor(Math.random() * 60 * 60 * 1000);
+            if (Math.random() < 0.25) {
+                await this._kvs.set([{
+                    key,
+                    value: {
+                        deleted_at,
+                        item: {
+                            title: genTitle(),
+                            children: (() => {
+                                const res = [];
+                                for (let i = 0; i < Math.random()*10+1; ++i) {
+                                    res.push({
+                                        title: genTitle(),
+                                        url: genUrl(),
+                                        favIconUrl: genIcon(),
+                                    });
+                                }
+                                return res;
+                            })(),
+                        },
+                    },
+                }]);
+            } else {
+                await this._kvs.set([{
+                    key,
+                    value: {
+                        deleted_at,
+                        item: {
+                            title: genTitle(),
+                            url: genUrl(),
+                            favIconUrl: genIcon()
+                        },
+                    },
+                }]);
+            }
+        }
+    }
+    */
 };

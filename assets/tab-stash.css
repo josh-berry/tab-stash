@@ -394,6 +394,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .action.remove { background-image: url(icons/light/delete.svg); }
 .action.remove.stashed { background-image: url(icons/light/delete-stashed.svg); }
 .action.remove.opened { background-image: url(icons/light/delete-opened.svg); }
+.action.back { background-image: url(icons/light/back.svg); }
 
 .action-container:hover .action.stash, .whats-new .improved {
     background-color: #cce5ff;
@@ -524,6 +525,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     grid-row: 1;
     grid-column: 2;
 }
+.folder-item.deleted > .icon { filter: grayscale(80%); }
 .folder-item > .text {
     grid-row: 1;
     grid-column: 3;
@@ -703,6 +705,8 @@ span.folder-name, .folder-item > .text {
     .action.remove { background-image: url(icons/dark/delete.svg); }
     .action.remove.stashed { background-image: url(icons/dark/delete-stashed.svg); }
     .action.remove.opened { background-image: url(icons/dark/delete-opened.svg); }
+    .action.back { background-image: url(icons/dark/back.svg); }
+
     .action-container:hover .action.stash, .whats-new .improved {
         background-color: #3d6899;
     }

@@ -1,5 +1,5 @@
 <template>
-    <div class="folder-item action-container">
+    <div class="folder-item deleted action-container">
         <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
         <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
         <ButtonBox>

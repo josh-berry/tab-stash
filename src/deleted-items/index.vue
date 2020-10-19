@@ -1,16 +1,17 @@
 <template>
 <main>
-    <PageHeader>
-        <slot>Deleted Items</slot>
+    <header class="page action-container">
+        <a class="action back" title="Back to Tab Stash"
+           :href="pageref('stash-list.html')"></a>
         <input slot="after" type="search" ref="search" class="ephemeral"
                placeholder="Search Deleted Items on This Computer"
                @keyup.esc.prevent="searchtext=''; $refs.search.blur()"
                v-model="searchtext">
-    </PageHeader>
+    </header>
     <div class="folder-list one-column">
         <div v-for="group of filter_results" :key="group.title" class="folder">
             <div class="header">
-                <div class="folder-name">{{group.title}}</div>
+                <div class="folder-name disabled">Deleted {{group.title}}</div>
             </div>
             <ul class="contents">
                 <li v-for="rec of group.records" :key="rec.key">
@@ -44,7 +45,7 @@ import Vue, {PropType} from 'vue';
 import LoadMore, {StateChanger} from 'vue-infinite-loading';
 
 import {filterMap, logErrors, textMatcher} from '../util';
-import launch from '../launch-vue';
+import launch, {pageref} from '../launch-vue';
 import ui_model from '../ui-model';
 import {Model} from '../model';
 import * as DI from '../model/deleted-items';
@@ -147,6 +148,7 @@ const Main = Vue.extend({
     methods: {
         // Dummy which is overridden in launch() below...
         model(): Model { return (<any>this).$model; },
+        pageref,
 
         loadMore(state: StateChanger) { logErrors(async() => {
             await this.model().deleted_items.loadMore();

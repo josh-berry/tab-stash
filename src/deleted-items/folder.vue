@@ -1,6 +1,6 @@
 <template>
 <div>
-    <div class="folder-item action-container">
+    <div class="folder-item deleted action-container">
         <ItemIcon class="icon-folder" />
         <span class="text" :title="tooltip">{{item.title}}</span>
         <ButtonBox v-if="id">
@@ -15,8 +15,7 @@
     <ul class="folder-item-nesting">
         <Bookmark v-for="(child, index) of leafChildren" :key="child.url+index"
                   :item="child" :parentId="id" :childIndex="index"
-                  :deleted_at="deleted_at"
-                  class="folder-item">
+                  :deleted_at="deleted_at">
             <span class="indent indent-spacer"></span>
         </Bookmark>
         <li v-if="item.filter_count" class="folder-item disabled">
