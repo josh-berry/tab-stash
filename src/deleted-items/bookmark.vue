@@ -6,7 +6,8 @@
             <button class="action stash one" title="Restore"
                     @click.prevent.stop="restore"></button>
             <Menu class="menu" summaryClass="action remove last-toolbar-button"
-                  title="Delete Forever" :openToRight="true" v-if="id">
+                  title="Delete Forever" :openToRight="true"
+                  v-if="id !== undefined || (parentId !== undefined && childIndex !== undefined)">
                 <button @click.prevent.stop="remove">Delete Forever</button>
             </Menu>
         </ButtonBox>
@@ -32,6 +33,8 @@ export default Vue.extend({
     props: {
         id: String,
         item: Object as PropType<DeletedBookmark>,
+        parentId: String,
+        childIndex: Number,
     },
 
     methods: {
@@ -42,7 +45,12 @@ export default Vue.extend({
         },
         async remove() {
             // TODO: Make this work for bookmarks inside folders
-            await this.model().deleted_items.drop(this.id);
+            if (this.id) {
+                await this.model().deleted_items.drop(this.id);
+            } else {
+                await this.model().deleted_items.dropChildItem(
+                    this.parentId, this.childIndex);
+            }
         },
     },
 });

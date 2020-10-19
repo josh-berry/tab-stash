@@ -60,7 +60,7 @@ export class Model {
     // typing issues)
     readonly state: State = Vue.observable({
         fullyLoaded: false,
-        entries: [],
+        entries: [], // sorted newest to oldest
     });
 
     private _kvs: KeyValueStore<string, SourceValue>;
@@ -72,26 +72,38 @@ export class Model {
         // How to update the store on KVS changes.  These events are
         // reliable--we recieve them regardless of whether we are the one doing
         // the mutation on the KVS.
-        kvs.onSet.addListener((records: Entry<string, SourceValue>[]) => {
-            for (const r of records) {
-                const {key, value} = r;
-                const cached = this._entry_cache.get(key);
-                if (cached) {
-                    cached.deleted_at = new Date(value.deleted_at);
-                    cached.item = value.item;
+        kvs.onSet.addListener(records => this.onSet(records));
+        kvs.onDelete.addListener(keys => this.onDelete(keys));
+    }
+
+    onSet(records: Entry<string, SourceValue>[]) {
+        for (const r of records) {
+            const {key, value} = r;
+            const cached = this._entry_cache.get(key);
+            if (cached) {
+                cached.deleted_at = new Date(value.deleted_at);
+                cached.item = value.item;
+            } else {
+                const r = src2state({key, value});
+                this._entry_cache.set(key, r);
+                if (r.deleted_at > this.state.entries[0]?.deleted_at) {
+                    // This is the newest entry so it always goes first
+                    this.state.entries.unshift(r);
                 } else {
-                    const r = src2state({key, value});
-                    this._entry_cache.set(key, r);
+                    // TODO this is slow but hopefully very rare
                     this.state.entries.push(r);
+                    this.state.entries.sort((a, b) =>
+                        b.deleted_at.valueOf() - a.deleted_at.valueOf());
                 }
             }
-        });
-        kvs.onDelete.addListener((keys: string[]) => {
-            for (const k of keys) this._entry_cache.delete(k);
-            const kset = new Set(keys);
-            this.state.entries = this.state.entries.filter(
-                ({key}) => ! kset.has(key));
-        });
+        }
+    }
+
+    onDelete(keys: string[]) {
+        for (const k of keys) this._entry_cache.delete(k);
+        const kset = new Set(keys);
+        this.state.entries = this.state.entries.filter(
+            ({key}) => ! kset.has(key));
     }
 
     loadMore = nonReentrant(async() => {
@@ -100,7 +112,7 @@ export class Model {
             : undefined;
 
         const block = await this._kvs.getEndingAt(bound, 1);
-        for (const ent of block) this.state.entries.push(src2state(ent));
+        this.onSet(block);
         if (block.length === 0) this.state.fullyLoaded = true;
     });
 
@@ -118,5 +130,24 @@ export class Model {
     drop(key: string): Promise<void> {
         // We will get an event for the deletion later
         return this._kvs.delete([key]);
+    }
+
+    async dropChildItem(key: string, index: number): Promise<void> {
+        const entry = this._entry_cache.get(key);
+        if (! entry) throw new Error(`${key}: Record not loaded or doesn't exist`);
+        if (! ('children' in entry.item)) throw new Error(`${key}: Not a folder`);
+
+        const newchildren = Array.from(entry.item.children);
+        newchildren.splice(index, 1);
+        await this._kvs.set([{
+            key,
+            value: {
+                deleted_at: entry.deleted_at.toISOString(),
+                item: {
+                    title: entry.item.title,
+                    children: newchildren,
+                },
+            },
+        }]);
     }
 };

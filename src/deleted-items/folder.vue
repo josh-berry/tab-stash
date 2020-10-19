@@ -13,8 +13,9 @@
         </ButtonBox>
     </div>
     <ul class="folder-item-nesting">
-        <Bookmark v-for="(child, index) of leafChildren" :key="index"
-                  :item="child" class="folder-item">
+        <Bookmark v-for="(child, index) of leafChildren" :key="child.url+index"
+                  :item="child" :parentId="id" :childIndex="index"
+                  class="folder-item">
             <span class="indent indent-spacer"></span>
         </Bookmark>
         <li v-if="item.filter_count" class="folder-item disabled">
