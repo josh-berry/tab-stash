@@ -24,6 +24,9 @@ const SYNC_DEF = {
     // If the most recent unnamed folder is older than <X> minutes ago, we will
     // create a new folder instead of appending to the existing one.
     new_folder_timeout_min: {default: 5, is: aNumber},
+
+    // How long should we keep deleted items for?
+    deleted_items_expiration_days: {default: 180, is: aNumber},
 };
 
 const LOCAL_DEF = {
