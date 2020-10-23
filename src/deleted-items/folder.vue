@@ -1,5 +1,8 @@
 <template>
-<div>
+<div v-if="loading" class="folder-item deleted loading">
+    <span class="text status-text">{{loading}}...</span>
+</div>
+<div v-else>
     <div class="folder-item deleted action-container">
         <ItemIcon class="icon-folder" />
         <span class="text" :title="tooltip">{{item.title}}</span>
@@ -31,6 +34,7 @@
 <script lang="ts">
 import Vue, {PropType} from 'vue';
 
+import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedFolder, DeletedItem} from '../model/deleted-items';
 import {bookmarkTabs, rootFolder} from '../stash';
@@ -51,6 +55,10 @@ export default Vue.extend({
         deleted_at: Date,
     },
 
+    data: () => ({
+        loading: '',
+    }),
+
     computed: {
         leafChildren(): DeletedItem[] {
             return this.item.children.filter(i => ! ('children' in i));
@@ -63,7 +71,14 @@ export default Vue.extend({
     methods: {
         model(): Model { return (<any>this).$model; },
 
-        async restore() {
+        run(what: string, f: () => Promise<void>) {
+            if (this.loading != '') return;
+            this.loading = what;
+            const p = logErrors(f);
+            p.finally(() => {this.loading = ''});
+        },
+
+        restore() { this.run("Restoring", async() => {
             const root = await rootFolder();
             const folder = await browser.bookmarks.create({
                 parentId: root.id,
@@ -73,9 +88,12 @@ export default Vue.extend({
             });
             await bookmarkTabs(folder.id, this.item.children);
             await this.remove();
-        },
+            await this.model().deleted_items.drop(this.id);
+        })},
 
-        async remove() { await this.model().deleted_items.drop(this.id); },
+        remove() { this.run("Deleting Forever", async() => {
+            await this.model().deleted_items.drop(this.id);
+        })},
     },
 });
 </script>

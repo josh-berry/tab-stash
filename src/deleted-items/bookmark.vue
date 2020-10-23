@@ -1,23 +1,27 @@
 <template>
-    <div class="folder-item deleted action-container">
-        <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
-        <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
-        <ButtonBox>
-            <button class="action stash one" title="Restore"
-                    @click.prevent.stop="restore"></button>
-            <Menu class="menu" summaryClass="action remove last-toolbar-button"
-                  title="Delete Forever" :openToRight="true"
-                  v-if="id !== undefined || (parentId !== undefined && childIndex !== undefined)">
-                <button @click.prevent.stop="remove">Delete Forever</button>
-            </Menu>
-        </ButtonBox>
-        <slot></slot>
-    </div>
+<div v-if="loading" class="folder-item deleted loading">
+    <span class="text status-text">{{loading}}...</span>
+</div>
+<div v-else class="folder-item deleted action-container">
+    <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
+    <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
+    <ButtonBox>
+        <button class="action stash one" title="Restore"
+                @click.prevent.stop="restore"></button>
+        <Menu class="menu" summaryClass="action remove last-toolbar-button"
+                title="Delete Forever" :openToRight="true"
+                v-if="id !== undefined || (parentId !== undefined && childIndex !== undefined)">
+            <button @click.prevent.stop="remove">Delete Forever</button>
+        </Menu>
+    </ButtonBox>
+    <slot></slot>
+</div>
 </template>
 
 <script lang="ts">
 import Vue, {PropType} from 'vue';
 
+import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedBookmark} from '../model/deleted-items';
 import {bookmarkTabs, mostRecentUnnamedFolderId} from '../stash';
@@ -38,6 +42,10 @@ export default Vue.extend({
         childIndex: Number,
     },
 
+    data: () => ({
+        loading: '',
+    }),
+
     computed: {
         tooltip(): string {
             return `${this.item.title}\nDeleted ${this.deleted_at.toLocaleString()}`;
@@ -46,12 +54,24 @@ export default Vue.extend({
 
     methods: {
         model(): Model { return (<any>this).$model; },
-        async restore() {
-            await bookmarkTabs(await mostRecentUnnamedFolderId(), [this.item]);
-            if (this.id) await this.remove();
+
+        // TODO duplicated in folder.vue; find a Vue and TypeScript-friendly way
+        // to refactor this
+        run(what: string, f: () => Promise<void>) {
+            if (this.loading != '') return;
+            this.loading = what;
+            const p = logErrors(f);
+            p.finally(() => {this.loading = ''});
         },
-        async remove() {
-            // TODO: Make this work for bookmarks inside folders
+
+        restore() { this.run("Restoring", async() => {
+            await bookmarkTabs(await mostRecentUnnamedFolderId(), [this.item]);
+            await this._remove();
+        })},
+
+        async remove() { this.run("Deleting Forever", () => this._remove()); },
+
+        async _remove() {
             if (this.id) {
                 await this.model().deleted_items.drop(this.id);
             } else {
