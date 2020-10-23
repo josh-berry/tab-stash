@@ -10,7 +10,7 @@ import * as P from './proto';
 
 async function kvs_factory(): Promise<Service<string, string>> {
     mock_indexeddb.reset();
-    (<any>NS.registry).reset();
+    NS.registry.reset_testonly();
     const db = await openDB('test', 1, {
         upgrade(db, oldVersion, newVersion, txn) {
             db.createObjectStore('test');

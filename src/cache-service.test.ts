@@ -48,7 +48,7 @@ describe('cache-service', function() {
             name: 'cache:test', version: 1});
 
         mock_runtime.reset();
-        (<any>NS.registry).reset();
+        NS.registry.reset_testonly();
         CacheService = require('./cache-service').CacheService;
         service = await CacheService.start('test');
     }
@@ -60,7 +60,7 @@ describe('cache-service', function() {
 
         mock_runtime.reset();
         mock_indexeddb.reset();
-        (<any>NS.registry).reset();
+        NS.registry.reset_testonly();
         CacheService = require('./cache-service').CacheService;
         service = await CacheService.start('test');
     }

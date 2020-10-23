@@ -7,9 +7,11 @@ import {makeRandomString} from '../random';
 
 let listener_count = 0;
 
+//(<any>globalThis).trace_nano_ports = true;
+
 const trace = (...args: any[]) => {
     if (! (<any>globalThis).trace_nano_ports) return;
-    console.log(...args);
+    console.log(`[NanoPort ${globalThis?.location?.pathname}]`, ...args);
 };
 
 export class SvcRegistry {
@@ -18,7 +20,7 @@ export class SvcRegistry {
         const svc = this.services.get(port.name);
         if (! svc) {
             // Probably intended for another audience.
-            trace(`[NanoPort/listener] ignored connection for ${port.name}`);
+            trace(`[listener] ignored connection for ${port.name}`);
             return;
         }
 
@@ -36,25 +38,28 @@ export class SvcRegistry {
             else if (svc.onRequest) svc.onRequest(nport, msg);
         };
 
+        trace(`[listener] Accepted connection for ${port.name} as ${nport.name}`);
         if (svc.onConnect) svc.onConnect(nport);
     };
 
-    constructor() {
-        this.reset();
-    }
-
-    // This is factored out as a separate function so we can use it in unit tests
-    private reset() {
+    reset_testonly() {
         this.services.clear();
-        browser.runtime.onConnect.addListener(this.listener);
+        browser.runtime.onConnect.removeListener(this.listener);
     }
 
     register(name: string, svc: NanoService<Send, Send>) {
         if (this.services.has(name)) {
             throw new Error(`Service ${name} is already launched`);
         }
-        trace('[NanoPort/listener] listening for service', name);
+        trace('[listener] listening for service', name);
         this.services.set(name, svc);
+        if (this.services.size == 1) {
+            // We wait to start listening until the first service is actually
+            // registered, because of Firefox bug 1465514--listening for ANY
+            // connections and then dropping a connection may result in other,
+            // unrelated connections getting spuriously dropped.
+            browser.runtime.onConnect.addListener(this.listener);
+        }
     }
 }
 
@@ -66,7 +71,7 @@ export class Port<S extends Send, R extends Send>
     static connect<MM extends Send, PM extends Send>(
         name: string
     ): Port<MM, PM> {
-        trace('[NanoPort/connect]', name);
+        trace('connect', name);
         return new Port(name, browser.runtime.connect(undefined, {name}));
     }
 
@@ -206,7 +211,7 @@ export class Port<S extends Send, R extends Send>
     }
 
     private _trace(...args: any[]) {
-        trace('[NanoPort]', this.name, ...args);
+        trace(`[${this.name}]`, ...args);
     }
 }
 

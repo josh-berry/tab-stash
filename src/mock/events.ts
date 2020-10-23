@@ -24,7 +24,6 @@ export class MockEventDispatcher<L extends Function> implements EvListener<L> {
 
     removeListener(l: L) {
         expect(l).to.be.a('function');
-        expect(this._listeners).to.include(l);
         this._listeners.delete(l);
     }
 

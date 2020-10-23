@@ -251,7 +251,7 @@ describe('util/nanoservice', function() {
     });
 
     describe('NanoService', function() {
-        beforeEach(() => (<any>M.registry).reset());
+        beforeEach(() => M.registry.reset_testonly());
 
         it('fires connection events', async function() {
             let count = 0;
