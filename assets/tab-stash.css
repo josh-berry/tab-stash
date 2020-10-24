@@ -10,15 +10,16 @@ html {
     --userlink-hover-fg: #448fda;
     --userlink-hover-bg: var(--button-bg);
     --userlink-active-fg: #66a3e1;
+    --userlink-active-bg: var(--button-hover-bg);
 
     --scroll-bar: #efefef;
     --scroll-handle: #d8d8d8;
 
     --ctrl-bg: #ffffff;
-    --ctrl-border-clr: #c9c9c9;
-    --button-bg: #ededed;
-    --button-hover-bg: #dbdbdb;
-    --button-active-bg: #c9c9c9;
+    --ctrl-border-clr: rgba(0, 0, 0, 0.21);
+    --button-bg: rgba(0, 0, 0, 0.07);
+    --button-hover-bg: rgba(0, 0, 0, 0.14);
+    --button-active-bg: rgba(0, 0, 0, 0.21);
     --select-arrow: url(icons/light/collapse-open.svg);
 
     --group-bg: #ffffff;
@@ -52,10 +53,10 @@ html.tab-view {
         --scroll-handle: #48484e;
 
         --ctrl-bg: #2a2a2e;
-        --ctrl-border-clr: #808085;
-        --button-bg: #5c5c61;
-        --button-hover-bg: #6e6e73;
-        --button-active-bg: #808085;
+        --ctrl-border-clr: rgba(255, 255, 255, 0.34);
+        --button-bg: rgba(255, 255, 255, 0.2);
+        --button-hover-bg: rgba(255, 255, 255, 0.27);
+        --button-active-bg: rgba(255, 255, 255, 0.34);
         --select-arrow: url(icons/dark/collapse-open.svg);
 
         --group-bg: #48484e;
@@ -141,13 +142,15 @@ a, a:visited {
     color: var(--userlink-fg);
     text-decoration: underline;
 }
-a:hover, a:focus-within { background-color: var(--userlink-hover-bg); }
-a:hover, a:focus-within { color: var(--userlink-hover-fg); }
-a:active, a:focus-within {
-    box-shadow: none;
+a:hover, a:focus-within {
     background-color: var(--userlink-hover-bg);
+    color: var(--userlink-hover-fg);
 }
-a:active, a:focus-within { color: var(--userlink-active-fg); }
+a:active, a:focus-within { box-shadow: none; }
+a:active {
+    background-color: var(--userlink-active-bg);
+    color: var(--userlink-active-fg);
+}
 
 .modal-backdrop {
     background-color: var(--modal-bg);
@@ -522,6 +525,10 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .folder-item:not(.disabled):hover, .folder-item:not(.disabled):focus-within {
     background-color: var(--userlink-hover-bg);
 }
+.folder-item:not(.disabled):active {
+    background-color: var(--userlink-active-bg);
+    color: var(--userlink-active-fg);
+}
 .folder-item-nesting {
     margin: 0;
     padding: 0 0 0 0;
@@ -543,13 +550,17 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     grid-row: 1;
     grid-column: 2;
 }
-.folder-item.deleted > .icon { filter: grayscale(80%); }
+.folder-item.deleted > .icon { filter: grayscale(50%); }
 .folder-item > .text {
     grid-row: 1;
     grid-column: 3;
     height: 24px; /* matches folder-item height XXX */
     /* to vertically center text while text-overflow: ellipsis; */
     line-height: 24px; /* matches folder-item height XXX */
+}
+/* don't double-highlight folder item text */
+.folder-item a:hover, .folder-item a:focus-within, .folder-item a:active {
+    background-color: transparent;
 }
 .folder-item > nav {
     display: none;
