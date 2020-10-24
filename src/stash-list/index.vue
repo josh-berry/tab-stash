@@ -1,5 +1,5 @@
 <template>
-<div class="stash-list">
+<main>
   <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
              v-on="dialog.on" @close="dialog = undefined">
   </component>
@@ -27,10 +27,8 @@
               title="Hide all tabs so only group names are showing"
               @action="collapseAll" />
     </ButtonBox>
-  </header>
-  <header class="notifications">
     <Notification v-if="recently_updated"
-                  @activate="showWhatsNew" @dismiss="hideWhatsNew">
+                @activate="showWhatsNew" @dismiss="hideWhatsNew">
       You've been updated to Tab Stash {{my_version}}.  See what's new!
     </Notification>
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
@@ -69,7 +67,7 @@
     Tab Stash {{my_version}} &mdash;
     <a :href="pageref('whats-new.html')">What's New</a>
   </footer>
-</div>
+</main>
 </template>
 
 <script lang="ts">

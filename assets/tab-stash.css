@@ -124,6 +124,14 @@ html, body {
     scrollbar-color: var(--scroll-handle) var(--scroll-bar);
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+main {
+    overflow: auto;
+    width: 100%;
+    height: 100%;
 }
 :focus {
     box-shadow: 0 0 2px 2px highlight;
@@ -198,11 +206,21 @@ a:active, a:focus-within { color: var(--userlink-active-fg); }
 a.tab, a.tab:visited { color: var(--link-fg); text-decoration: none; }
 a.tab.open, a.tab.open:visited { color: var(--userlink-fg); }
 
-header { margin: 4px 16px; }
 header.page {
+    position: sticky;
+    z-index: 1;
+    top: 0px;
+
+    padding: 4px 16px 8px 16px;
+
     display: grid;
     grid-template-columns: 0fr 1fr 0fr;
+    column-gap: 4px;
+    row-gap: calc(var(--margin) / 2);
     align-items: center;
+
+    background-color: var(--page-bg);
+    border-bottom: var(--divider-border);
 }
 
 .menu > summary, .menu > summary > .action {
@@ -253,12 +271,12 @@ header.page {
 }
 
 aside.notification {
+    grid-column: 1 / 4;
     display: grid;
     grid-template-columns: 1fr 0fr;
     align-items: center;
     background-color: rgba(40, 122, 204, 0.16); /* 287acc */
     border-radius: var(--ctrl-border-radius);
-    margin-top: var(--margin);
 }
 aside.notification:hover {
     background-color: rgba(40, 122, 204, 0.24); /* 287acc */
@@ -576,12 +594,8 @@ span.folder-name, .folder-item > .text {
  ***/
 
 .tab-view header {
-    margin-left: var(--margin);
-    margin-right: var(--margin);
-}
-
-.tab-view aside.notification {
-    margin-bottom: var(--margin);
+    padding-left: var(--margin);
+    padding-right: var(--margin);
 }
 
 .tab-view .folder-list {
