@@ -93,6 +93,8 @@ html {
     --p-dialog-w: var(--margin);
     --p-dialog-h: calc(var(--margin) / 2);
 
+    --m-folder-bottom: 1em;
+
     --ctrl-border: 1px solid var(--ctrl-border-clr);
     --ctrl-border-radius: 5px;
     --p-ctrl-w: 6px;
@@ -214,7 +216,8 @@ header.page {
     z-index: 1;
     top: 0px;
 
-    padding: 4px 16px 8px 16px;
+    padding: 3px 16px 6px 16px;
+    margin-bottom: var(--m-folder-bottom);
 
     display: grid;
     grid-template-columns: 0fr 1fr 0fr;
@@ -507,7 +510,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .folder .contents {
     list-style: none;
     padding: 0;
-    margin: 0 0 1em 0;
+    margin: 0 0 var(--m-folder-bottom) 0;
 }
 .folder .contents .tabs {
     min-height: 12px;
