@@ -13,6 +13,12 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         db_name: string,
         store_name: string,
     ): Promise<Service<K, V>> {
+        // Magical incantation to make sure the browser doesn't spontaneously
+        // delete our store.
+        if (! await navigator.storage.persisted()) {
+            await navigator.storage.persist();
+        }
+
         return new Service(await openDB(db_name, 1, {
             upgrade(db, oldVersion, newVersion, txn) {
                 db.createObjectStore(store_name);
