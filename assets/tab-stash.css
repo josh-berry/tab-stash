@@ -198,7 +198,7 @@ a:active {
 
 /* add some extra vertical margin around the top-level progress */
 .dialog > .progress-item { margin: var(--m-menu-h) 0; }
-.progress-item ul { padding-left: var(--margin); }
+.progress-item ul { margin: 0; padding-left: var(--margin); }
 
 .hidden { display: none !important; }
 
