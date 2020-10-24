@@ -1,16 +1,31 @@
+import {logErrors} from '..';
 import {NanoPort, NanoService, NanoTimeoutError, RemoteNanoError} from '.';
 import {
     Envelope, NotifyEnvelope, RequestEnvelope, ResponseEnvelope, Response, Send,
 } from './proto';
 import {makeRandomString} from '../random';
 
+let listener_count = 0;
+
+//(<any>globalThis).trace_nano_ports = true;
+
+const trace = (...args: any[]) => {
+    if (! (<any>globalThis).trace_nano_ports) return;
+    console.log(`[NanoPort ${globalThis?.location?.pathname}]`, ...args);
+};
+
 export class SvcRegistry {
     private services = new Map<string, NanoService<Send, Send>>();
     private listener = (port: RTPort) => {
         const svc = this.services.get(port.name);
-        if (! svc) return;
+        if (! svc) {
+            // Probably intended for another audience.
+            trace(`[listener] ignored connection for ${port.name}`);
+            return;
+        }
 
-        const nport = new Port<Send, Send>(port);
+        ++listener_count;
+        const nport = new Port<Send, Send>(`${port.name}<${listener_count}`, port);
         nport.onDisconnect = () => {
             if (svc.onDisconnect) svc.onDisconnect(nport);
         };
@@ -23,24 +38,28 @@ export class SvcRegistry {
             else if (svc.onRequest) svc.onRequest(nport, msg);
         };
 
+        trace(`[listener] Accepted connection for ${port.name} as ${nport.name}`);
         if (svc.onConnect) svc.onConnect(nport);
     };
 
-    constructor() {
-        this.reset();
-    }
-
-    // This is factored out as a separate function so we can use it in unit tests
-    private reset() {
+    reset_testonly() {
         this.services.clear();
-        browser.runtime.onConnect.addListener(this.listener);
+        browser.runtime.onConnect.removeListener(this.listener);
     }
 
     register(name: string, svc: NanoService<Send, Send>) {
         if (this.services.has(name)) {
             throw new Error(`Service ${name} is already launched`);
         }
+        trace('[listener] listening for service', name);
         this.services.set(name, svc);
+        if (this.services.size == 1) {
+            // We wait to start listening until the first service is actually
+            // registered, because of Firefox bug 1465514--listening for ANY
+            // connections and then dropping a connection may result in other,
+            // unrelated connections getting spuriously dropped.
+            browser.runtime.onConnect.addListener(this.listener);
+        }
     }
 }
 
@@ -52,9 +71,11 @@ export class Port<S extends Send, R extends Send>
     static connect<MM extends Send, PM extends Send>(
         name: string
     ): Port<MM, PM> {
-        return new Port(browser.runtime.connect(undefined, {name}));
+        trace('connect', name);
+        return new Port(name, browser.runtime.connect(undefined, {name}));
     }
 
+    readonly name: string;
     defaultTimeoutMS = 2000;
 
     onDisconnect?: (port: NanoPort<S, R>) => void;
@@ -66,19 +87,22 @@ export class Port<S extends Send, R extends Send>
     private port: RTPort;
     private pending: Map<string, PendingMsg<R>> = new Map();
 
-    constructor(port: RTPort) {
+    constructor(name: string, port: RTPort) {
+        this.name = name;
         this.port = port;
 
         this.port.onDisconnect.addListener(() => {
+            this._trace('disconnected');
             this._flushPendingOnDisconnect();
             if (this.onDisconnect) this.onDisconnect(this);
         });
 
         this.port.onMessage.addListener(((msg: Envelope<R>) => {
+            this._trace('recv', msg);
             if (! msg) return;
             if ('tag' in msg) {
                 if ('request' in msg) {
-                    this._handleRequest(msg);
+                    logErrors(() => this._handleRequest(msg));
 
                 } else if ('response' in msg || 'error' in msg) {
                     this._handleResponse(msg);
@@ -89,9 +113,12 @@ export class Port<S extends Send, R extends Send>
                 else if (this.onRequest) this.onRequest(msg.notify as R);
             }
         }) as (msg: object) => void);
+
+        this._trace('create', {error: this.port.error});
     }
 
     disconnect() {
+        this._trace('disconnect');
         this.port.disconnect();
         this._flushPendingOnDisconnect();
     }
@@ -101,6 +128,7 @@ export class Port<S extends Send, R extends Send>
             let tag = makeRandomString(4);
             while (this.pending.has(tag)) tag = makeRandomString(4);
 
+            this._trace('send', {tag, request});
             this.port.postMessage({tag, request} as RequestEnvelope<S>);
 
             this.pending.set(tag, {
@@ -117,6 +145,7 @@ export class Port<S extends Send, R extends Send>
 
     notify(notify: S) {
         try {
+            this._trace('send', {notify});
             this.port.postMessage({notify} as NotifyEnvelope<S>);
         } catch (e) {
             // If we are unable to send due to a disconnected port, the message
@@ -125,7 +154,8 @@ export class Port<S extends Send, R extends Send>
     }
 
     private _flushPendingOnDisconnect() {
-        for (const [, pending] of this.pending) {
+        for (const [tag, pending] of this.pending) {
+            this._trace('flush on disconnect', tag);
             pending.reject(new Error("Disconnected"));
         }
         this.pending.clear();
@@ -160,10 +190,12 @@ export class Port<S extends Send, R extends Send>
         const resmsg: ResponseEnvelope<S> = {tag: msg.tag, ...res};
 
         try {
+            this._trace('send', resmsg);
             this.port.postMessage(resmsg);
         } catch (e) {
             // If the other side becomes disconnected before we can send the
             // reply, just drop it.  We should get a disconnection event later.
+            this._trace('dropped reply to request:', msg, 'error:', e);
         }
     }
 
@@ -176,6 +208,10 @@ export class Port<S extends Send, R extends Send>
         } else {
             handler.reject(new RemoteNanoError(msg.error));
         }
+    }
+
+    private _trace(...args: any[]) {
+        trace(`[${this.name}]`, ...args);
     }
 }
 

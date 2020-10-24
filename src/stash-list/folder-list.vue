@@ -16,7 +16,7 @@ import Vue, {PropType} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
 import {CacheEntry} from '../cache-client';
-import {ModelLeaf, ModelParent} from '../model';
+import {ModelLeaf, ModelParent} from '../model/browser';
 
 export default Vue.extend({
     components: {

@@ -78,7 +78,7 @@ function reload_cache(): Cache<string> {
 describe('cache-client', function() {
     beforeEach(() => {
         mock_runtime.reset();
-        (<any>NS.registry).reset();
+        NS.registry.reset_testonly();
     });
     afterEach(events.expect_empty);
 

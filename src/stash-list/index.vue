@@ -10,6 +10,7 @@
       <a @click.prevent.stop="dialog = {class: 'ImportDialog'}">Import...</a>
       <a @click.prevent.stop="showExportDialog">Export...</a>
       <hr/>
+      <a :href="pageref('deleted-items.html')">Deleted Items...</a>
       <a @click.prevent.stop="fetchMissingFavicons">Fetch Missing Icons</a>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
@@ -76,13 +77,14 @@ import Vue, {PropType} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
-    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors,
+    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors, textMatcher,
 } from '../util';
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
-import {StashState, Bookmark, Tab} from '../model';
-import Options, { LocalOptions, SyncOptions } from '../options-model';
+import ui_model from '../ui-model';
+import {StashState, Bookmark, Tab} from '../model/browser';
+import Options, {LocalOptions, SyncOptions} from '../model/options';
 import {Cache} from '../cache-client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -141,14 +143,7 @@ const Main = Vue.extend({
         },
 
         text_matcher(): (txt: string) => boolean {
-            if (this.searchtext == '') return txt => true;
-            try {
-                let re = new RegExp(this.searchtext, 'iu');
-                return txt => re.test(txt);
-            } catch (e) {
-                let lower = this.searchtext.normalize().toLowerCase();
-                return txt => txt.normalize().toLowerCase().includes(lower);
-            }
+            return textMatcher(this.searchtext);
         },
     },
 
@@ -238,6 +233,8 @@ launch(Main, async() => {
         warning: rootFolderWarning(),
     });
 
+    const model = await ui_model();
+
     // For debugging purposes only...
     (<any>globalThis).metadata_cache = Cache.open('bookmarks');
     (<any>globalThis).favicon_cache = Cache.open('favicons');
@@ -253,6 +250,10 @@ launch(Main, async() => {
             sync_options: p.syncopts,
             metadata_cache: Cache.open('bookmarks'),
             root_folder_warning: p.warning,
+            deleted_items: model.state.deleted_items,
+        },
+        provide: {
+            $model: model,
         },
     };
 });

@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import {Args} from '../util';
 
 let verbose = false;
 
@@ -7,9 +8,6 @@ let resolve: (() => void) | undefined;
 let reject: ((e: Error) => void) | undefined;
 let requested_count: number = 0;
 let delivered_count: number = 0;
-
-type Args<F extends Function> =
-    F extends (...args: infer A) => any ? A : never;
 
 export class MockEventDispatcher<L extends Function> implements EvListener<L> {
     name: string;
@@ -26,7 +24,6 @@ export class MockEventDispatcher<L extends Function> implements EvListener<L> {
 
     removeListener(l: L) {
         expect(l).to.be.a('function');
-        expect(this._listeners).to.include(l);
         this._listeners.delete(l);
     }
 

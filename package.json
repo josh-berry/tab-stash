@@ -20,6 +20,7 @@
     "ts-loader": "*",
     "typescript": "*",
     "vue": "*",
+    "vue-infinite-loading": "^2.4.5",
     "vue-loader": "*",
     "vue-template-compiler": "*",
     "vuedraggable": "*",

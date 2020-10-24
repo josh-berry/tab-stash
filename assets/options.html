@@ -8,36 +8,53 @@
     <!-- XXX this doesn't work yet:
     <link rel="icon" media="inverted-colors: inverted" href="../icons/logo-light.svg">
     -->
-    <link rel="stylesheet" type="text/css" href="tab-stash.css">
+    <!--link rel="stylesheet" type="text/css" href="tab-stash.css"-->
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
     <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension-mac.css">
     <style type="text/css">
+      html {
+        --gap: 4px;
+        --indent: 2rem;
+      }
+      * { font: caption; }
+      h4 { font-weight: bold; }
+      :focus {
+        box-shadow: 0 0 2px 2px highlight;
+        outline: none;
+      }
       ul {
           list-style: none;
-          padding: 0;
           margin: 0;
+          padding: 0;
       }
       ul ul {
-          margin: 1ex 0 1ex 2rem;
+          margin-left: calc(var(--indent) - var(--gap));
+          padding-left: var(--gap);
       }
-      li { margin: 1ex 0; }
       hr {
-          border: 0.5px solid #e0e0e0;
+          border: 1px solid #e0e0e0;
       }
       h4, hr {
           margin: 2ex 0;
+      }
+      label {
+        display: flex;
+        padding: 0.5ex 0;
+        align-items: center;
+        gap: var(--gap);
       }
       input[type=number] {
           border: 1px solid #c0c0c0;
           max-width: 5em;
       }
+      main:not(.show-advanced) .advanced { display: none; }
+      .advanced.show-advanced { display: block !important; }
       .advanced {
           /*border: 1px solid rgba(255, 0, 0, 0.4);*/
           background-color: rgba(229, 201, 201, 0.25);
           border-radius: 4px;
-          padding: 1px 1ex;
       }
-      .disabled { color: #808080; }
+      .disabled, [disabled] { color: #808080; }
     </style>
   </head>
 

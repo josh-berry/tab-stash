@@ -71,7 +71,7 @@
 <script lang="ts">
 import Vue from 'vue';
 
-import {Bookmark} from '../model';
+import {Bookmark} from '../model/browser';
 import {friendlyFolderName} from '../stash';
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;

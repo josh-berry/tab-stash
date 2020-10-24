@@ -223,7 +223,7 @@ describe('util/nanoservice', function() {
 
         it('drops replies to disconnected ports', async function() {
             const [client, svc] = await portpair('test');
-            const dest = new Live.Port(svc);
+            const dest = new Live.Port('testport', svc);
             const p = client.request(42);
             dest.disconnect();
             await events.drain(2);
@@ -251,7 +251,7 @@ describe('util/nanoservice', function() {
     });
 
     describe('NanoService', function() {
-        beforeEach(() => (<any>M.registry).reset());
+        beforeEach(() => M.registry.reset_testonly());
 
         it('fires connection events', async function() {
             let count = 0;

@@ -1,11 +1,21 @@
 <template>
 <details ref="details" :class="$style.details"
-         @toggle="toggle" @keydown.esc.prevent.stop="close">
+         @toggle="toggle" @keydown.esc.prevent.stop="close"
+         @click.prevent.stop="$refs.details.open = ! $refs.details.open">
+
+  <!-- NOTE: The above non-standard click handling is needed to prevent clicks
+       on the <summary> from propagating out of the <details> (and no, putting a
+       handler on the <summary> itself doesn't work in FF at least, which is
+       mystifying...) -->
+
   <!-- NOTE: This isn't quite the same as <modal-backdrop> because it doesn't
        contain the thing we're showing. -->
   <div :class="$style.modal" @click.prevent.stop="close"></div>
+
   <summary :class="{[$style.summary]: true, [summaryClass]: true}"><slot name="summary">{{name}}</slot></summary>
-  <nav ref="inner" :class="$style.nav" tabIndex="0" @click.stop="close" @focusout="focusout">
+
+  <nav ref="inner" :class="{[$style.nav]: true, [$style.right]: openToRight}"
+       tabIndex="0" @click.stop="close" @focusout="focusout">
     <slot></slot>
   </nav>
 </details>
@@ -18,6 +28,7 @@ export default Vue.extend({
     props: {
         name: String,
         summaryClass: String,
+        openToRight: Boolean,
     },
     methods: {
         toggle() {
@@ -55,6 +66,8 @@ export default Vue.extend({
     z-index: 100;
     position: absolute;
 }
+
+.right { right: 0; }
 
 .details[open] > .modal {
     position: fixed;
