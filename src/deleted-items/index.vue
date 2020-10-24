@@ -5,8 +5,8 @@
            :href="pageref('stash-list.html')"></a>
         <input slot="after" type="search" ref="search" class="ephemeral"
                placeholder="Search Deleted Items on This Computer"
-               @keyup.esc.prevent="searchtext=''; $refs.search.blur()"
-               v-model="searchtext">
+               @keyup.esc.prevent="search=''; $refs.search.blur()"
+               v-model="search">
     </header>
     <div class="folder-list one-column">
         <div v-for="group of filter_results" :key="group.title" class="folder">
@@ -21,15 +21,10 @@
                     <Bookmark v-else :id="rec.key" :item="rec.item"
                               :deleted_at="rec.deleted_at" />
                 </li>
-                <li v-if="group.filter_count > 0" class="folder-item disabled">
-                    <span class="text status-text hidden-count">
-                        + {{group.filter_count}} filtered
-                    </span>
-                </li>
             </ul>
         </div>
     </div>
-    <LoadMore :identifier="searchtext" @infinite="loadMore">
+    <LoadMore :identifier="search" @infinite="loadMore">
         <footer slot="no-results" class="page footer status-text">
             No deleted items found on this computer.
         </footer>
@@ -52,11 +47,11 @@ import * as DI from '../model/deleted-items';
 
 const date_formatter = new Intl.DateTimeFormat();
 
-type RecordGroup = FilterCount<{title: string, records: FilteredDeletion[]}>;
+type RecordGroup = {title: string, records: FilteredDeletion[]};
 type FilteredDeletion = DI.Deletion & {item: FilteredDeletedItem};
-type FilteredDeletedItem = FilterCount<DI.DeletedItem>;
+type FilteredDeletedItem = FilteredCount<DI.DeletedItem>;
 
-type FilterCount<F> = F & {filter_count?: number};
+type FilteredCount<F> = F & {filtered_count?: number};
 
 const Main = Vue.extend({
     components: {
@@ -72,9 +67,9 @@ const Main = Vue.extend({
         state: Object as PropType<DI.State>,
     },
 
-    data() { return {
-        searchtext: '',
-    }},
+    data: () => ({
+        search_text: '',
+    }),
 
     computed: {
         record_groups(): RecordGroup[] {
@@ -99,31 +94,49 @@ const Main = Vue.extend({
             return ret;
         },
 
-        text_matcher(): (txt: string) => boolean {
-            return textMatcher(this.searchtext);
+        search: {
+            get(): string { return this.search_text; },
+            set(t: string) {
+                this.search_text = t;
+                this.model().deleted_items.filter(this.item_filter);
+            },
         },
 
-        filter_results(): RecordGroup[] {
-            if (! this.searchtext) return this.record_groups;
+        text_matcher(): (txt: string) => boolean {
+            return textMatcher(this.search);
+        },
 
-            const mapitem = (i: FilteredDeletedItem): FilteredDeletedItem | undefined => {
-                if (this.text_matcher(i.title)) return i;
-                if ('url' in i && this.text_matcher(i.url)) return i;
+        item_mapper(): (item: DI.DeletedItem) => FilteredDeletedItem | undefined {
+            const match = this.text_matcher;
+            const mapitem = (item: FilteredDeletedItem): FilteredDeletedItem | undefined => {
+                if (match(item.title)) return item;
+                if ('url' in item && match(item.url)) return item;
 
-                if ('children' in i) {
+                if ('children' in item) {
                     const mapped: FilteredDeletedItem = {
-                        title: i.title,
-                        children: filterMap(i.children, mapitem),
+                        title: item.title,
+                        children: filterMap(item.children, mapitem),
                     };
                     if (mapped.children.length === 0) return undefined;
 
-                    mapped.filter_count = i.children.length - mapped.children.length;
+                    mapped.filtered_count = item.children.length - mapped.children.length;
                     return mapped;
                 }
 
                 return undefined;
             };
+            return mapitem;
+        },
 
+        item_filter(): (item: DI.DeletedItem) => boolean {
+            const mapitem = this.item_mapper;
+            return item => mapitem(item) !== undefined;
+        },
+
+        filter_results(): RecordGroup[] {
+            if (! this.search) return this.record_groups;
+
+            const mapitem = this.item_mapper;
             return filterMap(this.record_groups, rg => {
                 const filtered = filterMap(rg.records, r => {
                     const i = mapitem(r.item);
@@ -139,7 +152,6 @@ const Main = Vue.extend({
                 return {
                     title: rg.title,
                     records: filtered,
-                    filter_count: rg.records.length - filtered.length,
                 };
             });
         },

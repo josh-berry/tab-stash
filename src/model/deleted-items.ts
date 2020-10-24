@@ -18,7 +18,7 @@ export type SourceValue = {
 
 export type State = {
     fullyLoaded: boolean,
-    entries: Deletion[],
+    entries: Deletion[], // entries are sorted newest first
 };
 
 export type Deletion = {
@@ -60,11 +60,12 @@ export class Model {
     // typing issues)
     readonly state: State = Vue.observable({
         fullyLoaded: false,
-        entries: [], // sorted newest to oldest
+        entries: [],
     });
 
     private _kvs: KeyValueStore<string, SourceValue>;
     private _entry_cache = new Map<string, Deletion>();
+    private _filter: undefined | ((item: DeletedItem) => boolean);
 
     constructor(kvs: KeyValueStore<string, SourceValue>) {
         this._kvs = kvs;
@@ -78,6 +79,8 @@ export class Model {
 
     onSet(records: Entry<string, SourceValue>[]) {
         for (const r of records) {
+            if (this._filter && ! this._filter(r.value.item)) continue;
+
             const {key, value} = r;
             const cached = this._entry_cache.get(key);
             if (cached) {
@@ -106,14 +109,53 @@ export class Model {
             ({key}) => ! kset.has(key));
     }
 
+    filter(predicate?: (item: DeletedItem) => boolean) {
+        // This resets the model to the "empty" state.  On subsequent calls to
+        // loadMore(), we will load only those records whose root DeletedItems
+        // match the predicate (we do NOT search recursively; that's up to the
+        // predicate if desired).
+        //
+        // We do top-level filtering in here for performance reasons--by lazily
+        // loading/reloading filtered data, we can keep the number of elements
+        // we report to the UI down, which keeps the UI responsive, because we
+        // should rarely need potentially thousands of DOM nodes squeezed onto
+        // the page.
+        //
+        // If the UI wants to filter *within* particular items, the UI needs to
+        // do this by hand.  This strikes a balance between "heavy-lifting"
+        // filtering which potentially ignores many, many items, and
+        // fine-grained filtering in the UI (which can do nice things like
+        // report the number of items filtered).
+        this.state.fullyLoaded = false;
+        this.state.entries = [];
+        this._entry_cache = new Map();
+        this._filter = predicate;
+    }
+
     loadMore = nonReentrant(async() => {
-        const bound = this.state.entries.length > 0
+        const starting_filter = this._filter;
+        const starting_count = this.state.entries.length;
+        let bound = this.state.entries.length > 0
             ? this.state.entries[this.state.entries.length - 1].key
             : undefined;
 
-        const block = await this._kvs.getEndingAt(bound, 10);
-        this.onSet(block);
-        if (block.length === 0) this.state.fullyLoaded = true;
+        // block.length might be > 0, and yet no entries will be loaded, if a
+        // search is active.  In this case, we want to keep trying until we can
+        // load at least one entry, or the infinite-loading component I'm using
+        // in Vue will complain (and doing this is faster anyway).
+        while (starting_count === this.state.entries.length) {
+            // Check if we need to cancel the load because our filter has changed
+            if (starting_filter !== this._filter) break;
+
+            const block = await this._kvs.getEndingAt(bound, 10);
+            this.onSet(block);
+
+            if (block.length === 0) {
+                this.state.fullyLoaded = true;
+                break;
+            }
+            bound = block[block.length - 1].key;
+        }
     });
 
     async add(item: DeletedItem): Promise<Entry<string, SourceValue>> {
