@@ -19,8 +19,7 @@
       <a @click.prevent.stop="showWhatsNew">What's New?</a>
     </Menu>
     <input type="search" ref="search" class="ephemeral"
-           :placeholder="search_placeholder"
-           @keyup.esc.prevent="searchtext=''; $refs.search.blur();"
+           :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
            v-model="searchtext">
     <ButtonBox>
       <Button :class="{collapse: collapsed, expand: ! collapsed}"
