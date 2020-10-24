@@ -102,8 +102,13 @@ const Main = Vue.extend({
         search: {
             get(): string { return this.search_text; },
             set(t: string) {
-                this.search_text = t;
-                this.model().deleted_items.filter(this.item_filter);
+                // We don't want to call filter() if search doesn't actually
+                // change, because it will reset the model but then not load
+                // anything (since the infinite-loader itself isn't reset).
+                if (t !== this.search_text) {
+                    this.search_text = t;
+                    this.model().deleted_items.filter(this.item_filter);
+                }
             },
         },
 
