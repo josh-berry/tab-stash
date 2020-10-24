@@ -4,7 +4,7 @@
         <a class="action back" title="Back to Tab Stash"
            :href="pageref('stash-list.html')"></a>
         <input slot="after" type="search" ref="search" class="ephemeral"
-               placeholder="Search Deleted Items on This Computer"
+               placeholder="Search Deleted Items"
                @keyup.esc.prevent="search=''; $refs.search.blur()"
                v-model="search">
     </header>
@@ -25,11 +25,16 @@
         </div>
     </div>
     <LoadMore :identifier="search" @infinite="loadMore">
-        <footer slot="no-results" class="page footer status-text">
-            No deleted items found on this computer.
+        <footer v-if="search" slot="no-results" class="page footer status-text">
+            No matching items were found.  Your item may have been deleted on
+            another computer, or outside of Tab Stash entirely.
+        </footer>
+        <footer v-else slot="no-results" class="page footer status-text">
+            It doesn't look like you've deleted anything on this computer yet.
         </footer>
         <footer slot="no-more" class="page footer status-text">
-            No more deleted items on this computer.
+            Didn't find what you're looking for?  It may have been deleted on
+            another computer, or outside of Tab Stash entirely.
         </footer>
     </LoadMore>
 </main>

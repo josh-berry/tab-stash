@@ -212,8 +212,7 @@ export class Model {
         }
     }
 
-    /*
-    async makeFakeData() {
+    async makeFakeData_testonly(count: number) {
         let ts = Date.now();
         const icons = [
             'back.svg', 'cancel.svg', 'collapse-closed.svg', 'delete.svg',
@@ -230,11 +229,11 @@ export class Model {
         const genUrl = () => `https://${choose(words)}.internet/${choose(words)}/${choose(words)}/${choose(words)}.html`;
         const genIcon = () => `icons/light/${choose(icons)}`;
 
-        for (let i = 0; i < 10000; ++i) {
+        for (let i = 0; i < count; ++i) {
             const deleted_at = new Date(ts).toISOString();
             const key = `${deleted_at}-${makeRandomString(4)}`;
-            ts -= Math.floor(Math.random() * 60 * 60 * 1000);
-            if (Math.random() < 0.25) {
+            ts -= Math.floor(Math.random() * 6*60*60*1000);
+            if (Math.random() < 0.5) {
                 await this._kvs.set([{
                     key,
                     value: {
@@ -270,5 +269,4 @@ export class Model {
             }
         }
     }
-    */
 };
