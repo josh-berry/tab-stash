@@ -7,6 +7,7 @@
   "license": "MPL-2.0",
   "dependencies": {},
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@types/chai": "*",
     "@types/mocha": "*",
     "@types/sortablejs": "*",
@@ -17,7 +18,9 @@
     "glob": "*",
     "idb": "*",
     "mocha": "*",
+    "nyc": "^15.1.0",
     "ts-loader": "*",
+    "ts-node": "^9.0.0",
     "typescript": "*",
     "vue": "*",
     "vue-infinite-loading": "^2.4.5",
@@ -32,6 +35,6 @@
   "scripts": {
     "build": "webpack && copyfiles -u 1 'assets/**/*' dist",
     "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 assets/* dist",
-    "test": "mocha ./dist/test.js"
+    "test": "nyc mocha"
   }
 }

@@ -1,3 +1,5 @@
+/// <reference path="browser.d.ts" />
+
 import Options from './model/options';
 
 import {urlToOpen, TaskMonitor} from './util';

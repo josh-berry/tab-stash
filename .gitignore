@@ -9,6 +9,7 @@ docs/vendor
 # Generated during build
 node_modules
 dist
+.nyc_output
 
 # Release engineering
 releases/tab-stash-src-*
