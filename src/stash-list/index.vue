@@ -33,6 +33,10 @@
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
       {{root_folder_warning[0]}}
     </Notification>
+    <Notification v-for="del of state.deleted_items.recentlyDeleted" :key="del.key"
+                  @activate="model().deleted_items.undelete(del.key)">
+      Deleted "{{del.item.title}}".  Restore
+    </Notification>
   </header>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
@@ -80,6 +84,7 @@ import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
 import ui_model from '../ui-model';
+import {Model, State} from '../model';
 import {StashState, Bookmark, Tab} from '../model/browser';
 import Options, {LocalOptions, SyncOptions} from '../model/options';
 import {Cache} from '../cache-client';
@@ -99,6 +104,7 @@ const Main = Vue.extend({
     },
 
     props: {
+        state: Object as PropType<State>,
         unstashed_tabs: Object as PropType<Window>,
         stashed_tabs: Object as PropType<Bookmark>,
         root_id: String,
@@ -146,6 +152,8 @@ const Main = Vue.extend({
 
     methods: {
         pageref,
+
+        model(): Model { return <any>undefined; }, // dummy; overridden below
 
         collapseAll() {
             this.collapsed = ! this.collapsed;
@@ -220,7 +228,7 @@ export default Main;
 
 launch(Main, async() => {
     const p = await resolveNamed({
-        state: StashState.make(),
+        stash_state: StashState.make(),
         root: rootFolder(),
         win: browser.windows.getCurrent(),
         curtab: browser.tabs.getCurrent(),
@@ -235,22 +243,25 @@ launch(Main, async() => {
     // For debugging purposes only...
     (<any>globalThis).metadata_cache = Cache.open('bookmarks');
     (<any>globalThis).favicon_cache = Cache.open('favicons');
-    (<any>globalThis).stash_state = p.state;
+    (<any>globalThis).stash_state = p.stash_state;
 
     return {
         propsData: {
-            unstashed_tabs: p.state.wins_by_id.get(p.win.id!),
-            stashed_tabs: p.state.bms_by_id.get(p.root.id),
+            state: model.state,
+            unstashed_tabs: p.stash_state.wins_by_id.get(p.win.id!),
+            stashed_tabs: p.stash_state.bms_by_id.get(p.root.id),
             root_id: p.root.id,
             my_version: p.extinfo.version,
             local_options: p.localopts,
             sync_options: p.syncopts,
             metadata_cache: Cache.open('bookmarks'),
             root_folder_warning: p.warning,
-            deleted_items: model.state.deleted_items,
         },
         provide: {
             $model: model,
+        },
+        methods: {
+            model() { return model; },
         },
     };
 });

@@ -1,7 +1,9 @@
 // Model for storing/tracking deleted items persistently.  See index.ts for how
 // this fits in to the overall Tab Stash model (such as it is).
 import Vue from 'vue';
-import {friendlyFolderName} from '../stash';
+import {
+    bookmarkTabs, friendlyFolderName, mostRecentUnnamedFolderId, rootFolder
+} from '../stash';
 import {nonReentrant} from '../util';
 
 import {KeyValueStore, Entry} from '../util/kvs';
@@ -19,6 +21,7 @@ export type SourceValue = {
 export type State = {
     fullyLoaded: boolean,
     entries: Deletion[], // entries are sorted newest first
+    recentlyDeleted: Deletion[],
 };
 
 export type Deletion = {
@@ -53,6 +56,8 @@ function src2state(e: Entry<string, SourceValue>): Deletion {
     };
 }
 
+const RECENT_DELETION_TIMEOUT = 4000; // ms
+
 
 
 export class Model {
@@ -61,6 +66,7 @@ export class Model {
     readonly state: State = Vue.observable({
         fullyLoaded: false,
         entries: [],
+        recentlyDeleted: [],
     });
 
     private _kvs: KeyValueStore<string, SourceValue>;
@@ -98,6 +104,12 @@ export class Model {
                     this.state.entries.sort((a, b) =>
                         b.deleted_at.valueOf() - a.deleted_at.valueOf());
                 }
+
+                if (r.deleted_at.valueOf() > Date.now() - RECENT_DELETION_TIMEOUT) {
+                    this.state.recentlyDeleted.push(r);
+                    setTimeout(() => this.state.recentlyDeleted.shift(),
+                               RECENT_DELETION_TIMEOUT);
+                }
             }
         }
     }
@@ -105,8 +117,10 @@ export class Model {
     onDelete(keys: string[]) {
         for (const k of keys) this._entry_cache.delete(k);
         const kset = new Set(keys);
-        this.state.entries = this.state.entries.filter(
-            ({key}) => ! kset.has(key));
+        const f = ({key}: {key: string}) => ! kset.has(key);
+
+        this.state.entries = this.state.entries.filter(f);
+        this.state.recentlyDeleted = this.state.recentlyDeleted.filter(f);
     }
 
     filter(predicate?: (item: DeletedItem) => boolean) {
@@ -167,6 +181,33 @@ export class Model {
         await this._kvs.set([entry]);
         // We will get an event that the entry has been added
         return entry;
+    }
+
+    async undelete(key: string): Promise<void> {
+        // We optimistically remove immediately from recentlyDeleted to prevent
+        // users from trying to un-delete the same thing multiple times.
+        this.state.recentlyDeleted = this.state.recentlyDeleted.filter(
+            ({key: k}) => k !== key);
+
+        // Actually do the un-deletion
+        const entry = this._entry_cache.get(key);
+        if (! entry) throw new Error(`No such deleted item: ${key}`);
+
+        if ('children' in entry.item) {
+            const root = await rootFolder();
+            const folder = await browser.bookmarks.create({
+                parentId: root.id,
+                title: entry.item.title,
+                type: 'folder',
+                index: 0,
+            });
+            await bookmarkTabs(folder.id, entry.item.children);
+
+        } else {
+            await bookmarkTabs(await mostRecentUnnamedFolderId(), [entry.item]);
+        }
+
+        await this.drop(key);
     }
 
     drop(key: string): Promise<void> {

@@ -37,7 +37,6 @@ import Vue, {PropType} from 'vue';
 import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedFolder, DeletedItem} from '../model/deleted-items';
-import {bookmarkTabs, rootFolder} from '../stash';
 
 export default Vue.extend({
     components: {
@@ -79,16 +78,7 @@ export default Vue.extend({
         },
 
         restore() { this.run("Restoring", async() => {
-            const root = await rootFolder();
-            const folder = await browser.bookmarks.create({
-                parentId: root.id,
-                title: this.item.title,
-                type: 'folder',
-                index: 0,
-            });
-            await bookmarkTabs(folder.id, this.item.children);
-            await this.remove();
-            await this.model().deleted_items.drop(this.id);
+            await this.model().deleted_items.undelete(this.id);
         })},
 
         remove() { this.run("Deleting Forever", async() => {
