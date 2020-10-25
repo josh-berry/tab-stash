@@ -7,11 +7,11 @@
         <ItemIcon class="icon-folder" />
         <span class="text" :title="tooltip">{{item.title}}</span>
         <ButtonBox v-if="id">
-            <button class="action stash" title="Restore"
-                    @click.prevent.stop="restore"></button>
+            <Button class="action stash" title="Restore"
+                    @click.prevent.stop="restore"></Button>
             <Menu class="menu" summaryClass="action remove last-toolbar-button"
                   title="Delete Forever" :openToRight="true">
-                <button @click.prevent.stop="remove">Delete Forever</button>
+                <a @click.prevent.stop="remove">Delete Forever</a>
             </Menu>
         </ButtonBox>
     </div>
@@ -40,6 +40,7 @@ import {DeletedFolder, DeletedItem} from '../model/deleted-items';
 
 export default Vue.extend({
     components: {
+        Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         ItemIcon: require('../components/item-icon.vue').default,
         Menu: require('../components/menu.vue').default,

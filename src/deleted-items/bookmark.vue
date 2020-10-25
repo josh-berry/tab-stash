@@ -6,12 +6,12 @@
     <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
     <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
     <ButtonBox>
-        <button class="action stash one" title="Restore"
-                @click.prevent.stop="restore"></button>
+        <Button class="action stash one" title="Restore"
+                @click.prevent.stop="restore"></Button>
         <Menu class="menu" summaryClass="action remove last-toolbar-button"
                 title="Delete Forever" :openToRight="true"
                 v-if="id !== undefined || (parentId !== undefined && childIndex !== undefined)">
-            <button @click.prevent.stop="remove">Delete Forever</button>
+            <a @click.prevent.stop="remove">Delete Forever</a>
         </Menu>
     </ButtonBox>
     <slot></slot>
@@ -28,6 +28,7 @@ import {bookmarkTabs, mostRecentUnnamedFolderId} from '../stash';
 
 export default Vue.extend({
     components: {
+        Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         ItemIcon: require('../components/item-icon.vue').default,
         Menu: require('../components/menu.vue').default,
