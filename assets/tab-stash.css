@@ -31,6 +31,7 @@ html {
     --item-active-bg: var(--button-active-bg);
 
     --shadow: 2px 2px 4px #c0c0c0;
+    --shadow-heavy: 2px 2px 6px #808080;
     --shadow-faint: 2px 2px 4px #d8d8d8;
 }
 
@@ -63,6 +64,7 @@ html.tab-view {
         --group-border: 1px solid #3a3a3e;
 
         --shadow: 2px 2px 4px #3a3a3e;
+        --shadow-heavy: 2px 2px 6px #3a3a3e;
         --shadow-faint: 2px 2px 4px #3a3a3e;
     }
 
@@ -276,20 +278,34 @@ header.page {
     border-top: var(--divider-border);
 }
 
-aside.notification {
-    grid-column: 1 / 4;
+.notification-overlay {
+    position: fixed;
+    z-index: 10;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: var(--margin) calc(var(--margin) * 2);
+
+    display: grid;
+    grid-template-columns: 1fr minmax(auto, 40rem) 1fr;
+    gap: calc(var(--margin) / 2);
+}
+@media all and (max-width: 30rem) {
+    .notification-overlay { margin: var(--margin) var(--margin); }
+}
+.notification {
+    grid-column: 2;
+
     display: grid;
     grid-template-columns: 1fr 0fr;
-    align-items: center;
-    background-color: rgba(40, 122, 204, 0.16); /* 287acc */
+    background-color: var(--userlink-fg);
+    color: var(--page-bg);
     border-radius: var(--ctrl-border-radius);
+    box-shadow: var(--shadow-heavy);
 }
-aside.notification:hover {
-    background-color: rgba(40, 122, 204, 0.24); /* 287acc */
-}
-aside.notification .contents {
-    margin: 4px 8px;
-}
+.notification:hover { background-color: var(--userlink-hover-fg); }
+.notification:active { background-color: var(--userlink-active-fg); }
+.notification .contents { margin: 4px 8px; }
 
 .page.footer {
     padding: 16px 16px 8px;
@@ -410,6 +426,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .action.collapse { background-image: url(icons/light/collapse-closed.svg); }
 .action.expand { background-image: url(icons/light/collapse-open.svg); }
 .action.cancel { background-image: url(icons/light/cancel.svg); }
+.notification .action.cancel { background-image: url(icons/dark/cancel.svg); }
 .action.stash { background-image: url(icons/light/stash.svg); }
 .action.stash.one { background-image: url(icons/light/stash-one.svg); }
 .action.stash.newgroup { background-image: url(icons/light/new-empty-group.svg); }
@@ -713,18 +730,12 @@ span.folder-name, .folder-item > .text {
         border-color: rgba(255, 255, 255, 0.32);
     }
 
-    aside.notification {
-        background-color: rgba(128, 191, 255, 0.32); /* matches a.open */
-    }
-    aside.notification:hover {
-        background-color: rgba(128, 191, 255, 0.48);
-    }
-
     .icon-folder { background-image: url(icons/dark/folder.svg); }
     .action.mainmenu { background-image: url(icons/dark/mainmenu.svg); }
     .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
     .action.expand { background-image: url(icons/dark/collapse-open.svg); }
     .action.cancel { background-image: url(icons/dark/cancel.svg); }
+    .notification .action.cancel { background-image: url(icons/light/cancel.svg); }
     .action.stash { background-image: url(icons/dark/stash.svg); }
     .action.stash.one { background-image: url(icons/dark/stash-one.svg); }
     .action.stash.newgroup { background-image: url(icons/dark/new-empty-group.svg); }

@@ -3,6 +3,23 @@
   <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
              v-on="dialog.on" @close="dialog = undefined">
   </component>
+  <aside class="notification-overlay">
+    <Notification v-if="recently_updated"
+                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
+      You've been updated to Tab Stash {{my_version}}.  See what's new!
+    </Notification>
+    <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
+      {{root_folder_warning[0]}}
+    </Notification>
+    <Notification v-if="recently_deleted.length === 1"
+                  @activate="model().deleted_items.undelete(recently_deleted[0].key)">
+      Deleted "{{recently_deleted[0].item.title}}".  Undo?
+    </Notification>
+    <Notification v-else-if="recently_deleted.length > 1"
+                  @activate="go('deleted-items.html')">
+      Deleted {{recently_deleted.length}} items.  Show what was deleted?
+    </Notification>
+  </aside>
   <header class="page action-container">
     <Menu class="menu" summaryClass="action mainmenu">
       <a @click.prevent.stop="showOptions">Options...</a>
@@ -26,21 +43,6 @@
               title="Hide all tabs so only group names are showing"
               @action="collapseAll" />
     </ButtonBox>
-    <Notification v-if="recently_updated"
-                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      You've been updated to Tab Stash {{my_version}}.  See what's new!
-    </Notification>
-    <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
-      {{root_folder_warning[0]}}
-    </Notification>
-    <Notification v-if="recently_deleted.length === 1"
-                  @activate="model().deleted_items.undelete(recently_deleted[0].key)">
-      Deleted "{{recently_deleted[0].item.title}}".  Restore >>
-    </Notification>
-    <Notification v-else-if="recently_deleted.length > 1"
-                  @activate="go('deleted-items.html')">
-      Recently deleted {{recently_deleted.length}} items. Show deleted items >>
-    </Notification>
   </header>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
