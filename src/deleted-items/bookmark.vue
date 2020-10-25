@@ -6,8 +6,7 @@
     <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
     <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
     <ButtonBox>
-        <Button class="action stash one" title="Restore"
-                @click.prevent.stop="restore"></Button>
+        <Button class="stash one" tooltip="Restore" @action="restore" />
         <Menu class="menu" summaryClass="action remove last-toolbar-button"
                 title="Delete Forever" :openToRight="true"
                 v-if="id !== undefined || (parentId !== undefined && childIndex !== undefined)">

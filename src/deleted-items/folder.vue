@@ -7,8 +7,7 @@
         <ItemIcon class="icon-folder" />
         <span class="text" :title="tooltip">{{item.title}}</span>
         <ButtonBox v-if="id">
-            <Button class="action stash" title="Restore"
-                    @click.prevent.stop="restore"></Button>
+            <Button class="stash" tooltip="Restore" @action="restore" />
             <Menu class="menu" summaryClass="action remove last-toolbar-button"
                   title="Delete Forever" :openToRight="true">
                 <a @click.prevent.stop="remove">Delete Forever</a>
