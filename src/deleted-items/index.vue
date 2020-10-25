@@ -14,11 +14,8 @@
             </div>
             <ul class="contents">
                 <li v-for="rec of group.records" :key="rec.key">
-                    <Folder v-if="rec.item.children" 
-                            :id="rec.key" :item="rec.item"
-                            :deleted_at="rec.deleted_at" />
-                    <Bookmark v-else :id="rec.key" :item="rec.item"
-                              :deleted_at="rec.deleted_at" />
+                    <Folder v-if="rec.item.children" :deletion="rec" />
+                    <Bookmark v-else :deletion="rec" />
                 </li>
             </ul>
         </div>

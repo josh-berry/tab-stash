@@ -12,7 +12,7 @@
       {{root_folder_warning[0]}}
     </Notification>
     <Notification v-if="recently_deleted.length === 1"
-                  @activate="model().deleted_items.undelete(recently_deleted[0].key)">
+                  @activate="model().deleted_items.undelete(recently_deleted[0])">
       Deleted "{{recently_deleted[0].item.title}}".  Undo?
     </Notification>
     <Notification v-else-if="recently_deleted.length > 1"

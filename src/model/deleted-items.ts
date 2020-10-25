@@ -14,7 +14,14 @@ import {makeRandomString} from '../util/random';
 export type Source = KeyValueStore<string, SourceValue>;
 export type SourceValue = {
     deleted_at: string,
+    deleted_from?: DeleteLocation,
     item: DeletedItem,
+};
+
+export type DeleteLocation = {
+    // The folder containing the deleted item
+    folder_id: string,
+    title: string,
 };
 
 
@@ -27,6 +34,7 @@ export type State = {
 export type Deletion = {
     key: string,
     deleted_at: Date,
+    deleted_from?: DeleteLocation,
     item: DeletedItem,
 };
 
@@ -47,6 +55,7 @@ function src2state(e: Entry<string, SourceValue>): Deletion {
     return {
         key: e.key,
         deleted_at: new Date(e.value.deleted_at),
+        deleted_from: e.value.deleted_from ? {...e.value.deleted_from} : undefined,
         item: 'children' in e.value.item
             ? {
                 title: friendlyFolderName(e.value.item.title),
@@ -180,44 +189,82 @@ export class Model {
         }
     });
 
-    async add(item: DeletedItem): Promise<Entry<string, SourceValue>> {
+    get(key: string): Deletion {
+        const res = this._entry_cache.get(key);
+        if (! res) throw new Error(`No such deleted item: ${key}`);
+        return res;
+    }
+
+    async add(
+        item: DeletedItem,
+        deleted_from?: DeleteLocation,
+    ): Promise<Entry<string, SourceValue>> {
         // The ISO string has the advantage of being sortable...
         const deleted_at = new Date().toISOString();
         const key = `${deleted_at}-${makeRandomString(4)}`;
-        const entry = {key, value: {deleted_at, item}};
+        const entry = {key, value: {deleted_at, deleted_from, item}};
 
         await this._kvs.set([entry]);
         // We will get an event that the entry has been added, which will insert
         // it in the model.
-    
+
         return entry;
     }
 
-    async undelete(key: string): Promise<void> {
+    async undelete(deletion: Deletion): Promise<void> {
         // We optimistically remove immediately from recentlyDeleted to prevent
         // users from trying to un-delete the same thing multiple times.
         this.state.recentlyDeleted = this.state.recentlyDeleted.filter(
-            ({key: k}) => k !== key);
+            ({key: k}) => k !== deletion.key);
 
-        // Actually do the un-deletion
-        const entry = this._entry_cache.get(key);
-        if (! entry) throw new Error(`No such deleted item: ${key}`);
-
-        if ('children' in entry.item) {
+        if ('children' in deletion.item) {
+            // Restoring an entire folder of bookmarks; just put it at the root.
             const root = await rootFolder();
             const folder = await browser.bookmarks.create({
                 parentId: root.id,
-                title: entry.item.title,
+                title: deletion.item.title,
                 type: 'folder',
                 index: 0,
             });
-            await bookmarkTabs(folder.id, entry.item.children);
+            await bookmarkTabs(folder.id, deletion.item.children);
 
         } else {
-            await bookmarkTabs(await mostRecentUnnamedFolderId(), [entry.item]);
+            // We're restoring an individual bookmark.  Try to find where to put
+            // it, IF we remember where it came from.
+            let folderId: string | undefined;
+
+            if (deletion.deleted_from) {
+                try {
+                    await browser.bookmarks.get(deletion.deleted_from.folder_id);
+
+                    // The exact bookmark we want still exists, use it
+                    folderId = deletion.deleted_from.folder_id;
+
+                } catch (e) {
+                    // Search for an existing folder inside the stash root with
+                    // the same name as the folder it was deleted from.
+                    const root = await rootFolder();
+                    for (const bm of await browser.bookmarks.search(
+                            {title: deletion.deleted_from.title}))
+                    {
+                        if (bm.type !== 'folder') continue;
+                        if (bm.parentId !== root.id) continue;
+                        if (bm.title !== deletion.deleted_from.title) continue;
+                        folderId = bm.id;
+                        break;
+                    }
+                }
+            }
+
+            // If we still don't know where it came from or its prior containing
+            // folder was deleted, just put it in an unnamed folder.
+            if (! folderId) folderId = await mostRecentUnnamedFolderId();
+
+            // Restore the bookmark.
+            await bookmarkTabs(folderId, [deletion.item]);
         }
 
-        await this.drop(key);
+        await this.drop(deletion.key);
     }
 
     drop(key: string): Promise<void> {

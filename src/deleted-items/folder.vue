@@ -5,8 +5,8 @@
 <div v-else>
     <div class="folder-item deleted action-container">
         <ItemIcon class="icon-folder" />
-        <span class="text" :title="tooltip">{{item.title}}</span>
-        <ButtonBox v-if="id">
+        <span class="text" :title="tooltip">{{deletion.item.title}}</span>
+        <ButtonBox>
             <Button class="stash" tooltip="Restore" @action="restore" />
             <Menu class="menu" summaryClass="action remove last-toolbar-button"
                   title="Delete Forever" :openToRight="true">
@@ -16,8 +16,7 @@
     </div>
     <ul class="folder-item-nesting">
         <Bookmark v-for="(child, index) of leafChildren" :key="child.url+index"
-                  :item="child" :parentId="id" :childIndex="index"
-                  :deleted_at="deleted_at">
+                  :parent="deletion" :child="child" :childIndex="index">
             <span class="indent indent-spacer"></span>
         </Bookmark>
         <li v-if="item.filtered_count" class="folder-item disabled">
@@ -35,7 +34,7 @@ import Vue, {PropType} from 'vue';
 
 import {logErrors} from '../util';
 import {Model} from '../model';
-import {DeletedFolder, DeletedItem} from '../model/deleted-items';
+import {DeletedFolder, DeletedItem, Deletion} from '../model/deleted-items';
 
 export default Vue.extend({
     components: {
@@ -49,9 +48,7 @@ export default Vue.extend({
     inject: ['$model'],
 
     props: {
-        id: String,
-        item: Object as PropType<DeletedFolder>,
-        deleted_at: Date,
+        deletion: Object as PropType<Deletion>,
     },
 
     data: () => ({
@@ -59,11 +56,13 @@ export default Vue.extend({
     }),
 
     computed: {
+        item(): DeletedFolder { return this.deletion.item as DeletedFolder; },
+        deletedAt(): string { return this.deletion.deleted_at.toLocaleString() },
         leafChildren(): DeletedItem[] {
             return this.item.children.filter(i => ! ('children' in i));
         },
         tooltip(): string {
-            return `${this.item.title}\nDeleted ${this.deleted_at.toLocaleString()}`;
+            return `${this.item.title}\nDeleted ${this.deletedAt}`;
         },
     },
 
@@ -78,11 +77,12 @@ export default Vue.extend({
         },
 
         restore() { this.run("Restoring", async() => {
-            await this.model().deleted_items.undelete(this.id);
+            const del = this.model().deleted_items.get(this.deletion.key);
+            await this.model().deleted_items.undelete(del);
         })},
 
         remove() { this.run("Deleting Forever", async() => {
-            await this.model().deleted_items.drop(this.id);
+            await this.model().deleted_items.drop(this.deletion.key);
         })},
     },
 });

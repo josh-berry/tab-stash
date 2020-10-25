@@ -24,7 +24,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import Vue, {PropType} from 'vue';
 
 import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from '../util';
 import {
@@ -33,7 +33,7 @@ import {
     closeTabs,
 } from '../stash';
 import {Model} from '../model';
-import {Tab, Bookmark, ModelLeaf} from '../model/browser';
+import {Tab, Bookmark, ModelLeaf, ModelParent} from '../model/browser';
 
 export default Vue.extend({
     components: {
@@ -47,7 +47,7 @@ export default Vue.extend({
     props: {
         // Common
         id: [String, Number],
-        parent: Object,
+        parent: Object as PropType<ModelParent>,
         index: Number,
         title: String,
         url: String,
@@ -140,12 +140,15 @@ export default Vue.extend({
         }),
 
         _removeBM: async function() {
-            const folder = this.parent;
+            const folder = this.parent as Bookmark;
 
             await this.model().deleted_items.add({
                 title: this.title,
                 url: this.url,
                 favIconUrl: this.favicon?.value,
+            }, {
+                folder_id: folder.id,
+                title: folder.title!,
             });
             await browser.bookmarks.remove(this.id as string);
 
@@ -157,11 +160,11 @@ export default Vue.extend({
             // folder.vue:_maybeCleanupEmptyFolder().  See the comment there for
             // further discussion.
 
-            if (getFolderNameISODate(folder.title) === null) return;
+            if (getFolderNameISODate(folder.title!) === null) return;
 
-            if (folder.children.length > 1) return;
-            if (folder.children.length === 1
-                && folder.children[0].id !== this.id) {
+            if (folder.children!.length > 1) return;
+            if (folder.children?.length === 1
+                && folder.children![0]?.id !== this.id) {
                 return;
             }
 
