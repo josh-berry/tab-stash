@@ -16,7 +16,7 @@
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
       <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
       <a href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
-      <a @click.prevent.stop="showWhatsNew">What's New?</a>
+      <a :href="pageref('whats-new.html')">What's New?</a>
     </Menu>
     <input type="search" ref="search" class="ephemeral"
            :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
@@ -27,15 +27,19 @@
               @action="collapseAll" />
     </ButtonBox>
     <Notification v-if="recently_updated"
-                @activate="showWhatsNew" @dismiss="hideWhatsNew">
+                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       You've been updated to Tab Stash {{my_version}}.  See what's new!
     </Notification>
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
       {{root_folder_warning[0]}}
     </Notification>
-    <Notification v-for="del of state.deleted_items.recentlyDeleted" :key="del.key"
-                  @activate="model().deleted_items.undelete(del.key)">
-      Deleted "{{del.item.title}}".  Restore
+    <Notification v-if="recently_deleted.length === 1"
+                  @activate="model().deleted_items.undelete(recently_deleted[0].key)">
+      Deleted "{{recently_deleted[0].item.title}}".  Restore >>
+    </Notification>
+    <Notification v-else-if="recently_deleted.length > 1"
+                  @activate="go('deleted-items.html')">
+      Recently deleted {{recently_deleted.length}} items. Show deleted items >>
     </Notification>
   </header>
   <div class="folder-list">
@@ -84,9 +88,10 @@ import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
 import ui_model from '../ui-model';
-import {Model, State} from '../model';
+import {Model, State} from '../model/';
 import {StashState, Bookmark, Tab} from '../model/browser';
 import Options, {LocalOptions, SyncOptions} from '../model/options';
+import * as DI from '../model/deleted-items';
 import {Cache} from '../cache-client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -125,6 +130,10 @@ const Main = Vue.extend({
     computed: {
         recently_updated(): boolean {
             return this.local_options.last_notified_version !== this.my_version;
+        },
+
+        recently_deleted(): DI.Deletion[] {
+            return this.state.deleted_items.recentlyDeleted;
         },
 
         counts(): {tabs: number, groups: number} {
@@ -181,8 +190,8 @@ const Main = Vue.extend({
             browser.runtime.openOptionsPage().catch(console.log);
         },
 
-        showWhatsNew() {
-            window.location.href = pageref('whats-new.html');
+        go(page: string) {
+            window.location.href = pageref(page);
         },
         hideWhatsNew() {
             this.local_options.set({last_notified_version: this.my_version});

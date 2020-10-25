@@ -21,7 +21,7 @@ export type SourceValue = {
 export type State = {
     fullyLoaded: boolean,
     entries: Deletion[], // entries are sorted newest first
-    recentlyDeleted: Deletion[],
+    recentlyDeleted: Deletion[], // items deleted just a short time ago, oldest first
 };
 
 export type Deletion = {
@@ -56,7 +56,7 @@ function src2state(e: Entry<string, SourceValue>): Deletion {
     };
 }
 
-const RECENT_DELETION_TIMEOUT = 4000; // ms
+const RECENT_DELETION_TIMEOUT = 5000; // ms
 
 
 
@@ -72,6 +72,8 @@ export class Model {
     private _kvs: KeyValueStore<string, SourceValue>;
     private _entry_cache = new Map<string, Deletion>();
     private _filter: undefined | ((item: DeletedItem) => boolean);
+
+    private _clear_recently_deleted_timeout: undefined | ReturnType<typeof setTimeout>;
 
     constructor(kvs: KeyValueStore<string, SourceValue>) {
         this._kvs = kvs;
@@ -105,11 +107,17 @@ export class Model {
                         b.deleted_at.valueOf() - a.deleted_at.valueOf());
                 }
 
-                if (r.deleted_at.valueOf() > Date.now() - RECENT_DELETION_TIMEOUT) {
-                    this.state.recentlyDeleted.push(r);
-                    setTimeout(() => this.state.recentlyDeleted.shift(),
-                               RECENT_DELETION_TIMEOUT);
+                // Keep items we just deleted in a "recently deleted" list for a
+                // short amount of time so the UI can show an "Undo"
+                // notification.
+                this.state.recentlyDeleted.push(r);
+                if (this._clear_recently_deleted_timeout) {
+                    clearTimeout(this._clear_recently_deleted_timeout);
                 }
+                this._clear_recently_deleted_timeout = setTimeout(() => {
+                    this.state.recentlyDeleted = [];
+                    this._clear_recently_deleted_timeout = undefined;
+                }, RECENT_DELETION_TIMEOUT);
             }
         }
     }
@@ -179,7 +187,9 @@ export class Model {
         const entry = {key, value: {deleted_at, item}};
 
         await this._kvs.set([entry]);
-        // We will get an event that the entry has been added
+        // We will get an event that the entry has been added, which will insert
+        // it in the model.
+    
         return entry;
     }
 
