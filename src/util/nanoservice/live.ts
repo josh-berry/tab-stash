@@ -9,6 +9,7 @@ let listener_count = 0;
 
 //(<any>globalThis).trace_nano_ports = true;
 
+// istanbul ignore next
 const trace = (...args: any[]) => {
     if (! (<any>globalThis).trace_nano_ports) return;
     console.log(`[NanoPort ${globalThis?.location?.pathname}]`, ...args);
@@ -27,6 +28,7 @@ export class SvcRegistry {
         ++listener_count;
         const nport = new Port<Send, Send>(`${port.name}<${listener_count}`, port);
         nport.onDisconnect = () => {
+            // istanbul ignore else
             if (svc.onDisconnect) svc.onDisconnect(nport);
         };
         nport.onRequest = msg => {
@@ -35,7 +37,7 @@ export class SvcRegistry {
         };
         nport.onNotify = msg => {
             if (svc.onNotify) svc.onNotify(nport, msg);
-            else if (svc.onRequest) svc.onRequest(nport, msg);
+            else /* istanbul ignore else */ if (svc.onRequest) svc.onRequest(nport, msg);
         };
 
         trace(`[listener] Accepted connection for ${port.name} as ${nport.name}`);
@@ -48,11 +50,15 @@ export class SvcRegistry {
     }
 
     register(name: string, svc: NanoService<Send, Send>) {
+        // istanbul ignore if
         if (this.services.has(name)) {
             throw new Error(`Service ${name} is already launched`);
         }
+
         trace('[listener] listening for service', name);
         this.services.set(name, svc);
+
+        // istanbul ignore else
         if (this.services.size == 1) {
             // We wait to start listening until the first service is actually
             // registered, because of Firefox bug 1465514--listening for ANY
@@ -82,6 +88,7 @@ export class Port<S extends Send, R extends Send>
     onRequest?: (msg: R) => Promise<S>;
     onNotify?: (msg: R) => void;
 
+    // istanbul ignore next
     get error(): undefined | {message?: string} { return this.port.error; }
 
     private port: RTPort;
@@ -99,7 +106,8 @@ export class Port<S extends Send, R extends Send>
 
         this.port.onMessage.addListener(((msg: Envelope<R>) => {
             this._trace('recv', msg);
-            if (! msg) return;
+            if (typeof msg !== 'object') return;
+
             if ('tag' in msg) {
                 if ('request' in msg) {
                     logErrors(() => this._handleRequest(msg));
@@ -110,7 +118,10 @@ export class Port<S extends Send, R extends Send>
 
             } else if ('notify' in msg) {
                 if (this.onNotify) this.onNotify(msg.notify as R);
-                else if (this.onRequest) this.onRequest(msg.notify as R);
+                else {
+                    // istanbul ignore else
+                    if (this.onRequest) this.onRequest(msg.notify as R);
+                }
             }
         }) as (msg: object) => void);
 
@@ -126,6 +137,7 @@ export class Port<S extends Send, R extends Send>
     request(request: S, options?: {timeout_ms?: number}): Promise<R> {
         return new Promise((resolve, reject) => {
             let tag = makeRandomString(4);
+            // istanbul ignore next
             while (this.pending.has(tag)) tag = makeRandomString(4);
 
             this._trace('send', {tag, request});
@@ -173,7 +185,7 @@ export class Port<S extends Send, R extends Send>
             try {
                 data = JSON.parse(JSON.stringify(e));
             } catch (ee) {
-                data = {};
+                data = e.toString();
             }
 
             if (e instanceof Error) {
