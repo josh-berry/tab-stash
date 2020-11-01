@@ -9,6 +9,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     implements KeyValueStore<K, V>,
                NanoService<Proto.ClientMsg<K, V>, Proto.ServiceMsg<K, V>>
 {
+    // istanbul ignore next
     static async open<K extends Proto.Key, V extends Proto.Value>(
         db_name: string,
         store_name: string,
@@ -108,6 +109,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         for (const {key, value} of entries) await txn.store.put(value, key);
         await txn.done;
 
+        // istanbul ignore else
         if (entries.length > 0) {
             this._broadcast({$type: 'set', entries});
             this.onSet.send(entries);
@@ -119,6 +121,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         for (const k of keys) await txn.store.delete(k);
         await txn.done;
 
+        // istanbul ignore else
         if (keys.length > 0) {
             this._broadcast({$type: 'delete', keys});
             this.onDelete.send(keys);
@@ -157,8 +160,11 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     //
 
     onConnect(port: Proto.ClientPort<K, V>) { this._clients.add(port); }
+
+    // istanbul ignore next
     onDisconnect(port: Proto.ClientPort<K, V>) { this._clients.delete(port); }
 
+    // istanbul ignore next - this is quite trivial overall and is type-checked
     async onRequest(
         port: Proto.ClientPort<K, V>, msg: Proto.ClientMsg<K, V>
     ): Promise<Proto.ServiceMsg<K, V>> {

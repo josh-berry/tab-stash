@@ -81,13 +81,17 @@ describe('util/kvs/service', function() {
 class MockPort implements P.ClientPort<string, string> {
     received: P.ClientMsg<string, string>[] = [];
 
+    // istanbul ignore next
     request(msg: P.ClientMsg<string, string>): Promise<P.ServiceMsg<string, string>> {
         throw new Error(`Services shouldn't make requests: ${msg}`);
     }
+
     notify(msg: P.ClientMsg<string, string>) {
         // We do a round-trip thru JSON to ensure nothing else is holding on to
         // references to the message we received...
         this.received.push(JSON.parse(JSON.stringify(msg)));
     }
+
+    // istanbul ignore next
     disconnect() {}
 }

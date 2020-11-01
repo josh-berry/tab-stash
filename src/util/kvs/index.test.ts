@@ -26,6 +26,10 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
     }
 
     describe('stores and updates entries', () => {
+        it('no entries', async() => {
+            await kvs.set([]);
+        });
+
         it('single entries', async() => {
             await kvs.set([{key: 'a', value: 'alice'}]);
             expect(await kvs.get(['a']))
@@ -125,10 +129,21 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             ]));
     });
 
-    describe('deletes entries', () => {
+    describe('deletes...', () => {
         beforeEach(setDefaults);
 
-        it('single entries', async() => {
+        it('...no entries', async() => {
+            await kvs.delete([]);
+            expect(await collect(kvs.list())).to.deep.equal([
+                {key: 'a', value: 'alice'},
+                {key: 'b', value: 'bob'},
+                {key: 'c', value: 'christine'},
+                {key: 'd', value: 'derek'},
+            ]);
+
+        });
+
+        it('...single entries', async() => {
             await kvs.delete(['a']);
             expect(await kvs.get(['a'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([
@@ -138,7 +153,24 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             ]);
         });
 
-        it('multiple entries', async() => {
+        it('...entries which do not exist', async() => {
+            await kvs.delete(['0']);
+            expect(await collect(kvs.list())).to.deep.equal([
+                {key: 'a', value: 'alice'},
+                {key: 'b', value: 'bob'},
+                {key: 'c', value: 'christine'},
+                {key: 'd', value: 'derek'},
+            ]);
+            await kvs.delete(['e']);
+            expect(await collect(kvs.list())).to.deep.equal([
+                {key: 'a', value: 'alice'},
+                {key: 'b', value: 'bob'},
+                {key: 'c', value: 'christine'},
+                {key: 'd', value: 'derek'},
+            ]);
+        });
+
+        it('...multiple entries', async() => {
             await kvs.delete(['a', 'b']);
             expect(await kvs.get(['a', 'b'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([
@@ -147,10 +179,24 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             ]);
         });
 
-        it('all entries', async() => {
+        it('...all entries', async() => {
             await kvs.deleteAll();
             expect(await kvs.get(['a'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([]);
+        });
+
+        it('...all entries in a very large database', async() => {
+            const items = new Set<string>();
+            for (let k = 0; k < 1000; ++k) {
+                await kvs.set([{key: `${k}`, value: `${k}`}]);
+                items.add(`${k}`);
+            }
+            kvs.onDelete.addListener(ks => {
+                for (const k of ks) items.delete(k);
+            });
+            await kvs.deleteAll();
+            await new Promise(res => setTimeout(res));
+            expect(items.size).to.equal(0);
         });
     });
 

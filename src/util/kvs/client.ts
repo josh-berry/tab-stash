@@ -12,11 +12,13 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     private _port: Proto.ServicePort<K, V>;
 
     constructor(name_or_port: string | Proto.ServicePort<K, V>) {
+        // istanbul ignore next
         if (typeof name_or_port === 'string') name_or_port = connect(name_or_port);
 
         this._port = name_or_port;
         this._port.onNotify = msg => {
-            switch (msg?.$type) {
+            /* istanbul ignore next */ if (! msg) return;
+            switch (msg.$type) {
                 case 'delete':
                     this.onDelete.send(msg.keys);
                     break;
@@ -29,6 +31,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
 
     async get(keys: K[]): Promise<Proto.Entry<K, V>[]> {
         const resp = await this._port.request({$type: 'get', keys});
+        // istanbul ignore next
         if (resp?.$type !== 'set') return [];
         return resp.entries;
     }
@@ -38,6 +41,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     ): Promise<Proto.Entry<K, V>[]> {
         const resp = await this._port.request({
             $type: 'getStartingFrom', bound, limit});
+        // istanbul ignore next
         if (resp?.$type !== 'set') return [];
         return resp.entries;
     }
@@ -47,6 +51,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     ): Promise<Proto.Entry<K, V>[]> {
         const resp = await this._port.request({
             $type: 'getEndingAt', bound, limit});
+        // istanbul ignore next
         if (resp?.$type !== 'set') return [];
         return resp.entries;
     }

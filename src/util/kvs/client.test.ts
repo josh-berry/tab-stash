@@ -12,13 +12,18 @@ describe('util/kvs/client', function() {
 });
 
 class MockServicePort implements Proto.ServicePort<string, string> {
+    // istanbul ignore next
     onNotify = (_: Proto.ServiceMsg<string, string>) => undefined;
+
     entries = new Map<string, string>();
 
     async request(
         msg: Proto.ClientMsg<string, string>
     ): Promise<Proto.ServiceMsg<string, string>> {
-        switch (msg?.$type) {
+        // istanbul ignore next
+        if (! msg) return undefined;
+
+        switch (msg.$type) {
             case 'get':
                 const entries: Proto.Entry<string, string>[] = [];
                 for (const key of msg.keys) {
@@ -65,15 +70,18 @@ class MockServicePort implements Proto.ServicePort<string, string> {
             case 'deleteAll':
                 const all_deleted = [];
                 for (const k of this.entries.keys()) {
-                    if (this.entries.delete(k)) all_deleted.push(k);
+                    this.entries.delete(k);
+                    all_deleted.push(k);
                 }
                 this.onNotify({$type: 'delete', keys: all_deleted});
                 return undefined;
         }
     }
 
+    // istanbul ignore next
     notify(msg: Proto.ClientMsg<string, string>) {}
 
+    // istanbul ignore next
     disconnect() {}
 }
 
