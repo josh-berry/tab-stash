@@ -298,6 +298,7 @@ header.page {
 
     display: grid;
     grid-template-columns: 1fr 0fr;
+    align-items: center;
     background-color: var(--userlink-fg);
     color: var(--page-bg);
     border-radius: var(--ctrl-border-radius);
@@ -306,6 +307,10 @@ header.page {
 .notification:hover { background-color: var(--userlink-hover-fg); }
 .notification:active { background-color: var(--userlink-active-fg); }
 .notification .contents { margin: 4px 8px; }
+
+.notification-enter-active { transition: opacity 200ms ease-out; }
+.notification-leave-active { transition: opacity 200ms ease-in; }
+.notification-enter, .notification-leave-to { opacity: 0; }
 
 .page.footer {
     padding: 16px 16px 8px;
