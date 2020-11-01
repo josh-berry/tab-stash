@@ -313,9 +313,12 @@ header.page {
 .notification:active { background-color: var(--userlink-active-fg); }
 .notification .contents { margin: 4px 8px; }
 
-.notification-enter-active { transition: opacity 200ms ease-out; }
-.notification-leave-active { transition: opacity 200ms ease-in; }
-.notification-enter, .notification-leave-to { opacity: 0; }
+.notification-enter-active { transition: all 200ms ease-out; }
+.notification-leave-active { transition: all 200ms ease-in; }
+.notification-enter, .notification-leave-to {
+    opacity: 0;
+    scale: 1 0.5;
+}
 
 .page.footer {
     padding: 16px 16px 8px;

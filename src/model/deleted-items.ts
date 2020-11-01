@@ -65,7 +65,7 @@ function src2state(e: Entry<string, SourceValue>): Deletion {
     };
 }
 
-const RECENT_DELETION_TIMEOUT = 5000; // ms
+const RECENT_DELETION_TIMEOUT = 8000; // ms
 
 
 
