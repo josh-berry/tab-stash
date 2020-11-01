@@ -27,10 +27,12 @@ export class MockEventDispatcher<L extends Function> implements EvListener<L> {
         this._listeners.delete(l);
     }
 
+    // istanbul ignore next
     hasListener(l: L) { return this._listeners.has(l); }
 
     send(...args: Args<L>) {
         queue.push(() => {
+            // istanbul ignore next
             if (verbose) console.log(`[${this.name}] `, ...args);
             for (const fn of this._listeners) fn(...args);
         });
@@ -39,12 +41,14 @@ export class MockEventDispatcher<L extends Function> implements EvListener<L> {
 }
 
 export function drain(count: number): Promise<void> {
+    // istanbul ignore next
     if (resolve || reject) {
         throw new Error(`Tried to call drain() re-entrantly`);
     }
     expect(requested_count, `requested_count`).to.equal(0);
     expect(delivered_count, `delivered_count`).to.equal(0);
 
+    // istanbul ignore next
     if (verbose) console.log(`Draining ${count} events`);
 
     return new Promise((res, rej) => {
@@ -99,6 +103,7 @@ function deliver() {
     delivered_count += q.length;
 
     if (resolve && reject && delivered_count >= requested_count) {
+        // istanbul ignore if
         if (delivered_count > requested_count) {
             reject(new Error(`Delivered ${delivered_count} events, but expected only ${requested_count} events`));
             delivered_count -= requested_count;

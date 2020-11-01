@@ -37,8 +37,10 @@ class MockPort {
 
     postMessage(msg: any) {
         if (this.error) throw this.error;
+        // istanbul ignore next
         if (this._peer.error) throw this._peer.error;
 
+        // istanbul ignore next
         if (verbose) console.log(`${this.id} -> ${this._peer.id}`, msg);
         this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)));
     }
@@ -51,6 +53,7 @@ export default (() => {
         client_ports: [] as MockPort[],
         server_ports: [] as MockPort[],
 
+        // istanbul ignore next
         trace(t: boolean) { verbose = t; },
 
         reset() {
@@ -83,6 +86,7 @@ export default (() => {
                     exports.server_ports.push(server);
                     exports.onConnect.send(server);
 
+                    // istanbul ignore next
                     if (verbose) {
                         console.log(`New connection ${name}: C${id} -> S{$id}`);
                     }

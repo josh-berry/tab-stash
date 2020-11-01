@@ -61,10 +61,6 @@ class MockStorageArea {
         this._events.send(ev, this._area);
         return Promise.resolve();
     }
-
-    clear() {
-        return this.remove(Object.keys(this._storage));
-    }
 }
 
 type StorageChangedFn = (changes: browser.storage.ChangeDict,
@@ -81,6 +77,7 @@ export default (() => {
             exports.events = new events.MockEventDispatcher<StorageChangedFn>(
                 'storage.onChanged');
 
+            // istanbul ignore next
             if (! (<any>globalThis).browser) (<any>globalThis).browser = {};
 
             (<any>globalThis).browser.storage = {
