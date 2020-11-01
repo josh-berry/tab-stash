@@ -177,6 +177,11 @@ a:active {
     column-gap: var(--m-ctrl-w);
 }
 
+.modal-backdrop-enter-active { transition: opacity 100ms ease-out; }
+.modal-backdrop-leave-active { transition: opacity 100ms ease-in; }
+.modal-backdrop-enter, .modal-backdrop-leave-to { opacity: 0; }
+
+
 .clickme {
     box-shadow: 0 0 4px 0px var(--userlink-fg);
     background-color: var(--userlink-fg);

@@ -1,15 +1,17 @@
 <template>
-<aside :class="{'modal-backdrop': true, [$style.modal]: true}"
-       tabindex="-1"
-       v-on="$listeners"
-       @keypress.stop="" @keydown.stop="" @keyup.stop=""
-       @click.stop="" @auxclick.stop="" @dblclick.stop=""
-       @mousedown.stop="" @mouseup.stop=""
-       @mouseenter.stop="" @mouseleave.stop=""
-       @mousemove.stop="" @mouseout.stop="" @mouseover.stop=""
-       @scroll.stop="" @select.stop="" @wheel.stop="">
-  <slot></slot>
-</aside>
+<transition appear name="modal-backdrop">
+    <aside :class="{'modal-backdrop': true, [$style.modal]: true}"
+           tabindex="-1"
+           v-on="$listeners"
+           @keypress.stop="" @keydown.stop="" @keyup.stop=""
+           @click.stop="" @auxclick.stop="" @dblclick.stop=""
+           @mousedown.stop="" @mouseup.stop=""
+           @mouseenter.stop="" @mouseleave.stop=""
+           @mousemove.stop="" @mouseout.stop="" @mouseover.stop=""
+           @scroll.stop="" @select.stop="" @wheel.stop="">
+        <slot></slot>
+    </aside>
+</transition>
 </template>
 
 <script lang="ts">
