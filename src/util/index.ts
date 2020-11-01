@@ -69,7 +69,7 @@ export function urlsInTree(
     function collect(bm: browser.bookmarks.BookmarkTreeNode) {
         if (bm.children) {
             for (let c of bm.children) collect(c);
-        } else if (bm.url) {
+        } else /* istanbul ignore else */ if (bm.url) {
             urls.push(urlToOpen(bm.url));
         }
     }

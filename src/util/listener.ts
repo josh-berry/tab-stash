@@ -4,7 +4,11 @@ export default class Listener<L extends Function> implements EvListener<L> {
     private _listeners: Set<L> = new Set();
 
     addListener(l: L) { this._listeners.add(l); }
+
+    // istanbul ignore next
     removeListener(l: L) { this._listeners.delete(l); }
+
+    // istanbul ignore next
     hasListener(l: L) { return this._listeners.has(l); }
 
     send(...args: Args<L>) {

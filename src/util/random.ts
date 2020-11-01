@@ -4,7 +4,8 @@
 
 let makeRandomString: (bytes: number) => string;
 
-if ((<any>globalThis)?.crypto?.getRandomValues) { // Browser
+// istanbul ignore if
+if (/* istanbul ignore next */ (<any>globalThis)?.crypto?.getRandomValues) { // Browser
     makeRandomString = (bytes: number): string => {
         const a = new Uint8Array(bytes);
         crypto.getRandomValues(a);

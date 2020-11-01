@@ -1,14 +1,14 @@
 import {expect} from 'chai';
 import * as M from '../util';
 
-function callSuite(fn: any, cases: {it: any, i: any, o: any}[]): any {
+function callSuite(fn: any, cases: {it: string, i: any, o: any}[]): any {
     // desc: text description of the function to test
     // fn: the function to test
     // cases: [ {i /* arguments */, o /* return value */, e /* exception */} ]
 
     return function() {
         for (let c of cases) {
-            it(c.it ? c.it : JSON.stringify(c), function() {
+            it(c.it, function() {
                 let res = fn(...c.i);
                 expect(res).to.eql(c.o);
             });
@@ -22,6 +22,8 @@ describe('util', function() {
          i: ["1.0", "1.0"], o: 0},
         {it: "handles equal versions (but one is longer than the other)",
          i: ["1.0", "1.0.0"], o: 0},
+        {it: "handles equal versions (but one is longer than the other, reversed)",
+         i: ["1.0.0.0", "1.0.0"], o: 0},
         {it: "handles equal versions (but one is much longer than the other)",
          i: ["1.0", "1.0.0.0.0"], o: 0},
         {it: "handles a < b (major)",
@@ -40,6 +42,10 @@ describe('util', function() {
          i: ["1.3.3", "2.0"], o: -1},
         {it: "handles a > b (major/minor, differing lengths)",
          i: ["2.0", "1.3.3"], o: 1},
+        {it: "handles a < b (major/revision)",
+         i: ["1.3", "1.3.1"], o: -1},
+        {it: "handles a > b (major/revision)",
+         i: ["1.3.1", "1.3"], o: 1},
     ]));
 
     describe('urlToOpen()', callSuite(M.urlToOpen, [
@@ -80,6 +86,11 @@ describe('util', function() {
             it: 'transforms about:reader URLs with query strings and anchors',
             i: ['about:reader?url=http%3a%2f%2ffoo.com%2Fdoc%3Ffoo%3Dbar#pos'],
             o: 'http://foo.com/doc?foo=bar#pos'
+        },
+        {
+            it: 'handles broken about:reader URLs',
+            i: ['about:reader?foo=bar'],
+            o: 'about:reader?foo=bar',
         },
     ]));
 
@@ -270,7 +281,7 @@ describe('util', function() {
         it('holds events until unplugged', function() {
             const dq = new M.DeferQueue();
             let count = 0;
-            const fn = () => ++count;
+            const fn = /* istanbul ignore next */ () => ++count;
 
             dq.push(fn);
             expect(count).to.equal(0);
