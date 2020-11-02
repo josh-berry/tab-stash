@@ -155,6 +155,8 @@ export function* extractURLs(str: string): Generator<string> {
 export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
     Promise<void>
 {
+    const top_tm = tm;
+
     tm.status = 'Importing tabs...';
     tm.max = 100;
 
@@ -214,6 +216,22 @@ export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
 
         const favicon_cache: FaviconCache = Cache.open('favicons');
         for await (const siteinfo of siteinfo_aiter) {
+            if (siteinfo.error) {
+                top_tm.cancel();
+                tm.cancel();
+
+                alert("Seems like an error occurred during the import.  We were "
+                    + "trying to import the following URL:\n\n"
+                    + siteinfo.originalUrl + "\n\n"
+                    + "The error was:\n\n"
+                    + siteinfo.error + "\n"
+                    + siteinfo.error.stack + "\n\n"
+                    + "Really sorry about this!  Please let us know by filing "
+                    + "a bug with the above error text (see the "
+                    + "\"Help and Support\" menu).  We'll clean up any "
+                    + "imported tabs so you can try again.");
+            }
+
             if (tm.cancelled) break;
 
             const url = siteinfo.finalUrl || siteinfo.originalUrl;

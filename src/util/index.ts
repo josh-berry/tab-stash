@@ -239,6 +239,8 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
     private _waiters: ((res: IteratorResult<V>) => void)[] = [];
     private _done: boolean = false;
 
+    onClose?: () => void;
+
     constructor() {}
 
     // Sending
@@ -257,6 +259,7 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
             w({done: true, value: undefined});
         }
         this._waiters = [];
+        if (this.onClose) this.onClose();
     }
 
     // Receiving

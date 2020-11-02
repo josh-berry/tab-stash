@@ -360,6 +360,14 @@ describe('util', function() {
             expect(() => chan.send(2)).to.throw(ReferenceError);
         });
 
+        it('Notifies senders when the channel is closed', async () => {
+            let closed = false;
+            const chan = new M.AsyncChannel();
+            chan.onClose = () => {closed = true;};
+            chan.close();
+            expect(closed).to.be.true;
+        });
+
         it('Notifies receivers once the channel is closed', async () => {
             const chan = new M.AsyncChannel();
             chan.close();

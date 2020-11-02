@@ -8,10 +8,10 @@ export type SiteInfo = {
     error?: Error;
 };
 
-export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
+export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):
     AsyncIterableIterator<SiteInfo>
 {
-    const urls = Array.from(url_iter);
+    const urls = Array.from(urlset);
     const chan = new AsyncChannel<SiteInfo>();
 
     const max = urls.length;
@@ -21,33 +21,24 @@ export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
     const parent_tm = tm; // Hack to allow checking for cancellation
     const fiber = async (tm: TaskMonitor) => {
         tm.max = max;
-        let tab = await browser.tabs.create({active: false});
-        try {
-            while (urls.length > 0) {
-                const url = urls.pop()!;
-                tm.status = url;
-                try {
-                    const info = await sendTabTo(url, tab.id!);
-                    // We use url, not tab.url, here so that the caller can
-                    // relate URLs back to their original request even if the
-                    // tab was redirected to a different URL.
-                    chan.send(info);
-                } catch (e) {
-                    chan.send({
-                        originalUrl: url,
-                        error: e,
-                    });
-                }
-                tm.value = max - urls.length;
-                if (parent_tm.cancelled) break;
+        while (urls.length > 0) {
+            const url = urls.pop()!;
+            tm.status = url;
+            try {
+                chan.send(await fetchSiteInfo(url));
+            } catch (e) {
+                chan.send({
+                    originalUrl: url,
+                    error: e,
+                });
             }
-
-        } finally {
-            browser.tabs.remove(tab.id!).catch(console.error);
+            tm.value = max - urls.length;
+            if (parent_tm.cancelled) break;
         }
     };
 
     let fiber_count = Math.min(4, urls.length);
+    if ((<any>globalThis).trace_siteinfo) fiber_count = 1;
     const fiber_weight = urls.length/fiber_count;
 
     const fibers: Task<void>[] = [];
@@ -66,63 +57,176 @@ export function fetchInfoForSites(url_iter: Iterable<string>, tm: TaskMonitor):
 // Fetch the title and favicon of a site by loading the site in a new temporary
 // tab.  The tab should not be used for anything else until this function's
 // Promise resolves.
-function sendTabTo(url: string, tabId: number): Promise<SiteInfo>
-{
-    return new Promise((resolve, reject) => {
-        let timeout: any;
+export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
+    let events: AsyncChannel<TabEvent> | undefined = undefined;
+    let tab: browser.tabs.Tab | undefined = undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
-        let bestURL: string | undefined;
-        let bestTitle: string | undefined;
-        let bestIcon: string | undefined;
+    let bestURL: string | undefined = undefined;
+    let bestTitle: string | undefined = undefined;
+    let bestIcon: string | undefined = undefined;
 
-        const end = () => {
-            const ret = {originalUrl: url, finalUrl: bestURL,
-                         title: bestTitle, favIconUrl: bestIcon};
-            resolve(ret);
-            if (timeout) clearTimeout(timeout);
-            browser.tabs.onUpdated.removeListener(handler);
-        };
+    const capture_info = (tab: browser.tabs.Tab) => {
+        if (tab.status !== 'complete') return;
+        trace('capturing', {
+            status: tab.status,
+            title: tab.title,
+            url: tab.url,
+            favicon: tab.favIconUrl ? tab.favIconUrl.substr(0, 10) : undefined,
+        });
 
-        const handler = (
-            id: number,
-            info: {},
-            tab: browser.tabs.Tab
-        ) => {
-            if (id !== tabId) return;
-            if (tab.status !== 'complete') return;
+        if (tab.url && tab.url !== 'about:blank') bestURL = tab.url;
+        if (bestURL && tab.title) bestTitle = tab.title;
+        if (bestURL && tab.favIconUrl) bestIcon = tab.favIconUrl;
+    };
 
-            if (tab.url) bestURL = tab.url;
-            if (tab.title && tab.title !== 'New Tab') bestTitle = tab.title;
-            if (tab.favIconUrl) bestIcon = tab.favIconUrl;
+    const has_complete_info = () => bestURL && bestTitle && bestIcon;
 
-            if (! bestURL || ! bestTitle || ! bestIcon) {
-                // Wait a bit longer to see if we get an update with a
-                // favicon and title (e.g. because it's loaded asynchronously).
-                if (timeout === undefined) {
-                    timeout = setTimeout(end, 4000);
-                }
-                return;
+    try {
+        events = watchForTabEvents();
+        tab = await browser.tabs.create({active: false, url});
+        timeout = setTimeout(() => { if (events) events.close(); }, 4000);
+
+        // Watch for tab events until the timeout above fires or we get a
+        // complete set of tab info.  When the timeout fires, the channel will
+        // be closed and we will automatically exit the loop.
+        for await (const ev of events) {
+            if (ev.id !== tab.id) continue;
+
+            switch (ev.$type) {
+                case 'create':
+                case 'update':
+                    capture_info(ev.tab);
+                    break;
+
+                case 'replace':
+                    trace('replace', ev.id, '=>', ev.replacedWith);
+                    tab = await browser.tabs.get(ev.replacedWith);
+                    break;
+
+                case 'remove':
+                    // If our tab was removed, wait a bit and try to find an
+                    // already-open replacement.  This can happen if, for
+                    // example, the Multi-Account Containers extension decides
+                    // to remove and re-open a site in a new tab in the proper
+                    // container. [#91]
+                    //
+                    // If we cannot find a replacement, this will close /events/
+                    // and return undefined, and we'll break out of the loop.
+                    tab = await findReplacementTab(events, url);
+                    if (tab) capture_info(tab);
+                    else throw new TabRemovedError(url);
+                    break;
             }
 
-            end();
-        };
-
-        browser.tabs.update(tabId, {url})
-            .catch(e => {
-                console.error(e);
-                reject(e);
-            })
-            .then(() => {
-                browser.tabs.onUpdated.addListener(handler);
-
-                // There is a race where a tab might finish loading before we
-                // reach here, so do at least one explicit fetch of tab info in
-                // case this happens.
-                browser.tabs.get(tabId).then(tab => {
-                    if (tab.url === url && tab.status === 'complete') {
-                        handler(tabId, {}, tab);
-                    }
-                });
+            trace('current best', {
+                url: bestURL,
+                title: bestTitle,
+                icon: bestIcon ? bestIcon.substr(0, 15) : undefined,
             });
-    });
+            if (has_complete_info()) break;
+        }
+
+    } finally {
+        if (timeout) clearTimeout(timeout);
+        if (tab) browser.tabs.remove(tab.id!).catch(console.error);
+        if (events) events.close();
+    }
+
+    return {
+        originalUrl: url,
+        finalUrl: bestURL,
+        title: bestTitle,
+        favIconUrl: bestIcon,
+    };
 }
+
+async function findReplacementTab(
+    events: AsyncChannel<TabEvent>, url: string
+): Promise<browser.tabs.Tab | undefined> {
+    const access_cutoff = Date.now() - 500;
+    const timeout = setTimeout(() => events.close(), 3000);
+    try {
+        // First we check if the tab has already been reopened elsewhere, and if
+        // so, we can return it immediately.
+        const recent_tabs = (await browser.tabs.query({currentWindow: true}))
+            .filter(tab => tab.lastAccessed >= access_cutoff
+                        && tab.url === url);
+        trace('immediate replacement candidates', recent_tabs);
+        if (recent_tabs.length > 0) return recent_tabs[0];
+
+        // Otherwise we watch ALL tabs until the timeout to see if ANY of them
+        // navigate to our desired URL.  If so, and if the tab was accessed
+        // recently, we assume that tab is the one that replaced ours.
+        //
+        // We're explicitly not checking the cookie store ID, because it may not
+        // be reliable (don't know, for instance, which container the target tab
+        // would be in; it might even be the default for some weird reason).
+        for await (const ev of events) {
+            if (! ('tab' in ev)) continue;
+            if (ev.tab.lastAccessed < access_cutoff) {
+                trace('searching for replacement - too old', ev)
+                continue;
+            }
+            if (ev.tab.url === url) {
+                trace('found replacement', ev);
+                return ev.tab;
+            }
+        }
+
+        // Couldn't find a replacement in time
+        trace('no replacement found');
+        events.close();
+        return undefined;
+
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+export class TabRemovedError extends Error {
+    url: string;
+
+    constructor(url: string) {
+        super(`Tab was removed after navigating to ${url}`);
+        this.url = url;
+    }
+}
+
+type TabEvent = TabCreated | TabUpdated | TabReplaced | TabRemoved;
+type TabCreated = {$type: 'create', id: number, tab: browser.tabs.Tab};
+type TabUpdated = {$type: 'update', id: number, tab: browser.tabs.Tab};
+type TabReplaced = {$type: 'replace', id: number, replacedWith: number};
+type TabRemoved = {$type: 'remove', id: number};
+
+function watchForTabEvents(): AsyncChannel<TabEvent> {
+    const chan = new AsyncChannel<TabEvent>();
+
+    const onCreated = (tab: browser.tabs.Tab) =>
+        chan.send({$type: 'create', id: tab.id!, tab});
+    const onUpdated = (id: number, info: {}, tab: browser.tabs.Tab) =>
+        chan.send({$type: 'update', id, tab});
+    const onReplaced = (replacedWith: number, id: number) =>
+        chan.send({$type: 'replace', replacedWith, id});
+    const onRemoved = (id: number) =>
+        chan.send({$type: 'remove', id});
+
+    chan.onClose = () => {
+        browser.tabs.onCreated.removeListener(onCreated);
+        browser.tabs.onUpdated.removeListener(onUpdated);
+        browser.tabs.onReplaced.removeListener(onReplaced);
+        browser.tabs.onRemoved.removeListener(onRemoved);
+    };
+    browser.tabs.onCreated.addListener(onCreated);
+    browser.tabs.onUpdated.addListener(onUpdated);
+    browser.tabs.onReplaced.addListener(onReplaced);
+    browser.tabs.onRemoved.addListener(onRemoved);
+
+    return chan;
+}
+
+function trace(...args: any[]) {
+    if (! (<any>globalThis).trace_siteinfo) return;
+    console.log('[siteinfo]', ...args);
+}
+//(<any>globalThis).trace_siteinfo = true;
