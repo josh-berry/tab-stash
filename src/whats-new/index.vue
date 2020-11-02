@@ -1,6 +1,10 @@
 <template>
-<div>
-  <PageHeader>What's New in Tab Stash</PageHeader>
+<main>
+  <header class="page action-container">
+    <a class="action back" title="Back to Tab Stash"
+       :href="pageref('stash-list.html')"></a>
+    <h1 class="title">What's New in Tab Stash</h1>
+  </header>
 
   <div class="folder-list one-column">
 
@@ -191,7 +195,7 @@
       <li>Initial experimental release</li>
     </Version>
   </div>
-</div>
+</main>
 </template>
 
 <script lang="ts">
@@ -206,7 +210,6 @@ import L from './item.vue';
 
 const Main = Vue.extend({
     components: {
-        PageHeader: require('../page-header.vue').default,
         Version,
         L,
     },

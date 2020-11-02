@@ -235,6 +235,13 @@ header.page {
     background-color: var(--page-bg);
     border-bottom: var(--divider-border);
 }
+header.page .title {
+    /* XXX similar to .folder-name; consider merging */
+    font-size: 13pt;
+    font-weight: bold;
+    margin: 0 0 0 8px;
+    line-height: 1;
+}
 
 .menu > summary, .menu > summary > .action {
     display: inline-block;
@@ -687,10 +694,6 @@ span.folder-name, .folder-item > .text {
  * A few small tweaks for the whats-new page so it has the same spacing as the
  * stash list.
  ***/
-
-.whats-new:not(.tab-view) h1 {
-    font-size: 15pt;
-}
 
 .whats-new .folder .contents {
     padding: 0;

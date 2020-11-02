@@ -61,7 +61,6 @@ const Main = Vue.extend({
         ButtonBox: require('../components/button-box.vue').default,
         Folder: require('./folder.vue').default,
         ItemIcon: require('../components/item-icon.vue').default,
-        PageHeader: require('../page-header.vue').default,
     },
 
     props: {
