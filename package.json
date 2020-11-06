@@ -34,7 +34,7 @@
   },
   "scripts": {
     "build": "webpack && copyfiles -u 1 'assets/**/*' dist",
-    "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 assets/* dist",
+    "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 'assets/**/*' dist",
     "test": "nyc --reporter=text --reporter=html mocha"
   }
 }
