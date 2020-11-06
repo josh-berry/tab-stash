@@ -36,20 +36,17 @@ module.exports = {
         alias: {
             'vue$': 'vue/dist/vue.runtime.esm'
         },
+        fallback: {
+            // Don't try to polyfill crypto; we detect in random.ts whether to
+            // use it or not.
+            'crypto': false,
+        }
     },
     plugins: [
         new VueLoaderPlugin(),
     ],
 
     optimization: {
-        minimizer: [
-            new TerserPlugin({
-                terserOptions: {
-                    // Required because mangling names breaks fake-indexeddb.
-                    mangle: false,
-                },
-            }),
-        ],
         // We always enable minimization so that debug and release builds look
         // as similar as possible--have seen test failures in release builds
         // when this isn't done.
