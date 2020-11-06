@@ -8,7 +8,7 @@
         "48": "icons/logo.svg",
         "96": "icons/logo.svg"
     },
-    "applications": {
+    "browser_specific_settings": {
         "gecko": {
             "id": "tab-stash@condordes.net",
             "strict_min_version": "61.0"
