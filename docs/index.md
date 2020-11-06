@@ -17,17 +17,18 @@ to keep track of yet another account.
 
 ## Features
 
-- Stash all your open tabs with the Tab Stash toolbar button
+- Stash your open tabs with the Tab Stash toolbar button
 - Select which tabs to stash with Shift+Click and Ctrl+Click (Cmd+Click on Mac)
 - Stash individual tabs with the Tab Stash button in the address bar
 - Show all stashed tabs in an unobtrusive Firefox sidebar
 - Show all stashed tabs in a full-browser tab view
-- Search your stash by typing in the search box at the top of the sidebar/tab
-- Restore and delete entire groups of tabs, or individual tabs within a group
-- Drag and drop stashed tabs and groups to re-organize them
-- Rename tab groups, or keep the automatically-generated names
+- Search your stash
+- Restore and delete entire groups, or individual tabs
+- Recover recently-deleted tabs and groups
+- Drag and drop tabs and groups to re-organize them
+- Rename groups, or keep the automatically-generated names
+- Import and export tabs in rich text, Markdown, OneTab and more
 - Dark mode
-- Import and export tabs in rich text, Markdown, OneTab and more (**NEW in 2.6**)
 
 ## Want to give it a try?
 

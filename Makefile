@@ -93,11 +93,18 @@ node_modules package-lock.json: package.json
 
 node_modules: package-lock.json
 
+# Website-related targets
+site:
+	cd docs; bundle install --deployment
+	cd docs; bundle exec jekyll serve -H 0.0.0.0
+.PHONY: site
+
 # Cleanup targets
 distclean: clean
 	rm -rf node_modules $(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG) $(DIST_PKG)
+	rm -rf docs/.bundle docs/vendor
 .PHONY: distclean
 
 clean:
-	rm -rf dist
+	rm -rf dist docs/_site
 .PHONY: clean
