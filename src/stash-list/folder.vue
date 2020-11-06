@@ -422,6 +422,14 @@ export default Vue.extend({
 
                 // Remove the restored bookmark
                 if (item.isBookmark) {
+                    await this.model().deleted_items.add({
+                        title: item.title,
+                        url: item.url,
+                        favIconUrl: item.favicon?.value,
+                    }, {
+                        folder_id: this.id,
+                        title: this.title,
+                    });
                     await browser.bookmarks.remove(item.id);
                     await this._maybeCleanupEmptyFolder(from_folder, item);
                 }
