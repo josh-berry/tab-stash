@@ -51,6 +51,12 @@ module.exports = {
         // as similar as possible--have seen test failures in release builds
         // when this isn't done.
         minimize: true,
+
+        // Enable some options for deterministic builds
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+        mangleExports: 'deterministic',
+        portableRecords: true,
     },
 
     output: {
