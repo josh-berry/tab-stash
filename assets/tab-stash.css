@@ -466,7 +466,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .action-container:hover .action.stash:active {
     background-color: #a3b7cc;
 }
-.action-container:hover .action.restore, .whats-new .added {
+.action-container:hover .action.restore, .whats-new .added, .whats-new .new {
     background-color: #b0ffc0;
 }
 .action-container:hover .action.restore:hover {
@@ -714,6 +714,7 @@ span.folder-name, .folder-item > .text {
     margin-bottom: 1em;
 }
 
+.whats-new .new,
 .whats-new .added, .whats-new .improved, .whats-new .fixed, .whats-new .removed
 {
     font-variant: small-caps;

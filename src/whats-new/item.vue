@@ -1,6 +1,6 @@
 <template>
 <li :title="subtext">
-  <span :class="{[v.toLowerCase()]: true}">{{v}}</span>
+  <span :class="{[v.toLowerCase().replace(':', '')]: true}">{{v}}</span>
   <slot/>
   <span v-if="issue !== undefined" class="issue">
       [<span v-for="(i, idx) of issues" :key="i"><a :key="i"

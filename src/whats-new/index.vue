@@ -8,6 +8,39 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.7">
+      <L :subtext="`Unlike the plastic in the oceans, your deleted tabs will `
+                 + `eventually decompose, turning back into bits.  Studies `
+                 + `suggest about two-thirds of all bits are consumed by the `
+                 + `most common life-form on the Internet—cats.`"
+         :issue="20" v="New:">Tab Stash now remembers deleted items for a period
+      of time (180 days by default).  Deleted items are saved locally on each
+      computer and can be found in the "Deleted Items" menu in the stash UI.</L>
+
+      <L v="New:">A "close all stashed tabs" button was added to the "Unstashed
+      Tabs" toolbar.</L>
+
+      <L :issue="67" v="Improved:">The import and export dialogs have some
+      additional help text and polishing to make them easier to use.</L>
+
+      <L :subtext="`If it falls off, simply turn it over, moisten, and `
+                 + `gently press it back into place.  Start from the center `
+                 + `and work toward the edges to avoid wrinkling.`"
+         :issue="69" v="Improved:">The search box now sticks to the top of the
+      page when you scroll, so it's always visible.</L>
+
+      <L :issue="71" v="Improved:">The main menu icon has been changed to use a
+      standard menu symbol, rather than the Tab Stash logo.</L>
+
+      <L v="Improved:">Lots of "behind-the-scenes" changes have been made to
+      improve general stability and prepare for upcoming features.</L>
+
+      <L :issue="91" v="Fixed:">If Multi-Account Containers was installed and a
+      URL set to auto-open in a container were imported, the import process
+      would freeze.  Import now works correctly with Multi-Account Containers
+      and other Firefox tab-container extensions.</L>
+    </Version>
+
     <Version v="2.6">
       <L :issue="[11, 17]" v="Added">import and export for a variety of formats,
       including OneTab and Markdown.</L>

@@ -6,7 +6,8 @@
   <aside class="notification-overlay">
     <Notification v-if="recently_updated"
                 @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      You've been updated to Tab Stash {{my_version}}.  See what's new!
+      Tab Stash {{my_version}} now remembers your deleted items.  See what else
+      is new!
     </Notification>
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
       {{root_folder_warning[0]}}
