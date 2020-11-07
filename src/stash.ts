@@ -1,6 +1,6 @@
 /// <reference path="browser.d.ts" />
 
-import Options from './model/options';
+import * as Options from './model/options';
 
 import {urlToOpen, TaskMonitor} from './util';
 
@@ -148,7 +148,7 @@ export function friendlyFolderName(name: string): string {
 }
 
 export async function mostRecentUnnamedFolderId() {
-    const options = await Options.sync();
+    const {sync: options} = await Options.live_source();
     const root = await rootFolder();
     const topmost = (await browser.bookmarks.getChildren(root.id))[0];
 
@@ -253,10 +253,10 @@ export async function stashTabs(
 
 // Hides tabs that we know are stashed.
 export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
-    let opts_p = Options.local();
+    const opts_p = Options.live_source();
 
     await refocusAwayFromTabs(tabs);
-    const opts = await opts_p;
+    const opts = (await opts_p).local;
 
     const tids = <number[]>tabs.map(t => t.id).filter(id => id !== undefined);
 

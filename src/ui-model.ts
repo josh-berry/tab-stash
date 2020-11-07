@@ -5,11 +5,13 @@ import {resolveNamed} from './util';
 import KVSClient from './datastore/kvs/client';
 
 import {Model} from './model';
-import {SourceValue} from './model/deleted-items';
+import * as Options from './model/options';
+import * as DI from './model/deleted-items';
 
 export default async function(): Promise<Model> {
     const sources = await resolveNamed({
-        deleted_items: new KVSClient<string, SourceValue>('deleted_items'),
+        options: Options.live_source(),
+        deleted_items: new KVSClient<string, DI.SourceValue>('deleted_items'),
     });
 
     const model = new Model(sources);

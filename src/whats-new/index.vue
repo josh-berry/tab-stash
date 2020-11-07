@@ -235,7 +235,7 @@
 import Vue from 'vue';
 import launch, {pageref} from '../launch-vue';
 
-import Options from "../model/options";
+import * as Options from "../model/options";
 import {resolveNamed} from '../util';
 
 import Version from './version.vue';
@@ -260,16 +260,16 @@ export default Main;
 
 launch(Main, async() => {
     const r = await resolveNamed({
-        options: Options.local(),
+        options: Options.live_source(),
         extn: browser.management.getSelf(),
     });
     (<any>globalThis).options = r.options;
 
     // If we are caught up to the current version, just show everything.
-    const version = r.options.state.last_notified_version == r.extn.version
-        ? undefined : r.options.state.last_notified_version;
+    const version = r.options.local.state.last_notified_version == r.extn.version
+        ? undefined : r.options.local.state.last_notified_version;
 
-    r.options.set({last_notified_version: r.extn.version});
+    r.options.local.set({last_notified_version: r.extn.version});
 
     return {
         propsData: {

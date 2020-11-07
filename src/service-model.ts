@@ -7,11 +7,13 @@ import {listen} from './util/nanoservice';
 import KVSService from './datastore/kvs/service';
 
 import {Model} from './model';
-import {SourceValue} from './model/deleted-items';
+import * as Options from './model/options';
+import * as DI from './model/deleted-items';
 
 export default async function(): Promise<Model> {
     const sources = await resolveNamed({
-        deleted_items: KVSService.open<string, SourceValue>(
+        options: Options.live_source(),
+        deleted_items: KVSService.open<string, DI.SourceValue>(
             'deleted_items', 'deleted_items'),
     });
 

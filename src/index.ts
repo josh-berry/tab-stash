@@ -6,7 +6,6 @@ import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
     mostRecentUnnamedFolderId,
 } from './stash';
-import Options from './model/options';
 import {CacheService} from './datastore/cache/service';
 import service_model from './service-model';
 
@@ -19,13 +18,13 @@ logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
 const the = await resolveNamed({
     model: service_model(),
-    sync_options: Options.sync(),
-    local_options: Options.local(),
 
     favicon_cache: CacheService.start('favicons'),
     bookmark_cache: CacheService.start('bookmarks'),
 });
+const model = the.model;
 (<any>globalThis).the = the;
+(<any>globalThis).model = the.model;
 
 
 
@@ -81,7 +80,7 @@ menu('3:', ['page_action'], [
 // show_stash_if_desired() shows either the Tab Stash sidebar, the Tab Stash
 // tab, or nothing, depending on the `open_stash_in` synced setting.
 function show_stash_if_desired() {
-    switch (the.sync_options.state.open_stash_in) {
+    switch (model.options.sync.state.open_stash_in) {
         case 'none':
             break;
 
@@ -169,13 +168,13 @@ browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 // user when updates are installed.
 //
 
-if (the.local_options.state.last_notified_version === undefined) {
+if (model.options.local.state.last_notified_version === undefined) {
     // This looks like a fresh install, (or an upgrade from a version that
     // doesn't keep track of the last-notified version, in which case, we
     // just assume it's a fresh install).  Record our current version number
     // here so we can detect upgrades in the future and show the user a
     // whats-new notification.
-    logErrors(async() => the.local_options.set({
+    logErrors(async() => model.options.local.set({
         last_notified_version: (await browser.management.getSelf()).version
     }));
 }
@@ -279,9 +278,9 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
     // We setTimeout() first because the enable/disable flag could change at
     // runtime.
     setTimeout(discard_old_hidden_tabs,
-                the.local_options.state.autodiscard_interval_min * 60 * 1000);
+                model.options.local.state.autodiscard_interval_min * 60 * 1000);
 
-    if (! the.local_options.state.autodiscard_hidden_tabs) return;
+    if (! model.options.local.state.autodiscard_hidden_tabs) return;
 
     let now = Date.now();
     let tabs = await browser.tabs.query({discarded: false});
@@ -289,9 +288,9 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
     let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
         .sort((a, b) => a.lastAccessed - b.lastAccessed);
 
-    const min_keep_tabs = the.local_options.state.autodiscard_min_keep_tabs;
-    const target_tab_count = the.local_options.state.autodiscard_target_tab_count;
-    const target_age_ms = the.local_options.state.autodiscard_target_age_min * 60 * 1000;
+    const min_keep_tabs = model.options.local.state.autodiscard_min_keep_tabs;
+    const target_tab_count = model.options.local.state.autodiscard_target_tab_count;
+    const target_age_ms = model.options.local.state.autodiscard_target_age_min * 60 * 1000;
 
     while (tab_count > min_keep_tabs) {
         // Keep discarding tabs until we have the minimum number of tabs
@@ -326,7 +325,7 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
 // cause some drift but it's not a big deal--the interval doesn't need to be
 // exact.
 setTimeout(discard_old_hidden_tabs,
-            the.local_options.state.autodiscard_interval_min * 60 * 1000);
+            model.options.local.state.autodiscard_interval_min * 60 * 1000);
 
 
 
@@ -345,7 +344,7 @@ const gc_deleted_items = nonReentrant(async function() {
     setTimeout(gc_deleted_items, 24*60*60*1000);
 
     await the.model.deleted_items.dropOlderThan(
-        Date.now() - (the.sync_options.state.deleted_items_expiration_days * 24*60*60*1000));
+        Date.now() - (model.options.sync.state.deleted_items_expiration_days * 24*60*60*1000));
 });
 
 // Here we call gc_deleted_items() on browser restart to ensure it happens

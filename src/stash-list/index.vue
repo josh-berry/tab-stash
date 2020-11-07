@@ -93,7 +93,6 @@ import {
 import ui_model from '../ui-model';
 import {Model, State} from '../model/';
 import {StashState, Bookmark, Tab} from '../model/browser';
-import Options, {LocalOptions, SyncOptions} from '../model/options';
 import * as DI from '../model/deleted-items';
 import {Cache} from '../datastore/cache/client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
@@ -117,8 +116,6 @@ const Main = Vue.extend({
         stashed_tabs: Object as PropType<Bookmark>,
         root_id: String,
         my_version: String,
-        local_options: Object as PropType<LocalOptions>,
-        sync_options: Object as PropType<SyncOptions>,
         metadata_cache: Object as PropType<Cache<{collapsed: boolean}>>,
         root_folder_warning: Object as PropType<
             Promised<ReturnType<typeof rootFolderWarning>>>,
@@ -132,7 +129,7 @@ const Main = Vue.extend({
 
     computed: {
         recently_updated(): boolean {
-            return this.local_options.state.last_notified_version !== this.my_version;
+            return this.state.options.local.last_notified_version !== this.my_version;
         },
 
         recently_deleted(): DI.Deletion[] {
@@ -197,7 +194,7 @@ const Main = Vue.extend({
             window.location.href = pageref(page);
         },
         hideWhatsNew() {
-            this.local_options.set({last_notified_version: this.my_version});
+            this.model().options.local.set({last_notified_version: this.my_version});
         },
 
         showExportDialog() {
@@ -245,8 +242,6 @@ launch(Main, async() => {
         win: browser.windows.getCurrent(),
         curtab: browser.tabs.getCurrent(),
         extinfo: browser.management.getSelf(),
-        localopts: Options.local(),
-        syncopts: Options.sync(),
         warning: rootFolderWarning(),
     });
 
@@ -264,8 +259,6 @@ launch(Main, async() => {
             stashed_tabs: p.stash_state.bms_by_id.get(p.root.id),
             root_id: p.root.id,
             my_version: p.extinfo.version,
-            local_options: p.localopts,
-            sync_options: p.syncopts,
             metadata_cache: Cache.open('bookmarks'),
             root_folder_warning: p.warning,
         },

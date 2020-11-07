@@ -150,8 +150,7 @@
 import Vue from 'vue';
 import launch from './launch-vue';
 
-import Options from './model/options';
-import {resolveNamed} from './util';
+import * as Options from './model/options';
 
 const prop = (area: string, name: string) => ({
     get: function(this: any) { return this[area][name]; },
@@ -178,10 +177,7 @@ const Main = Vue.extend({
 export default Main;
 
 launch(Main, async() => {
-    const opts = await resolveNamed({
-        sync: Options.sync(),
-        local: Options.local(),
-    });
+    const opts = new Options.Model(await Options.live_source());
     (<any>globalThis).model = opts;
     return {
         propsData: Vue.observable({

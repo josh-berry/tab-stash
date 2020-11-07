@@ -1,7 +1,3 @@
-import StoredObject, {aBoolean, anEnum, aNumber, aString, maybeUndef}
-    from '../datastore/stored-object';
-import {Promised} from '../util';
-
 // The default tab stash options.  Sync defaults are stored in
 // browser.storage.sync, and local defaults are stored in browser.storage.local.
 //
@@ -10,7 +6,16 @@ import {Promised} from '../util';
 // to change where an option is stored.  For another, options.vue expects this
 // and will break if it's not true.)
 
-const SYNC_DEF = {
+import Vue from 'vue';
+
+import {resolveNamed} from '../util';
+import StoredObject, {
+    aBoolean, anEnum, aNumber, aString, maybeUndef, StorableData
+} from '../datastore/stored-object';
+
+export type SyncModel = StoredObject<typeof SYNC_DEF>;
+export type SyncState = SyncModel['state'];
+export const SYNC_DEF = {
     // Should we show advanced settings to the user?
     meta_show_advanced: {default: false, is: aBoolean},
 
@@ -28,9 +33,11 @@ const SYNC_DEF = {
 
     // How long should we keep deleted items for?
     deleted_items_expiration_days: {default: 180, is: aNumber},
-};
+} as const;
 
-const LOCAL_DEF = {
+export type LocalModel = StoredObject<typeof LOCAL_DEF>;
+export type LocalState = LocalModel['state'];
+export const LOCAL_DEF = {
     // What's the last version number at which we showed the user an update
     // notification?  "undefined" = either a new install, or an upgrade from
     // an older version which didn't have this option.
@@ -55,15 +62,36 @@ const LOCAL_DEF = {
     autodiscard_min_keep_tabs: {default: 10, is: aNumber},
     autodiscard_target_tab_count: {default: 50, is: aNumber},
     autodiscard_target_age_min: {default: 10, is: aNumber},
+} as const;
+
+export type Source = {
+    readonly sync: StoredObject<typeof SYNC_DEF>;
+    readonly local: StoredObject<typeof LOCAL_DEF>;
 };
 
-const EXPORTS = {
-    local: () => StoredObject.local('options', LOCAL_DEF),
-    sync: () => StoredObject.sync('options', SYNC_DEF),
-    LOCAL_DEF,
-    SYNC_DEF,
+export type State = {
+    readonly sync: StorableData<typeof SYNC_DEF>,
+    readonly local: StorableData<typeof LOCAL_DEF>,
 };
-export default EXPORTS;
 
-export type LocalOptions = Promised<ReturnType<typeof EXPORTS['local']>>;
-export type SyncOptions = Promised<ReturnType<typeof EXPORTS['sync']>>;
+export class Model {
+    readonly state: State;
+
+    readonly sync: StoredObject<typeof SYNC_DEF>;
+    readonly local: StoredObject<typeof LOCAL_DEF>;
+
+    constructor(source: Source) {
+        this.sync = source.sync;
+        this.local = source.local;
+
+        this.state = Vue.observable({
+            sync: this.sync.state,
+            local: this.local.state,
+        });
+    }
+}
+
+export const live_source = (): Promise<Source> => resolveNamed({
+    sync: StoredObject.sync('options', SYNC_DEF),
+    local: StoredObject.local('options', LOCAL_DEF),
+});
