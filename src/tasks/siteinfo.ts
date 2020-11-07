@@ -1,6 +1,20 @@
 import {AsyncChannel, TaskMonitor, Task} from '../util';
 
+// How long do we wait for initial loading of the tab to complete?
+const LOADING_TIMEOUT = 30000; /* ms */
+
+// Once a tab is loaded, if we still don't have a favicon, how long do we wait
+// for the tab to set one?
+const FAVICON_TIMEOUT = 2000; /* ms */
+
+// If the browser replaces a tab with another tab (e.g. due to Firefox
+// Multi-Account Containers), how long do we wait for the replacement tab to
+// show up?  (This is independent of the other timeouts, which may still fire
+// while we are waiting for this one.)
+const REPLACEMENT_TIMEOUT = 3000; /* ms */
+
 export type SiteInfo = {
+    complete?: boolean; // true = loading completed, false/undef = timed out/error
     originalUrl: string;
     finalUrl?: string;
     title?: string;
@@ -38,7 +52,6 @@ export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):
     };
 
     let fiber_count = Math.min(4, urls.length);
-    if ((<any>globalThis).trace_siteinfo) fiber_count = 1;
     const fiber_weight = urls.length/fiber_count;
 
     const fibers: Task<void>[] = [];
@@ -62,12 +75,20 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
     let tab: browser.tabs.Tab | undefined = undefined;
     let timeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
-    let bestURL: string | undefined = undefined;
-    let bestTitle: string | undefined = undefined;
-    let bestIcon: string | undefined = undefined;
+    const onTimeout = () => {
+        trace('timeout', url);
+        if (events) events.close();
+    };
+
+    const info: SiteInfo = {
+        complete: false,
+        originalUrl: url,
+        finalUrl: undefined,
+        title: undefined,
+        favIconUrl: undefined,
+    };
 
     const capture_info = (tab: browser.tabs.Tab) => {
-        if (tab.status !== 'complete') return;
         trace('capturing', {
             status: tab.status,
             title: tab.title,
@@ -75,17 +96,25 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
             favicon: tab.favIconUrl ? tab.favIconUrl.substr(0, 10) : undefined,
         });
 
-        if (tab.url && tab.url !== 'about:blank') bestURL = tab.url;
-        if (bestURL && tab.title) bestTitle = tab.title;
-        if (bestURL && tab.favIconUrl) bestIcon = tab.favIconUrl;
+        if (tab.url && tab.url !== 'about:blank') info.finalUrl = tab.url;
+        if (info.finalUrl) {
+            if (tab.title) info.title = tab.title;
+            if (tab.favIconUrl) info.favIconUrl = tab.favIconUrl;
+            if (tab.status === 'complete') {
+                info.complete = true;
+                if (timeout) clearTimeout(timeout);
+                timeout = setTimeout(onTimeout, FAVICON_TIMEOUT);
+            }
+        }
+        trace('current best', info);
     };
 
-    const has_complete_info = () => bestURL && bestTitle && bestIcon;
+    const has_complete_info = () => info.finalUrl && info.title && info.favIconUrl;
 
     try {
         events = watchForTabEvents();
         tab = await browser.tabs.create({active: false, url});
-        timeout = setTimeout(() => { if (events) events.close(); }, 4000);
+        timeout = setTimeout(onTimeout, LOADING_TIMEOUT);
 
         // Watch for tab events until the timeout above fires or we get a
         // complete set of tab info.  When the timeout fires, the channel will
@@ -119,11 +148,6 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
                     break;
             }
 
-            trace('current best', {
-                url: bestURL,
-                title: bestTitle,
-                icon: bestIcon ? bestIcon.substr(0, 15) : undefined,
-            });
             if (has_complete_info()) break;
         }
 
@@ -133,19 +157,18 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
         if (events) events.close();
     }
 
-    return {
-        originalUrl: url,
-        finalUrl: bestURL,
-        title: bestTitle,
-        favIconUrl: bestIcon,
-    };
+    trace('final info', info);
+    return info;
 }
 
 async function findReplacementTab(
     events: AsyncChannel<TabEvent>, url: string
 ): Promise<browser.tabs.Tab | undefined> {
     const access_cutoff = Date.now() - 500;
-    const timeout = setTimeout(() => events.close(), 3000);
+    const timeout = setTimeout(() => {
+        trace('replacement timed out', url);
+        events.close();
+    }, REPLACEMENT_TIMEOUT);
     try {
         // First we check if the tab has already been reopened elsewhere, and if
         // so, we can return it immediately.
