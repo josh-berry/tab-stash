@@ -53,7 +53,7 @@ up:
 # still have a way to build.
 pkg-webext: clean-working-tree build-rel
 	mkdir -p $(RELEASE_DIR)
-	cd dist && zip -9rvo ../$(DIST_PKG) `find . -type f -not -name 'test.*'`
+	cd dist && zip -9rvo ../$(DIST_PKG) `find . -type f`
 .PHONY: pkg-webext
 
 pkg-source: clean-working-tree

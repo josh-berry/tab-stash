@@ -10,8 +10,6 @@ module.exports = {
         "stash-list": "./src/stash-list/index.vue",
         "options": "./src/options.vue",
         "whats-new": "./src/whats-new/index.vue",
-        "test": glob('./src/mock/**/*.ts')
-            .concat(glob('./src/**/*.test.ts')),
     },
     mode: "development",
     devtool: "eval-source-map",
