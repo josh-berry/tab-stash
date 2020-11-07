@@ -23,6 +23,7 @@ class MockCacheService
         this.ports.add(port);
     }
 
+    // istanbul ignore next
     onDisconnect(port: ClientPort<string>) {
         this.ports.delete(port);
     }
@@ -38,7 +39,8 @@ class MockCacheService
             case 'fetch': {
                 const entries = [];
                 for (const key of m.keys) {
-                    let ent = this.entries.get(key);
+                    const ent = this.entries.get(key);
+                    // istanbul ignore if
                     if (! ent) continue;
                     entries.push({key, value: ent});
                 }
@@ -48,6 +50,7 @@ class MockCacheService
                 });
                 break;
             }
+            // istanbul ignore next
             default:
                 expect(m, `unknown message`).to.be.undefined;
                 break;
@@ -87,6 +90,11 @@ describe('datastore/cache/client', function() {
         beforeEach(async () => {
             cache = reload_cache();
             await events.drain(1);
+        });
+
+        it('returns the same cache object for multiple opens', async() => {
+            const Cache = require('./client').Cache;
+            expect(Cache.open('test')).to.equal(Cache.open('test'));
         });
 
         it('caches content', async function() {

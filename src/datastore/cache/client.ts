@@ -93,6 +93,7 @@ export class Cache<Content extends Send> {
                     break;
                 }
 
+                // istanbul ignore next
                 default:
                     // Perhaps we are speaking different protocol versions;
                     // ignore unknown messages.
@@ -141,6 +142,7 @@ export class Cache<Content extends Send> {
     }
 
     _send_fetches() {
+        // istanbul ignore if
         if (! this._fetching) return;
 
         this._service.notify(<FetchMessage>{
@@ -152,6 +154,7 @@ export class Cache<Content extends Send> {
     }
 
     _send_updates() {
+        // istanbul ignore if
         if (! this._updating) return;
 
         const entries = [];

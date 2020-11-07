@@ -27,6 +27,7 @@ class MockClient {
     }
 
     read(): ServiceMsg<string> {
+        // istanbul ignore next
         if (this.recvd.length <= 0) {
             throw new Error(`Tried to read with no messages in the buffer`);
         }
@@ -378,6 +379,7 @@ describe('datastore/cache/service', function() {
                                 updated.set(e.key, e.value);
                             }
                             break;
+                        // istanbul ignore next
                         default:
                             expect((<any>msg).$type).to.satisfy(
                                 (x: string) => x == 'expired' || x == 'update');

@@ -181,8 +181,6 @@ export class CacheService<Content extends Send>
                 });
                 db.createObjectStore('options', {});
             },
-            blocked() {},
-            blocking() {},
         });
 
         const gen = (await db.get('options', 'generation')) || 0;
@@ -199,7 +197,10 @@ export class CacheService<Content extends Send>
         this._mutate_task = nonReentrant(() => this._mutate());
     }
 
+    //
     // For testing purposes
+    //
+
     get gen_testonly(): number { return this._gen; }
     get next_mutation_testonly(): Promise<void> {
         return this._mutate_task();
@@ -208,6 +209,8 @@ export class CacheService<Content extends Send>
         if (this._gen < GC_THRESHOLD) this._gen = GC_THRESHOLD;
         this._pending.inc_gen = true;
     }
+
+    // istanbul ignore next
     async dump_testonly(): Promise<any> {
         const cache = [];
         const txn = this._db.transaction('cache', 'readonly');
@@ -223,6 +226,8 @@ export class CacheService<Content extends Send>
             generation: (await this._db.get('options', 'generation')) || 0,
         };
     }
+
+    // istanbul ignore next
     async clear_testonly() {
         this._pending = {inc_gen: false, updates: new Map()};
 
@@ -235,7 +240,9 @@ export class CacheService<Content extends Send>
         await txn.done;
     }
 
+    //
     // Internal stuff past this point
+    //
 
     onConnect(port: ClientPort<Content>) {
         this._pending.inc_gen = true;
@@ -244,6 +251,7 @@ export class CacheService<Content extends Send>
         this._clients.add(port);
     }
 
+    // istanbul ignore next
     onDisconnect(port: ClientPort<Content>) {
         if (port.error) {
             console.warn(`Port disconnected: ${JSON.stringify(port.error)}`);
