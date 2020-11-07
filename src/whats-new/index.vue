@@ -266,8 +266,8 @@ launch(Main, async() => {
     (<any>globalThis).options = r.options;
 
     // If we are caught up to the current version, just show everything.
-    const version = r.options.last_notified_version == r.extn.version
-        ? undefined : r.options.last_notified_version;
+    const version = r.options.state.last_notified_version == r.extn.version
+        ? undefined : r.options.state.last_notified_version;
 
     r.options.set({last_notified_version: r.extn.version});
 

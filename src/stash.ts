@@ -161,7 +161,7 @@ export async function mostRecentUnnamedFolderId() {
 
     // Did something create/update this folder recently?
     // #cast dateAdded is always present on folders
-    const age_cutoff = Date.now() - options.new_folder_timeout_min *60*1000;
+    const age_cutoff = Date.now() - options.state.new_folder_timeout_min *60*1000;
     if (topmost.dateAdded! < age_cutoff) {
         return undefined;
     }
@@ -264,7 +264,7 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
     await Promise.all(
         tids.map(tid => browser.tabs.update(tid, {highlighted: false})));
 
-    switch (opts.after_stashing_tab) {
+    switch (opts.state.after_stashing_tab) {
     case 'hide_discard':
         await browser.tabs.hide(tids);
         await browser.tabs.discard(tids);

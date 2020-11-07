@@ -132,7 +132,7 @@ const Main = Vue.extend({
 
     computed: {
         recently_updated(): boolean {
-            return this.local_options.last_notified_version !== this.my_version;
+            return this.local_options.state.last_notified_version !== this.my_version;
         },
 
         recently_deleted(): DI.Deletion[] {

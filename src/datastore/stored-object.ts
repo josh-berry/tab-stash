@@ -1,63 +1,33 @@
-// A module to load and save JavaScript objects to/fron a particular key in
-// browser-local storage, and to keep those JavaScript objects up to date
-// automatically as browser-local storage changes.
+// A strongly-schema'd wrapper around browser.storage.  Each key in storage is a
+// JS object which follows a particular schema, and is represented by a
+// StoredObject.  The StoredObject is automatically updated whenever the key is
+// changed, either via this module or some other mechanism.
 //
-// The properties must be predefined, with a default value provided for each
-// property.  Values must be scalar values (undefined, null, booleans, numbers
-// and strings)--nested objects are not supported.
+// The properties of a StoredObject must be predefined, with a default value
+// provided for each property.  Values must be scalar values (undefined, null,
+// booleans, numbers and strings)--nested objects are not supported.
 //
 //     const def = {
 //         a: {default: 0, is: aNumber},
 //         b: {default: 0, is: aNumber},
 //     };
 //     const obj = await StoredObject.local('foo', def);
-//     assert(obj.a === 0);
-//     assert(obj.b === 0);
+//     assert(obj.state.a === 0);
+//     assert(obj.state.b === 0);
 //
 // To update a property, DO NOT ASSIGN DIRECTLY TO THE PROPERTY.  Use the set()
 // method instead, which can update or reset multiple properties at once by
 // passing an object like so:
 //
 //     await obj.set({a: 1, b: 2});
-//     assert(obj.a === 1);
-//     assert(obj.b === 2);
+//     assert(obj.state.a === 1);
+//     assert(obj.state.b === 2);
 //
 // You can also delete the stored object from the browser store entirely:
 //
 //     await obj.delete();
 
-// A StoredObject looks like this:
-export type StoredObject<D extends StorableDef> =
-    // It has read-only data properties as defined in your definition:
-    StorableData<D> &
-    // And methods, such as:
-    {
-        // A method to update multiple keys at once in the object
-        set(values: Partial<StorableData<D>>): Promise<void>;
-
-        // A method to delete the object entirely
-        delete(): Promise<void>;
-    };
-
-// You can create or load StoredObjects by calling one of the factory functions
-// and passing it the key of the specific object you're interested in, along
-// with a structure defining the type of the StoredObject (described below).
-//
-// NOTE: Take care that you do not try to load the same key with different defs
-// in your program.  This is not allowed.
-export default {
-    // sync is for browser-synced storage.  This is generally very small but is
-    // persisted across all of a user's computers.
-    sync<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
-        return _factory('sync', key, def);
-    },
-
-    // local is for browser-local storage.  It's much larger, but not synced.
-    local<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
-        return _factory('local', key, def);
-    },
-};
-
+import Vue from 'vue';
 
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {
@@ -132,215 +102,219 @@ export const anEnum = <V extends string | number>(...cases: V[]) =>
 
 
 //
-// Implementation details below this point
+// The StoredObject itself.
 //
 
+// You can create or load StoredObjects by calling one of the factory functions
+// and passing it the key of the specific object you're interested in, along
+// with a structure defining the type of the StoredObject (described below).
+//
+// NOTE: Take care that you do not try to load the same key with different
+// schemas in your program.  This is not allowed.
+export default class StoredObject<D extends StorableDef> {
+    // Read-only data properties as defined in your schema (named `state` to
+    // follow Vue model conventions).
+    readonly state: StorableData<D>;
 
-// Storable data itself, given a definition (these are JUST the properties):
-type StorableData<D extends StorableDef> = {
-    readonly [k in keyof D]: ReturnType<D[k]['is']>;
-};
-
-// Internal data about a particular StoredObject
-type MetaInfo<D extends StorableDef> = {
-    store: 'sync' | 'local';
-    key: string;
-    def: D;
-};
-
-// Construct/retrieve StorableObjects
-async function _factory<D extends StorableDef>(
-    store: 'sync' | 'local',
-    key: string,
-    def: D
-): Promise<StoredObject<D>> {
-    let object = LIVE_OBJECTS[store].get(key);
-    if (object) {
-        const meta = META.get(object);
-        if (meta?.def !== def) {
-            throw new TypeError(`Tried to load object ${key} with a conflicting def`);
-        }
-        return object;
+    // sync is for browser-synced storage.  This is generally very small but is
+    // persisted across all of a user's computers.  `def` is the schema to use
+    // for this object.
+    static sync<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
+        return StoredObject._factory('sync', key, def);
     }
 
-    if ('set' in def) throw new TypeError(`The name 'set' is reserved`);
-    if ('delete' in def) throw new TypeError(`The name 'delete' is reserved`);
+    // local is for browser-local storage.  It's much larger, but not synced.
+    static local<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
+        return StoredObject._factory('local', key, def);
+    }
 
-    object = Object.create(base) as StoredObject<D>;
-    const meta = {store, key, def};
-    META.set(object, meta);
-
-    await _animate(object, meta);
-    return object;
-}
-
-const base = {
-    async set<D extends StorableDef>(
-        this: StoredObject<D>, values: Partial<StorableData<D>>
-    ): Promise<void> {
-        let meta = META.get(this)!;
-
+    async set(values: Partial<StorableData<D>>): Promise<void> {
         // Make sure we have an updated set of stuff first.
-        await _animate(this, meta);
+        await this._animate();
 
         // The object we will save to the store.  Values which are the default
         // should be omitted to save space (and allow defaults to
         // programmatically change later).
-        let data: typeof values = {};
+        const data: Partial<StorableData<D>> = {};
 
-        for (let k of Object.keys(this) as (keyof D)[]) {
+        for (const k in this._def) {
             // Carry forward existing values that are non-default and not
             // explicitly specified in /values/.
             if (! (k in values)) {
-                if ((<any>this)[k] !== meta.def[k].default) {
-                    data[k] = (<any>this)[k];
+                if (this.state[k] !== this._def[k].default) {
+                    data[k] = this.state[k];
                 }
                 continue;
             }
 
-            const v = meta.def[k].is(values[k]);
+            const v = this._def[k].is(values[k]);
 
             // If /values/ explicitly specifies that /k/ should be the default
             // value, omit it from the saved object entirely.
-            if (v === meta.def[k].default) continue;
+            if (v === this._def[k].default) continue;
 
             // Otherwise, store it.
-            data[k] = v;
+            (<any>data)[k] = v;
         }
 
-        return await browser.storage[meta.store].set({[meta.key]: data});
-    },
+        return await browser.storage[this._store].set({[this._key]: data});
+    }
 
-    async delete<D extends StorableDef>(this: StoredObject<D>): Promise<void> {
-        let meta = META.get(this)!;
-
+    async delete(): Promise<void> {
         // The following may or may not trigger a browser.storage.onChanged
         // event.  if it doesn't (e.g. because the object never existed), we
         // have to forget about the object manually.
-        LIVE_OBJECTS[meta.store].delete(meta.key);
-        return browser.storage[meta.store].remove(meta.key);
-    },
-};
-
-
-
-// -----BEGIN UGLY GLOBAL STATE-----
-
-// A map of object store names and keys to StoredObjects, like:
-//
-//     sync: key => StoredObject
-//     local: key => StoredObject
-//
-// Ugh, we never drop StoredObjects from here unless they are deleted.  This is
-// gross from a memory-use perspective, but there's not much we can do here
-// because the alternative is to register one browser.storage.onChanged listener
-// per StoredObject, which is O(N^2).
-//
-// Have I mentioned recently how much I hate JavaScript's lack of
-// memory-management facilities? :/
-const LIVE_OBJECTS = {
-    sync: new Map<string, StoredObject<any>>(),
-    local: new Map<string, StoredObject<any>>(),
-};
-
-// A map of private metadata tracking its identity within the browser store, and
-// default values to rely on if any of those values aren't set.  Stored outside
-// the object so we don't pollute the object's namespace.
-const META = new WeakMap<StoredObject<any>, MetaInfo<any>>();
-
-// The set of objects we are currently trying to load.  We keep track of this
-// set because objects can be loaded in one of two ways--either through
-// _animate(), which queries browser.storage explicitly, or by receiving an
-// event saying the object has been changed or deleted.
-//
-// In the latter case, the event has more up-to-date information than
-// browser.storage, so we populate the object from the event and remove it from
-// /LOADING_OBJECTS/.  Then, when browser.storage.*.get() returns, we check to
-// see if the object has already been loaded by an event, by looking to see if
-// it's still in this set.
-//
-// The value of the map is a Promise which resolves once the object is loaded.
-const LOADING_OBJECTS = new WeakMap<StoredObject<any>, Promise<void>>();
-
-// -----END UGLY GLOBAL STATE-----
-
-
-
-browser.storage.onChanged.addListener((changes, area) => {
-    let areaobjs = LIVE_OBJECTS[area];
-
-    for (let key of Object.keys(changes)) {
-        let obj = areaobjs.get(key);
-        if (! obj) continue;
-
-        let meta = META.get(obj)!;
-
-        if ('newValue' in changes[key]) {
-            _load(obj, meta, changes[key].newValue);
-
-        } else {
-            // Key was removed from the store entirely.  Reset it to defaults,
-            // and drop it from LIVE_OBJECTS on the assumption the callers don't
-            // want it, either.
-            for (const k in meta.def) (<any>obj)[k] = meta.def[k].default;
-            areaobjs.delete(key);
-        }
-
-        // If anyone was waiting on this object, it's now loaded.  (A
-        // browser.storage event will fire for this eventually, which will
-        // actually complete the loading, but the data will already be there, so
-        // the return value from browser.storage can be ignored.)
-        LOADING_OBJECTS.delete(obj);
-    }
-});
-
-
-
-function _animate<D extends StorableDef>(
-    obj: StoredObject<D>, meta: MetaInfo<D>
-): Promise<void> {
-    const liveobj = LIVE_OBJECTS[meta.store].get(meta.key);
-    if (liveobj) {
-        if (liveobj !== obj) {
-            throw `Multiple objects exist for key: ${meta.key}`;
-        }
-
-        const loading = LOADING_OBJECTS.get(obj);
-        return loading ? loading : Promise.resolve();
+        StoredObject._LIVE[this._store].delete(this._key);
+        return browser.storage[this._store].remove(this._key);
     }
 
-    LIVE_OBJECTS[meta.store].set(meta.key, obj);
+    //
+    // Private implementation details
+    //
 
-    let p = browser.storage[meta.store].get(meta.key)
-        .then(data => {
-            // Object could have already been loaded due to an onChanged event
-            // that fired between when we asked browser.storage for the object
-            // and when browser.storage actually returned.  Prioritize the event
-            // over what browser.storage gave us because it's most likely to be
-            // up to date.
-            if (LOADING_OBJECTS.has(obj)) {
-                _load(obj, meta, data[meta.key]);
-                LOADING_OBJECTS.delete(obj);
+    // The set of objects we are currently trying to load.  We keep track of
+    // this set because objects can be loaded in one of two ways--either through
+    // _animate(), which queries browser.storage explicitly, or by receiving an
+    // event saying the object has been changed or deleted.
+    //
+    // In the latter case, the event has more up-to-date information than
+    // browser.storage, so we populate the object from the event and remove it
+    // from /_LOADING/.  Then, when browser.storage.*.get() returns, we check to
+    // see if the object has already been loaded by an event, by looking to see
+    // if it's still in this set.
+    //
+    // The value of the map is a Promise which resolves once the object is
+    // loaded.
+    static readonly _LOADING = new WeakMap<StoredObject<any>, Promise<void>>();
+
+    // _LIVE is a simple set of maps as defined at the end of this expression,
+    // which holds StoredObjects and keeps them up to date.  This magic is
+    // accomplished by an immediately-invoked initializing lambda expression
+    // (IIILE, thank you C++) since it cannot be otherwise accessed by a handler
+    // defined outside of the class.
+    static readonly _LIVE = (() => {
+        browser.storage.onChanged.addListener((changes, area) => {
+            const areaobjs = StoredObject._LIVE[area];
+
+            for (const key in changes) {
+                const obj = areaobjs.get(key);
+                if (! obj) continue;
+
+                if ('newValue' in changes[key]) {
+                    obj._load(changes[key].newValue);
+
+                } else {
+                    // Key was removed from the store entirely.  Reset it to
+                    // defaults, and drop it from LIVE_OBJECTS on the assumption
+                    // the callers don't want it, either.
+                    obj._load({});
+                    areaobjs.delete(key);
+                }
+
+                // If anyone was waiting on this object, it's now loaded.  (A
+                // browser.storage event will fire for this eventually, which
+                // will actually complete the loading, but the data will already
+                // be there, so we can just drop it.)
+                StoredObject._LOADING.delete(obj);
             }
         });
-    LOADING_OBJECTS.set(obj, p);
-    return p;
-}
 
-function _load<D extends StorableDef>(
-    obj: StoredObject<D>, meta: MetaInfo<D>,
-    values: any
-) {
-    // We assign both defaults and the new values here so that if any
-    // properties were reset to the default (and removed from storage),
-    // Vue will notice those as well.
+        return {
+            sync: new Map<string, StoredObject<any>>(),
+            local: new Map<string, StoredObject<any>>(),
 
-    for (const k in meta.def) (<any>obj)[k] = meta.def[k].default;
+            // Ugh, we never drop StoredObjects from here unless they are
+            // deleted.  This is gross from a memory-use perspective, but
+            // there's not much we can do here because the alternative is to
+            // register one browser.storage.onChanged listener per StoredObject,
+            // which is O(N^2).
+            //
+            // Have I mentioned recently how much I hate JavaScript's lack of
+            // memory-management facilities? :/
+        };
+    })();
 
-    if (typeof values !== 'object') return;
+    private static async _factory<D extends StorableDef>(
+        store: 'sync' | 'local',
+        key: string,
+        def: D
+    ): Promise<StoredObject<D>> {
+        let object = StoredObject._LIVE[store].get(key);
+        if (object) {
+            if (object._def !== def) {
+                throw new TypeError(`Tried to load '${key}' with a conflicting def`);
+            }
+            return object;
+        }
 
-    for (const k in values) {
-        if (k in meta.def) (<any>obj)[k] = meta.def[k].is(values[k]);
-        // Otherwise keys not present in defaults are dropped/ignored.
+        object = new StoredObject<D>(store, key, def);
+        await object._animate();
+        return object;
     }
-}
+
+    private readonly _store: 'sync' | 'local';
+    private readonly _key: string;
+    private readonly _def: D;
+
+    private constructor(store: 'sync' | 'local', key: string, def: D) {
+        // state must be pre-populated so Vue can observe it.
+        const state: any = {};
+        for (const k in def) state[k] = def[k].default;
+
+        this.state = Vue.observable(state);
+        this._store = store;
+        this._key = key;
+        this._def = def;
+    }
+
+    _animate(): Promise<void> {
+        const liveobj = StoredObject._LIVE[this._store].get(this._key);
+        if (liveobj) {
+            if (liveobj !== this) {
+                throw `Multiple objects exist for key: ${this._key}`;
+            }
+
+            const loading = StoredObject._LOADING.get(this);
+            return loading ? loading : Promise.resolve();
+        }
+
+        StoredObject._LIVE[this._store].set(this._key, this);
+
+        const p = browser.storage[this._store].get(this._key)
+            .then(data => {
+                // Object could have already been loaded due to an onChanged
+                // event that fired between when we asked browser.storage for
+                // the object and when browser.storage actually returned.
+                // Prioritize the event over what browser.storage gave us
+                // because it's most likely to be up to date.
+                if (StoredObject._LOADING.has(this)) {
+                    this._load(data[this._key]);
+                    StoredObject._LOADING.delete(this);
+                }
+            });
+        StoredObject._LOADING.set(this, p);
+        return p;
+    }
+
+    _load(values: any) {
+        // We assign both defaults and the new values here so that if any
+        // properties were reset to the default (and removed from storage),
+        // Vue will notice those as well.
+
+        // The <any> casts in here are to get rid of `readonly`.  This method is
+        // the ONLY place where getting rid of `readonly` is acceptable.
+        for (const k in this._def) (<any>this.state)[k] = this._def[k].default;
+
+        if (typeof values !== 'object') return;
+
+        for (const k in values) {
+            if (k in this._def) (<any>this.state)[k] = this._def[k].is(values[k]);
+            // Otherwise keys not present in defaults are dropped/ignored.
+        }
+    }
+
+};
+
+export type StorableData<D extends StorableDef> = {
+    readonly [k in keyof D]: ReturnType<D[k]['is']>;
+};

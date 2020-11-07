@@ -156,7 +156,7 @@ import {resolveNamed} from './util';
 const prop = (area: string, name: string) => ({
     get: function(this: any) { return this[area][name]; },
     set: function(this: any, v: any) {
-        this[area].set({[name]: v}).catch(console.log);
+        this.model()[area].set({[name]: v}).catch(console.error);
     },
 });
 
@@ -178,11 +178,20 @@ const Main = Vue.extend({
 export default Main;
 
 launch(Main, async() => {
-    const propsData = await resolveNamed({
+    const opts = await resolveNamed({
         sync: Options.sync(),
         local: Options.local(),
     });
-    return {propsData};
+    (<any>globalThis).model = opts;
+    return {
+        propsData: Vue.observable({
+            sync: opts.sync.state,
+            local: opts.local.state,
+        }),
+        methods: {
+            model() { return opts; },
+        },
+    };
 });
 </script>
 

@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "sourceMap": true,
+        "esModuleInterop": true,
         "module": "commonjs",
         "moduleResolution": "node",
         "noUnusedLocals": true,
