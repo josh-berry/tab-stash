@@ -8,6 +8,11 @@
 
   <div class="folder-list one-column">
 
+    <Version v="Next">
+      <L v="Fixed:">Improved reliability of fetching icons during import or
+      during a user-started "Fetch Missing Icons" operation.</L>
+    </Version>
+
     <Version v="2.7">
       <L :subtext="`Unlike the plastic in the oceans, your deleted tabs will `
                  + `eventually decompose, turning back into bits.  Studies `
