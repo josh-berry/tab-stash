@@ -6,7 +6,7 @@
 //
 // This is the "service" (back-end) portion of the cache, which is responsible
 // for storing the authoritative copy of the cache persistently, and
-// garbage-collecting old entries.  See cache-client.ts for the "front-end"
+// garbage-collecting old entries.  See datastore/cache/client.ts for the "front-end"
 // bits.
 //
 // BACKGROUND: FAVICON USE CASE
@@ -106,10 +106,10 @@ import {
     /* wrap, unwrap */
 } from 'idb';
 
-import {nonReentrant} from './util';
-import {Send, NanoService, listen} from './util/nanoservice';
+import {nonReentrant} from '../../util';
+import {Send, NanoService, listen} from '../../util/nanoservice';
 
-import {ClientPort, ClientMsg, ServiceMsg} from './cache-proto';
+import {ClientPort, ClientMsg, ServiceMsg} from './proto';
 
 // When the global generation number hits at least /GC_THRESHOLD/, we trigger a
 // collection, as described above.
@@ -142,7 +142,7 @@ interface CacheSchema<Content extends Send> extends DBSchema {
 // ONLY ONE OF THESE SHOULD EXIST PER CACHE PER BROWSER.
 //
 // There is no JS API here (apart from start()) because the real API is
-// browser.runtime messages from the cache-client.
+// browser.runtime messages from the datastore/cache/client.
 export class CacheService<Content extends Send>
     implements NanoService<ClientMsg<Content>, ServiceMsg<Content>>
 {

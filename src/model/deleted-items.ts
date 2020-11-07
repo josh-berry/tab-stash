@@ -6,7 +6,7 @@ import {
 } from '../stash';
 import {nonReentrant} from '../util';
 
-import {KeyValueStore, Entry} from '../util/kvs';
+import {KeyValueStore, Entry} from '../datastore/kvs';
 import {makeRandomString} from '../util/random';
 
 // The key for a deleted record should be opaque but monotonically increasing as

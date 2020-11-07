@@ -7,7 +7,7 @@ import {
     mostRecentUnnamedFolderId,
 } from './stash';
 import Options from './model/options';
-import {CacheService} from './cache-service';
+import {CacheService} from './datastore/cache/service';
 import service_model from './service-model';
 
 logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK

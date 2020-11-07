@@ -4,7 +4,7 @@
 
 import {resolveNamed} from './util';
 import {listen} from './util/nanoservice';
-import KVSService from './util/kvs/service';
+import KVSService from './datastore/kvs/service';
 
 import {Model} from './model';
 import {SourceValue} from './model/deleted-items';

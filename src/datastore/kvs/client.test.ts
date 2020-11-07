@@ -7,7 +7,7 @@ async function kvs_factory(): Promise<Client<string, string>> {
     return new Client(new MockServicePort());
 }
 
-describe('util/kvs/client', function() {
+describe('datastore/kvs/client', function() {
     describe('implements KeyValueStore', () => tests(kvs_factory));
 });
 

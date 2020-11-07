@@ -2,7 +2,7 @@
 // context)
 
 import {resolveNamed} from './util';
-import KVSClient from './util/kvs/client';
+import KVSClient from './datastore/kvs/client';
 
 import {Model} from './model';
 import {SourceValue} from './model/deleted-items';

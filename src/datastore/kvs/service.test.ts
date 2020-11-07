@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {openDB} from 'idb';
 
-import * as NS from '../nanoservice';
+import * as NS from '../../util/nanoservice';
 import Service from './service';
 import mock_indexeddb from '../../mock/indexeddb';
 
@@ -19,7 +19,7 @@ async function kvs_factory(): Promise<Service<string, string>> {
     return new Service(db, 'test');
 }
 
-describe('util/kvs/service', function() {
+describe('datastore/kvs/service', function() {
     describe('implements KeyValueStore', () => tests(kvs_factory));
 
     describe('broadcasts object updates to clients', async() => {

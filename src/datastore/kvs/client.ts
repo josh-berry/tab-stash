@@ -1,7 +1,7 @@
 import {KeyValueStore, genericList} from '.';
 import * as Proto from './proto';
-import {connect} from '../nanoservice';
-import Listener from '../listener';
+import {connect} from '../../util/nanoservice';
+import Listener from '../../util/listener';
 
 export default class Client<K extends Proto.Key, V extends Proto.Value>
     implements KeyValueStore<K, V>

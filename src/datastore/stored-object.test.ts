@@ -1,6 +1,6 @@
 import {expect} from 'chai';
-import * as events from './mock/events';
-import storage_mock from './mock/browser-storage';
+import * as events from '../mock/events';
+import storage_mock from '../mock/browser-storage';
 import {aBoolean, aNumber, aString, StorableDef, StoredObject} from './stored-object';
 
 describe('stored-object', function() {

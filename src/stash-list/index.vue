@@ -95,7 +95,7 @@ import {Model, State} from '../model/';
 import {StashState, Bookmark, Tab} from '../model/browser';
 import Options, {LocalOptions, SyncOptions} from '../model/options';
 import * as DI from '../model/deleted-items';
-import {Cache} from '../cache-client';
+import {Cache} from '../datastore/cache/client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
 const Main = Vue.extend({

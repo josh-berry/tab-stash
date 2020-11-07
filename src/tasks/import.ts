@@ -1,7 +1,7 @@
 import { TaskMonitor } from '../util';
 import { bookmarkTabs, isURLStashable } from '../stash';
 import { fetchInfoForSites } from './siteinfo';
-import { Cache } from '../cache-client';
+import { Cache } from '../datastore/cache/client';
 import {FaviconCache} from '../model/browser';
 
 type Bookmark = browser.bookmarks.BookmarkTreeNode;

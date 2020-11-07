@@ -1,8 +1,8 @@
 import {IDBPDatabase, openDB} from 'idb';
 
 import {KeyValueStore, genericList} from '.';
-import Listener from '../listener';
-import {NanoService} from '../nanoservice';
+import Listener from '../../util/listener';
+import {NanoService} from '../../util/nanoservice';
 import * as Proto from './proto';
 
 export default class Service<K extends Proto.Key, V extends Proto.Value>

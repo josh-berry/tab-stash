@@ -1,4 +1,5 @@
-import StoredObject, {aBoolean, anEnum, aNumber, aString, maybeUndef} from '../stored-object';
+import StoredObject, {aBoolean, anEnum, aNumber, aString, maybeUndef}
+    from '../datastore/stored-object';
 import {Promised} from '../util';
 
 // The default tab stash options.  Sync defaults are stored in

@@ -1,13 +1,13 @@
 import {expect} from 'chai';
 
-import * as events from './mock/events';
-import mock_runtime from './mock/browser-runtime';
-import mock_indexeddb from './mock/indexeddb';
+import * as events from '../../mock/events';
+import mock_runtime from '../../mock/browser-runtime';
+import mock_indexeddb from '../../mock/indexeddb';
 
 import {
     ServicePort, ServiceMsg, UpdateMessage, ExpiredMessage, FetchMessage
-} from './cache-proto';
-import * as NS from './util/nanoservice';
+} from './proto';
+import * as NS from '../../util/nanoservice';
 
 class MockClient {
     port: ServicePort<string>;
@@ -34,34 +34,34 @@ class MockClient {
     }
 }
 
-describe('cache-service', function() {
-    const GC_THRESHOLD = require('./cache-service').GC_THRESHOLD;
-    let CacheService = require('./cache-service').CacheService;
+describe('datastore/cache/service', function() {
+    const GC_THRESHOLD = require('./service').GC_THRESHOLD;
+    let CacheService = require('./service').CacheService;
     let service: typeof CacheService = undefined!;
 
     async function reset_service() {
         await service.next_mutation_testonly;
         events.expect_empty();
         service = undefined!;
-        delete require.cache[require.resolve('./cache-service')];
+        delete require.cache[require.resolve('./service')];
         expect(await (<any>indexedDB).databases()).to.deep.include({
             name: 'cache:test', version: 1});
 
         mock_runtime.reset();
         NS.registry.reset_testonly();
-        CacheService = require('./cache-service').CacheService;
+        CacheService = require('./service').CacheService;
         service = await CacheService.start('test');
     }
 
     async function reset() {
         if (service) await service.next_mutation_testonly;
         service = undefined!;
-        delete require.cache[require.resolve('./cache-service')];
+        delete require.cache[require.resolve('./service')];
 
         mock_runtime.reset();
         mock_indexeddb.reset();
         NS.registry.reset_testonly();
-        CacheService = require('./cache-service').CacheService;
+        CacheService = require('./service').CacheService;
         service = await CacheService.start('test');
     }
 

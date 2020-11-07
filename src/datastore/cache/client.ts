@@ -1,7 +1,7 @@
 "use strict";
 
-// Front-end to a cache provided by cache-service.ts.  For a complete design
-// description, see cache-service.ts.
+// Front-end to a cache provided by datastore/cache/service.ts.  For a complete design
+// description, see datastore/cache/service.ts.
 //
 // Note that the front end caches stuff locally, so even if the back-end isn't
 // available for whatever reason, clients shouldn't notice (apart from stuff
@@ -21,8 +21,8 @@
 // broadcast in quick succession; if this is a concern (and it's REALLY worth
 // the extra complexity), code changes are required. :)
 
-import {Send, connect} from './util/nanoservice';
-import {ServicePort, FetchMessage, UpdateMessage} from './cache-proto';
+import {Send, connect} from '../../util/nanoservice';
+import {ServicePort, FetchMessage, UpdateMessage} from './proto';
 
 // Ugly global object which keeps track of all the open caches, so we only have
 // one client per cache per JS environment.

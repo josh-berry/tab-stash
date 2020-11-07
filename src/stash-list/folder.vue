@@ -83,7 +83,7 @@ import {
 } from '../stash';
 
 import {Model} from '../model';
-import {Cache, CacheEntry} from '../cache-client';
+import {Cache, CacheEntry} from '../datastore/cache/client';
 import {ModelLeaf, Tab, Window, Bookmark, FaviconCacheEntry} from '../model/browser';
 import {DeletedItem} from '../model/deleted-items';
 

@@ -1,6 +1,6 @@
-import {Send, NanoPort} from './util/nanoservice';
+import {Send, NanoPort} from '../../util/nanoservice';
 
-// The protocol used to communicate between the cache-client and cache-server.
+// The protocol used to communicate between the datastore/cache/client and cache-server.
 
 export type ServicePort<E extends Send> = NanoPort<ClientMsg<E>, ServiceMsg<E>>;
 export type ClientPort<E extends Send> = NanoPort<ServiceMsg<E>, ClientMsg<E>>;

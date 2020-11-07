@@ -1,13 +1,13 @@
 import {expect} from 'chai';
 
-import * as events from './mock/events';
-import mock_runtime from './mock/browser-runtime';
+import * as events from '../../mock/events';
+import mock_runtime from '../../mock/browser-runtime';
 
-import * as NS from './util/nanoservice';
+import * as NS from '../../util/nanoservice';
 import {
     ClientMsg, ServiceMsg, UpdateMessage, ExpiredMessage, ClientPort
-} from './cache-proto';
-import {Cache} from './cache-client';
+} from './proto';
+import {Cache} from './client';
 
 class MockCacheService
     implements NS.NanoService<ClientMsg<string>, ServiceMsg<string>>
@@ -71,11 +71,11 @@ class MockCacheService
 }
 
 function reload_cache(): Cache<string> {
-    delete require.cache[require.resolve('./cache-client')];
-    return require('./cache-client').Cache.open('test');
+    delete require.cache[require.resolve('./client')];
+    return require('./client').Cache.open('test');
 }
 
-describe('cache-client', function() {
+describe('datastore/cache/client', function() {
     beforeEach(() => {
         mock_runtime.reset();
         NS.registry.reset_testonly();
