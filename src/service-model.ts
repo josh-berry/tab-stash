@@ -2,6 +2,7 @@
 // The model--a centralized place for all Tab Stash data.
 //
 
+// istanbul ignore file
 import {resolveNamed} from './util';
 import {listen} from './util/nanoservice';
 import KVSService from './datastore/kvs/service';

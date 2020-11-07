@@ -1,3 +1,7 @@
+// An easy way to launch a Vue application, which also applies some CSS classes
+// common to every UI in Tab Stash.
+
+// istanbul ignore file
 import {VueConstructor, ComponentOptions} from 'vue';
 
 import {asyncEvent} from './util';

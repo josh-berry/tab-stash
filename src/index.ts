@@ -1,3 +1,4 @@
+// istanbul ignore file
 import {
     asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
     resolveNamed,
