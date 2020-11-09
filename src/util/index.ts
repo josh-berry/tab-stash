@@ -45,9 +45,12 @@ export const bgKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Cmd' : 'Ctrl';
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
 
+export const parseVersion = (v: string): number[] =>
+    v.split('.').map(x => parseInt(x));
+
 export function cmpVersions(a: string, b: string): number {
-    let va: number[] = a.split('.').map((x: string) => parseInt(x));
-    let vb: number[] = b.split('.').map((x: string) => parseInt(x));
+    const va = parseVersion(a);
+    const vb = parseVersion(b);
     let i = 0;
     let cmplen = Math.min(va.length, vb.length);
 
