@@ -8,9 +8,11 @@
 
   <div class="folder-list one-column">
 
-    <Version v="Next">
-      <L v="Fixed:">Improved reliability of fetching icons during import or
-      during a user-started "Fetch Missing Icons" operation.</L>
+    <Version v="2.7.1">
+      <L v="Fixed:">During import, sites that take too long to load may be
+      imported with missing titles and/or icons.  We now wait longer, and
+      measure time-to-load in a smarter way that is less likely to lead to
+      premature timeouts.</L>
     </Version>
 
     <Version v="2.7">

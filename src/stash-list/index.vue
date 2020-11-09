@@ -4,10 +4,15 @@
              v-on="dialog.on" @close="dialog = undefined">
   </component>
   <aside class="notification-overlay">
-    <Notification v-if="recently_updated"
+    <Notification v-if="recently_updated === 'features'"
                 @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       Tab Stash {{my_version}} now remembers your deleted items.  See what else
       is new!
+    </Notification>
+    <Notification v-if="recently_updated === 'fixes'"
+                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
+      Tab Stash {{my_version}} fixes an issue with importing sites that take a
+      while to load.  Show release notes
     </Notification>
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
       {{root_folder_warning[0]}}
@@ -86,6 +91,7 @@ import Vue, {PropType} from 'vue';
 import launch, {pageref} from '../launch-vue';
 import {
     urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors, textMatcher,
+    parseVersion,
 } from '../util';
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
@@ -128,8 +134,15 @@ const Main = Vue.extend({
     }),
 
     computed: {
-        recently_updated(): boolean {
-            return this.state.options.local.last_notified_version !== this.my_version;
+        recently_updated(): undefined | 'features' | 'fixes' {
+            const last_notified = this.state.options.local.last_notified_version;
+            if (last_notified === this.my_version) return undefined;
+
+            const my = parseVersion(this.my_version);
+            const last = last_notified ? parseVersion(last_notified) : [];
+
+            if (my[0] == last[0] && my[1] == last[1]) return 'fixes';
+            return 'features';
         },
 
         recently_deleted(): DI.Deletion[] {
