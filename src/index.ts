@@ -53,9 +53,14 @@ function menu(idprefix: string, contexts: Menus.ContextType[],
     }
 }
 
+const SHOW_TAB_NAME = browser.sidebarAction
+    ? 'Show Stashed Tabs in a Tab'
+    : 'Show Stashed Tabs';
+
 menu('1:', ['tab', 'page', 'tools_menu'], [
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', SHOW_TAB_NAME],
+    ...(browser.sidebarAction
+        ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_all', 'Stash Tabs'],
     ['stash_one', 'Stash This Tab'],
@@ -69,16 +74,18 @@ menu('1:', ['tab', 'page', 'tools_menu'], [
 
 // These should only have like 6 items each
 menu('2:', ['browser_action'], [
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', SHOW_TAB_NAME],
+    ...(browser.sidebarAction
+        ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_all', 'Stash Tabs'],
     ['copy_all', 'Copy Tabs to Stash'],
 ]);
 
 menu('3:', ['page_action'], [
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', SHOW_TAB_NAME],
+    ...(browser.sidebarAction
+        ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_one', 'Stash This Tab'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
@@ -93,13 +100,12 @@ function show_stash_if_desired() {
             break;
 
         case 'tab':
-            restoreTabs([browser.extension.getURL('stash-list.html')], {})
-                .catch(console.log);
+            logErrors(commands.show_tab);
             break;
 
         case 'sidebar':
         default:
-            browser.sidebarAction.open().catch(console.log);
+            logErrors(commands.show_sidebar_or_tab);
             break;
     }
 }
@@ -108,12 +114,15 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
     // permission to do so per Firefox's API rules.
+    //
+    // Also note that some browsers don't support the sidebar at all; in these
+    // cases, we open the tab instead.
 
-    show_sidebar: async function() {
-        browser.sidebarAction.open().catch(console.log);
-    },
+    show_sidebar_or_tab: () => browser.sidebarAction
+        ? browser.sidebarAction.open().catch(console.log)
+        : commands.show_tab(),
 
-    show_tab: async function() {
+    async show_tab() {
         await restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
 
