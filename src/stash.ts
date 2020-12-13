@@ -504,7 +504,7 @@ export async function restoreTabs(
             // the right location in the tab bar.
             if (open.hidden) {
                 ps.push(async function(open) {
-                    await browser.tabs.show([open.id!]);
+                    if (browser.tabs.show) await browser.tabs.show([open.id!]);
                     await browser.tabs.move(
                         open.id!, {windowId: winid, index});
                     return open;

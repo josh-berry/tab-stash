@@ -418,7 +418,7 @@ export default Vue.extend({
 
                 console.assert(tid !== undefined);
                 await browser.tabs.move(tid, {index: new_model_idx});
-                await browser.tabs.show(tid);
+                if (browser.tabs.show) await browser.tabs.show(tid);
 
                 // Remove the restored bookmark
                 if (item.isBookmark) {
