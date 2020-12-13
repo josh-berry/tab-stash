@@ -5,8 +5,8 @@
     "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
     "homepage_url": "https://josh-berry.github.io/tab-stash/",
     "icons": {
-        "48": "icons/logo.svg",
-        "96": "icons/logo.svg"
+        "48": "icons/logo-48.png",
+        "96": "icons/logo-96.png"
     },
     "browser_specific_settings": {
         "gecko": {
@@ -19,7 +19,7 @@
         "tabs",
         "tabHide",
         "bookmarks",
-        "menus",
+        "contextMenus",
         "browserSettings",
         "storage",
         "unlimitedStorage"
@@ -32,16 +32,16 @@
     "browser_action": {
         "default_title": "Stash all (or selected) open tabs",
         "default_icon": {
-            "16": "icons/light/stash.svg",
-            "32": "icons/light/stash.svg"
+            "16": "icons/light/stash-16.png",
+            "32": "icons/light/stash-32.png"
         },
         "theme_icons": [{
-            "light": "icons/dark/stash.svg",
-            "dark": "icons/light/stash.svg",
+            "light": "icons/dark/stash-16.png",
+            "dark": "icons/light/stash-16.png",
             "size": 16
         }, {
-            "light": "icons/dark/stash.svg",
-            "dark": "icons/light/stash.svg",
+            "light": "icons/dark/stash-32.png",
+            "dark": "icons/light/stash-32.png",
             "size": 32
         }],
         "browser_style": false

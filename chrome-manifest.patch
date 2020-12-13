@@ -1,0 +1,54 @@
+diff --git a/assets/manifest.json b/assets/manifest.json
+index 2e44593..9743a64 100644
+--- a/assets/manifest.json
++++ b/assets/manifest.json
+@@ -46,46 +46,16 @@
+         }],
+         "browser_style": false
+     },
+-    "page_action": {
+-        "default_title": "Stash this tab",
+-        "default_icon": {
+-            "16": "icons/stash-one.svg",
+-            "32": "icons/stash-one.svg"
+-        },
+-        "browser_style": false,
+-        "show_matches": ["<all_urls>"],
+-        "hide_matches": ["file:///*"]
+-    },
+-    "sidebar_action": {
+-        "default_title": "Tab Stash",
+-        "default_icon": {
+-            "16": "icons/logo.svg",
+-            "32": "icons/logo.svg"
+-        },
+-        "default_panel": "stash-list.html?view=sidebar",
+-        "browser_style": false
+-    },
+     "options_ui": {
+         "page": "options.html",
++        "open_in_tab": false,
+         "browser_style": true
+     },
+     "commands": {
+         "_execute_browser_action": {
+             "suggested_key": {
+-                "default": "Ctrl+Alt+T",
+-                "mac": "MacCtrl+Shift+T"
+-            }
+-        },
+-        "_execute_sidebar_action": {
+-            "suggested_key": {
+-                "default": "Ctrl+Alt+S",
+-                "mac": "MacCtrl+Shift+S"
+-            }
+-        },
+-        "_execute_page_action": {
+-            "suggested_key": {
+-                "default": "Ctrl+Alt+W",
+-                "mac": "MacCtrl+Shift+W"
++                "default": "Ctrl+Shift+Period",
++                "mac": "MacCtrl+Shift+Period"
+             }
+         }
+     }
