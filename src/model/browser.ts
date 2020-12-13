@@ -396,7 +396,7 @@ export class StashState {
         //
 
         const p = await resolveNamed({
-            bm: browser.bookmarks.getSubTree(""),
+            bm: browser.bookmarks.getTree(),
             wins: browser.windows.getAll(
                 {populate: true, windowTypes: ['normal']}),
         });

@@ -292,19 +292,26 @@ export async function refocusAwayFromTabs(
 // Determine if the specified tab has anything "useful" in it (where "useful" is
 // defined as neither the new-tab page nor the user's home page).  Returns the
 // tab itself if not, otherwise returns undefined.
-export async function isNewTabURL(url: string | undefined): Promise<boolean> {
-    let newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
-    let home_url_p = browser.browserSettings.newTabPageOverride.get({});
-    let newtab_url = (await newtab_url_p).value;
-    let home_url = (await home_url_p).value;
+export async function isNewTabURL(url: string): Promise<boolean> {
+    if (browser.browserSettings) {
+        const newtab_url_p = browser.browserSettings.newTabPageOverride.get({});
+        const home_url_p = browser.browserSettings.newTabPageOverride.get({});
+        const newtab_url = (await newtab_url_p).value;
+        const home_url = (await home_url_p).value;
 
+        if (url == newtab_url || url == home_url) return true;
+    }
+
+    // Every &$#*!&ing browser has its own new-tab URL...
     switch (url) {
-        case newtab_url:
-        case home_url:
         case 'about:blank':
         case 'about:newtab':
+        case 'chrome://newtab/':
+        case 'edge://newtab/':
             return true;
         default:
+            // Vivaldi is especially difficult...
+            if (url.startsWith("chrome://vivaldi-webui/startpage")) return true;
             return false;
     }
 }
@@ -557,7 +564,7 @@ export async function restoreTabs(
 
         // Finally, if we opened at least one tab, AND the current tab is
         // looking at the new-tab page, close the current tab in the background.
-        if (tabs.length > 0 && await isNewTabURL(curtab.url)
+        if (tabs.length > 0 && await isNewTabURL(curtab.url ?? '')
             && curtab.status === 'complete')
         {
             // #undef devtools tabs don't have URLs and won't fall in here

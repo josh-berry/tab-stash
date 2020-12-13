@@ -40,11 +40,15 @@ const model = the.model;
 function menu(idprefix: string, contexts: Menus.ContextType[],
               def: string[][])
 {
+    // Only create menus in contexts this browser understands.
+    const allowed_ctxs = Object.values((<any>browser.contextMenus).ContextType);
+    contexts = contexts.filter(x => allowed_ctxs.includes(x));
+
     for (let [id, title] of def) {
         if (id) {
-            browser.menus.create({contexts, title, id: idprefix + id});
+            browser.contextMenus.create({contexts, title, id: idprefix + id});
         } else {
-            browser.menus.create({contexts, type: 'separator', enabled: false});
+            browser.contextMenus.create({contexts, type: 'separator', enabled: false});
         }
     }
 }
@@ -160,15 +164,19 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
 // Top-level/user facing event bindings, which mostly just call commands.
 //
 
-browser.menus.onClicked.addListener((info, tab) => {
+browser.contextMenus.onClicked.addListener((info, tab) => {
     // #cast We only ever create menu items with string IDs
     const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, '');
     console.assert(commands[cmd]);
     commands[cmd](tab).catch(console.log);
 });
 
-browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
-browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
+if (browser.browserAction) {
+    browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
+}
+if (browser.pageAction) {
+    browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
+}
 
 
 
