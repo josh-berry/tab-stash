@@ -175,7 +175,6 @@ export default Vue.extend({
             await browser.bookmarks.create({
                 parentId: (await rootFolder()).id,
                 title: genDefaultFolderName(new Date()),
-                type: 'folder',
                 index: 0, // Newest folders should show up on top
             });
         })},

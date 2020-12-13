@@ -226,7 +226,6 @@ export class Model {
             const folder = await browser.bookmarks.create({
                 parentId: root.id,
                 title: deletion.item.title,
-                type: 'folder',
                 index: 0,
             });
             await bookmarkTabs(folder.id, deletion.item.children);

@@ -365,7 +365,6 @@ export async function bookmarkTabs(
         let folder = await browser.bookmarks.create({
             parentId: root.id,
             title: options?.newFolderTitle ?? genDefaultFolderName(new Date()),
-            type: 'folder',
             index: 0, // Newest folders should show up on top
         });
         folderId = folder.id;
