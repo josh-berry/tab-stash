@@ -169,8 +169,9 @@ export async function stashTabsInWindow(
     // preferences.
     if (windowId === undefined) windowId = browser.windows.WINDOW_ID_CURRENT;
 
-    const tabs = await browser.tabs.query({windowId, hidden: false});
-    tabs.sort((a, b) => a.index - b.index);
+    const tabs = (await browser.tabs.query({windowId}))
+        .filter(t => ! t.hidden)
+        .sort((a, b) => a.index - b.index);
 
     let selected = tabs.filter(t => t.highlighted);
     if (selected.length <= 1) selected = tabs;
@@ -219,18 +220,22 @@ export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
     await Promise.all(
         tids.map(tid => browser.tabs.update(tid, {highlighted: false})));
 
-    switch (opts.state.after_stashing_tab) {
-    case 'hide_discard':
-        await browser.tabs.hide(tids);
-        await browser.tabs.discard(tids);
-        break;
-    case 'close':
+    if (browser.tabs.hide) {
+        switch (opts.state.after_stashing_tab) {
+        case 'hide_discard':
+            await browser.tabs.hide(tids);
+            await browser.tabs.discard(tids);
+            break;
+        case 'close':
+            await browser.tabs.remove(tids);
+            break;
+        case 'hide':
+        default:
+            await browser.tabs.hide(tids);
+            break;
+        }
+    } else {
         await browser.tabs.remove(tids);
-        break;
-    case 'hide':
-    default:
-        await browser.tabs.hide(tids);
-        break;
     }
 }
 
@@ -243,8 +248,8 @@ export async function closeTabs(tabs: PartialTabInfo[]): Promise<void> {
 export async function refocusAwayFromTabs(
     tabs: PartialTabInfo[]
 ): Promise<void> {
-    const all_tabs = await browser.tabs.query(
-        {currentWindow: true, hidden: false});
+    const all_tabs = (await browser.tabs.query({currentWindow: true}))
+        .filter(t => ! t.hidden);
 
     const front_tab_idx = all_tabs.findIndex(t => t.active);
     const front_tab = front_tab_idx == -1 ? undefined : all_tabs[front_tab_idx];
