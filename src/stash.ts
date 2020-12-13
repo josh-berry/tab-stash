@@ -16,117 +16,72 @@ interface PartialTabInfo {
     url?: string,
 }
 
-// The parent folder where we expect to find the stash root folder.  This is
-// hard-coded to a Firefox built-in bookmark folder ID, which is technically an
-// implementation detail, but is very unlikely to change. :/
-const STASH_PARENT = 'unfiled_____';
-
 // The name of the stash root folder.  This name must match exactly.
-export const STASH_FOLDER = 'Tab Stash';
+export const STASH_ROOT = 'Tab Stash';
 
 const ROOT_FOLDER_HELP = 'https://github.com/josh-berry/tab-stash/wiki/Problems-Locating-the-Tab-Stash-Bookmark-Folder';
 
-// We have two ways of searching for the root folder--the first, which is more
-// strict, looks only in "Other Bookmarks" for the first folder named "Tab
-// Stash".  The second/fallback method is less strict but more
-// backward-compatible, and designed to work in cases where users moved their
-// stashes around.
+// Find or create the root of the stash.
+export async function rootFolder(): Promise<BookmarkTreeNode> {
+    const candidates = await candidateRootFolders();
+    if (candidates.length > 0) return candidates[0];
+
+    return await browser.bookmarks.create({title: STASH_ROOT});
+}
+
+// Find "candidate" root folders.  If there's more than one, we should show a
+// warning to the user (see rootFolderWarning() below).
 //
-// The problem with the old way is that if a user has more than one "Tab Stash"
-// folder in their bookmarks, the old way might choose the wrong folder,
-// depending on the order in which folders were created.  This reordering could
-// happen spontaneously due to sync issues, or as the result of a backup/restore
-// or similar; basically anything that disturbs the creation time of bookmarks
-// is at risk of spontaneously changing which folder Tab Stash thinks of as the
-// root.
-//
+// The search is done by looking for folders named "Tab Stash", and choosing the
+// one closest to the bookmark root.  If multiple folders are at the same level,
+// multiple candidates are returned, sorted oldest first.
+export async function candidateRootFolders(): Promise<BookmarkTreeNode[]> {
+    const paths = await Promise.all(
+        (await browser.bookmarks.search({title: STASH_ROOT}))
+            .filter(c => c && !('url' in c) && c.type !== 'separator')
+            .map(c => getPathTo(c)));
+
+    const depth = Math.min(...paths.map(p => p.length));
+
+    return paths
+        .filter(p => p.length <= depth)
+        .map(p => p[p.length - 1])
+        .sort((a, b) => (a.dateAdded ?? 0) - (b.dateAdded ?? 0));
+}
+
 // This function checks for a variety of situations that can occur if users move
 // their stashes around in ways that might cause ambiguity about which root to
 // use, and tries to provide suitable warnings/remedies.
 export async function rootFolderWarning():
     Promise<[string, () => void] | undefined>
 {
-    const new_root_candidates = await candidateRootFolders();
-    const old_root_candidates = await candidateRootFoldersCompat();
+    const candidates = await candidateRootFolders();
 
-    // No stashes exist, so no problem.  (The old way of searching should always
-    // find the new stuff as well.)
-    if (old_root_candidates.length == 0) {
-        return;
-    }
+    // No stash root exists, or only one stash root exists, so no problem.
+    if (candidates.length <= 1) return;
 
-    if (new_root_candidates.length == 0) {
-        // No candidates from the new search means the stash isn't in Other
-        // Bookmarks, and we need to warn the user.  If there's only one old
-        // candidate, the good news is we can fix it up easily for them.
-        if (old_root_candidates.length == 1) {
-            return [
-                `Your "${STASH_FOLDER}" bookmark folder was moved out of Other Bookmarks.  This may cause problems in the future.  Click here to move it back.`,
-                async () => {
-                    await browser.bookmarks.move(old_root_candidates[0].id, {
-                        parentId: STASH_PARENT,
-                        index: 0,
-                    });
-                    await window.location.reload();
-                },
-            ];
-        } else {
-            return [
-                `Your "${STASH_FOLDER}" bookmark folder was moved out of Other Bookmarks, and Tab Stash isn't sure where to find it.  Click here to find out how to resolve the issue.`,
-                () => { browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}); },
-            ];
-        }
-    }
-
-    // We have at least one root candidate, possibly more.  If we have multiple
-    // root candidates, we need to warn because of the possibility of sync
-    // conflicts the user might not be aware of.  If we have a single root
-    // candidate, but the new and old algorithms disagree, we also warn because
-    // it's likely the user isn't seeing what they expected to see in the UI.
-    // Otherwise, we can safely assume it's something relatively benign like a
-    // "Tab Stash" stash inside the stash root.
-    if (new_root_candidates[0].id != old_root_candidates[0].id
-        || new_root_candidates.length > 1)
-    {
-        return [
-            `You have multiple "${STASH_FOLDER}" bookmark folders, and Tab Stash isn't sure which one to use.  Click here to find out how to resolve the issue.`,
-            () => { browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}); },
-        ];
-    }
+    // We have multiple root candidates, so we need to warn because of the
+    // possibility of sync conflicts the user might not be aware of.
+    return [
+        `You have multiple "${STASH_ROOT}" bookmark folders, and Tab Stash isn't sure which one to use.  Click here to find out how to resolve the issue.`,
+        () => { browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}); },
+    ];
 
     // Otherwise no warning is necessary and we implicitly return undefined.
 }
 
-// Find a root folder using the new way, falling back to the old way, and
-// falling back to creating a new folder if even the old way doesn't work.
-export async function rootFolder(): Promise<BookmarkTreeNode> {
-    const candidates = await candidateRootFolders();
-    if (candidates.length > 0) return candidates[0];
-
-    // If that doesn't work, fall back to the search method used in Tab Stash
-    // 2.5 and earlier, which is error-prone but will find folders that have
-    // been moved by the user.
-    const old_roots = await candidateRootFoldersCompat();
-    if (old_roots.length > 0) return old_roots[0];
-
-    // If even that didn't work, create a new stash root.
-    return await browser.bookmarks.create({
-        parentId: STASH_PARENT,
-        title: STASH_FOLDER,
-        type: 'folder',
-    });
+// Given a BookmarkTreeNode, return the path from the root to that node,
+// found by following parentId fields until a node is reached with no parent.
+async function getPathTo(bm: BookmarkTreeNode): Promise<BookmarkTreeNode[]> {
+    const path = [bm];
+    while (bm.parentId) {
+        const parent = (await browser.bookmarks.get(bm.parentId))[0];
+        path.push(parent);
+        bm = parent;
+    }
+    path.reverse();
+    return path;
 }
-
-// Old/backward-compatible way to find the root folder; DEPRECATED.  If this
-// method is used, the user should be presented with a warning.
-export const candidateRootFoldersCompat = async () =>
-    (await browser.bookmarks.search({title: STASH_FOLDER}))
-        .filter(c => c && c.type === 'folder');
-
-// The new, "correct" way to find a root folder.
-export const candidateRootFolders = async () =>
-    (await browser.bookmarks.getChildren(STASH_PARENT))
-        .filter(c => c && c.type === 'folder' && c.title == STASH_FOLDER);
 
 // Return the entire Tab Stash folder tree.
 export async function tabStashTree() {
