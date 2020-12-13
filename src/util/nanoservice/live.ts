@@ -9,7 +9,7 @@ import {makeRandomString} from '../random';
 
 let listener_count = 0;
 
-//(<any>globalThis).trace_nano_ports = true;
+// (<any>globalThis).trace_nano_ports = true;
 
 // istanbul ignore next
 const trace = (...args: any[]) => {
@@ -147,7 +147,7 @@ export class Port<S extends Send, R extends Send>
                 timeout_id: setTimeout(
                     () => {
                         this.pending.delete(tag);
-                        reject(new NanoTimeoutError(request));
+                        reject(new NanoTimeoutError(request, tag));
                     },
                     options?.timeout_ms ?? this.defaultTimeoutMS),
             });

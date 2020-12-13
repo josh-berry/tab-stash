@@ -66,7 +66,7 @@ describe('util/nanoservice', function() {
             const [client, svc] = await portpair('test');
             let res = undefined;
 
-            client.onRequest = async(v) => {res = v; return undefined;};
+            client.onRequest = async(v) => { res = v; return null; };
             svc.postMessage({notify: 26});
             await events.drain(1);
             expect(res).to.equal(26);
@@ -160,7 +160,7 @@ describe('util/nanoservice', function() {
                 });
         });
 
-        describe('correctly returns weird thrown values', () => {
+        describe('correctly throws weird values', () => {
             const check = (throws: any, returns: any) => async() => {
                 const [client, svc] = await portpair('test');
                 client.onRequest = async(v) => { throw throws; };
@@ -274,7 +274,7 @@ describe('util/nanoservice', function() {
             let called = false;
             client.onRequest = /* istanbul ignore next */ async() => {
                 called = true;
-                return undefined;
+                return null;
             };
 
             svc.postMessage(42);
@@ -292,7 +292,7 @@ describe('util/nanoservice', function() {
             let called = false;
             client.onRequest = /* istanbul ignore next */ async() => {
                 called = true;
-                return undefined;
+                return null;
             };
 
             svc.postMessage({tag: '42', response: 'online'});

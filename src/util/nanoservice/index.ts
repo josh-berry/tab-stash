@@ -50,14 +50,16 @@ export class RemoteNanoError extends Error {
 
     get name(): string { return this.remote.name; }
     get stack(): string | undefined { return `[remote stack] ${this.remote.stack}`; }
-    get data(): Send { return this.remote.data; }
+    get data(): Send | undefined { return this.remote.data; }
 }
 
 export class NanoTimeoutError extends Error {
     readonly request: Send;
-    constructor(request: Send) {
-        super(`Request timeout: ${JSON.stringify(request)}`);
+    readonly tag: string;
+    constructor(request: Send, tag: string) {
+        super(`Request "${tag}" timed out: ${JSON.stringify(request)}`);
         this.name = 'NanoTimeoutError';
         this.request = request;
+        this.tag = tag;
     }
 }

@@ -15,10 +15,10 @@ export type ClientPort<K extends Key, V extends Value> =
 export type ClientMsg<K extends Key, V extends Value> =
     GetMessage<K, V> | GetStartingFromMessage<K, V> | GetEndingAtMessage<K, V> |
     SetMessage<K, V> | DeleteMessage<K, V> | DeleteAllMessage<K, V> |
-    undefined;
+    null;
 export type ServiceMsg<K extends Key, V extends Value> =
     SetMessage<K, V> | DeleteMessage<K, V> |
-    undefined;
+    null;
 
 // Request for one or more values with known keys.  Only sent from client to
 // service.  Response is a SetMessage with all the entries that were found.
