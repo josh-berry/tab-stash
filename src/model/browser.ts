@@ -284,7 +284,7 @@ export class Bookmark implements ModelParent, ModelLeaf {
                 r.index = i;
                 return r;
             });
-        } else if (bm.type === 'folder' && this.children === undefined) {
+        } else if (! this.children && ! this.url && _isFolder(bm)) {
             // SPECIAL CASE: If we know this item is a folder, but we don't know
             // what its children are yet, set children to an empty array.  This
             // is needed to support the invariant mentioned near the top of this
@@ -311,6 +311,13 @@ export class Bookmark implements ModelParent, ModelLeaf {
         }
         this.state.bms_by_id.delete(this.id);
     }
+}
+
+// Helper for determining if a bookmark is a folder, which is done slightly
+// differently on Chrome and Firefox...
+function _isFolder(bm: Partial<Bookmarks.BookmarkTreeNode>): boolean {
+    return bm.type === 'folder' // Firefox
+        || (! ('type' in bm) && ! ('url' in bm)); // Chrome
 }
 
 
