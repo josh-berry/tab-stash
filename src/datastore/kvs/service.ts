@@ -186,15 +186,15 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
                 };
             case 'set':
                 await this.set(msg.entries);
-                return;
+                return null;
             case 'delete':
                 await this.delete(msg.keys);
-                return;
+                return null;
             case 'deleteAll':
                 await this.deleteAll();
-                return;
+                return null;
             default:
-                return;
+                return null;
         }
     }
 

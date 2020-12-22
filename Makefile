@@ -17,7 +17,7 @@ SRC_PKG = $(RELEASE_DIR)/$(SRCPKG_DIR).tar.gz
 DIST_PKG = $(RELEASE_DIR)/tab-stash-$(FULL_VERSION).zip
 
 # Primary (user-facing) targets
-debug: build-dbg
+debug: build-dbg build-chrome-dbg
 .PHONY: debug
 
 rel:
@@ -46,11 +46,12 @@ up:
 .PHONY: up
 
 
+##
+## Intermediate targets.
+##
 
-# Intermediate targets.
-#
-# Rather than calling webpack directly, we invoke npm here so that Windows users
-# still have a way to build.
+## Packaging and Release
+
 pkg-webext: clean-working-tree build-rel
 	mkdir -p $(RELEASE_DIR)
 	cd dist && zip -9rvo ../$(DIST_PKG) `find . -type f`
@@ -65,17 +66,6 @@ pkg-source: clean-working-tree
 	tar -C $(RELEASE_DIR) -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
 
-build-dbg: node_modules
-	npm run build
-	npm run test
-.PHONY: build-dbg
-
-build-rel: node_modules clean
-	npm run build-rel
-	npm run test
-	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
-.PHONY: build-rel
-
 release-tag: clean-working-tree
 	[ `git name-rev --tags --name-only HEAD` = "v$(VERSION)" ] || \
 	    git tag v$(VERSION) HEAD
@@ -87,24 +77,71 @@ clean-working-tree:
 .PHONY: clean-working-tree
 .NOTPARALLEL: clean-working-tree
 
+
+## Build
+
+build-chrome-dbg: build-dbg
+	rm -rf dist-chrome
+	cp -a dist dist-chrome
+	cp assets/manifest.json dist-chrome/
+	patch dist-chrome/manifest.json <chrome-manifest.patch
+.PHONY: build-chrome-dbg
+
+build-dbg: node_modules icons
+	npm run build
+	npm run test
+.PHONY: build-dbg
+
+build-rel:
+	$(MAKE) clean
+	$(MAKE) node_modules icons
+	npm run build-rel
+	npm run test
+	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
+.PHONY: build-rel
+
 node_modules package-lock.json: package.json
 	npm install
 	touch node_modules package-lock.json
 
 node_modules: package-lock.json
 
-# Website-related targets
+
+## Build Icons
+
+icons: dist/icons/logo-48.png dist/icons/logo-96.png \
+	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png))
+.PHONY: icons
+
+dist/icons/%-16.png: assets/icons/%.svg
+	mkdir -p $(dir $@)
+	inkscape -ze "$@" "$<" -w 16 -h 16
+dist/icons/%-32.png: assets/icons/%.svg
+	mkdir -p $(dir $@)
+	inkscape -ze "$@" "$<" -w 32 -h 32
+dist/icons/%-48.png: assets/icons/%.svg
+	mkdir -p $(dir $@)
+	inkscape -ze "$@" "$<" -w 48 -h 48
+dist/icons/%-96.png: assets/icons/%.svg
+	mkdir -p $(dir $@)
+	inkscape -ze "$@" "$<" -w 96 -h 96
+
+
+## Website
+
 site:
 	cd docs; bundle install --deployment
 	cd docs; bundle exec jekyll serve -H 0.0.0.0
 .PHONY: site
 
-# Cleanup targets
+
+## Cleanup
+
 distclean: clean
 	rm -rf node_modules $(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG) $(DIST_PKG)
 	rm -rf docs/.bundle docs/vendor
 .PHONY: distclean
 
 clean:
-	rm -rf dist docs/_site
+	rm -rf dist dist-chrome docs/_site
 .PHONY: clean

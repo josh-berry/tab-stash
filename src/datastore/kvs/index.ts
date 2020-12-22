@@ -1,3 +1,5 @@
+import {Events} from 'webextension-polyfill-ts';
+
 import {Entry, Key, Value} from './proto';
 import Client from './client';
 import Service from './service';
@@ -5,8 +7,8 @@ import Service from './service';
 export {Client, Service, Entry, Key, Value};
 
 export interface KeyValueStore<K extends Key, V extends Value> {
-    onSet: EvListener<(entries: Entry<K, V>[]) => void>;
-    onDelete: EvListener<(keys: K[]) => void>;
+    onSet: Events.Event<(entries: Entry<K, V>[]) => void>;
+    onDelete: Events.Event<(keys: K[]) => void>;
 
     get(keys: K[]): Promise<Entry<K, V>[]>;
     getStartingFrom(bound: K | undefined, limit: number): Promise<Entry<K, V>[]>;

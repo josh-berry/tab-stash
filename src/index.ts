@@ -1,4 +1,7 @@
 // istanbul ignore file
+
+import {browser, Tabs, Menus} from 'webextension-polyfill-ts';
+
 import {
     asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
     resolveNamed,
@@ -34,21 +37,30 @@ const model = the.model;
 // correspond to field names in the commands object.
 //
 
-function menu(idprefix: string, contexts: browser.menus.ContextType[],
+function menu(idprefix: string, contexts: Menus.ContextType[],
               def: string[][])
 {
+    // Only create menus in contexts this browser understands.
+    const allowed_ctxs = Object.values((<any>browser.contextMenus).ContextType);
+    contexts = contexts.filter(x => allowed_ctxs.includes(x));
+
     for (let [id, title] of def) {
         if (id) {
-            browser.menus.create({contexts, title, id: idprefix + id});
+            browser.contextMenus.create({contexts, title, id: idprefix + id});
         } else {
-            browser.menus.create({contexts, type: 'separator', enabled: false});
+            browser.contextMenus.create({contexts, type: 'separator', enabled: false});
         }
     }
 }
 
+const SHOW_TAB_NAME = browser.sidebarAction
+    ? 'Show Stashed Tabs in a Tab'
+    : 'Show Stashed Tabs';
+
 menu('1:', ['tab', 'page', 'tools_menu'], [
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', SHOW_TAB_NAME],
+    ...(browser.sidebarAction
+        ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_all', 'Stash Tabs'],
     ['stash_one', 'Stash This Tab'],
@@ -62,16 +74,18 @@ menu('1:', ['tab', 'page', 'tools_menu'], [
 
 // These should only have like 6 items each
 menu('2:', ['browser_action'], [
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', SHOW_TAB_NAME],
+    ...(browser.sidebarAction
+        ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_all', 'Stash Tabs'],
     ['copy_all', 'Copy Tabs to Stash'],
 ]);
 
 menu('3:', ['page_action'], [
-    ['show_tab', 'Show Stashed Tabs in a Tab'],
-    ['show_sidebar', 'Show Stashed Tabs in Sidebar'],
+    ['show_tab', SHOW_TAB_NAME],
+    ...(browser.sidebarAction
+        ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_one', 'Stash This Tab'],
     ['stash_one_newgroup', 'Stash This Tab to a New Group'],
@@ -86,55 +100,62 @@ function show_stash_if_desired() {
             break;
 
         case 'tab':
-            restoreTabs([browser.extension.getURL('stash-list.html')], {})
-                .catch(console.log);
+            logErrors(commands.show_tab);
             break;
 
         case 'sidebar':
         default:
-            browser.sidebarAction.open().catch(console.log);
+            logErrors(commands.show_sidebar_or_tab);
             break;
     }
 }
 
-const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
+const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
     // permission to do so per Firefox's API rules.
+    //
+    // Also note that some browsers don't support the sidebar at all; in these
+    // cases, we open the tab instead.
 
-    show_sidebar: async function() {
-        browser.sidebarAction.open().catch(console.log);
-    },
+    show_sidebar_or_tab: () => browser.sidebarAction
+        ? browser.sidebarAction.open().catch(console.log)
+        : commands.show_tab(),
 
-    show_tab: async function() {
+    async show_tab() {
         await restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
 
-    stash_all: async function(tab: browser.tabs.Tab) {
+    stash_all: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: true});
     },
 
-    stash_one: async function(tab: browser.tabs.Tab) {
+    stash_one: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
             close: true,
         });
     },
 
-    stash_one_newgroup: async function(tab: browser.tabs.Tab) {
+    stash_one_newgroup: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabs([tab], {close: true});
     },
 
-    copy_all: async function(tab: browser.tabs.Tab) {
+    copy_all: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: false});
     },
 
-    copy_one: async function(tab: browser.tabs.Tab) {
+    copy_one: async function(tab?: Tabs.Tab) {
         show_stash_if_desired();
+        if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
             close: false,
@@ -152,15 +173,19 @@ const commands: {[key: string]: (t: browser.tabs.Tab) => Promise<void>} = {
 // Top-level/user facing event bindings, which mostly just call commands.
 //
 
-browser.menus.onClicked.addListener((info, tab) => {
+browser.contextMenus.onClicked.addListener((info, tab) => {
     // #cast We only ever create menu items with string IDs
     const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, '');
     console.assert(commands[cmd]);
     commands[cmd](tab).catch(console.log);
 });
 
-browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
-browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
+if (browser.browserAction) {
+    browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
+}
+if (browser.pageAction) {
+    browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
+}
 
 
 
@@ -287,7 +312,7 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
     let tabs = await browser.tabs.query({discarded: false});
     let tab_count = tabs.length;
     let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
-        .sort((a, b) => a.lastAccessed - b.lastAccessed);
+        .sort((a, b) => (a.lastAccessed ?? 0) - (b.lastAccessed ?? 0));
 
     const min_keep_tabs = model.options.local.state.autodiscard_min_keep_tabs;
     const target_tab_count = model.options.local.state.autodiscard_target_tab_count;
@@ -310,7 +335,7 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
         let oldest_tab = candidate_tabs.pop();
         if (! oldest_tab) break;
 
-        let age = now - oldest_tab.lastAccessed;
+        const age = now - (oldest_tab.lastAccessed ?? 0);
         if (age > age_cutoff) {
             --tab_count;
             // #undef We filter no-id tabs out of /candidate_tabs/ above

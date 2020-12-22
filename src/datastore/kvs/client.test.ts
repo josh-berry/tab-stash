@@ -21,7 +21,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
         msg: Proto.ClientMsg<string, string>
     ): Promise<Proto.ServiceMsg<string, string>> {
         // istanbul ignore next
-        if (! msg) return undefined;
+        if (! msg) return null;
 
         switch (msg.$type) {
             case 'get':
@@ -57,7 +57,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
                     entries: copy(msg.entries),
                 } as const;
                 this.onNotify(res);
-                return undefined;
+                return null;
 
             case 'delete':
                 const deleted = [];
@@ -65,7 +65,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
                     if (this.entries.delete(k)) deleted.push(k);
                 }
                 this.onNotify({$type: 'delete', keys: deleted});
-                return undefined;
+                return null;
 
             case 'deleteAll':
                 const all_deleted = [];
@@ -74,7 +74,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
                     all_deleted.push(k);
                 }
                 this.onNotify({$type: 'delete', keys: all_deleted});
-                return undefined;
+                return null;
         }
     }
 

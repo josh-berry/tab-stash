@@ -239,6 +239,7 @@
 </template>
 
 <script lang="ts">
+import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
 import launch, {pageref} from '../launch-vue';
 

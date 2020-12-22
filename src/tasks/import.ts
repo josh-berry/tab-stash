@@ -1,10 +1,12 @@
+import {browser, Bookmarks} from 'webextension-polyfill-ts';
+
 import { TaskMonitor } from '../util';
 import { bookmarkTabs, isURLStashable } from '../stash';
 import { fetchInfoForSites } from './siteinfo';
 import { Cache } from '../datastore/cache/client';
 import {FaviconCache} from '../model/browser';
 
-type Bookmark = browser.bookmarks.BookmarkTreeNode;
+type Bookmark = Bookmarks.BookmarkTreeNode;
 
 // This is based on RFC 3986, but is rather more permissive in some ways,
 // because CERTAIN COMPANIES (looking at you, Office365 with your un-encoded

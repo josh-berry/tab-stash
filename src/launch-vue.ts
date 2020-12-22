@@ -2,6 +2,7 @@
 // common to every UI in Tab Stash.
 
 // istanbul ignore file
+
 import {VueConstructor, ComponentOptions} from 'vue';
 
 import {asyncEvent} from './util';

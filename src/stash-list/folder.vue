@@ -72,6 +72,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 </template>
 
 <script lang="ts">
+import {browser} from 'webextension-polyfill-ts';
 import Vue, {PropType} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
@@ -174,7 +175,6 @@ export default Vue.extend({
             await browser.bookmarks.create({
                 parentId: (await rootFolder()).id,
                 title: genDefaultFolderName(new Date()),
-                type: 'folder',
                 index: 0, // Newest folders should show up on top
             });
         })},
@@ -418,7 +418,7 @@ export default Vue.extend({
 
                 console.assert(tid !== undefined);
                 await browser.tabs.move(tid, {index: new_model_idx});
-                await browser.tabs.show(tid);
+                if (browser.tabs.show) await browser.tabs.show(tid);
 
                 // Remove the restored bookmark
                 if (item.isBookmark) {

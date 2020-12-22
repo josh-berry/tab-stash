@@ -1,4 +1,6 @@
 import {expect} from 'chai';
+import {browser} from 'webextension-polyfill-ts';
+
 import * as events from '../mock/events';
 import storage_mock from '../mock/browser-storage';
 import StoredObject, {aBoolean, aNumber, aString, StorableDef} from './stored-object';

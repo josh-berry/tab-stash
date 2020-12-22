@@ -1,3 +1,5 @@
+import {Events} from 'webextension-polyfill-ts';
+
 import {expect} from 'chai';
 import {Args} from '../util';
 
@@ -9,7 +11,7 @@ let reject: ((e: Error) => void) | undefined;
 let requested_count: number = 0;
 let delivered_count: number = 0;
 
-export class MockEventDispatcher<L extends Function> implements EvListener<L> {
+export class MockEventDispatcher<L extends Function> implements Events.Event<L> {
     name: string;
     _listeners: Set<L> = new Set();
 
@@ -29,6 +31,8 @@ export class MockEventDispatcher<L extends Function> implements EvListener<L> {
 
     // istanbul ignore next
     hasListener(l: L) { return this._listeners.has(l); }
+
+    hasListeners() { return this._listeners.size > 0; }
 
     send(...args: Args<L>) {
         queue.push(() => {
@@ -61,7 +65,7 @@ export function drain(count: number): Promise<void> {
 
 export async function waitOne<L extends (...args: any[]) => void, R>(
     trigger: () => Promise<R>,
-    event: EvListener<L>,
+    event: Events.Event<L>,
     listener?: L,
     drainCount?: number,
 ): Promise<[R, Args<L>]> {

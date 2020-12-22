@@ -1,6 +1,9 @@
 // Model for storing/tracking deleted items persistently.  See index.ts for how
 // this fits in to the overall Tab Stash model (such as it is).
+
+import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
+
 import {
     bookmarkTabs, friendlyFolderName, mostRecentUnnamedFolderId, rootFolder
 } from '../stash';
@@ -223,7 +226,6 @@ export class Model {
             const folder = await browser.bookmarks.create({
                 parentId: root.id,
                 title: deletion.item.title,
-                type: 'folder',
                 index: 0,
             });
             await bookmarkTabs(folder.id, deletion.item.children);

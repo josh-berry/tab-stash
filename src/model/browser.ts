@@ -27,6 +27,8 @@
 //
 // YOU SHOULD NOT MODIFY ANY OF THE OUTPUTS EXCEPT THRU NON-`_` METHODS.
 
+import {browser, Bookmarks, Tabs, Windows} from 'webextension-polyfill-ts';
+
 import {DeferQueue, OpenableURL, urlToOpen, resolveNamed} from '../util';
 
 import {Cache, CacheEntry} from '../datastore/cache/client';
@@ -77,7 +79,7 @@ export class Window implements ModelParent {
     readonly isWindow: boolean = true;
 
     focused: boolean = false;
-    type: browser.windows.WindowType = 'normal';
+    type: Windows.WindowType = 'normal';
 
     // Relationships to other objects, filled in later:
     children: (Tab | undefined)[] = [];
@@ -93,7 +95,7 @@ export class Window implements ModelParent {
         state.wins_by_id.set(id, this);
     }
 
-    _update(w: Partial<browser.windows.Window>): Window {
+    _update(w: Partial<Windows.Window>): Window {
         if (w.focused !== undefined) this.focused = w.focused;
         if (w.type !== undefined) this.type = w.type;
 
@@ -167,7 +169,7 @@ export class Tab implements ModelLeaf {
         state.tabs_by_id.set(id, this);
     }
 
-    _update(t: Partial<browser.tabs.Tab>): Tab {
+    _update(t: Partial<Tabs.Tab>): Tab {
         if (t.title !== undefined) this.title = t.title;
         if (t.hidden !== undefined) this.hidden = t.hidden;
         if (t.active !== undefined) this.active = t.active;
@@ -254,7 +256,7 @@ export class Bookmark implements ModelParent, ModelLeaf {
         state.bms_by_id.set(id, this);
     }
 
-    _update(bm: Partial<browser.bookmarks.BookmarkTreeNode>): Bookmark {
+    _update(bm: Partial<Bookmarks.BookmarkTreeNode>): Bookmark {
         if (bm.title !== undefined) this.title = bm.title;
         if (bm.url !== undefined) this.state._update_url(this, bm.url);
         if (bm.dateAdded !== undefined) this.dateAdded = bm.dateAdded;
@@ -282,7 +284,7 @@ export class Bookmark implements ModelParent, ModelLeaf {
                 r.index = i;
                 return r;
             });
-        } else if (bm.type === 'folder' && this.children === undefined) {
+        } else if (! this.children && ! this.url && _isFolder(bm)) {
             // SPECIAL CASE: If we know this item is a folder, but we don't know
             // what its children are yet, set children to an empty array.  This
             // is needed to support the invariant mentioned near the top of this
@@ -309,6 +311,13 @@ export class Bookmark implements ModelParent, ModelLeaf {
         }
         this.state.bms_by_id.delete(this.id);
     }
+}
+
+// Helper for determining if a bookmark is a folder, which is done slightly
+// differently on Chrome and Firefox...
+function _isFolder(bm: Partial<Bookmarks.BookmarkTreeNode>): boolean {
+    return bm.type === 'folder' // Firefox
+        || (! ('type' in bm) && ! ('url' in bm)); // Chrome
 }
 
 
@@ -345,7 +354,7 @@ export class StashState {
         // Note: Can't do this the usual way with .bind() because the state
         // doesn't exist yet.
         const bmupdate = evq.wrap(
-            (id: string, info: Partial<browser.bookmarks.BookmarkTreeNode>) => {
+            (id: string, info: Partial<Bookmarks.BookmarkTreeNode>) => {
                 // info could contain any of a number of things matching
                 // BookmarkTreeNode, although we ignore/don't use any of the
                 // old* args (and they aren't part of the function's type).
@@ -394,7 +403,7 @@ export class StashState {
         //
 
         const p = await resolveNamed({
-            bm: browser.bookmarks.getSubTree(""),
+            bm: browser.bookmarks.getTree(),
             wins: browser.windows.getAll(
                 {populate: true, windowTypes: ['normal']}),
         });
@@ -414,9 +423,8 @@ export class StashState {
     //
 
     // Don't call this (except for testing).  Call make() instead.
-    constructor(bookmarks_root: browser.bookmarks.BookmarkTreeNode,
-                windows: browser.windows.Window[],
-                favicons: FaviconCache)
+    constructor(bookmarks_root: Bookmarks.BookmarkTreeNode,
+                windows: Windows.Window[], favicons: FaviconCache)
     {
         this.favicon_cache = favicons;
 

@@ -9,6 +9,7 @@ docs/vendor
 # Generated during build
 node_modules
 dist
+dist-chrome
 .nyc_output
 coverage
 

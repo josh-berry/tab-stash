@@ -1,4 +1,5 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
+import {browser, Bookmarks} from 'webextension-polyfill-ts';
 
 export {
     TaskHandle, Task, TaskIterator,
@@ -65,11 +66,9 @@ export function cmpVersions(a: string, b: string): number {
     return va.length - vb.length;
 }
 
-export function urlsInTree(
-    bm_tree: browser.bookmarks.BookmarkTreeNode
-): OpenableURL[] {
+export function urlsInTree(bm_tree: Bookmarks.BookmarkTreeNode): OpenableURL[] {
     let urls: OpenableURL[] = [];
-    function collect(bm: browser.bookmarks.BookmarkTreeNode) {
+    function collect(bm: Bookmarks.BookmarkTreeNode) {
         if (bm.children) {
             for (let c of bm.children) collect(c);
         } else /* istanbul ignore else */ if (bm.url) {

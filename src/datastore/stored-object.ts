@@ -27,6 +27,7 @@
 //
 //     await obj.delete();
 
+import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
 
 // Here's how to define the type of a StoredObject:
@@ -194,7 +195,8 @@ export default class StoredObject<D extends StorableDef> {
     // defined outside of the class.
     static readonly _LIVE = (() => {
         browser.storage.onChanged.addListener((changes, area) => {
-            const areaobjs = StoredObject._LIVE[area];
+            if (area !== 'sync' && area !== 'local') return;
+            const areaobjs = StoredObject._LIVE[area as 'sync' | 'local'];
 
             for (const key in changes) {
                 const obj = areaobjs.get(key);
