@@ -36,9 +36,13 @@ export async function rootFolder(): Promise<BookmarkTreeNode> {
 // one closest to the bookmark root.  If multiple folders are at the same level,
 // multiple candidates are returned, sorted oldest first.
 export async function candidateRootFolders(): Promise<BookmarkTreeNode[]> {
+    // XXX This is duplicated in the browser model
+    const isFolder = (bm: BookmarkTreeNode) => bm.type === 'folder'
+                        || (! ('type' in bm) && ! ('url' in bm));
+
     const paths = await Promise.all(
         (await browser.bookmarks.search({title: STASH_ROOT}))
-            .filter(c => c && !('url' in c) && c.type !== 'separator')
+            .filter(c => c && isFolder(c))
             .map(c => getPathTo(c)));
 
     const depth = Math.min(...paths.map(p => p.length));
