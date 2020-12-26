@@ -21,6 +21,11 @@ export const STASH_ROOT = 'Tab Stash';
 
 const ROOT_FOLDER_HELP = 'https://github.com/josh-berry/tab-stash/wiki/Problems-Locating-the-Tab-Stash-Bookmark-Folder';
 
+// Small cross-browser helper to tell if a BookmarkTreeNode is a folder or not.
+// XXX This is duplicated in the browser model as well.
+const isFolder = (bm: BookmarkTreeNode) =>
+    bm.type === 'folder' || (! ('type' in bm) && ! ('url' in bm));
+
 // Find or create the root of the stash.
 export async function rootFolder(): Promise<BookmarkTreeNode> {
     const candidates = await candidateRootFolders();
@@ -36,10 +41,6 @@ export async function rootFolder(): Promise<BookmarkTreeNode> {
 // one closest to the bookmark root.  If multiple folders are at the same level,
 // multiple candidates are returned, sorted oldest first.
 export async function candidateRootFolders(): Promise<BookmarkTreeNode[]> {
-    // XXX This is duplicated in the browser model
-    const isFolder = (bm: BookmarkTreeNode) => bm.type === 'folder'
-                        || (! ('type' in bm) && ! ('url' in bm));
-
     const paths = await Promise.all(
         (await browser.bookmarks.search({title: STASH_ROOT}))
             .filter(c => c && isFolder(c))
@@ -113,7 +114,7 @@ export async function mostRecentUnnamedFolderId() {
 
     // Is there a top-most item under the root folder, and is it a folder?
     if (! topmost) return undefined;
-    if (topmost.type !== 'folder') return undefined;
+    if (! isFolder(topmost)) return undefined;
 
     // Does the folder have a name which looks like a default name?
     if (! getFolderNameISODate(topmost.title)) return undefined;
