@@ -6,8 +6,8 @@ import Listener from '../../util/listener';
 export default class Client<K extends Proto.Key, V extends Proto.Value>
     implements KeyValueStore<K, V>
 {
-    onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();
-    onDelete = new Listener<(keys: K[]) => void>();
+    readonly onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();
+    readonly onDelete = new Listener<(keys: K[]) => void>();
 
     private _port: Proto.ServicePort<K, V>;
 

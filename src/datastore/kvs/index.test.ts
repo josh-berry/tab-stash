@@ -7,6 +7,7 @@
 import {expect} from 'chai';
 
 import {Entry, KeyValueStore} from '.';
+import {nextTick} from '../../util';
 
 export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>) {
     let kvs: KeyValueStore<string, string>;
@@ -78,6 +79,11 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
                 {key: 'b', value: 'bob'},
                 {key: 'c', value: 'christine'},
             ]));
+        it('in the middle but the bound is absent', async() =>
+            expect(await kvs.getStartingFrom('ab', 2)).to.deep.equal([
+                {key: 'b', value: 'bob'},
+                {key: 'c', value: 'christine'},
+            ]));
         it('near the end', async() =>
             expect(await kvs.getStartingFrom('c', 2)).to.deep.equal([
                 {key: 'd', value: 'derek'},
@@ -109,6 +115,11 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             ]));
         it('in the middle', async() =>
             expect(await kvs.getEndingAt('d', 2)).to.deep.equal([
+                {key: 'c', value: 'christine'},
+                {key: 'b', value: 'bob'},
+            ]));
+        it('in the middle but the bound is absent', async() =>
+            expect(await kvs.getEndingAt('cd', 2)).to.deep.equal([
                 {key: 'c', value: 'christine'},
                 {key: 'b', value: 'bob'},
             ]));
@@ -210,7 +221,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             kvs.onSet.addListener(listener);
             await kvs.set(entries);
 
-            await wait();
+            await nextTick();
             expect(calls).to.deep.equal([[entries]]);
         });
 
@@ -221,7 +232,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             kvs.onDelete.addListener(listener);
             await kvs.delete(entries);
 
-            await wait();
+            await nextTick();
             expect(calls).to.deep.equal([[entries]]);
         });
     });
@@ -239,5 +250,3 @@ function mock<A extends any[]>(): {fn: (...args: A) => void, calls: A[]} {
     const fn = (...args: A): void => { calls.push(args); };
     return {fn, calls};
 }
-
-const wait = () => new Promise(resolve => setTimeout(resolve));

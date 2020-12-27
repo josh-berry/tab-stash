@@ -11,6 +11,10 @@ describe('datastore/kvs/client', function() {
     describe('implements KeyValueStore', () => tests(kvs_factory));
 });
 
+// XXX Refactor me into something that just composes MemoryKVS (which was added
+// after this code was written) with something that responds to KVS service
+// messages.  Or to put it another way, split kvs/service.ts into the IndexedDB
+// KVS and the thing that forwards messages/events to/from IndexedDB KVS.
 class MockServicePort implements Proto.ServicePort<string, string> {
     // istanbul ignore next
     onNotify = (_: Proto.ServiceMsg<string, string>) => undefined;

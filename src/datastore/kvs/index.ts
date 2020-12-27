@@ -7,8 +7,8 @@ import Service from './service';
 export {Client, Service, Entry, Key, Value};
 
 export interface KeyValueStore<K extends Key, V extends Value> {
-    onSet: Events.Event<(entries: Entry<K, V>[]) => void>;
-    onDelete: Events.Event<(keys: K[]) => void>;
+    readonly onSet: Events.Event<(entries: Entry<K, V>[]) => void>;
+    readonly onDelete: Events.Event<(keys: K[]) => void>;
 
     get(keys: K[]): Promise<Entry<K, V>[]>;
     getStartingFrom(bound: K | undefined, limit: number): Promise<Entry<K, V>[]>;

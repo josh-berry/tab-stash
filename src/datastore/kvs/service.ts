@@ -29,8 +29,8 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
 
     readonly name: string;
 
-    onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();
-    onDelete = new Listener<(keys: K[]) => void>();
+    readonly onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();
+    readonly onDelete = new Listener<(keys: K[]) => void>();
 
     private _db: IDBPDatabase;
     private _clients = new Set<Proto.ClientPort<K, V>>();

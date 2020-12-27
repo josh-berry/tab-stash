@@ -54,7 +54,7 @@ export type DeletedFolder = {
     children: DeletedItem[],
 };
 
-function src2state(e: Entry<string, SourceValue>): Deletion {
+export function src2state(e: Entry<string, SourceValue>): Deletion {
     return {
         key: e.key,
         deleted_at: new Date(e.value.deleted_at),
@@ -192,12 +192,6 @@ export class Model {
         }
     });
 
-    get(key: string): Deletion {
-        const res = this._entry_cache.get(key);
-        if (! res) throw new Error(`No such deleted item: ${key}`);
-        return res;
-    }
-
     async add(
         item: DeletedItem,
         deleted_from?: DeleteLocation,
@@ -214,6 +208,9 @@ export class Model {
         return entry;
     }
 
+    // XXX This does not belong here; it belongs in the parent model, since it
+    // touches both browser.bookmarks AND deleted-items.  That's also why...
+    // istanbul ignore next
     async undelete(deletion: Deletion): Promise<void> {
         // We optimistically remove immediately from recentlyDeleted to prevent
         // users from trying to un-delete the same thing multiple times.
@@ -276,7 +273,9 @@ export class Model {
 
     async dropChildItem(key: string, index: number): Promise<void> {
         const entry = this._entry_cache.get(key);
+        // istanbul ignore next
         if (! entry) throw new Error(`${key}: Record not loaded or doesn't exist`);
+        // istanbul ignore next
         if (! ('children' in entry.item)) throw new Error(`${key}: Not a folder`);
 
         const newchildren = Array.from(entry.item.children);
@@ -359,6 +358,10 @@ export class Model {
                     key,
                     value: {
                         deleted_at,
+                        deleted_from: {
+                            folder_id: choose(words),
+                            title: genTitle(),
+                        },
                         item: {
                             title: genTitle(),
                             url: genUrl(),

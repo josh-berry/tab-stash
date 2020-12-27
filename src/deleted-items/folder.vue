@@ -77,8 +77,7 @@ export default Vue.extend({
         },
 
         restore() { this.run("Restoring", async() => {
-            const del = this.model().deleted_items.get(this.deletion.key);
-            await this.model().deleted_items.undelete(del);
+            await this.model().deleted_items.undelete(this.deletion);
         })},
 
         remove() { this.run("Deleting Forever", async() => {

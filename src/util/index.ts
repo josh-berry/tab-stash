@@ -142,6 +142,12 @@ export async function resolveNamed<T extends {[k: string]: any}>(
     return objects;
 }
 
+// Waits for the next iteration of the event loop (allowing event handlers etc.
+// to run in the meantime).
+export function nextTick(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve));
+}
+
 // Returns a function which, when called, arranges to call the async function
 // /fn/ immediately, but only if it's not already running.
 //
