@@ -6,7 +6,8 @@
     "homepage_url": "https://josh-berry.github.io/tab-stash/",
     "icons": {
         "48": "icons/logo-48.png",
-        "96": "icons/logo-96.png"
+        "96": "icons/logo-96.png",
+        "128": "icons/logo-128.png"
     },
     "browser_specific_settings": {
         "gecko": {

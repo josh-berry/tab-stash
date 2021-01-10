@@ -81,8 +81,7 @@ clean-working-tree:
 ## Build
 
 build-chrome-dbg: build-dbg
-	rm -rf dist-chrome
-	cp -a dist dist-chrome
+	rsync -aHvx --delete --force dist/ dist-chrome/
 	cp assets/manifest.json dist-chrome/
 	patch dist-chrome/manifest.json <chrome-manifest.patch
 .PHONY: build-chrome-dbg
@@ -109,23 +108,39 @@ node_modules: package-lock.json
 
 ## Build Icons
 
-icons: dist/icons/logo-48.png dist/icons/logo-96.png \
+DARK_ICONS = $(patsubst icons/%,dist/icons/dark/%,$(wildcard icons/*.svg))
+LIGHT_ICONS = $(patsubst icons/%,dist/icons/light/%,$(wildcard icons/*.svg))
+
+icons: $(foreach size,48 96 128,dist/icons/logo-$(size).png) \
+	dist/icons/stash-one.svg \
+	$(DARK_ICONS) $(LIGHT_ICONS) \
 	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png))
 .PHONY: icons
 
-dist/icons/%-16.png: assets/icons/%.svg
-	mkdir -p $(dir $@)
-	inkscape -ze "$@" "$<" -w 16 -h 16
-dist/icons/%-32.png: assets/icons/%.svg
-	mkdir -p $(dir $@)
-	inkscape -ze "$@" "$<" -w 32 -h 32
-dist/icons/%-48.png: assets/icons/%.svg
-	mkdir -p $(dir $@)
-	inkscape -ze "$@" "$<" -w 48 -h 48
-dist/icons/%-96.png: assets/icons/%.svg
-	mkdir -p $(dir $@)
-	inkscape -ze "$@" "$<" -w 96 -h 96
+dist/icons/dark/%.svg: icons/%.svg
+	@mkdir -p $(dir $@)
+	sed 's%style="[^"]*"%style="fill:#f9f9fa;fill-opacity:0.8"%g' < $< > $@
 
+dist/icons/%.svg: icons/%.svg
+	@mkdir -p $(dir $@)
+	sed 's%style="[^"]*"%style="fill:#808080"%g' < $< > $@
+
+dist/icons/light/%.svg: icons/%.svg
+	@mkdir -p $(dir $@)
+	sed 's%style="[^"]*"%style="fill:#0c0c0d;fill-opacity:0.8"%g' < $< > $@
+
+%-16.png: %.svg
+	inkscape "$<" -o "$@" -D -w 16 -h 16
+%-32.png: %.svg
+	inkscape "$<" -o "$@" -D -w 32 -h 32
+%-48.png: %.svg
+	inkscape "$<" -o "$@" -D -w 48 -h 48
+%-64.png: %.svg
+	inkscape "$<" -o "$@" -D -w 64 -h 64
+%-96.png: %.svg
+	inkscape "$<" -o "$@" -D -w 96 -h 96
+%-128.png: %.svg
+	inkscape "$<" -o "$@" -D -w 128 -h 128
 
 ## Website
 
