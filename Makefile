@@ -112,22 +112,22 @@ DARK_ICONS = $(patsubst icons/%,dist/icons/dark/%,$(wildcard icons/*.svg))
 LIGHT_ICONS = $(patsubst icons/%,dist/icons/light/%,$(wildcard icons/*.svg))
 
 icons: $(foreach size,48 96 128,dist/icons/logo-$(size).png) \
-	dist/icons/stash-one.svg \
+	dist/icons/stash-one.svg dist/icons/logo.svg \
 	$(DARK_ICONS) $(LIGHT_ICONS) \
 	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png))
 .PHONY: icons
 
 dist/icons/dark/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#f9f9fa;fill-opacity:0.8"%g' < $< > $@
+	sed 's%style="[^"]*"%style="fill:#f9f9fa;fill-opacity:0.8"%g' <$< >$@
 
 dist/icons/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#808080"%g' < $< > $@
+	sed 's%style="[^"]*"%style="fill:#808080"%g' <$< >$@
 
 dist/icons/light/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#0c0c0d;fill-opacity:0.8"%g' < $< > $@
+	sed 's%style="[^"]*"%style="fill:#0c0c0d;fill-opacity:0.8"%g' <$< >$@
 
 %-16.png: %.svg
 	inkscape "$<" -o "$@" -D -w 16 -h 16
