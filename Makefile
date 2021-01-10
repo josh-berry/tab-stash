@@ -83,7 +83,7 @@ clean-working-tree:
 build-chrome-dbg: build-dbg
 	rsync -aHvx --delete --force dist/ dist-chrome/
 	cp assets/manifest.json dist-chrome/
-	patch dist-chrome/manifest.json <chrome-manifest.patch
+	patch --no-backup-if-mismatch dist-chrome/manifest.json chrome-manifest.patch
 .PHONY: build-chrome-dbg
 
 build-dbg: node_modules icons
@@ -110,11 +110,12 @@ node_modules: package-lock.json
 
 DARK_ICONS = $(patsubst icons/%,dist/icons/dark/%,$(wildcard icons/*.svg))
 LIGHT_ICONS = $(patsubst icons/%,dist/icons/light/%,$(wildcard icons/*.svg))
+LOGO_ICONS = dist/icons/logo.svg $(foreach size,48 96 128,dist/icons/logo-$(size).png)
+TOOLBAR_ICONS = dist/icons/stash-one.svg \
+	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png)) \
+	$(foreach size,16 32,dist/icons/stash-$(size).png)
 
-icons: $(foreach size,48 96 128,dist/icons/logo-$(size).png) \
-	dist/icons/stash-one.svg dist/icons/logo.svg \
-	$(DARK_ICONS) $(LIGHT_ICONS) \
-	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png))
+icons: $(DARK_ICONS) $(LIGHT_ICONS) $(LOGO_ICONS) $(TOOLBAR_ICONS)
 .PHONY: icons
 
 dist/icons/dark/%.svg: icons/%.svg
