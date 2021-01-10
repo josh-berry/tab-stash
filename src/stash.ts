@@ -133,23 +133,39 @@ export async function mostRecentUnnamedFolderId() {
 }
 
 export function isURLStashable(urlstr: string): boolean {
+    // Tab Stash URLs are never stashable.
+    if (urlstr.startsWith(browser.extension.getURL(''))) return false;
+
     try {
-        let url = new URL(urlstr);
+        const url = new URL(urlstr);
+
+        // Exclude privileged URLs as defined here:
+        // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/create
         switch (url.protocol) {
             case 'about:':
                 switch (url.pathname) {
-                    // We carve out an exemption for about:reader URLs, since
-                    // these are actual sites being viewed in reader mode.
-                    case 'reader': return true;
+                    case 'blank':
+                    case 'logo':
+                    // We carve out an exemption for about:reader URLs, even
+                    // though they're privileged, since these are actual sites
+                    // being viewed in reader mode.
+                    case 'reader':
+                        return true;
                     default: return false;
                 }
-            case 'javascript:':
-            case 'moz-extension:':
-            case 'chrome-extension:': // Hey, you never know...
             case 'chrome:':
+                // Chromium allows use of chrome:// URLs; Firefox doesn't (since
+                // they're internal browser URLs). getBrowserInfo is a handy way
+                // of checking if we're on Firefox (where it's present) or
+                // Chromium (where it isn't).
+                return (! browser.runtime.getBrowserInfo);
+
+            case 'javascript:':
             case 'file:':
+            case 'data:':
                 return false;
         }
+
     } catch (e) {
         console.warn('Unparseable URL:', urlstr);
         return false;

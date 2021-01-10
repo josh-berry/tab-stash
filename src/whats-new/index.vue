@@ -8,6 +8,13 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.8">
+      <L :issue="64" v="Improved:">Allow all non-privileged pages to be stashed
+      and restored, most notably, pages from other extensions.  (This still
+      excludes browser system pages and "file:" pages, which Firefox will not
+      allow to be restored.)</L>
+    </Version>
+
     <Version v="2.7.1">
       <L v="Fixed:">During import, sites that take too long to load may be
       imported with missing titles and/or icons.  We now wait longer, and
