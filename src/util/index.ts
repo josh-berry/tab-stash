@@ -162,7 +162,7 @@ export function nextTick(): Promise<void> {
 // the function are caught and logged to the console.
 export function nonReentrant(fn: () => Promise<any>): () => Promise<void> {
     let running: Promise<any> | undefined;
-    let next: Promise<any> | undefined;
+    let next: Promise<void> | undefined;
     let resolve_next: (() => void) | undefined;
 
     const inner = () => {

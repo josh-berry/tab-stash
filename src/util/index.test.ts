@@ -172,9 +172,9 @@ describe('util', function() {
     describe('nonReentrant()', function() {
         let callCount = 0;
         let activeCalls = 0;
-        let promise: Promise<any> | undefined;
+        let promise: Promise<void> | undefined;
         let res: () => void | undefined;
-        let f: () => Promise<any> | undefined;
+        let f: () => Promise<void> | undefined;
         let next: () => void | undefined;
 
         beforeEach(function() {
