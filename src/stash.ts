@@ -28,10 +28,29 @@ const isFolder = (bm: BookmarkTreeNode) =>
 
 // Find or create the root of the stash.
 export async function rootFolder(): Promise<BookmarkTreeNode> {
-    const candidates = await candidateRootFolders();
+    let candidates = await candidateRootFolders();
     if (candidates.length > 0) return candidates[0];
 
-    return await browser.bookmarks.create({title: STASH_ROOT});
+    await browser.bookmarks.create({title: STASH_ROOT});
+
+    // GROSS HACK to avoid creating duplicate roots follows.
+    candidates = await candidateRootFolders();
+    if (candidates.length > 1) {
+        // If we find MULTIPLE candidates so soon after finding NONE, there must
+        // be multiple threads trying to create the root folder.  Let's delete
+        // all but the first one.  We are guaranteed that all threads see the
+        // same ordering of candidate folders (and thus will all choose the same
+        // folder to save) because the sort is deterministic.
+        console.log("Oops! Created duplicate roots...");
+        for (let i = 1; i < candidates.length; ++i) {
+            console.log("Removing root", candidates[i]);
+            await browser.bookmarks.remove(candidates[i].id).catch(console.warn);
+        }
+        console.log("Remaining root:", candidates[0]);
+    }
+    // END GROSS HACK
+
+    return candidates[0];
 }
 
 // Find "candidate" root folders.  If there's more than one, we should show a
@@ -39,7 +58,9 @@ export async function rootFolder(): Promise<BookmarkTreeNode> {
 //
 // The search is done by looking for folders named "Tab Stash", and choosing the
 // one closest to the bookmark root.  If multiple folders are at the same level,
-// multiple candidates are returned, sorted oldest first.
+// multiple candidates are returned, sorted oldest first, and then by id
+// if the ages are the same.  (NOTE: This sort must be deterministic--see
+// rootFolder() above for why.)
 export async function candidateRootFolders(): Promise<BookmarkTreeNode[]> {
     const paths = await Promise.all(
         (await browser.bookmarks.search({title: STASH_ROOT}))
@@ -51,7 +72,13 @@ export async function candidateRootFolders(): Promise<BookmarkTreeNode[]> {
     return paths
         .filter(p => p.length <= depth)
         .map(p => p[p.length - 1])
-        .sort((a, b) => (a.dateAdded ?? 0) - (b.dateAdded ?? 0));
+        .sort((a, b) => {
+            const byDate = (a.dateAdded ?? 0) - (b.dateAdded ?? 0);
+            if (byDate !== 0) return byDate;
+            if (a.id < b.id) return -1;
+            if (a.id > b.id) return 1;
+            return 0;
+        });
 }
 
 // This function checks for a variety of situations that can occur if users move

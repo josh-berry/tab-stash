@@ -13,6 +13,11 @@
       and restored, most notably, pages from other extensions.  (This still
       excludes browser system pages and "file:" pages, which Firefox will not
       allow to be restored.)</L>
+
+      <L :issue="103" v="Fixed:">Occasionally, when Tab Stash is first
+      installed, it may create two root "Tab Stash" folders, causing a warning
+      in the UI.  This can happen if the UI is opened before the extension has
+      finished starting up.  We now detect and remove the extra folder.</L>
     </Version>
 
     <Version v="2.7.1">
