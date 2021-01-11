@@ -678,7 +678,16 @@ span.folder-name, .folder-item > .text {
     margin-left: 3px;
 }
 
-.tab-view .folder .contents { flex: 1 1 auto; }
+.tab-view .folder .contents {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+.tab-view .folder .contents .tabs:last-child {
+    /* If we are not showing a "+ N filtered" label at the bottom, make the tab
+       list expand to fill the whole folder box so it's a bigger drop target. */
+    flex: 1 1 auto;
+}
 
 /* Don't show the "stash this tab" button on folders when we are the
    current tab (and not the sidebar) */

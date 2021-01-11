@@ -14,6 +14,10 @@
       excludes browser system pages and "file:" pages, which Firefox will not
       allow to be restored.)</L>
 
+      <L :issue="101" v="Improved:">In the full-page UI, allow tabs to be
+      dropped anywhere inside the folder box, not just immediately after the
+      last tab in the list.</L>
+
       <L :issue="103" v="Fixed:">Occasionally, when Tab Stash is first
       installed, it may create two root "Tab Stash" folders, causing a warning
       in the UI.  This can happen if the UI is opened before the extension has
