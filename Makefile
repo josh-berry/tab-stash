@@ -18,7 +18,12 @@ DIST_PKG = $(RELEASE_DIR)/tab-stash-$(FULL_VERSION).zip
 
 # Primary (user-facing) targets
 debug: build-dbg build-chrome-dbg
+	@$(MAKE) check
 .PHONY: debug
+
+check: # no dependencies since it must work with all types of builds
+	npm run test
+.PHONY: check
 
 rel:
 	$(MAKE) distclean
@@ -88,7 +93,6 @@ build-chrome-dbg: build-dbg
 
 build-dbg: node_modules icons dist/tab-stash.css
 	npm run build
-	npm run test
 .PHONY: build-dbg
 
 build-rel:
@@ -99,11 +103,10 @@ build-rel:
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 
+node_modules: package-lock.json
 node_modules package-lock.json: package.json
 	npm install
 	touch node_modules package-lock.json
-
-node_modules: package-lock.json
 
 dist/tab-stash.css: node_modules $(wildcard styles/*.less)
 	@mkdir -p dist
