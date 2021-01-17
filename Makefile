@@ -86,14 +86,14 @@ build-chrome-dbg: build-dbg
 	patch --no-backup-if-mismatch dist-chrome/manifest.json chrome-manifest.patch
 .PHONY: build-chrome-dbg
 
-build-dbg: node_modules icons
+build-dbg: node_modules icons dist/tab-stash.css
 	npm run build
 	npm run test
 .PHONY: build-dbg
 
 build-rel:
 	$(MAKE) clean
-	$(MAKE) node_modules icons
+	$(MAKE) node_modules icons dist/tab-stash.css
 	npm run build-rel
 	npm run test
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
@@ -105,6 +105,9 @@ node_modules package-lock.json: package.json
 
 node_modules: package-lock.json
 
+dist/tab-stash.css: node_modules $(wildcard styles/*.less)
+	@mkdir -p dist
+	npm run build-styles
 
 ## Build Icons
 
@@ -142,6 +145,7 @@ dist/icons/light/%.svg: icons/%.svg
 	inkscape "$<" -o "$@" -D -w 96 -h 96
 %-128.png: %.svg
 	inkscape "$<" -o "$@" -D -w 128 -h 128
+
 
 ## Website
 
