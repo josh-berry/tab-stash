@@ -1,6 +1,7 @@
 import {Events} from 'webextension-polyfill-ts';
 
 import {expect} from 'chai';
+import {beforeEach, afterEach} from 'mocha';
 import {Args} from '../util';
 
 let verbose = false;
@@ -10,6 +11,15 @@ let resolve: (() => void) | undefined;
 let reject: ((e: Error) => void) | undefined;
 let requested_count: number = 0;
 let delivered_count: number = 0;
+
+beforeEach(() => {
+    queue = [];
+    resolve = undefined;
+    reject = undefined;
+    requested_count = 0;
+    delivered_count = 0;
+});
+afterEach(expect_empty);
 
 export class MockEventDispatcher<L extends Function> implements Events.Event<L> {
     name: string;

@@ -2,7 +2,7 @@ import {expect} from 'chai';
 import {browser, Runtime} from 'webextension-polyfill-ts';
 
 import * as events from '../../mock/events';
-import mock_runtime from '../../mock/browser-runtime';
+import '../../mock/browser-runtime';
 
 import * as M from '.';
 import * as Live from './live';
@@ -10,9 +10,6 @@ import * as Live from './live';
 type Port = Runtime.Port;
 
 describe('util/nanoservice', function() {
-    beforeEach(() => mock_runtime.reset());
-    afterEach(events.expect_empty);
-
     describe('NanoPort', function() {
         async function portpair<S extends M.Send, R extends M.Send>(
             name: string

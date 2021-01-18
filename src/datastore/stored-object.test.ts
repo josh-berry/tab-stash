@@ -6,11 +6,6 @@ import storage_mock from '../mock/browser-storage';
 import StoredObject, {aBoolean, aNumber, aString, StorableDef} from './stored-object';
 
 describe('stored-object', function() {
-    beforeEach(function() {
-        storage_mock.reset();
-    });
-    afterEach(events.expect_empty);
-
     describe('mocks', function() {
         it('stores and retrieves single values', async function() {
             const obj = {foo: 'bar'};

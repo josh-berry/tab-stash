@@ -1,4 +1,5 @@
 import {browser} from 'webextension-polyfill-ts';
+import {beforeEach} from 'mocha';
 
 import * as events from './events';
 
@@ -127,6 +128,7 @@ export default (() => {
         }
     };
 
+    beforeEach(exports.reset);
     exports.reset();
 
     return exports;

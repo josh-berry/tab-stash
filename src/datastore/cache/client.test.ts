@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 
 import * as events from '../../mock/events';
-import mock_runtime from '../../mock/browser-runtime';
+import '../../mock/browser-runtime';
 
 import * as NS from '../../util/nanoservice';
 import {
@@ -80,10 +80,8 @@ function reload_cache(): Cache<string> {
 
 describe('datastore/cache/client', function() {
     beforeEach(() => {
-        mock_runtime.reset();
         NS.registry.reset_testonly();
     });
-    afterEach(events.expect_empty);
 
     describe('local caching when service is down', function() {
         let cache: Cache<string>;

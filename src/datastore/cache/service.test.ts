@@ -67,7 +67,6 @@ describe('datastore/cache/service', function() {
     }
 
     beforeEach(reset);
-    afterEach(events.expect_empty);
 
     describe('storing and fetching entries', function() {
         it('stores entries in the database', async function() {
