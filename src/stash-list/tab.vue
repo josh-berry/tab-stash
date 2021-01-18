@@ -7,6 +7,7 @@
    @click.prevent.stop="open">
   <ItemIcon v-if="favIconUrl || (favicon && favicon.value)"
        :src="favIconUrl || favicon.value" />
+  <span v-else class="icon" />
   <span class="text">{{bestTitle}}</span>
   <ButtonBox>
     <Button v-if="isBookmark"

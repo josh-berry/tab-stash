@@ -1,5 +1,9 @@
 /*
  * COLOR AND ICON DEFINITIONS (as CSS vars)
+
+   Suffixes:
+   *-fg     Foreground
+   *-bg     Background
  */
 @import "theme-light";
 @media (prefers-color-scheme: dark) {
@@ -16,49 +20,25 @@ html {
     --shadow: 2px 2px 4px rgba(0, 0, 0, 0.23);
     --shadow-heavy: 2px 2px 6px rgba(0, 0, 0, 0.29);
     --shadow-faint: 2px 2px 4px rgba(0, 0, 0, 0.19);
+
+    --icon-select-disclosure: var(--icon-collapse-open);
 }
+
+
 
 /*
-  Metrics.
+ * METRICS - WIDTHS, HEIGHTS AND OTHER MEASUREMENTS
 
-  Prefixes:
-    --m*  margin
-    --p*  padding
-
-  Suffixes:
-    *-w   width
-    *-h   height
+  Suffixes: *-[mpg][whlrtb]
+    mpg     - margin/padding/gap[within grid]
+    whlrtb  - width/height/left/right/top/bottom
+    -border - a full border: definition (including a theme color)
 */
-html {
-    /* XXX rename me to something more descriptive */
-    --margin: 1.5rem;
-
-    --m-menu-w: 12px;
-    --m-menu-h: 6px;
-
-    --p-dialog-w: var(--margin);
-    --p-dialog-h: calc(var(--margin) / 2);
-
-    --m-folder-bottom: 1em;
-
-    --ctrl-border: 1px solid var(--ctrl-border-clr);
-    --ctrl-border-radius: 5px;
-    --p-ctrl-w: 6px;
-    --p-ctrl-h: 3px;
-    --m-ctrl-w: 8px;
-    --m-ctrl-h: 6px;
-
-    --p-ephemeral-w: 3px;
-    --p-ephemeral-h: 1.5px;
-    --m-ephemeral-w: 2px;
-    --m-ephemeral-h: 2px;
+@import "metrics-normal";
+@media (max-width: 30rem) {
+    @import "metrics-narrow";
 }
 
-@media all and (max-width: 30rem) {
-    html {
-        --p-dialog-w: calc(var(--margin) / 2);
-    }
-}
 
 /* Styling */
 
@@ -83,7 +63,7 @@ main {
     height: 100%;
 }
 :focus {
-    box-shadow: 0 0 2px 2px highlight;
+    box-shadow: var(--focus-shadow);
     outline: none;
 }
 a, a:visited {
@@ -113,16 +93,16 @@ a:active {
     background-color: var(--group-bg);
     border: var(--group-border);
     box-shadow: var(--shadow);
-    padding: var(--p-dialog-h) var(--p-dialog-w);
+    padding: var(--dialog-ph) var(--dialog-pw);
     display: grid;
 }
 .dialog, .dialog * {
-    row-gap: var(--m-ctrl-h);
-    column-gap: var(--m-ctrl-w);
+    row-gap: var(--ctrl-mh);
+    column-gap: var(--ctrl-mw);
 }
 
-.modal-backdrop-enter-active { transition: opacity 100ms ease-out; }
-.modal-backdrop-leave-active { transition: opacity 100ms ease-in; }
+.modal-backdrop-enter-active { transition: opacity var(--modal-fade-time) ease-out; }
+.modal-backdrop-leave-active { transition: opacity var(--modal-fade-time) ease-in; }
 .modal-backdrop-enter, .modal-backdrop-leave-to { opacity: 0; }
 
 
@@ -133,11 +113,12 @@ a:active {
 }
 .clickme:hover { background-color: var(--userlink-hover-fg); }
 .clickme:active { background-color: var(--userlink-active-fg); }
-.clickme:focus-within { box-shadow: 0 0 2px 2px highlight; } /* XXX dup of :focus */
+.clickme:focus-within { box-shadow: var(--focus-shadow); } /* XXX dup of :focus */
 
 .export-dialog output, .import-dialog .input {
     display: block;
     border: var(--ctrl-border);
+    border-radius: var(--input-text-border-radius);
 }
 
 .export-dialog output h3 {
@@ -150,8 +131,8 @@ a:active {
 .progress > .dialog { width: 50rem; }
 
 /* add some extra vertical margin around the top-level progress */
-.dialog > .progress-item { margin: var(--m-menu-h) 0; }
-.progress-item ul { margin: 0; padding-left: var(--margin); }
+.dialog > .progress-item { margin: var(--menu-mh) 0; }
+.progress-item ul { margin: 0; padding-left: var(--base-mw); }
 
 .hidden { display: none !important; }
 
@@ -167,13 +148,12 @@ header.page {
     z-index: 1;
     top: 0px;
 
-    padding: 3px 16px 6px 16px;
-    margin-bottom: var(--m-folder-bottom);
+    padding: calc(var(--ctrl-mh) / 2) var(--page-pw) var(--ctrl-mh) var(--page-pw);
+    margin-bottom: var(--page-ph);
 
     display: grid;
     grid-template-columns: 0fr 1fr 0fr;
     column-gap: 4px;
-    row-gap: calc(var(--margin) / 2);
     align-items: center;
 
     background-color: var(--page-bg);
@@ -196,7 +176,7 @@ header.page .title {
 .menu > summary::-webkit-details-marker { display: none; }
 .menu[open] > summary { box-shadow: var(--shadow); }
 .menu > nav {
-    padding: var(--m-menu-h) 0;
+    padding: var(--menu-mh) 0;
     background-color: var(--group-bg);
     box-shadow: var(--shadow);
     border: var(--group-border);
@@ -208,7 +188,7 @@ header.page .title {
 .menu > nav > * {
     cursor: default;
     margin: 0;
-    padding: 0 var(--m-menu-w);
+    padding: 0 var(--menu-mw);
 }
 .menu > nav > a, .menu > nav > button {
     display: flex;
@@ -230,7 +210,7 @@ header.page .title {
     background-color: var(--item-active-bg);
 }
 .menu > nav > hr {
-    margin: var(--m-menu-h) 0;
+    margin: var(--menu-mh) 0;
     padding: 0;
     border: none;
     border-top: var(--divider-border);
@@ -242,15 +222,13 @@ header.page .title {
     top: 0;
     left: 0;
     right: 0;
-    margin: var(--margin) calc(var(--margin) * 2);
+    margin: var(--notification-mh) var(--notification-mw);
 
     display: grid;
     grid-template-columns: 1fr minmax(auto, 40rem) 1fr;
-    gap: calc(var(--margin) / 2);
+    gap: var(--base-mh);
 }
-@media all and (max-width: 30rem) {
-    .notification-overlay { margin: var(--margin) var(--margin); }
-}
+
 .notification {
     grid-column: 2;
 
@@ -264,17 +242,17 @@ header.page .title {
 }
 .notification:hover { background-color: var(--userlink-hover-fg); }
 .notification:active { background-color: var(--userlink-active-fg); }
-.notification .contents { margin: 4px 8px; }
+.notification .contents { margin: var(--ctrl-mh) var(--ctrl-mw); }
 
-.notification-enter-active { transition: all 200ms ease-out; }
-.notification-leave-active { transition: all 200ms ease-in; }
+.notification-enter-active { transition: all var(--notification-fade-time) ease-out; }
+.notification-leave-active { transition: all var(--notification-fade-time) ease-in; }
 .notification-enter, .notification-leave-to {
     opacity: 0;
     scale: 1 0.5;
 }
 
 .page.footer {
-    padding: 16px 16px 8px;
+    padding: var(--page-pw) var(--page-pw) var(--page-ph);
     text-align: center;
 }
 .status-text, .status-text a, .whats-new .issue, .whats-new .issue a {
@@ -288,10 +266,9 @@ header.page .title {
 
 /* Ephemeral input boxes (shouldn't look like such until you click on them) */
 .ephemeral {
-    margin: var(--m-ephemeral-h) var(--m-ephemeral-w);
-    padding: var(--p-ephemeral-h) var(--p-ephemeral-w);
+    margin: var(--ephemeral-mh) var(--ephemeral-mw);
+    padding: var(--ephemeral-ph) var(--ephemeral-pw);
     border: none;
-    border-radius: 2px;
     background: transparent;
     min-width: 2em;
     text-overflow: ellipsis;
@@ -302,10 +279,10 @@ header.page .title {
 
 /* Website Icons (favicons) and misc. other icons (that aren't buttons) */
 .icon {
-    width: 16px;
-    height: 16px;
+    width: var(--icon-size);
+    height: var(--icon-size);
     background-position: 50% 50%;
-    background-size: 16px 16px;
+    background-size: var(--icon-size) var(--icon-size);
     background-repeat: no-repeat;
 }
 
@@ -315,7 +292,7 @@ button, input, select {
 
     font: caption;
     color: var(--page-fg);
-    padding: var(--p-ctrl-h) var(--p-ctrl-w);
+    padding: var(--ctrl-ph) var(--ctrl-pw);
 
     vertical-align: middle;
     white-space: nowrap;
@@ -323,6 +300,9 @@ button, input, select {
 input {
     background-color: var(--ctrl-bg);
     border: var(--ctrl-border);
+}
+input[type=text], input[type=search], input[type=password], textarea {
+    border-radius: var(--input-text-border-radius);
 }
 button, select, .action {
     border: none;
@@ -333,11 +313,11 @@ select {
     appearance: none;
     -moz-appearance: none;
     -webkit-appearance: none;
-    background-image: var(--select-arrow);
-    background-position: right var(--p-ctrl-w) top 50%;
+    background-image: var(--icon-select-disclosure);
+    background-position: right var(--ctrl-pw) top 50%;
     background-size: 12px;
     background-repeat: no-repeat;
-    padding-right: calc(var(--p-ctrl-w) + 12px);
+    padding-right: calc(var(--ctrl-pw) + 12px);
 }
 option {
     font: caption;
@@ -353,12 +333,12 @@ button:active, select:active { background-color: var(--button-active-bg); }
 .action {
     display: inline-block;
     box-sizing: border-box;
-    width: 24px;
-    height: 24px;
-    padding: 4px 4px;
+    width: var(--icon-btn-size);
+    height: var(--icon-btn-size);
+    padding: var(--icon-p);
     text-align: center;
     vertical-align: middle;
-    background-size: 16px 16px;
+    background-size: var(--icon-size) var(--icon-size);
     background-position: center;
     background-repeat: no-repeat;
     background-color: transparent;
@@ -433,7 +413,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 
 .folder .header {
     margin: 6px 0;
-    padding: 6px 16px 4px;
+    padding: 6px var(--page-pw) 4px;
     display: grid;
     grid-template-columns: 0fr 1fr 0fr 0fr;
     align-items: center;
@@ -447,7 +427,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     font: caption;
     font-weight: bold;
     font-size: 13pt;
-    margin-left: -3px;
+    margin-left: calc(0px - var(--ephemeral-pw));
 }
 .folder-name.disabled { color: var(--disabled-fg); }
 .folder .header nav.action-btnbox {
@@ -472,7 +452,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .folder .contents {
     list-style: none;
     padding: 0;
-    margin: 0 0 var(--m-folder-bottom) 0;
+    margin: 0 0 var(--page-ph) 0;
 }
 .folder .contents .tabs {
     min-height: 12px;
@@ -482,10 +462,12 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 /* Tab entries and other folder contents (e.g. count of hidden tabs) */
 .folder-item {
     display: grid;
-    grid-template-columns: 0fr 22px 1fr 0fr;
+    // grid-template-columns: 0fr calc(var(--icon-size) + 2 * var(--itemlet-mw)) 1fr 0fr;
+    grid-template-columns: 0fr 0fr 1fr 0fr;
+    /* cannot use a gap here because then indented items wouldn't line up */
     align-items: center;
-    padding: 0 16px;
-    height: 24px; /* matches .action height XXX */
+    padding: 0 var(--page-pw);
+    height: var(--item-h);
 }
 .folder-item:not(.disabled):hover, .folder-item:not(.disabled):focus-within {
     background-color: var(--userlink-hover-bg);
@@ -500,7 +482,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     list-style: none;
 }
 .folder-item > * {
-    margin: 0 3px;
+    margin: 0 var(--itemlet-mw);
     padding: 0;
 }
 .folder-item > .indent {
@@ -510,7 +492,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     flex-direction: row;
     flex: 0 0;
 }
-.indent-spacer { display: inline-block; width: 16px; }
+.indent-spacer { display: inline-block; width: var(--indent-w); }
 .folder-item > .icon {
     grid-row: 1;
     grid-column: 2;
@@ -519,9 +501,9 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 .folder-item > .text {
     grid-row: 1;
     grid-column: 3;
-    height: 24px; /* matches folder-item height XXX */
+    height: var(--item-h);
     /* to vertically center text while text-overflow: ellipsis; */
-    line-height: 24px; /* matches folder-item height XXX */
+    line-height: var(--item-h);
 }
 /* don't double-highlight folder item text */
 .folder-item a:hover, .folder-item a:focus-within, .folder-item a:active {
@@ -570,15 +552,15 @@ span.folder-name, .folder-item > .text {
  ***/
 
 .tab-view header {
-    padding-left: var(--margin);
-    padding-right: var(--margin);
+    padding-left: var(--base-mw);
+    padding-right: var(--base-mw);
 }
 
 .tab-view .folder-list {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: stretch;
-    margin: 0 calc(var(--margin) / 2);
+    margin: 0 var(--base-mh);
 }
 .tab-view .one-column .folder {
     flex: 1 1 auto;
@@ -586,7 +568,7 @@ span.folder-name, .folder-item > .text {
 }
 .tab-view .folder {
     flex: 1 1 25rem;
-    margin: calc(var(--margin) / 2);
+    margin: var(--base-mh);
     background-color: var(--group-bg);
     border: var(--group-border);
     box-shadow: var(--shadow);
@@ -602,7 +584,7 @@ span.folder-name, .folder-item > .text {
 
 .tab-view .folder .header { flex: 0 0 auto; }
 .tab-view .folder .header nav {
-    margin-left: 3px;
+    margin-left: var(--itemlet-mw);
 }
 
 .tab-view .folder .contents {
@@ -629,23 +611,15 @@ span.folder-name, .folder-item > .text {
  * stash list.
  ***/
 
-.whats-new .folder .contents {
+.whats-new .folder ul.contents {
     padding: 0;
-    margin-left: 32px;
-    margin-right: 16px;
+    margin-left: calc(var(--page-pw) + var(--indent-w));
+    margin-right: var(--page-pw);
     margin-top: 0;
     list-style: disc;
 }
-.whats-new ul {
-    margin: 0 0 0 32px;
-    padding: 0;
-}
 .whats-new li {
-    margin: 8px 0;
-}
-
-.whats-new.tab-view .status-text {
-    margin-bottom: 1em;
+    margin: var(--ctrl-mh) 0;
 }
 
 .whats-new .new,
@@ -653,16 +627,17 @@ span.folder-name, .folder-item > .text {
 {
     font-variant: small-caps;
     font-weight: bold;
-    border-radius: 4px;
-    padding: 0 4px;
+    border-radius: var(--input-text-border-radius);
+    padding: 0 var(--icon-p);
 }
 
+.whats-new .new { background-color: var(--read-bg); }
 .whats-new .added { background-color: var(--read-bg); }
 .whats-new .improved { background-color: var(--create-bg); }
 .whats-new .fixed { background-color: var(--update-bg); }
 .whats-new .removed { background-color: var(--delete-bg); }
 
 .whats-new img.inl {
-    height: 16px;
+    height: var(--icon-size);
     vertical-align: bottom;
 }

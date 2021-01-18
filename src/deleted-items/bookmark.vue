@@ -4,6 +4,7 @@
 </div>
 <div v-else class="folder-item deleted action-container">
     <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
+    <span v-else class="icon" />
     <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
     <ButtonBox>
         <Button class="stash one" tooltip="Restore" @action="restore" />

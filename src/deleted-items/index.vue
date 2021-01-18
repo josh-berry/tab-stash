@@ -10,7 +10,7 @@
     <div class="folder-list one-column">
         <div v-for="group of filter_results" :key="group.title" class="folder">
             <div class="header">
-                <div class="folder-name disabled">Deleted {{group.title}}</div>
+                <div class="folder-name ephemeral disabled">Deleted {{group.title}}</div>
             </div>
             <ul class="contents">
                 <li v-for="rec of group.records" :key="rec.key">
