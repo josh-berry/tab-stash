@@ -1,3 +1,6 @@
+/*
+ * COLOR AND ICON DEFINITIONS (as CSS vars)
+ */
 @import "theme-light";
 @media (prefers-color-scheme: dark) {
     @import "theme-dark";
@@ -383,12 +386,32 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     border-bottom-right-radius: var(--ctrl-border-radius);
 }
 
-/* Specific Actions */
+/* Specific Actions / Icons */
+.icon-folder { background-image: var(--icon-folder); }
+
+.action {
+    &.mainmenu { background-image: var(--icon-mainmenu); }
+    &.collapse { background-image: var(--icon-collapse-closed); }
+    &.expand { background-image: var(--icon-collapse-open); }
+    &.cancel { background-image: var(--icon-cancel); }
+    &.stash { background-image: var(--icon-stash); }
+    &.stash.one { background-image: var(--icon-stash-one); }
+    &.stash.newgroup { background-image: var(--icon-new-empty-group); }
+    &.restore { background-image: var(--icon-restore); }
+    &.restore-remove { background-image: var(--icon-restore-del); }
+    &.remove { background-image: var(--icon-delete); }
+    &.remove.stashed { background-image: var(--icon-delete-stashed); }
+    &.remove.opened { background-image: var(--icon-delete-opened); }
+    &.back { background-image: var(--icon-back); }
+}
+
+.notification .action.cancel { background-image: var(--icon-cancel-inverse); }
+
 .action-container:hover .action {
-    .def(@stem) {
-        background-color: var(e("--@{stem}-bg"));
-        &:hover { background-color: var(e("--@{stem}-hover-bg")); }
-        &:active { background-color: var(e("--@{stem}-active-bg")); }
+    .def(@color) {
+        background-color: var(e("--@{color}-bg"));
+        &:hover { background-color: var(e("--@{color}-hover-bg")); }
+        &:active { background-color: var(e("--@{color}-active-bg")); }
     }
     &.stash { .def(create); }
     &.restore { .def(read); }

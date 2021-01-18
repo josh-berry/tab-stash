@@ -1,3 +1,5 @@
+@import "icon-vars";
+
 html {
     --modal-bg: rgba(0, 0, 0, 0.3);
 
@@ -45,19 +47,4 @@ html.tab-view {
     --page-bg: #efefef;
 }
 
-/* Specific Actions */
-.icon-folder { background-image: url(icons/light/folder.svg); }
-.action.mainmenu { background-image: url(icons/light/mainmenu.svg); }
-.action.collapse { background-image: url(icons/light/collapse-closed.svg); }
-.action.expand { background-image: url(icons/light/collapse-open.svg); }
-.action.cancel { background-image: url(icons/light/cancel.svg); }
-.notification .action.cancel { background-image: url(icons/dark/cancel.svg); }
-.action.stash { background-image: url(icons/light/stash.svg); }
-.action.stash.one { background-image: url(icons/light/stash-one.svg); }
-.action.stash.newgroup { background-image: url(icons/light/new-empty-group.svg); }
-.action.restore { background-image: url(icons/light/restore.svg); }
-.action.restore-remove { background-image: url(icons/light/restore-del.svg); }
-.action.remove { background-image: url(icons/light/delete.svg); }
-.action.remove.stashed { background-image: url(icons/light/delete-stashed.svg); }
-.action.remove.opened { background-image: url(icons/light/delete-opened.svg); }
-.action.back { background-image: url(icons/light/back.svg); }
+.icon-vars(@theme: light, @inverse: dark);

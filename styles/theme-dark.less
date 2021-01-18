@@ -1,6 +1,8 @@
 /* This is basically a set of modifications to the light theme, so best to start
 there first. */
 
+@import "icon-vars";
+
 html {
     --modal-bg: rgba(0, 0, 0, 0.5);
 
@@ -58,18 +60,4 @@ input:focus {
     border-color: rgba(255, 255, 255, 0.32);
 }
 
-.icon-folder { background-image: url(icons/dark/folder.svg); }
-.action.mainmenu { background-image: url(icons/dark/mainmenu.svg); }
-.action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
-.action.expand { background-image: url(icons/dark/collapse-open.svg); }
-.action.cancel { background-image: url(icons/dark/cancel.svg); }
-.notification .action.cancel { background-image: url(icons/light/cancel.svg); }
-.action.stash { background-image: url(icons/dark/stash.svg); }
-.action.stash.one { background-image: url(icons/dark/stash-one.svg); }
-.action.stash.newgroup { background-image: url(icons/dark/new-empty-group.svg); }
-.action.restore { background-image: url(icons/dark/restore.svg); }
-.action.restore-remove { background-image: url(icons/dark/restore-del.svg); }
-.action.remove { background-image: url(icons/dark/delete.svg); }
-.action.remove.stashed { background-image: url(icons/dark/delete-stashed.svg); }
-.action.remove.opened { background-image: url(icons/dark/delete-opened.svg); }
-.action.back { background-image: url(icons/dark/back.svg); }
+.icon-vars(@theme: dark, @inverse: light);
