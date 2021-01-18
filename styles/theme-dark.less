@@ -1,0 +1,75 @@
+/* This is basically a set of modifications to the light theme, so best to start
+there first. */
+
+html {
+    --modal-bg: rgba(0, 0, 0, 0.5);
+
+    --page-bg: #2a2a2e;
+    --page-fg: #f9f9fa;
+    --disabled-fg: #a0a4ac;
+    --link-fg: #e0e0e2;
+    --userlink-fg: #80bfff;
+    --userlink-hover-fg: #57abff;
+    --userlink-hover-bg: var(--button-bg);
+    --userlink-active-fg: #2e96ff;
+    --userlink-active-bg: var(--button-hover-bg);
+
+    --scroll-bar: #242426;
+    --scroll-handle: #48484e;
+
+    --ctrl-bg: #2a2a2e;
+    --ctrl-border-clr: rgba(255, 255, 255, 0.34);
+    --button-bg: rgba(255, 255, 255, 0.2);
+    --button-hover-bg: rgba(255, 255, 255, 0.27);
+    --button-active-bg: rgba(255, 255, 255, 0.34);
+    --select-arrow: url(icons/dark/collapse-open.svg);
+
+    --group-bg: #48484e;
+    --group-border: 1px solid #3a3a3e;
+    --group-disabled-bg: #3a3a3e;
+    --group-disabled-border: 1px solid #3a3a3e;
+
+    /* CRUD colors */
+    --create-bg: #3d6899;
+    --create-hover-bg: #4779b2;
+    --create-active-bg: #518acc;
+    --read-bg: #337f42;
+    --read-hover-bg: #3d994f;
+    --read-active-bg: #47b25c;
+    --update-bg: #727216;
+    --update-hover-bg: #8c8c1c;
+    --update-active-bg: #a5a521;
+    --delete-bg: #7f5151;
+    --delete-hover-bg: #996161;
+    --delete-active-bg: #b27272;
+}
+
+html.tab-view {
+    --page-bg: #2a2a2e;
+    --scroll-bar: #2a2a2e;
+}
+
+body.options { background-color: #202023; color: var(--page-fg); }
+
+
+input { color: var(--page-fg); }
+input:focus {
+    background-color: #2a2a2e;
+    border-color: rgba(255, 255, 255, 0.32);
+}
+
+.icon-folder { background-image: url(icons/dark/folder.svg); }
+.action.mainmenu { background-image: url(icons/dark/mainmenu.svg); }
+.action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
+.action.expand { background-image: url(icons/dark/collapse-open.svg); }
+.action.cancel { background-image: url(icons/dark/cancel.svg); }
+.notification .action.cancel { background-image: url(icons/light/cancel.svg); }
+.action.stash { background-image: url(icons/dark/stash.svg); }
+.action.stash.one { background-image: url(icons/dark/stash-one.svg); }
+.action.stash.newgroup { background-image: url(icons/dark/new-empty-group.svg); }
+.action.restore { background-image: url(icons/dark/restore.svg); }
+.action.restore-remove { background-image: url(icons/dark/restore-del.svg); }
+.action.remove { background-image: url(icons/dark/delete.svg); }
+.action.remove.stashed { background-image: url(icons/dark/delete-stashed.svg); }
+.action.remove.opened { background-image: url(icons/dark/delete-opened.svg); }
+.action.back { background-image: url(icons/dark/back.svg); }

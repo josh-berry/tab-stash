@@ -1,0 +1,63 @@
+html {
+    --modal-bg: rgba(0, 0, 0, 0.3);
+
+    --page-bg: #ffffff;
+    --page-fg: #222426;
+    --disabled-fg: #889099;
+    --link-fg: #44484c;
+    --userlink-fg: #287acc;
+    --userlink-hover-fg: #448fda;
+    --userlink-hover-bg: var(--button-bg);
+    --userlink-active-fg: #66a3e1;
+    --userlink-active-bg: var(--button-hover-bg);
+
+    --scroll-bar: #efefef;
+    --scroll-handle: #d8d8d8;
+
+    --ctrl-bg: #ffffff;
+    --ctrl-border-clr: rgba(0, 0, 0, 0.21);
+    --button-bg: rgba(0, 0, 0, 0.07);
+    --button-hover-bg: rgba(0, 0, 0, 0.14);
+    --button-active-bg: rgba(0, 0, 0, 0.21);
+    --select-arrow: url(icons/light/collapse-open.svg);
+
+    --group-bg: #ffffff;
+    --group-border: 1px solid #c0c0c0;
+    --group-disabled-bg: #f4f4f4;
+    --group-disabled-border: 1px solid #d8d8d8;
+
+    /* CRUD colors */
+    --create-bg: #cce5ff;
+    --create-hover-bg: #b7cee5;
+    --create-active-bg: #a3b7cc;
+    --read-bg: #b0ffc0;
+    --read-hover-bg: #9ee5ac;
+    --read-active-bg: #8ccc99;
+    --update-bg: #f0f090;
+    --update-hover-bg: #d6d680;
+    --update-active-bg: #bcbc71;
+    --delete-bg: #ffe0e0;
+    --delete-hover-bg: #e5c9c9;
+    --delete-active-bg: #ccb3b3;
+}
+
+html.tab-view {
+    --page-bg: #efefef;
+}
+
+/* Specific Actions */
+.icon-folder { background-image: url(icons/light/folder.svg); }
+.action.mainmenu { background-image: url(icons/light/mainmenu.svg); }
+.action.collapse { background-image: url(icons/light/collapse-closed.svg); }
+.action.expand { background-image: url(icons/light/collapse-open.svg); }
+.action.cancel { background-image: url(icons/light/cancel.svg); }
+.notification .action.cancel { background-image: url(icons/dark/cancel.svg); }
+.action.stash { background-image: url(icons/light/stash.svg); }
+.action.stash.one { background-image: url(icons/light/stash-one.svg); }
+.action.stash.newgroup { background-image: url(icons/light/new-empty-group.svg); }
+.action.restore { background-image: url(icons/light/restore.svg); }
+.action.restore-remove { background-image: url(icons/light/restore-del.svg); }
+.action.remove { background-image: url(icons/light/delete.svg); }
+.action.remove.stashed { background-image: url(icons/light/delete-stashed.svg); }
+.action.remove.opened { background-image: url(icons/light/delete-opened.svg); }
+.action.back { background-image: url(icons/light/back.svg); }

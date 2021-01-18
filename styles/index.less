@@ -1,30 +1,10 @@
-/* Colors */
+@import "theme-light";
+@media (prefers-color-scheme: dark) {
+    @import "theme-dark";
+}
 
+/* Colors common to both themes (mainly accents like shadows/dividers): */
 html {
-    --modal-bg: rgba(0, 0, 0, 0.3);
-
-    --page-bg: #ffffff;
-    --page-fg: #222426;
-    --link-fg: #44484c;
-    --userlink-fg: #287acc;
-    --userlink-hover-fg: #448fda;
-    --userlink-hover-bg: var(--button-bg);
-    --userlink-active-fg: #66a3e1;
-    --userlink-active-bg: var(--button-hover-bg);
-
-    --scroll-bar: #efefef;
-    --scroll-handle: #d8d8d8;
-
-    --ctrl-bg: #ffffff;
-    --ctrl-border-clr: rgba(0, 0, 0, 0.21);
-    --button-bg: rgba(0, 0, 0, 0.07);
-    --button-hover-bg: rgba(0, 0, 0, 0.14);
-    --button-active-bg: rgba(0, 0, 0, 0.21);
-    --select-arrow: url(icons/light/collapse-open.svg);
-
-    --group-bg: #ffffff;
-    --group-border: 1px solid #c0c0c0;
-
     --divider-border: 1px solid var(--ctrl-border-clr);
 
     --item-hover-bg: var(--button-bg);
@@ -33,41 +13,6 @@ html {
     --shadow: 2px 2px 4px rgba(0, 0, 0, 0.23);
     --shadow-heavy: 2px 2px 6px rgba(0, 0, 0, 0.29);
     --shadow-faint: 2px 2px 4px rgba(0, 0, 0, 0.19);
-}
-
-html.tab-view {
-    --page-bg: #efefef;
-}
-
-@media (prefers-color-scheme: dark) {
-    html {
-        --modal-bg: rgba(0, 0, 0, 0.5);
-
-        --page-bg: #2a2a2e;
-        --page-fg: #f9f9fa;
-        --link-fg: #e0e0e2;
-        --userlink-fg: #80bfff;
-        --userlink-hover-fg: #57abff;
-        --userlink-active-fg: #2e96ff;
-
-        --scroll-bar: #242426;
-        --scroll-handle: #48484e;
-
-        --ctrl-bg: #2a2a2e;
-        --ctrl-border-clr: rgba(255, 255, 255, 0.34);
-        --button-bg: rgba(255, 255, 255, 0.2);
-        --button-hover-bg: rgba(255, 255, 255, 0.27);
-        --button-active-bg: rgba(255, 255, 255, 0.34);
-        --select-arrow: url(icons/dark/collapse-open.svg);
-
-        --group-bg: #48484e;
-        --group-border: 1px solid #3a3a3e;
-    }
-
-    html.tab-view {
-        --page-bg: #2a2a2e;
-        --scroll-bar: #2a2a2e;
-    }
 }
 
 /*
@@ -330,7 +275,7 @@ header.page .title {
     text-align: center;
 }
 .status-text, .status-text a, .whats-new .issue, .whats-new .issue a {
-    color: #889099;
+    color: var(--disabled-fg);
     font-style: italic;
 }
 .status-text a:hover, .whats-new .issue a:hover {
@@ -439,57 +384,16 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
 }
 
 /* Specific Actions */
-.icon-folder { background-image: url(icons/light/folder.svg); }
-.action.mainmenu { background-image: url(icons/light/mainmenu.svg); }
-.action.collapse { background-image: url(icons/light/collapse-closed.svg); }
-.action.expand { background-image: url(icons/light/collapse-open.svg); }
-.action.cancel { background-image: url(icons/light/cancel.svg); }
-.notification .action.cancel { background-image: url(icons/dark/cancel.svg); }
-.action.stash { background-image: url(icons/light/stash.svg); }
-.action.stash.one { background-image: url(icons/light/stash-one.svg); }
-.action.stash.newgroup { background-image: url(icons/light/new-empty-group.svg); }
-.action.restore { background-image: url(icons/light/restore.svg); }
-.action.restore-remove { background-image: url(icons/light/restore-del.svg); }
-.action.remove { background-image: url(icons/light/delete.svg); }
-.action.remove.stashed { background-image: url(icons/light/delete-stashed.svg); }
-.action.remove.opened { background-image: url(icons/light/delete-opened.svg); }
-.action.back { background-image: url(icons/light/back.svg); }
-
-.action-container:hover .action.stash, .whats-new .improved {
-    background-color: #cce5ff;
-}
-.action-container:hover .action.stash:hover {
-    background-color: #b7cee5;
-}
-.action-container:hover .action.stash:active {
-    background-color: #a3b7cc;
-}
-.action-container:hover .action.restore, .whats-new .added, .whats-new .new {
-    background-color: #b0ffc0;
-}
-.action-container:hover .action.restore:hover {
-    background-color: #9ee5ac;
-}
-.action-container:hover .action.restore:active {
-    background-color: #8ccc99;
-}
-.action-container:hover .action.restore-remove, .whats-new .fixed {
-    background-color: #f0f090;
-}
-.action-container:hover .action.restore-remove:hover {
-    background-color: #d6d680;
-}
-.action-container:hover .action.restore-remove:active {
-    background-color: #bcbc71;
-}
-.action-container:hover .action.remove, .whats-new .removed {
-    background-color: #ffe0e0;
-}
-.action-container:hover .action.remove:hover {
-    background-color: #e5c9c9;
-}
-.action-container:hover .action.remove:active {
-    background-color: #ccb3b3;
+.action-container:hover .action {
+    .def(@stem) {
+        background-color: var(e("--@{stem}-bg"));
+        &:hover { background-color: var(e("--@{stem}-hover-bg")); }
+        &:active { background-color: var(e("--@{stem}-active-bg")); }
+    }
+    &.stash { .def(create); }
+    &.restore { .def(read); }
+    &.restore-remove { .def(update); }
+    &.remove { .def(delete); }
 }
 
 /* Folders */
@@ -522,7 +426,7 @@ nav.action-container > :last-child, nav.action-container .last-toolbar-button {
     font-size: 13pt;
     margin-left: -3px;
 }
-.folder-name.disabled { color: rgba(128, 128, 128); }
+.folder-name.disabled { color: var(--disabled-fg); }
 .folder .header nav.action-btnbox {
     grid-row: 2;
     grid-column: 1;
@@ -627,7 +531,7 @@ span.folder-name, .folder-item > .text {
 { display: flex; }
 
 .collapsed.folder .header { margin-bottom: 0px; }
-.collapsed.folder .contents { display: none; }
+.collapsed.folder .contents { display: none !important; }
 .collapsed.folder .action.collapse { display: inline-block; }
 
 /* Drag-and-Drop */
@@ -668,8 +572,8 @@ span.folder-name, .folder-item > .text {
     flex-direction: column;
 }
 .tab-view .collapsed.folder {
-    background: #f4f4f4;
-    border: 1px solid #d8d8d8;
+    background: var(--group-disabled-bg);
+    border: var(--group-disabled-border);
     box-shadow: var(--shadow-faint);
 }
 
@@ -730,89 +634,12 @@ span.folder-name, .folder-item > .text {
     padding: 0 4px;
 }
 
+.whats-new .added { background-color: var(--read-bg); }
+.whats-new .improved { background-color: var(--create-bg); }
+.whats-new .fixed { background-color: var(--update-bg); }
+.whats-new .removed { background-color: var(--delete-bg); }
+
 .whats-new img.inl {
     height: 16px;
     vertical-align: bottom;
-}
-
-
-
-/*
- * Dark theme; this is at the bottom so it takes precedence over
- * everything else above.
- */
-@media (prefers-color-scheme: dark) {
-    body.options { background-color: #202023; color: var(--page-fg); }
-
-    .status-text, .status-text a, .whats-new .issue {
-        color: #a0a4ac;
-    }
-
-    input { color: var(--page-fg); }
-    input:focus {
-        background-color: #2a2a2e;
-        border-color: rgba(255, 255, 255, 0.32);
-    }
-
-    .icon-folder { background-image: url(icons/dark/folder.svg); }
-    .action.mainmenu { background-image: url(icons/dark/mainmenu.svg); }
-    .action.collapse { background-image: url(icons/dark/collapse-closed.svg); }
-    .action.expand { background-image: url(icons/dark/collapse-open.svg); }
-    .action.cancel { background-image: url(icons/dark/cancel.svg); }
-    .notification .action.cancel { background-image: url(icons/light/cancel.svg); }
-    .action.stash { background-image: url(icons/dark/stash.svg); }
-    .action.stash.one { background-image: url(icons/dark/stash-one.svg); }
-    .action.stash.newgroup { background-image: url(icons/dark/new-empty-group.svg); }
-    .action.restore { background-image: url(icons/dark/restore.svg); }
-    .action.restore-remove { background-image: url(icons/dark/restore-del.svg); }
-    .action.remove { background-image: url(icons/dark/delete.svg); }
-    .action.remove.stashed { background-image: url(icons/dark/delete-stashed.svg); }
-    .action.remove.opened { background-image: url(icons/dark/delete-opened.svg); }
-    .action.back { background-image: url(icons/dark/back.svg); }
-
-    .action-container:hover .action.stash, .whats-new .improved {
-        background-color: #3d6899;
-    }
-    .action-container:hover .action.stash:hover {
-        background-color: #4779b2;
-    }
-    .action-container:hover .action.stash:active {
-        background-color: #518acc;
-    }
-    .action-container:hover .action.restore, .whats-new .added {
-        background-color: #337f42;
-    }
-    .action-container:hover .action.restore:hover {
-        background-color: #3d994f;
-    }
-    .action-container:hover .action.restore:active {
-        background-color: #47b25c;
-    }
-    .action-container:hover .action.restore-remove, .whats-new .fixed {
-        background-color: #727216;
-    }
-    .action-container:hover .action.restore-remove:hover {
-        background-color: #8c8c1c;
-    }
-    .action-container:hover .action.restore-remove:active {
-        background-color: #a5a521;
-    }
-    .action-container:hover .action.remove, .whats-new .removed {
-        background-color: #7f5151;
-    }
-    .action-container:hover .action.remove:hover {
-        background-color: #996161;
-    }
-    .action-container:hover .action.remove:active {
-        background-color: #b27272;
-    }
-
-    .folder-name.disabled { color: #c0c0c0; }
-
-    .sortable-ghost { background-color: rgba(255, 255, 255, 0.16); }
-
-    .tab-view .collapsed.folder {
-        background: #3a3a3e;
-        border-color: #3a3a3e;
-    }
 }
