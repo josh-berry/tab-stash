@@ -50,11 +50,14 @@ describe('model', function() {
                     const dbbm = model.bms_by_id.get(r.id);
                     expect(r, `${r.id} to be indexed in bms_by_id`)
                         .to.equal(dbbm);
-                } else if (r instanceof M.Tab) {
+                } else /* istanbul ignore else */ if (r instanceof M.Tab) {
                     expect(r.isTab).to.equal(true);
                     const dbt = model.tabs_by_id.get(r.id);
                     expect(r, `${r.id} to be indexed in tabs_by_id`)
                         .to.equal(dbt);
+                } else {
+                    expect(true, `undefined value in related items for ${url}`)
+                        .to.be.false;
                 }
             }
         }
@@ -180,6 +183,7 @@ describe('model', function() {
 
             for (let i = 0; i < w.children.length; ++i) {
                 const c = w.children[i];
+                // istanbul ignore if
                 if (c === undefined) continue;
                 expect(c.parent, `tab ${c.id} has win ${w.id} as its parent`)
                     .to.equal(w);
@@ -199,7 +203,7 @@ describe('model', function() {
 
     const mktab = (t: Partial<Tabs.Tab>): Tabs.Tab => ({
         id: t.id,
-        windowId: t.windowId || 0,
+        windowId: t.windowId || /* istanbul ignore next */ 0,
         index: t.index || 0,
         title: t.title,
         url: t.url,
@@ -223,11 +227,12 @@ describe('model', function() {
             left: w.left,
             width: w.width,
             height: w.height,
-            tabs: ! tabs ? undefined : tabs.map((t, i) => {
-                t.windowId = w.id || 1;
-                t.index = i;
-                return mktab(t);
-            }),
+            tabs: ! tabs ? /* istanbul ignore next */ undefined
+                : tabs.map((t, i) => {
+                    t.windowId = w.id || 1;
+                    t.index = i;
+                    return mktab(t);
+                }),
             incognito: w.incognito || false,
             type: w.type,
             state: w.state,
@@ -251,7 +256,8 @@ describe('model', function() {
         title: bm.title,
         url: bm.url,
         dateAdded: bm.dateAdded || 0,
-        type: bm.children ? 'folder' : (bm.url ? 'bookmark' : 'separator'),
+        type: bm.children ? 'folder'
+            : (bm.url ? 'bookmark' : /* istanbul ignore next */ 'separator'),
         children: bm.children
             ? bm.children.map((c, i) => mkbm({
                 id: c.id,

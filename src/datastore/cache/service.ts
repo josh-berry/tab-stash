@@ -205,6 +205,8 @@ export class CacheService<Content extends Send>
     get next_mutation_testonly(): Promise<void> {
         return this._mutate_task();
     }
+
+    // istanbul ignore next
     force_gc_on_next_mutation_testonly() {
         if (this._gen < GC_THRESHOLD) this._gen = GC_THRESHOLD;
         this._pending.inc_gen = true;
@@ -283,9 +285,12 @@ export class CacheService<Content extends Send>
             // per se.  If that changes in future client implementations, we can
             // adjust the semantics of EntryMessage (or add a separate not-found
             // message) accordingly.
+            // istanbul ignore if - v.hard to test things that never happen
             if (! ent) continue;
 
             entries.push({key: ent.key, value: ent.value});
+
+            // istanbul ignore else - it's obvious fetch is idempotent
             if (! this._pending.updates.has(key)) {
                 this._pending.updates.set(key, undefined);
             }
@@ -339,6 +344,7 @@ export class CacheService<Content extends Send>
             let ent = await txn.store.get(key);
 
             if (! ent) {
+                // istanbul ignore else
                 if (value !== undefined) {
                     ent = {key, value, agen: this._gen};
                 } else {
@@ -382,7 +388,9 @@ export class CacheService<Content extends Send>
 
             if (updates.has(ent.key)) {
                 ent.agen = this._gen;
-                ent.value = updates.get(ent.key) || ent.value;
+                ent.value = updates.get(ent.key)
+                    // istanbul ignore next - not worth the effort of testing
+                    || ent.value;
                 updated.set(ent.key, ent.value);
                 updates.delete(ent.key);
             } else {

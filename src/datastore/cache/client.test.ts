@@ -156,6 +156,16 @@ describe('datastore/cache/client', function() {
                await events.drain(2); // fetch/update pair
            });
 
+        it("ignores expirations from the service it's not interested in",
+            async function() {
+                service.set([{key: 'foo', value: 'bar'}]);
+                service.evict(['foo']);
+                await events.drain(2); // broadcasts from service
+
+                expect(cache.get('foo').value).to.be.undefined;
+                await events.drain(2); // fetch/update pair
+            });
+
         it("applies updates from the service to previously-requested objects",
            async function() {
                service.entries.set('foo', 'bar');

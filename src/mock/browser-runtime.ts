@@ -82,6 +82,7 @@ export default (() => {
 
                 connect(extn_id?: string, info?: {name?: string}): MockPort {
                     const id = exports.client_ports.length;
+                    // istanbul ignore next
                     const name = info?.name ? info.name : '<unnamed>';
                     const [client, server] = MockPort.make_pair(id, name);
 
@@ -97,15 +98,25 @@ export default (() => {
                     return client;
                 },
 
+                // istanbul ignore next
                 async getBackgroundPage() { throw "unimplemented"; },
+                // istanbul ignore next
                 async openOptionsPage() { throw "unimplemented"; },
+                // istanbul ignore next
                 getManifest(): Manifest.ManifestBase { throw "unimplemented"; },
+                // istanbul ignore next
                 getURL(path: string): string { throw "unimplemented"; },
+                // istanbul ignore next
                 async setUninstallURL(url?: string) { throw "unimplemented"; },
+                // istanbul ignore next
                 reload() { throw "unimplemented"; },
+                // istanbul ignore next
                 connectNative(app: string): Runtime.Port { throw "unimplemented"; },
+                // istanbul ignore next
                 async sendMessage() { throw "unimplemented"; },
+                // istanbul ignore next
                 async sendNativeMessage() { throw "unimplemented"; },
+                // istanbul ignore next
                 async getBrowserInfo() { throw "unimplemented"; },
 
                 onStartup: new events.MockEventDispatcher("onStartup"),

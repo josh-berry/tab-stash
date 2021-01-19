@@ -19,6 +19,7 @@ class MockStorageArea {
         this._events = events;
     }
 
+    // istanbul ignore next - implemented only to conform to the interface
     async getBytesInUse(): Promise<number> { return 0; }
 
     async get(keys: string | string[] | null): Promise<StorageObject> {
@@ -69,6 +70,7 @@ class MockStorageArea {
         return Promise.resolve();
     }
 
+    // istanbul ignore next - implemented only to conform to the interface
     async clear(): Promise<void> {
         await this.remove(Object.keys(this._storage));
     }
