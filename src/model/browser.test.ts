@@ -29,7 +29,7 @@ class MockFaviconCache {
     }
 }
 
-describe('model', function() {
+describe('model/browser', function() {
     //
     // This function defines all the invariants we expect to be true in the
     // model.
@@ -46,7 +46,7 @@ describe('model', function() {
                     .to.equal(url);
 
                 if (r instanceof M.Bookmark) {
-                    expect(r.isBookmark).to.equal(true);
+                    expect(r.isBookmark, `${r.id} to be a bookmark`).to.equal(true);
                     const dbbm = model.bms_by_id.get(r.id);
                     expect(r, `${r.id} to be indexed in bms_by_id`)
                         .to.equal(dbbm);
@@ -106,8 +106,8 @@ describe('model', function() {
 
             if (bm.parent !== undefined) {
                 const p = bm.parent;
-                expect(p.children).to.not.be.undefined;
-                expect(bm.index).to.not.be.undefined;
+                expect(p.children, `bm ${p.id} to have children`).to.not.be.undefined;
+                expect(bm.index, `bm ${bm.id} to have an index`).to.not.be.undefined;
                 expect(p.children![bm.index!],
                        `${bm.id} to be at index ${bm.index} in parent ${p.id}`)
                     .to.equal(bm);
@@ -160,10 +160,10 @@ describe('model', function() {
             const dbt = model.tabs_by_id.get(t.id);
             expect(t, `tab ${t.id} to be indexed in tabs_by_id`).to.equal(dbt);
 
-            expect(t.parent).to.not.be.undefined;
+            expect(t.parent, `tab ${t.id} has a parent`).to.not.be.undefined;
             const p = t.parent!;
-            expect(p.children).to.not.be.undefined;
-            expect(t.index).to.not.be.undefined;
+            expect(p.children, `tab ${p.id} to have children`).to.not.be.undefined;
+            expect(t.index, `tab ${t.id} to have an index`).to.not.be.undefined;
             expect(p.children![t.index!],
                    `tab ${t.id} to be at index ${t.index} in win ${p.id}`)
                 .to.equal(t);
@@ -510,16 +510,21 @@ describe('model', function() {
                 dateAdded: 1
             });
             check(model);
-            expect(model.bms_by_id.get('new')).to.include({
-                id: 'new', isBookmark: true, title: 'Foo', url: 'foo',
-                parent: model.bms_by_id.get('root'), index: 0,
-            });
-            expect(model.items_by_url.get(OU('foo')))
-                .to.eql([model.bms_by_id.get(OU('new'))]);
+            expect(model.bms_by_id.get('new'), `bms_by_id before remove`)
+                .to.include({
+                    id: 'new', isBookmark: true, title: 'Foo', url: 'foo',
+                    parent: model.bms_by_id.get('root'), index: 0,
+                });
+            expect(model.items_by_url.get(OU('foo')), `items_by_url before remove`)
+                .to.eql([model.bms_by_id.get('new')]);
+
             model._bookmark('new')._remove();
-            expect(model.bms_by_id.get(OU('new'))).to.equal(undefined);
-            expect(model.bookmarks.children).to.deep.equal([]);
-            expect(model.items_by_url.get(OU('foo'))).to.equal(undefined);
+            expect(model.bms_by_id.get('new'), `bms_by_id after remove`)
+                .to.equal(undefined);
+            expect(model.bookmarks.children, `children after remove`)
+                .to.deep.equal([]);
+            expect(model.items_by_url.get(OU('foo')), `items_by_url after remove`)
+                .to.equal(undefined);
             check(model);
         });
 
