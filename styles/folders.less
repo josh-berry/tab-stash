@@ -18,23 +18,22 @@
 
         display: grid;
         grid-template-columns: 1fr 0fr 0fr;
-        // Gives breathing room between folder-name and folder-actions.
-        row-gap: var(--itemlet-mh);
+        // Gives a little more breathing room between folder-name and
+        // folder-actions to accommodate any outline/shadow of the folder name
+        // (and because folder names tend to use bigger font sizes anyway).
+        row-gap: var(--input-text-ph);
         align-items: center;
 
         & > .folder-name {
             grid-row: 1;
             grid-column: 1;
 
-            padding: var(--itemlet-ph) var(--itemlet-pw);
+            padding: var(--input-text-ph) var(--input-text-pw);
 
             // Negative left margin ensures the text of the folder-name lines up
             // with the folder contents below, despite the padding above (which
             // is necessary so that an outlined folder-name looks decent).
-            margin-left: calc(0px - var(--itemlet-pw));
-            margin-right: var(--itemlet-mw);
-            margin-top: 0;
-            margin-bottom: 0;
+            margin-left: calc(0px - var(--input-text-pw));
 
             .text-overflow-ellipsis();
         }
@@ -105,7 +104,6 @@
 .folder-item {
     display: grid;
     grid-template-columns: 0fr 0fr 1fr 0fr; // indentation, icon, title, actions
-    // cannot use a gap here because then indented items wouldn't line up
     align-items: center;
     padding: 0 var(--page-pw);
     height: var(--item-h);
@@ -120,16 +118,10 @@
         }
     }
 
-    // Garden-variety folder items
-    & > * {
-        margin: 0 var(--itemlet-mw);
-        padding: 0;
-    }
-
     // The aforementioned indentation element
     & > .indent {
         display: inline-block;
-        width: var(--indent-w);
+        width: calc(var(--icon-size) + var(--ctrl-mw));
         grid-row: 1;
         grid-column: 1;
     }
@@ -145,6 +137,7 @@
         height: var(--item-h);
         /* to vertically center text while text-overflow: ellipsis; */
         line-height: var(--item-h);
+        margin-left: var(--ctrl-mw);
         .text-overflow-ellipsis();
     }
 
