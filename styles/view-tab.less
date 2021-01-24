@@ -4,7 +4,10 @@
     flex-direction: row;
     flex-wrap: wrap;
     align-items: stretch;
-    margin: 0 var(--base-mh);
+    // Same width and height since this is a grid
+    margin: var(--page-pw) var(--page-pw);
+    row-gap: var(--page-pw);
+    column-gap: var(--page-pw);
 }
 .one-column .folder {
     flex: 1 1 auto;
@@ -13,7 +16,6 @@
 
 .folder {
     flex: 1 1 25rem;
-    margin: var(--base-mh);
     background-color: var(--group-bg);
     border: var(--group-border);
     box-shadow: var(--shadow);

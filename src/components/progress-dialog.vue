@@ -1,6 +1,6 @@
 <template>
-<Dialog :class="{progress: true, [$style.progress]: true, cancellable: cancel}">
-    <ProgressItem :progress="progress" />
+<Dialog :class="{progress: true, cancellable: cancel}">
+    <ProgressItem class="toplevel" :progress="progress" />
     <button v-if="cancel" @click.prevent.stop="cancel()">
         Cancel
     </button>
@@ -23,22 +23,3 @@ export default Vue.extend({
     }
 });
 </script>
-
-<style module>
-.progress:not(:global(.cancellable)) {
-    cursor: wait;
-}
-.progress:global(.cancellable) {
-    cursor: progress;
-}
-
-.progress > :global(.dialog) {
-    display: grid;
-    grid-template-rows: 1fr;
-}
-
-.task {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-}
-</style>

@@ -19,7 +19,7 @@ html {
     --item-active-bg: var(--button-active-bg);
 
     --shadow: 2px 2px 4px rgba(0, 0, 0, 0.23);
-    --shadow-heavy: 2px 2px 6px rgba(0, 0, 0, 0.29);
+    --shadow-heavy: 4px 4px 8px rgba(0, 0, 0, 0.29);
     --shadow-faint: 2px 2px 4px rgba(0, 0, 0, 0.19);
 
     --icon-select-disclosure: var(--icon-collapse-open);
@@ -119,16 +119,26 @@ html {
 }
 
 // Progress Dialogs
-.progress > .dialog {
-    // Define a fixed width for progress dialogs so they're not constantly resizing
-    // as statuses are changing.
-    width: 50rem;
+.progress {
+    &.cancellable { cursor: progress; }
+    &:not(.cancellable) { cursor: wait; }
 
-    & > .progress-item {
-        margin: var(--menu-mh) 0;
-        ul {
-            margin: 0;
-            padding-left: var(--base-mw);
+    & > .dialog {
+        // Define a fixed width for progress dialogs so they're not constantly
+        // resizing as statuses are changing.
+        width: 50rem;
+
+        display: flex;
+        flex-direction: column;
+
+        .progress-item {
+            div {
+
+            }
+            ul {
+                margin: 0;
+                padding-left: var(--page-pw);
+            }
         }
     }
 }

@@ -1,11 +1,10 @@
 <template>
-    <div :class="{'progress-item': true, [$style.toplevel]: true}">
-        <span :class="$style.item">
-            <progress :class="$style.progress"
-                      :max="progress.max" :value="progress.value" />
-            <label :class="$style.status">{{progress.status}}</label>
-        </span>
-        <ul v-if="progress.children.length > 0" :class="$style.children">
+    <div class="progress-item">
+        <div>
+            <progress :max="progress.max" :value="progress.value" />
+            <label>{{progress.status}}</label>
+        </div>
+        <ul v-if="progress.children.length > 0">
             <Self v-for="c of progress.children" :key="c.id" :progress="c" />
         </ul>
     </div>
