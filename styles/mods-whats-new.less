@@ -1,0 +1,33 @@
+// A few small tweaks for the whats-new page so it has the same spacing as the
+// stash list.
+
+.folder > ul.contents {
+    padding: 0;
+    margin-left: calc(var(--page-pw) + var(--indent-w));
+    margin-right: var(--page-pw);
+    margin-top: 0;
+    list-style: disc;
+}
+li { margin: var(--ctrl-mh) 0; }
+
+span {
+    &.new, &.added, &.improved, &.fixed, &.removed {
+        font-variant: small-caps;
+        font-weight: bold;
+        border-radius: var(--input-text-border-radius);
+        padding: 0 var(--icon-p);
+    }
+
+    &.new { background-color: var(--read-bg); }
+    &.added { background-color: var(--read-bg); }
+    &.improved { background-color: var(--create-bg); }
+    &.fixed { background-color: var(--update-bg); }
+    &.removed { background-color: var(--delete-bg); }
+}
+
+img.inl {
+    height: var(--icon-size);
+    vertical-align: bottom;
+}
+
+.issue { .status-text(); }

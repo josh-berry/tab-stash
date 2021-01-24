@@ -1,5 +1,5 @@
 <template>
-  <nav class="action-container"
+  <nav class="action-group"
        @dragstart.stop.prevent="" @dragenter.stop="" @dragover.stop=""
        @mousedown.stop="" @pointerdown.stop=""
        @touchstart.stop="" @click.stop=""

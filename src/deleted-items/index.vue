@@ -8,17 +8,17 @@
                v-model="search">
     </header>
     <div class="folder-list one-column">
-        <div v-for="group of filter_results" :key="group.title" class="folder">
-            <div class="header">
-                <div class="folder-name ephemeral disabled">Deleted {{group.title}}</div>
-            </div>
+        <section v-for="group of filter_results" :key="group.title" class="folder">
+            <header>
+                <div class="folder-name disabled">Deleted {{group.title}}</div>
+            </header>
             <ul class="contents">
                 <li v-for="rec of group.records" :key="rec.key">
                     <Folder v-if="rec.item.children" :deletion="rec" />
                     <Bookmark v-else :deletion="rec" />
                 </li>
             </ul>
-        </div>
+        </section>
     </div>
     <LoadMore :identifier="search" @infinite="loadMore">
         <footer v-if="search" slot="no-results" class="page footer status-text">

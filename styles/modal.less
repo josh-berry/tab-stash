@@ -1,0 +1,85 @@
+// The modal backdrop used for dialogs
+.modal-backdrop {
+    background-color: var(--modal-bg);
+    & > * {
+        max-width: 100%;
+        max-height: 100%;
+        // Needed so padding is taken into account when sizing child elements
+        box-sizing: border-box;
+    }
+}
+.modal-backdrop-enter-active { transition: opacity var(--modal-fade-time) ease-out; }
+.modal-backdrop-leave-active { transition: opacity var(--modal-fade-time) ease-in; }
+.modal-backdrop-enter, .modal-backdrop-leave-to { opacity: 0; }
+
+// Dialogs themselves
+.dialog {
+    background-color: var(--group-bg);
+    border: var(--group-border);
+    box-shadow: var(--shadow);
+    padding: var(--dialog-ph) var(--dialog-pw);
+    display: grid;
+    row-gap: var(--ctrl-mh);
+    column-gap: var(--ctrl-mw);
+}
+
+// Pop-up menus (which may or may not use the modal backdrop)
+details.menu {
+    // The button to open the menu (the details's <summary>)
+    & > summary {
+        display: inline-block;
+        list-style: none; // no triangle on Firefox
+
+        &::-webkit-details-marker { display: none; } // no triangle on Chrome
+    }
+    &[open] > summary {
+        // Shadow the menu button to match the menu (below)
+        box-shadow: var(--shadow);
+    }
+    &[open] > summary.action {
+        // Open menus which are actions should always look part of the menu.
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+
+        // They should also be colorized to show the menu is open.
+        background-color: var(--button-hover-bg);
+    }
+
+    // The pop-up menu itself, showing a list of items
+    & > nav {
+        padding: var(--menu-mh) 0;
+        background-color: var(--group-bg);
+        box-shadow: var(--shadow);
+        border: var(--group-border);
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+
+        & > * {
+            cursor: default;
+            margin: 0;
+            padding: 0 var(--menu-mw);
+        }
+        & > a, & > button {
+            display: flex;
+            align-items: center;
+            min-height: 24px;
+            border: none;
+            border-radius: 0;
+            color: var(--link-fg);
+            text-decoration: none;
+            background: transparent;
+            text-align: left;
+            white-space: nowrap;
+
+            &:hover, &:focus-within { background-color: var(--item-hover-bg); }
+            &:active { background-color: var(--item-active-bg); }
+        }
+        & > hr {
+            margin: var(--menu-mh) 0;
+            padding: 0;
+            border: none;
+            border-top: var(--divider-border);
+        }
+    }
+}

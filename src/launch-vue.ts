@@ -17,9 +17,10 @@ export default function launch<
     const loader = async function() {
         switch (new URL(document.location.href).searchParams.get('view')) {
             case 'sidebar':
+                document.documentElement.classList.add('view-sidebar');
                 break;
             default:
-                document.documentElement.classList.add('tab-view');
+                document.documentElement.classList.add('view-tab');
                 break;
         }
 

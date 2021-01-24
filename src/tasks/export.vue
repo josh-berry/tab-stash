@@ -144,7 +144,12 @@ export default Vue.extend({
     flex-wrap: wrap;
 }
 
-.dlg > * > form > nav { display: flex; flex-direction: row; }
+.dlg > * > form > nav {
+    display: flex;
+    flex-direction: row;
+    row-gap: inherit;
+    column-gap: inherit;
+}
 .dlg > * > form > select, .dlg > * > form > nav { min-width: max-content; }
 .dlg > * > form > .help { flex-grow: 1; text-align: right; }
 

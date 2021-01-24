@@ -7,14 +7,14 @@
       extracted and converted into bookmarks in your stash.
     </label>
     <div ref="data" contenteditable="true" id="data" class="input"></div>
-    <div :class="$style.split_mode">
+    <form :class="$style.split_mode">
       <label for="splitOn">Split tabs into different groups on:</label>
       <select id="splitOn" v-model="splitOn">
         <option value="p+h">Paragraphs and Headers</option>
         <option value="h">Headers</option>
         <option value="">Nothing [all in one group]</option>
       </select>
-    </div>
+    </form>
     <button class="clickme" @click="start">Import</button>
   </Dialog>
 </template>

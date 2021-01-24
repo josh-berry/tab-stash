@@ -1,16 +1,17 @@
-/*
- * COLOR AND ICON DEFINITIONS (as CSS vars)
+//
+// COLOR AND ICON DEFINITIONS (as CSS vars)
+//
+// Suffixes:
+// *-fg     Foreground
+// *-bg     Background
+//
 
-   Suffixes:
-   *-fg     Foreground
-   *-bg     Background
- */
 @import "theme-light";
 @media (prefers-color-scheme: dark) {
     @import "theme-dark";
 }
 
-/* Colors common to both themes (mainly accents like shadows/dividers): */
+// Colors common to both themes (mainly accents like shadows/dividers):
 html {
     --divider-border: 1px solid var(--ctrl-border-clr);
 
@@ -26,258 +27,128 @@ html {
 
 
 
-/*
- * METRICS - WIDTHS, HEIGHTS AND OTHER MEASUREMENTS
+//
+// METRICS - WIDTHS, HEIGHTS AND OTHER MEASUREMENTS
+//
+// Suffixes: *-[mpg][whlrtb]
+//   mpg     - margin/padding/gap[within grid]
+//   whlrtb  - width/height/left/right/top/bottom
+//   -border - a full border: definition (including a theme color)
+//
 
-  Suffixes: *-[mpg][whlrtb]
-    mpg     - margin/padding/gap[within grid]
-    whlrtb  - width/height/left/right/top/bottom
-    -border - a full border: definition (including a theme color)
-*/
 @import "metrics-normal";
 @media (max-width: 30rem) {
     @import "metrics-narrow";
 }
 
 
-/* Styling */
 
-html {
-    font: caption;
-    -moz-user-select: none;
-    user-select: none;
-}
-html, body {
-    background-color: var(--page-bg);
-    color: var(--page-fg);
-    scrollbar-color: var(--scroll-handle) var(--scroll-bar);
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
-}
-main {
-    overflow: auto;
-    width: 100%;
-    height: 100%;
-}
-:focus {
-    box-shadow: var(--focus-shadow);
-    outline: none;
-}
-a, a:visited {
-    color: var(--userlink-fg);
-    text-decoration: underline;
-}
-a:hover, a:focus-within {
-    background-color: var(--userlink-hover-bg);
-    color: var(--userlink-hover-fg);
-}
-a:active, a:focus-within { box-shadow: none; }
-a:active {
-    background-color: var(--userlink-active-bg);
-    color: var(--userlink-active-fg);
-}
+//
+// GENERIC STYLING
+//
 
-.modal-backdrop {
-    background-color: var(--modal-bg);
-}
-.modal-backdrop > * {
-    max-width: 100%;
-    max-height: 100%;
-    /* Needed so padding is taken into account when sizing child elements */
-    box-sizing: border-box;
-}
-.dialog {
-    background-color: var(--group-bg);
-    border: var(--group-border);
-    box-shadow: var(--shadow);
-    padding: var(--dialog-ph) var(--dialog-pw);
-    display: grid;
-}
-.dialog, .dialog * {
-    row-gap: var(--ctrl-mh);
-    column-gap: var(--ctrl-mw);
-}
+// The "base" styling, which applies to anything/everything on the page as a
+// whole.
+@import "base";
 
-.modal-backdrop-enter-active { transition: opacity var(--modal-fade-time) ease-out; }
-.modal-backdrop-leave-active { transition: opacity var(--modal-fade-time) ease-in; }
-.modal-backdrop-enter, .modal-backdrop-leave-to { opacity: 0; }
+// Generic styling for modals like dialogs and menus
+@import "modal";
 
+// Misc. generic styling for prototypical elements
+.hidden { display: none !important; }
 
 .clickme {
     box-shadow: 0 0 4px 0px var(--userlink-fg);
     background-color: var(--userlink-fg);
     color: var(--page-bg);
+    &:hover { background-color: var(--userlink-hover-fg); }
+    &:active { background-color: var(--userlink-active-fg); }
+    &:focus-within { box-shadow: var(--focus-shadow); } /* XXX dup of :focus */
 }
-.clickme:hover { background-color: var(--userlink-hover-fg); }
-.clickme:active { background-color: var(--userlink-active-fg); }
-.clickme:focus-within { box-shadow: var(--focus-shadow); } /* XXX dup of :focus */
 
+.status-text {
+    color: var(--disabled-fg);
+    font-style: italic;
+
+    a {
+        color: var(--disabled-fg);
+        text-decoration: dotted underline;
+
+        &:hover {
+            color: var(--userlink-fg);
+            text-decoration: solid underline;
+        }
+    }
+}
+
+// Ephemeral input boxes (shouldn't look like such until you click on them)
+.ephemeral {
+    border: none;
+    background: transparent;
+
+    &:focus { background-color: var(--ctrl-bg); }
+}
+
+
+
+//
+// SPECIFIC STYLING
+//
+
+// The overall page structure common to all top-level pages.
+@import "page";
+
+// Toolbar buttons, aka "actions"
+@import "action";
+
+// Folders, including .folder-list, .folder, .folder-name and .folder-item.
+// Used for the "main" views (stash list, deleted items list, etc.).  For
+// historical reasons, this describes the layout used in the sidebar, and the
+// CSS for the tab view simply adds modifications on top of the sidebar view.
+@import "folders";
+
+// Import/Export Dialogs
 .export-dialog output, .import-dialog .input {
     display: block;
     border: var(--ctrl-border);
     border-radius: var(--input-text-border-radius);
 }
-
 .export-dialog output h3 {
     margin-top: 12pt;
     font-size: 12pt;
 }
 
-/* Define a fixed width for progress dialogs so they're not constantly resizing
-   as statuses are changing. */
-.progress > .dialog { width: 50rem; }
+// Progress Dialogs
+.progress > .dialog {
+    // Define a fixed width for progress dialogs so they're not constantly resizing
+    // as statuses are changing.
+    width: 50rem;
 
-/* add some extra vertical margin around the top-level progress */
-.dialog > .progress-item { margin: var(--menu-mh) 0; }
-.progress-item ul { margin: 0; padding-left: var(--base-mw); }
-
-.hidden { display: none !important; }
-
-.tab:hover, .tab:focus-within {
-    cursor: pointer;
-    background-color: var(--item-hover-bg);
-}
-a.tab, a.tab:visited { color: var(--link-fg); text-decoration: none; }
-a.tab.open, a.tab.open:visited { color: var(--userlink-fg); }
-
-header.page {
-    position: sticky;
-    z-index: 1;
-    top: 0px;
-
-    padding: calc(var(--ctrl-mh) / 2) var(--page-pw) var(--ctrl-mh) var(--page-pw);
-    margin-bottom: var(--page-ph);
-
-    display: grid;
-    grid-template-columns: 0fr 1fr 0fr;
-    column-gap: 4px;
-    align-items: center;
-
-    background-color: var(--page-bg);
-    border-bottom: var(--divider-border);
-}
-header.page .title {
-    /* XXX similar to .folder-name; consider merging */
-    font-size: 13pt;
-    font-weight: bold;
-    margin: 0 0 0 8px;
-    line-height: 1;
+    & > .progress-item {
+        margin: var(--menu-mh) 0;
+        ul {
+            margin: 0;
+            padding-left: var(--base-mw);
+        }
+    }
 }
 
-.menu > summary, .menu > summary > .action {
-    display: inline-block;
-    list-style: none; /* no triangle on Firefox */
-    border-bottom-left-radius: 0 !important; /* overrides action-container */
-    border-bottom-right-radius: 0 !important; /* overrides action-container */
-}
-.menu > summary::-webkit-details-marker { display: none; }
-.menu[open] > summary { box-shadow: var(--shadow); }
-.menu > nav {
-    padding: var(--menu-mh) 0;
-    background-color: var(--group-bg);
-    box-shadow: var(--shadow);
-    border: var(--group-border);
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+// Tabs (stashed or unstashed) within the stash list
+a.tab {
+    &, &:visited {
+        color: var(--link-fg);
+        text-decoration: none;
+
+        &.open { color: var(--userlink-fg); }
+    }
+
+    &:hover, &:focus-within {
+        cursor: pointer;
+        background-color: var(--item-hover-bg);
+    }
 }
 
-.menu > nav > * {
-    cursor: default;
-    margin: 0;
-    padding: 0 var(--menu-mw);
-}
-.menu > nav > a, .menu > nav > button {
-    display: flex;
-    align-items: center;
-    min-height: 24px;
-    border: none;
-    border-radius: 0;
-    color: var(--link-fg);
-    text-decoration: none;
-    background: transparent;
-    text-align: left;
-    white-space: nowrap;
-}
-.menu > nav > a:hover, .menu > nav > a:focus-within,
-.menu > nav > button:hover, .menu > nav > button:focus-within {
-    background-color: var(--item-hover-bg);
-}
-.menu > nav > a:active, .menu > nav > button:active {
-    background-color: var(--item-active-bg);
-}
-.menu > nav > hr {
-    margin: var(--menu-mh) 0;
-    padding: 0;
-    border: none;
-    border-top: var(--divider-border);
-}
-
-.notification-overlay {
-    position: fixed;
-    z-index: 10;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: var(--notification-mh) var(--notification-mw);
-
-    display: grid;
-    grid-template-columns: 1fr minmax(auto, 40rem) 1fr;
-    gap: var(--base-mh);
-}
-
-.notification {
-    grid-column: 2;
-
-    display: grid;
-    grid-template-columns: 1fr 0fr;
-    align-items: center;
-    background-color: var(--userlink-fg);
-    color: var(--page-bg);
-    border-radius: var(--ctrl-border-radius);
-    box-shadow: var(--shadow-heavy);
-}
-.notification:hover { background-color: var(--userlink-hover-fg); }
-.notification:active { background-color: var(--userlink-active-fg); }
-.notification .contents { margin: var(--ctrl-mh) var(--ctrl-mw); }
-
-.notification-enter-active { transition: all var(--notification-fade-time) ease-out; }
-.notification-leave-active { transition: all var(--notification-fade-time) ease-in; }
-.notification-enter, .notification-leave-to {
-    opacity: 0;
-    scale: 1 0.5;
-}
-
-.page.footer {
-    padding: var(--page-pw) var(--page-pw) var(--page-ph);
-    text-align: center;
-}
-.status-text, .status-text a, .whats-new .issue, .whats-new .issue a {
-    color: var(--disabled-fg);
-    font-style: italic;
-}
-.status-text a:hover, .whats-new .issue a:hover {
-    color: var(--userlink-fg);
-    text-decoration: underline;
-}
-
-/* Ephemeral input boxes (shouldn't look like such until you click on them) */
-.ephemeral {
-    margin: var(--ephemeral-mh) var(--ephemeral-mw);
-    padding: var(--ephemeral-ph) var(--ephemeral-pw);
-    border: none;
-    background: transparent;
-    min-width: 2em;
-    text-overflow: ellipsis;
-}
-.ephemeral:focus {
-    background-color: var(--ctrl-bg);
-}
-
-/* Website Icons (favicons) and misc. other icons (that aren't buttons) */
+// Icons (which aren't toolbar buttons)
 .icon {
     width: var(--icon-size);
     height: var(--icon-size);
@@ -285,359 +156,17 @@ header.page .title {
     background-size: var(--icon-size) var(--icon-size);
     background-repeat: no-repeat;
 }
-
-/* Form/dialog controls */
-button, input, select {
-    display: inline-block;
-
-    font: caption;
-    color: var(--page-fg);
-    padding: var(--ctrl-ph) var(--ctrl-pw);
-
-    vertical-align: middle;
-    white-space: nowrap;
-}
-input {
-    background-color: var(--ctrl-bg);
-    border: var(--ctrl-border);
-}
-input[type=text], input[type=search], input[type=password], textarea {
-    border-radius: var(--input-text-border-radius);
-}
-button, select, .action {
-    border: none;
-    border-radius: var(--ctrl-border-radius);
-    background-color: var(--button-bg);
-}
-select {
-    appearance: none;
-    -moz-appearance: none;
-    -webkit-appearance: none;
-    background-image: var(--icon-select-disclosure);
-    background-position: right var(--ctrl-pw) top 50%;
-    background-size: 12px;
-    background-repeat: no-repeat;
-    padding-right: calc(var(--ctrl-pw) + 12px);
-}
-option {
-    font: caption;
-    color: var(--ctrl-fg);
-    background-color: var(--ctrl-bg);
-}
-button:hover, select:hover { background-color: var(--button-hover-bg); }
-button:active, select:active { background-color: var(--button-active-bg); }
-
-/* Action/toolbar buttons */
-
-/* .action is used for icon/toolbar buttons */
-.action {
-    display: inline-block;
-    box-sizing: border-box;
-    width: var(--icon-btn-size);
-    height: var(--icon-btn-size);
-    padding: var(--icon-p);
-    text-align: center;
-    vertical-align: middle;
-    background-size: var(--icon-size) var(--icon-size);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-color: transparent;
-    border: none;
-    cursor: default;
-}
-.action:hover, .action:focus-within, details[open] > summary.action {
-    background-color: var(--button-hover-bg);
-}
-.action:hover, .action:focus-within { box-shadow: none; }
-.action:active { background-color: var(--button-active-bg); }
-
-nav.action-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-}
-nav.action-container .action { border-radius: 0; } /* overrides button border */
-nav.action-container > :first-child, nav.action-container .first-toolbar-button {
-    border-top-left-radius: var(--ctrl-border-radius);
-    border-bottom-left-radius: var(--ctrl-border-radius);
-}
-nav.action-container > :last-child, nav.action-container .last-toolbar-button {
-    border-top-right-radius: var(--ctrl-border-radius);
-    border-bottom-right-radius: var(--ctrl-border-radius);
-}
-
-/* Specific Actions / Icons */
 .icon-folder { background-image: var(--icon-folder); }
 
-.action {
-    &.mainmenu { background-image: var(--icon-mainmenu); }
-    &.collapse { background-image: var(--icon-collapse-closed); }
-    &.expand { background-image: var(--icon-collapse-open); }
-    &.cancel { background-image: var(--icon-cancel); }
-    &.stash { background-image: var(--icon-stash); }
-    &.stash.one { background-image: var(--icon-stash-one); }
-    &.stash.newgroup { background-image: var(--icon-new-empty-group); }
-    &.restore { background-image: var(--icon-restore); }
-    &.restore-remove { background-image: var(--icon-restore-del); }
-    &.remove { background-image: var(--icon-delete); }
-    &.remove.stashed { background-image: var(--icon-delete-stashed); }
-    &.remove.opened { background-image: var(--icon-delete-opened); }
-    &.back { background-image: var(--icon-back); }
-}
 
-.notification .action.cancel { background-image: var(--icon-cancel-inverse); }
 
-.action-container:hover .action {
-    .def(@color) {
-        background-color: var(e("--@{color}-bg"));
-        &:hover { background-color: var(e("--@{color}-hover-bg")); }
-        &:active { background-color: var(e("--@{color}-active-bg")); }
-    }
-    &.stash { .def(create); }
-    &.restore { .def(read); }
-    &.restore-remove { .def(update); }
-    &.remove { .def(delete); }
-}
+//
+// Mods for specific pages/views.  All of these assume the sidebar-view styling
+// is in effect (which, for historical reasons, is the default view).
+//
 
-/* Folders */
-.folder-list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.folder {
-    flex: 1 1 auto;
-    width: 100%;
-}
-
-.folder .header {
-    margin: 6px 0;
-    padding: 6px var(--page-pw) 4px;
-    display: grid;
-    grid-template-columns: 0fr 1fr 0fr 0fr;
-    align-items: center;
-    border-bottom: var(--divider-border);
-}
-
-.folder-name {
-    grid-row: 1;
-    grid-column: 1 / 4;
-    display: block;
-    font: caption;
-    font-weight: bold;
-    font-size: 13pt;
-    margin-left: calc(0px - var(--ephemeral-pw));
-}
-.folder-name.disabled { color: var(--disabled-fg); }
-.folder .header nav.action-btnbox {
-    grid-row: 2;
-    grid-column: 1;
-}
-.folder .header .collapse-btnbox {
-    grid-row: 1;
-    grid-column: 4;
-    display: none;
-}
-.folder:hover .header .collapse-btnbox,
-.folder:focus-within .header .collapse-btnbox,
-.collapsed.folder .header .collapse-btnbox {
-    display: flex;
-}
-.folder:hover .header .folder-name,
-.folder:focus-within .header .folder-name,
-.collapsed.folder .header .folder-name {
-    grid-column: 1 / 3;
-}
-.folder .contents {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 var(--page-ph) 0;
-}
-.folder .contents .tabs {
-    min-height: 12px;
-    padding-bottom: 0;
-}
-
-/* Tab entries and other folder contents (e.g. count of hidden tabs) */
-.folder-item {
-    display: grid;
-    // grid-template-columns: 0fr calc(var(--icon-size) + 2 * var(--itemlet-mw)) 1fr 0fr;
-    grid-template-columns: 0fr 0fr 1fr 0fr;
-    /* cannot use a gap here because then indented items wouldn't line up */
-    align-items: center;
-    padding: 0 var(--page-pw);
-    height: var(--item-h);
-}
-.folder-item:not(.disabled):hover, .folder-item:not(.disabled):focus-within {
-    background-color: var(--userlink-hover-bg);
-}
-.folder-item:not(.disabled):active {
-    background-color: var(--userlink-active-bg);
-    color: var(--userlink-active-fg);
-}
-.folder-item-nesting {
-    margin: 0;
-    padding: 0 0 0 0;
-    list-style: none;
-}
-.folder-item > * {
-    margin: 0 var(--itemlet-mw);
-    padding: 0;
-}
-.folder-item > .indent {
-    grid-row: 1;
-    grid-column: 1;
-    display: flex;
-    flex-direction: row;
-    flex: 0 0;
-}
-.indent-spacer { display: inline-block; width: var(--indent-w); }
-.folder-item > .icon {
-    grid-row: 1;
-    grid-column: 2;
-}
+// For the deleted items page:
 .folder-item.deleted > .icon { filter: grayscale(50%); }
-.folder-item > .text {
-    grid-row: 1;
-    grid-column: 3;
-    height: var(--item-h);
-    /* to vertically center text while text-overflow: ellipsis; */
-    line-height: var(--item-h);
-}
-/* don't double-highlight folder item text */
-.folder-item a:hover, .folder-item a:focus-within, .folder-item a:active {
-    background-color: transparent;
-}
-.folder-item > nav {
-    display: none;
-    grid-row: 1;
-    grid-column: 4;
-}
-.folder-item:hover > nav, .folder-item:focus-within > nav { display: flex; }
-span.folder-name, .folder-item > .text {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
 
-/* Collapsed folders */
-.tab-view .folder .header nav.action-btnbox,
-.collapsed.folder .header nav.action-btnbox {
-    display: none;
-    grid-row: 1;
-    grid-column: 3;
-}
-
-.tab-view .folder:hover .header nav.action-btnbox,
-.tab-view .folder:focus-within .header nav.action-btnbox,
-.collapsed.folder:hover .header nav.action-btnbox,
-.collapsed.folder:focus-within .header nav.action-btnbox
-{ display: flex; }
-
-.collapsed.folder .header { margin-bottom: 0px; }
-.collapsed.folder .contents { display: none !important; }
-.collapsed.folder .action.collapse { display: inline-block; }
-
-/* Drag-and-Drop */
-.sortable-ghost {
-    background-color: var(--item-hover-bg);
-    opacity: 0.6;
-}
-
-
-
-/***
- * Mods for when in tab view -- uses a multi-column display format
- ***/
-
-.tab-view header {
-    padding-left: var(--base-mw);
-    padding-right: var(--base-mw);
-}
-
-.tab-view .folder-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-    margin: 0 var(--base-mh);
-}
-.tab-view .one-column .folder {
-    flex: 1 1 auto;
-    width: 100%;
-}
-.tab-view .folder {
-    flex: 1 1 25rem;
-    margin: var(--base-mh);
-    background-color: var(--group-bg);
-    border: var(--group-border);
-    box-shadow: var(--shadow);
-
-    display: flex;
-    flex-direction: column;
-}
-.tab-view .collapsed.folder {
-    background: var(--group-disabled-bg);
-    border: var(--group-disabled-border);
-    box-shadow: var(--shadow-faint);
-}
-
-.tab-view .folder .header { flex: 0 0 auto; }
-.tab-view .folder .header nav {
-    margin-left: var(--itemlet-mw);
-}
-
-.tab-view .folder .contents {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-}
-.tab-view .folder .contents .tabs:last-child {
-    /* If we are not showing a "+ N filtered" label at the bottom, make the tab
-       list expand to fill the whole folder box so it's a bigger drop target. */
-    flex: 1 1 auto;
-}
-
-/* Don't show the "stash this tab" button on folders when we are the
-   current tab (and not the sidebar) */
-.tab-view .action.stash.one.here {
-    display: none;
-}
-
-
-
-/***
- * A few small tweaks for the whats-new page so it has the same spacing as the
- * stash list.
- ***/
-
-.whats-new .folder ul.contents {
-    padding: 0;
-    margin-left: calc(var(--page-pw) + var(--indent-w));
-    margin-right: var(--page-pw);
-    margin-top: 0;
-    list-style: disc;
-}
-.whats-new li {
-    margin: var(--ctrl-mh) 0;
-}
-
-.whats-new .new,
-.whats-new .added, .whats-new .improved, .whats-new .fixed, .whats-new .removed
-{
-    font-variant: small-caps;
-    font-weight: bold;
-    border-radius: var(--input-text-border-radius);
-    padding: 0 var(--icon-p);
-}
-
-.whats-new .new { background-color: var(--read-bg); }
-.whats-new .added { background-color: var(--read-bg); }
-.whats-new .improved { background-color: var(--create-bg); }
-.whats-new .fixed { background-color: var(--update-bg); }
-.whats-new .removed { background-color: var(--delete-bg); }
-
-.whats-new img.inl {
-    height: var(--icon-size);
-    vertical-align: bottom;
-}
+html.view-tab { @import "view-tab"; }
+body.whats-new { @import "mods-whats-new"; }

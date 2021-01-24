@@ -1,17 +1,15 @@
 <template>
-<div :class="{folder: true,
+<section :class="{folder: true,
               window: isWindow,
               'action-container': true,
               collapsed: collapsed,
               hidden: hideIfEmpty && visibleChildren.length == 0,
               }">
-  <div class="header">
-    <ButtonBox class="collapse-btnbox">
-      <Button :class="{collapse: collapsed, expand: ! collapsed}"
-              tooltip="Hide the tabs for this group"
-              @action="collapsed = ! collapsed" />
-    </ButtonBox>
-    <ButtonBox class="action-btnbox" v-if="! isWindow">
+  <header>
+    <Button :class="{collapse: ! collapsed, expand: collapsed}"
+            tooltip="Hide the tabs for this group"
+            @action="collapsed = ! collapsed" />
+    <ButtonBox class="folder-actions" v-if="! isWindow">
       <Button class="stash here" @action="stash"
               :tooltip="`Stash all (or selected) open tabs to this group `
                         + `(hold ${altkey} to keep tabs open)`" />
@@ -29,7 +27,7 @@
               class="remove" @action="remove"
               tooltip="Delete this group" />
     </ButtonBox>
-    <ButtonBox class="action-btnbox" v-else>
+    <ButtonBox class="folder-actions" v-else>
       <Button class="stash" @action="stash"
               :tooltip="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
@@ -52,7 +50,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                     :defaultValue="defaultTitle"
                     :enabled="! isWindow && allowRenameDelete"
                     @update:value="rename"></editable-label>
-  </div>
+  </header>
   <div class="contents">
     <Draggable group="tab" ref="drag" class="tabs"
                @add="move" @update="move">
@@ -63,12 +61,13 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                     'folder-item': true}"></tab>
     </Draggable>
     <div class="folder-item disabled" v-if="userHiddenChildren.length > 0">
+      <span class="icon" /> <!-- spacer -->
       <span class="text status-text hidden-count">
         + {{userHiddenChildren.length}} filtered
       </span>
     </div>
   </div>
-</div>
+</section>
 </template>
 
 <script lang="ts">

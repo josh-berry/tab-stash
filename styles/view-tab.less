@@ -1,0 +1,62 @@
+// Mods for when in tab view -- uses a multi-column display format
+
+header {
+    padding-left: var(--base-mw);
+    padding-right: var(--base-mw);
+}
+
+.folder-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    margin: 0 var(--base-mh);
+}
+.one-column .folder {
+    flex: 1 1 auto;
+    width: 100%;
+}
+
+.folder {
+    flex: 1 1 25rem;
+    margin: var(--base-mh);
+    background-color: var(--group-bg);
+    border: var(--group-border);
+    box-shadow: var(--shadow);
+
+    display: flex;
+    flex-direction: column;
+
+    &.collapsed {
+        background: var(--group-disabled-bg);
+        border: var(--group-disabled-border);
+        box-shadow: var(--shadow-faint);
+    }
+
+    & > header {
+        flex: 0 0 auto;
+        display: grid;
+        & > nav.folder-actions {
+            grid-row: 1;
+            grid-column: 2;
+            display: none;
+        }
+    }
+    &:hover > header, &:focus-within > header {
+        & > nav.folder-actions { display: flex; }
+    }
+
+    & > .contents {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+
+        // If we are not showing a "+ N filtered" label at the bottom, make
+        // the tab list expand to fill the whole folder box so it's a bigger
+        // drop target.
+        & > .tabs:last-child { flex: 1 1 auto; }
+    }
+}
+
+// Don't show the "stash this tab" button on folders when we are the
+// current tab (and not the sidebar)
+.action.stash.one.here { display: none; }

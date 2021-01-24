@@ -17,10 +17,11 @@
     <ul class="folder-item-nesting">
         <Bookmark v-for="(child, index) of leafChildren" :key="child.url+index"
                   :parent="deletion" :child="child" :childIndex="index">
-            <span class="indent indent-spacer"></span>
+            <span class="indent"></span>
         </Bookmark>
         <li v-if="item.filtered_count" class="folder-item disabled">
-            <span class="indent indent-spacer"></span>
+            <span class="indent" />
+            <span class="icon" />
             <span class="text status-text hidden-count">
                 + {{item.filtered_count}} filtered
             </span>

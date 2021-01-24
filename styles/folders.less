@@ -1,0 +1,181 @@
+.folder-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.folder {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+
+    & > header {
+        margin: var(--ctrl-mh) 0;
+        padding: var(--ctrl-mh) var(--page-pw);
+        // NOTE: --ctrl-mh is used in both places above to give equal height
+        // above and below the following border:
+        border-bottom: var(--divider-border);
+
+        display: grid;
+        grid-template-columns: 1fr 0fr 0fr;
+        // Gives breathing room between folder-name and folder-actions.
+        row-gap: var(--itemlet-mh);
+        align-items: center;
+
+        & > .folder-name {
+            grid-row: 1;
+            grid-column: 1;
+
+            padding: var(--itemlet-ph) var(--itemlet-pw);
+
+            // Negative left margin ensures the text of the folder-name lines up
+            // with the folder contents below, despite the padding above (which
+            // is necessary so that an outlined folder-name looks decent).
+            margin-left: calc(0px - var(--itemlet-pw));
+            margin-right: var(--itemlet-mw);
+            margin-top: 0;
+            margin-bottom: 0;
+
+            .text-overflow-ellipsis();
+        }
+
+        & > .folder-actions {
+            grid-row: 2;
+            grid-column: 1 / 3;
+        }
+
+        // Column 2 is reserved for folder-actions in tab view
+
+        & > .action.collapse, & > .action.expand {
+            grid-row: 1;
+            grid-column: 3;
+        }
+
+        & > .action.collapse { display: none; } // shown only on hover, below
+        & > .action.expand { display: block; }
+    }
+    &:hover > header, &:focus-within > header {
+        & > .action.collapse { display: block; }
+    }
+
+    & > .contents {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 var(--page-ph) 0;
+
+        & > .tabs {
+            min-height: 12px;
+            padding-bottom: 0;
+        }
+    }
+
+    &.collapsed {
+        & > header {
+            margin-bottom: 0px;
+            grid-template-columns: 1fr 0fr 0fr;
+            & > .folder-actions {
+                display: none; // only on hover, below
+                grid-row: 1;
+                grid-column: 2;
+            }
+            & > .action.collapse, & > .action.expand {
+                grid-row: 1;
+                grid-column: 3;
+            }
+        }
+        &:hover > header, &:focus-within > header {
+            & > .folder-actions { display: flex; }
+        }
+
+        & > .contents { display: none !important; }
+    }
+}
+
+.folder-name {
+    display: block;
+    font: caption;
+    font-weight: bold;
+    font-size: 13pt;
+    .text-overflow-ellipsis();
+
+    &.disabled { color: var(--disabled-fg); }
+}
+
+// Tab entries and other folder contents (e.g. count of hidden tabs)
+.folder-item {
+    display: grid;
+    grid-template-columns: 0fr 0fr 1fr 0fr; // indentation, icon, title, actions
+    // cannot use a gap here because then indented items wouldn't line up
+    align-items: center;
+    padding: 0 var(--page-pw);
+    height: var(--item-h);
+
+    &:not(.disabled) {
+        &:hover, &:focus-within {
+            background-color: var(--userlink-hover-bg);
+        }
+        &:active {
+            background-color: var(--userlink-active-bg);
+            color: var(--userlink-active-fg);
+        }
+    }
+
+    // Garden-variety folder items
+    & > * {
+        margin: 0 var(--itemlet-mw);
+        padding: 0;
+    }
+
+    // The aforementioned indentation element
+    & > .indent {
+        display: inline-block;
+        width: var(--indent-w);
+        grid-row: 1;
+        grid-column: 1;
+    }
+
+    & > .icon {
+        grid-row: 1;
+        grid-column: 2;
+    }
+
+    & > .text {
+        grid-row: 1;
+        grid-column: 3;
+        height: var(--item-h);
+        /* to vertically center text while text-overflow: ellipsis; */
+        line-height: var(--item-h);
+        .text-overflow-ellipsis();
+    }
+
+    & > nav {
+        display: none;
+        grid-row: 1;
+        grid-column: 4;
+    }
+    &:hover > nav, &:focus-within > nav { display: flex; }
+
+    // Don't double-highlight folder-item links
+    a:hover, a:focus-within, a:active { background-color: transparent; }
+}
+
+// Container holding nested folder items, which should not be visible to the
+// naked eye (because indentation is handled by .indent elements).
+.folder-item-nesting {
+    margin: 0;
+    padding: 0 0 0 0;
+    list-style: none;
+}
+
+
+.text-overflow-ellipsis() {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Drag-and-Drop */
+.sortable-ghost {
+    background-color: var(--item-hover-bg);
+    opacity: 0.6;
+}

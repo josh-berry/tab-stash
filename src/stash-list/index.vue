@@ -44,11 +44,9 @@
     <input type="search" ref="search" class="ephemeral"
            :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
            v-model="searchtext">
-    <ButtonBox>
-      <Button :class="{collapse: collapsed, expand: ! collapsed}"
-              title="Hide all tabs so only group names are showing"
-              @action="collapseAll" />
-    </ButtonBox>
+    <Button :class="{collapse: ! collapsed, expand: collapsed}"
+            title="Hide all tabs so only group names are showing"
+            @action="collapseAll" />
   </header>
   <div class="folder-list">
     <folder title="Unstashed Tabs" :allowRenameDelete="false"
@@ -78,7 +76,7 @@
                :hideIfEmpty="searchtext !== ''"
                :metadataCache="metadata_cache">
   </folder-list>
-  <footer class="page footer status-text">
+  <footer class="page status-text">
     Tab Stash {{my_version}} &mdash;
     <a :href="pageref('whats-new.html')">What's New</a>
   </footer>
