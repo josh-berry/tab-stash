@@ -41,7 +41,7 @@
       <a href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
       <a :href="pageref('whats-new.html')">What's New?</a>
     </Menu>
-    <input type="search" ref="search" class="ephemeral"
+    <input type="search" ref="search" class="ephemeral" aria-label="Search"
            :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
            v-model="searchtext">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"

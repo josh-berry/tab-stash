@@ -4,7 +4,8 @@
         <a class="action back" title="Back to Tab Stash"
            :href="pageref('stash-list.html')"></a>
         <input slot="after" type="search" ref="search" class="ephemeral"
-               placeholder="Search Deleted Items" @keyup.esc.prevent="search=''"
+               placeholder="Search Deleted Items" aria-label="Search Deleted Items"
+               @keyup.esc.prevent="search=''"
                v-model="search">
     </header>
     <div class="folder-list one-column">
