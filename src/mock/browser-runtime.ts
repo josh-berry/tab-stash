@@ -78,6 +78,10 @@ export default (() => {
                     });
                 },
 
+                getURL(path: string): string {
+                    return `extension://tab-stash/${path}`;
+                },
+
                 onConnect: exports.onConnect,
 
                 connect(extn_id?: string, info?: {name?: string}): MockPort {
@@ -104,8 +108,6 @@ export default (() => {
                 async openOptionsPage() { throw "unimplemented"; },
                 // istanbul ignore next
                 getManifest(): Manifest.ManifestBase { throw "unimplemented"; },
-                // istanbul ignore next
-                getURL(path: string): string { throw "unimplemented"; },
                 // istanbul ignore next
                 async setUninstallURL(url?: string) { throw "unimplemented"; },
                 // istanbul ignore next

@@ -1,5 +1,5 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
-import {browser, Bookmarks} from 'webextension-polyfill-ts';
+import {browser} from 'webextension-polyfill-ts';
 
 export {
     TaskHandle, Task, TaskIterator,
@@ -27,6 +27,9 @@ export type Promised<T> = T extends Promise<infer V> ? V : T;
 // string when you should be using a URL that has passed thru urlToOpen().)
 export type OpenableURL = string & { __openable_url_marker__: undefined };
 
+// Where do we redirect the user if they try to open a privileged URL?
+const REDIR_PAGE = browser.runtime.getURL('restore.html');
+export const REDIR_URL_TESTONLY = REDIR_PAGE;
 
 // Ugh, stupid hack for the fact that getting stuff from the browser that should
 // be a compiled-in set of constants is actually done through an async API...
@@ -66,9 +69,13 @@ export function cmpVersions(a: string, b: string): number {
     return va.length - vb.length;
 }
 
-export function urlsInTree(bm_tree: Bookmarks.BookmarkTreeNode): OpenableURL[] {
+type BMTree = {
+    children?: BMTree[],
+    url?: string,
+};
+export function urlsInTree(bm_tree?: BMTree): OpenableURL[] {
     let urls: OpenableURL[] = [];
-    function collect(bm: Bookmarks.BookmarkTreeNode) {
+    function collect(bm: BMTree) {
         if (bm.children) {
             for (let c of bm.children) collect(c);
         } else /* istanbul ignore else */ if (bm.url) {
@@ -89,16 +96,44 @@ export function urlsInTree(bm_tree: Bookmarks.BookmarkTreeNode): OpenableURL[] {
 // other.
 export function urlToOpen(urlstr: string): OpenableURL {
     try {
-        let url = new URL(urlstr);
-        if (url.protocol === 'about:' && url.pathname === 'reader') {
-            let res = url.searchParams.get('url');
-            if (! res) return urlstr as OpenableURL;
-            return (res + url.hash) as OpenableURL;
+        const url = new URL(urlstr);
+        switch (url.protocol) {
+            case 'about:':
+                switch (url.pathname) {
+                    case 'blank':
+                    case 'logo':
+                        break;
+                    case 'reader':
+                        const res = url.searchParams.get('url');
+                        if (res) return (res + url.hash) as OpenableURL;
+                    default:
+                        return redirUrl(urlstr);
+                }
+                break;
+
+            case 'chrome:':
+                // Chromium allows use of chrome:// URLs; Firefox doesn't (since
+                // they're internal browser URLs). getBrowserInfo is a handy way
+                // of checking if we're on Firefox (where it's present) or
+                // Chromium (where it isn't).
+                if (! browser.runtime.getBrowserInfo) break;
+                return redirUrl(urlstr);
+
+            case 'javascript:':
+            case 'file:':
+            case 'data:':
+                return redirUrl(urlstr);
         }
+
         return urlstr as OpenableURL;
-    } catch (_) {
-        return urlstr as OpenableURL;
+
+    } catch (e) {
+        return redirUrl(urlstr);
     }
+}
+
+function redirUrl(url: string): OpenableURL {
+    return `${REDIR_PAGE}?url=${encodeURIComponent(url)}` as OpenableURL;
 }
 
 
@@ -291,7 +326,7 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
 }
 
 // Maps and filters an array at the same time, removing `undefined`s
-export function filterMap<T>(array: T[], map: (i: T) => T | undefined): T[] {
+export function filterMap<T, U>(array: T[], map: (i: T) => U | undefined): U[] {
     const res = [];
     for (const i of array) {
         const m = map(i);

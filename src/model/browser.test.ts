@@ -506,16 +506,17 @@ describe('model/browser', function() {
 
         it('removes bookmarks', function() {
             model._bookmark('new')._update({
-                parentId: 'root', index: 0, title: 'Foo', url: 'foo',
+                parentId: 'root', index: 0, title: 'Foo', url: 'http://foo',
                 dateAdded: 1
             });
             check(model);
             expect(model.bms_by_id.get('new'), `bms_by_id before remove`)
                 .to.include({
-                    id: 'new', isBookmark: true, title: 'Foo', url: 'foo',
+                    id: 'new', isBookmark: true, title: 'Foo', url: 'http://foo',
                     parent: model.bms_by_id.get('root'), index: 0,
                 });
-            expect(model.items_by_url.get(OU('foo')), `items_by_url before remove`)
+            expect(model.items_by_url.get(OU('http://foo')),
+                   `items_by_url before remove`)
                 .to.eql([model.bms_by_id.get('new')]);
 
             model._bookmark('new')._remove();
@@ -523,7 +524,7 @@ describe('model/browser', function() {
                 .to.equal(undefined);
             expect(model.bookmarks.children, `children after remove`)
                 .to.deep.equal([]);
-            expect(model.items_by_url.get(OU('foo')), `items_by_url after remove`)
+            expect(model.items_by_url.get(OU('http://foo')), `items_by_url after remove`)
                 .to.equal(undefined);
             check(model);
         });

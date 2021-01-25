@@ -6,6 +6,7 @@
 // *-bg     Background
 //
 
+@import "icons";
 @import "theme-light";
 @media (prefers-color-scheme: dark) {
     @import "theme-dark";
@@ -166,7 +167,6 @@ a.tab {
     background-size: var(--icon-size) var(--icon-size);
     background-repeat: no-repeat;
 }
-.icon-folder { background-image: var(--icon-folder); }
 
 
 
@@ -179,4 +179,5 @@ a.tab {
 .folder-item.deleted > .icon { filter: grayscale(50%); }
 
 html.view-tab { @import "view-tab"; }
-body.whats-new { @import "mods-whats-new"; }
+body.page-whats-new { @import "mods-whats-new"; }
+body.page-restore { @import "mods-restore"; }

@@ -161,44 +161,7 @@ export async function mostRecentUnnamedFolderId() {
 
 export function isURLStashable(urlstr: string): boolean {
     // Tab Stash URLs are never stashable.
-    if (urlstr.startsWith(browser.extension.getURL(''))) return false;
-
-    try {
-        const url = new URL(urlstr);
-
-        // Exclude privileged URLs as defined here:
-        // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/create
-        switch (url.protocol) {
-            case 'about:':
-                switch (url.pathname) {
-                    case 'blank':
-                    case 'logo':
-                    // We carve out an exemption for about:reader URLs, even
-                    // though they're privileged, since these are actual sites
-                    // being viewed in reader mode.
-                    case 'reader':
-                        return true;
-                    default: return false;
-                }
-            case 'chrome:':
-                // Chromium allows use of chrome:// URLs; Firefox doesn't (since
-                // they're internal browser URLs). getBrowserInfo is a handy way
-                // of checking if we're on Firefox (where it's present) or
-                // Chromium (where it isn't).
-                return (! browser.runtime.getBrowserInfo);
-
-            case 'javascript:':
-            case 'file:':
-            case 'data:':
-                return false;
-        }
-
-    } catch (e) {
-        console.warn('Unparseable URL:', urlstr);
-        return false;
-    }
-
-    return true;
+    return ! urlstr.startsWith(browser.extension.getURL(''));
 }
 
 export async function stashTabsInWindow(
@@ -491,7 +454,7 @@ export async function bookmarkTabs(
         ps.push(browser.bookmarks.update(bm.id, {
             // #undef typedef is wrong; title/url are both optional
             title: tabs_to_actually_save[tab_index].title!,
-            url: urlToOpen(tabs_to_actually_save[tab_index].url!),
+            url: tabs_to_actually_save[tab_index].url!,
         }));
         ++tab_index;
     }

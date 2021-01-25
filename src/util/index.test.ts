@@ -1,7 +1,12 @@
 import {expect} from 'chai';
 import * as M from '../util';
 
-function callSuite(fn: any, cases: {it: string, i: any, o: any}[]): any {
+const REDIR_URL = M.REDIR_URL_TESTONLY;
+
+function callSuite<F extends (...i: I[]) => O, I, O>(
+    fn: F,
+    cases: {it: string, i: I[], o: O}[]
+): () => void {
     // desc: text description of the function to test
     // fn: the function to test
     // cases: [ {i /* arguments */, o /* return value */, e /* exception */} ]
@@ -88,9 +93,14 @@ describe('util', function() {
             o: 'http://foo.com/doc?foo=bar#pos'
         },
         {
-            it: 'handles broken about:reader URLs',
+            it: 'redirects broken about:reader URLs',
             i: ['about:reader?foo=bar'],
-            o: 'about:reader?foo=bar',
+            o: `${REDIR_URL}?url=about%3Areader%3Ffoo%3Dbar`,
+        },
+        {
+            it: 'redirects file: URLs',
+            i: ['file:///C|/Windows/System32/kernel32.dll'],
+            o: `${REDIR_URL}?url=file%3A%2F%2F%2FC%7C%2FWindows%2FSystem32%2Fkernel32.dll`
         },
     ]));
 
@@ -101,7 +111,7 @@ describe('util', function() {
         },
         {
             it: 'extracts the URL from a leaf node',
-            i: [{url: 'foo'}], o: ['foo']
+            i: [{url: 'http://foo/'}], o: ['http://foo/']
         },
         {
             it: 'handles empty folders',
@@ -110,62 +120,63 @@ describe('util', function() {
         {
             it: 'extracts URLs from child folders',
             i: [{children: [
-                {url: 'foo'},
-                {url: 'bar'},
+                {url: 'http://foo/'},
+                {url: 'http://bar/'},
             ]}],
-            o: ['foo', 'bar']
+            o: ['http://foo/', 'http://bar/']
         },
         {
             it: 'handles empty nested folders',
             i: [{children: [
                 {children: []},
-                {url: 'bar'},
+                {url: 'http://bar/'},
             ]}],
-            o: ['bar']
+            o: ['http://bar/']
         },
         {
             it: 'extracts URLs from nested folders',
             i: [{children: [
                 {children: [
-                    {url: 'foo'},
+                    {url: 'http://foo/'},
                 ]},
-                {url: 'bar'},
+                {url: 'http://bar/'},
             ]}],
-            o: ['foo', 'bar']
+            o: ['http://foo/', 'http://bar/']
         },
         {
             it: 'extracts URLs across multiple levels',
             i: [{children: [
-                {url: 'one'},
+                {url: 'http://one/'},
                 {children: [
-                    {url: 'foo'},
+                    {url: 'http://foo/'},
                 ]},
-                {url: 'bar'},
+                {url: 'http://bar/'},
             ]}],
-            o: ['one', 'foo', 'bar']
+            o: ['http://one/', 'http://foo/', 'http://bar/']
         },
         {
             it: 'extracts duplicate URLs',
             i: [{children: [
-                {url: 'one'},
-                {url: 'one'},
+                {url: 'http://one/'},
+                {url: 'http://one/'},
             ]}],
-            o: ['one', 'one']
+            o: ['http://one/', 'http://one/']
         },
         {
             it: 'extracts duplicate URLs across multiple folders',
             i: [{children: [
-                {url: 'one'},
+                {url: 'http://one/'},
                 {children: [
-                    {url: 'foo'},
+                    {url: 'http://foo/'},
                     {children: [
-                        {url: 'bar'},
+                        {url: 'http://bar/'},
                     ]},
-                    {url: 'after'},
+                    {url: 'http://after/'},
                 ]},
-                {type: 'bookmark', url: 'bar'},
+                {type: 'bookmark', url: 'http://bar/'},
             ]}],
-            o: ['one', 'foo', 'bar', 'after', 'bar']
+            o: ['http://one/', 'http://foo/', 'http://bar/', 'http://after/',
+                'http://bar/']
         },
     ]));
 

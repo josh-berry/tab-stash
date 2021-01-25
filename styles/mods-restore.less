@@ -1,0 +1,43 @@
+main {
+    box-sizing: border-box;
+    padding: calc(2 * var(--page-ph)) calc(2 * var(--page-pw));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+
+    -moz-user-select: text;
+    user-select: text;
+
+    & > *:not(.notification-overlay) {
+        max-width: 50rem;
+    }
+}
+
+h2 {
+    margin: var(--page-ph) 0;
+    font-size: 18pt;
+}
+
+p {
+    margin: 0;
+    font-size: 11pt;
+}
+
+.icon-warning {
+    width: 192px;
+    height: 192px;
+    opacity: 50%;
+}
+
+a.unsafe-url {
+    display: block;
+
+    padding: var(--ctrl-mh) var(--ctrl-mw);
+    background-color: var(--group-bg);
+    border: var(--group-border);
+
+    font-family: monospace;
+    font-size: 11pt;
+    text-decoration: dotted underline;
+}

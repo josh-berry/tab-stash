@@ -9,10 +9,10 @@
   <div class="folder-list one-column">
 
     <Version v="2.8">
-      <L :issue="64" v="Improved:">Allow all non-privileged pages to be stashed
-      and restored, most notably, pages from other extensions.  (This still
-      excludes browser system pages and "file:" pages, which Firefox will not
-      allow to be restored.)</L>
+      <L :issue="64" v="New:">Allow all URLs (except URLs to Tab Stash itself)
+      to be stashed and restored.  Privileged URLs which cannot be opened by Tab
+      Stash will instead show an intermediate page to make it easy to open the
+      URL manually.</L>
 
       <L :issue="101" v="Improved:">In the full-page UI, allow tabs to be
       dropped anywhere inside the folder box, not just immediately after the

@@ -7,6 +7,7 @@ module.exports = {
     entry: {
         "index": "./src/index.ts",
         "deleted-items": "./src/deleted-items/index.vue",
+        "restore": "./src/restore.vue",
         "stash-list": "./src/stash-list/index.vue",
         "options": "./src/options.vue",
         "whats-new": "./src/whats-new/index.vue",

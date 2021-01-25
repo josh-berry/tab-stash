@@ -116,7 +116,9 @@ dist/tab-stash.css: node_modules $(wildcard styles/*.less)
 
 DARK_ICONS = $(patsubst icons/%,dist/icons/dark/%,$(wildcard icons/*.svg))
 LIGHT_ICONS = $(patsubst icons/%,dist/icons/light/%,$(wildcard icons/*.svg))
-LOGO_ICONS = dist/icons/logo.svg $(foreach size,48 96 128,dist/icons/logo-$(size).png)
+LOGO_ICONS = dist/icons/logo.svg \
+	dist/icons/warning.svg \
+	$(foreach size,48 96 128,dist/icons/logo-$(size).png)
 TOOLBAR_ICONS = dist/icons/stash-one.svg \
 	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png)) \
 	$(foreach size,16 32,dist/icons/stash-$(size).png)
