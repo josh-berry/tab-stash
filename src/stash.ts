@@ -508,8 +508,7 @@ export async function restoreTabs(
     const ps: Promise<Tabs.Tab>[] = [];
     let index = wintabs.length;
     for (const url of urlset) {
-        const open = wintabs.find(tab => (tab.url === url
-                                          || urlToOpen(tab.url!) === url));
+        const open = wintabs.find(tabLookingAtP(url));
         if (open && open.id !== undefined) {
             // Tab is already open.  If it was hidden, un-hide it and move it to
             // the right location in the tab bar.
@@ -525,13 +524,8 @@ export async function restoreTabs(
             continue;
         }
 
-        const closed = closed_tabs.find(
-            sess => (sess.tab && (sess.tab.url === url
-                                  || urlToOpen(sess.tab.url!) === url)
-                     || false));
+        const closed = closed_tabs.map(s => s.tab).find(tabLookingAtP(url));
         if (closed) {
-            const ct = closed.tab!;
-
             // Tab was recently-closed.  Re-open it, and move it to the right
             // location in the tab bar.
             ps.push(async function(ct) {
@@ -541,7 +535,7 @@ export async function restoreTabs(
                 // #undef The restored tab is a normal (non-devtools) tab
                 await browser.tabs.move(t.id!, {windowId: winid, index});
                 return t;
-            }(ct));
+            }(closed));
             ++index;
             continue;
         }
@@ -561,8 +555,7 @@ export async function restoreTabs(
         // already open, just switch to it.
         if (urlset.size == 1 && tabs.length == 0) {
             const url = urlset.values().next().value;
-            const open_tab = wintabs.find(t => t.url === url
-                                          || urlToOpen(t.url!) === url);
+            const open_tab = wintabs.find(tabLookingAtP(url));
             // #undef Since we opened no tabs, yet we were asked to open one
             // URL, the tab must be open and therefore listed in /wintabs/.
             await browser.tabs.update(open_tab!.id, {active: true});
@@ -596,4 +589,16 @@ export async function restoreTabs(
     }
 
     return tabs;
+}
+
+// Returns a function which returns true if a tab is looking at a particular
+// URL, taking into account any transformations done by urlToOpen().
+function tabLookingAtP(url: string): (t?: PartialTabInfo) => boolean {
+    const ourl = urlToOpen(url);
+    return (t?: PartialTabInfo) => {
+        if (! t || ! t.url) return false;
+        const tourl = urlToOpen(t.url);
+        return t.url === url || t.url === ourl
+            || tourl === url || tourl === ourl;
+    };
 }
