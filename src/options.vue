@@ -20,17 +20,19 @@
         <li>
           <label for="browser_action_stash">
             <select id="browser_action_stash" v-model="browser_action_stash">
-              <option value="all">Stash all open tabs</option>
+              <option value="all">Stash all (or selected) tabs</option>
               <option value="single">Stash the active tab</option>
-              <option value="none">Don't stash any tabs</option>
+              <option :disabled="browser_action_show === 'none'"
+                      value="none">Don't stash any tabs</option>
             </select>
           </label>
           <label for="browser_action_show">
             and
             <select id="browser_action_show" v-model="browser_action_show">
-              <option value="sidebar">show stashed tabs in the sidebar</option>
-              <option value="tab">show stashed tabs in a tab</option>
-              <option value="none">don't show the stash</option>
+              <option value="sidebar">show the stash in the sidebar</option>
+              <option value="tab">show the stash in a tab</option>
+              <option :disabled="browser_action_stash === 'none'"
+                      value="none">don't show the stash</option>
             </select>
           </label>
         </li>
@@ -38,17 +40,17 @@
     </li>
 
     <li>
-      <label>When stashing tabs from the menu or address bar:</label>
+      <label>When stashing tabs from the context menu or address bar:</label>
       <ul>
         <li><label for="open_stash_in_sidebar">
             <input type="radio" name="open_stash_in" id="open_stash_in_sidebar"
                   v-model="open_stash_in" value="sidebar" />
-            Show stashed tabs in the sidebar
+            Show the stash in the sidebar
         </label></li>
         <li><label for="open_stash_in_tab">
             <input type="radio" name="open_stash_in" id="open_stash_in_tab"
                   v-model="open_stash_in" value="tab" />
-            Show stashed tabs in a tab
+            Show the stash in a tab
         </label></li>
         <li><label for="open_stash_in_none">
             <input type="radio" name="open_stash_in" id="open_stash_in_none"
