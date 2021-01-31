@@ -24,32 +24,21 @@ export const SYNC_DEF = {
     // Should we show advanced settings to the user?
     meta_show_advanced: {default: false, is: aBoolean},
 
+    // When the user clicks one of the "stash" buttons in the browser
+    // toolbar, do we show the "sidebar", "tab", or "none" (of the above)?
+    open_stash_in: {
+        default: 'sidebar',
+        is: SHOW_WHAT_OPT,
+    },
+
     // When the user clicks the browser toolbar button, what tabs do we stash?
     browser_action_stash: {
-        default: 'all',
+        default: 'none',
         is: STASH_WHAT_OPT,
     },
 
     // When the user clicks the browser toolbar button, what UI do we show?
     browser_action_show: {
-        default: 'sidebar',
-        is: SHOW_WHAT_OPT,
-    },
-
-    // When the user clicks the address bar button, what tabs do we stash?
-    page_action_stash: {
-        default: 'single',
-        is: STASH_WHAT_OPT,
-    },
-
-    // When the user clicks the address bar button, what UI do we show?
-    page_action_show: {
-        default: 'sidebar',
-        is: SHOW_WHAT_OPT,
-    },
-
-    // After stashing tabs from the context menu, show:
-    context_menu_show: {
         default: 'sidebar',
         is: SHOW_WHAT_OPT,
     },

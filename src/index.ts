@@ -110,13 +110,13 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     },
 
     stash_all: async function(tab?: Tabs.Tab) {
-        show_something(model.options.sync.state.context_menu_show);
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: true});
     },
 
     stash_one: async function(tab?: Tabs.Tab) {
-        show_something(model.options.sync.state.context_menu_show);
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
@@ -125,19 +125,19 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     },
 
     stash_one_newgroup: async function(tab?: Tabs.Tab) {
-        show_something(model.options.sync.state.context_menu_show);
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabs([tab], {close: true});
     },
 
     copy_all: async function(tab?: Tabs.Tab) {
-        show_something(model.options.sync.state.context_menu_show);
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: false});
     },
 
     copy_one: async function(tab?: Tabs.Tab) {
-        show_something(model.options.sync.state.context_menu_show);
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
@@ -207,10 +207,7 @@ if (browser.browserAction) {
     }));
 }
 if (browser.pageAction) {
-    browser.pageAction.onClicked.addListener(asyncEvent(async tab => {
-        show_something(model.options.sync.state.page_action_show);
-        await stash_something(model.options.sync.state.browser_action_stash, tab);
-    }));
+    browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 }
 
 
