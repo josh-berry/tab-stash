@@ -14,38 +14,52 @@
 
   <h4>Tab Stash Behavior (All Synced Browsers)</h4>
   <ul>
-    <li class="synced">
-      <label>When saving tabs to the stash:</label>
+    <li>
+      <label>When the toolbar button is clicked:</label>
       <ul>
-        <li><label for="open_stash_in_sidebar">
-            <input type="radio" name="open_stash_in" id="open_stash_in_sidebar"
-                  v-model="open_stash_in" value="sidebar" />
-            Automatically show your stashed tabs in the sidebar
-        </label></li>
-        <li><label for="open_stash_in_tab">
-            <input type="radio" name="open_stash_in" id="open_stash_in_tab"
-                  v-model="open_stash_in" value="tab" />
-            Automatically show your stashed tabs in a new tab
-        </label></li>
-        <li><label for="open_stash_in_none">
-            <input type="radio" name="open_stash_in" id="open_stash_in_none"
-                  v-model="open_stash_in" value="none" />
-            Don't automatically show the stash
-        </label></li>
+        <li>
+          <label for="browser_action_stash">
+            <select id="browser_action_stash" v-model="browser_action_stash">
+              <option value="all">Stash all (or selected) tabs</option>
+              <option value="single">Stash the active tab</option>
+              <option :disabled="browser_action_show === 'none'"
+                      value="none">Don't stash any tabs</option>
+            </select>
+          </label>
+          <label for="browser_action_show">
+            and
+            <select id="browser_action_show" v-model="browser_action_show">
+              <option value="sidebar">show the stash in the sidebar</option>
+              <option value="tab">show the stash in a tab</option>
+              <option :disabled="browser_action_stash === 'none'"
+                      value="none">don't show the stash</option>
+            </select>
+          </label>
+        </li>
       </ul>
     </li>
 
     <li>
-      <label>When deleting items from your stash:</label>
+      <label>When stashing tabs from the context menu or address bar:</label>
       <ul>
-        <li><label for="deleted_items_expiration_days">
-          Remember items that were deleted on this computer for
-          <input type="number" id="deleted_items_expiration_days"
-                  v-model="deleted_items_expiration_days" min="1">
-          days
+        <li><label for="open_stash_in_sidebar">
+            <input type="radio" name="open_stash_in" id="open_stash_in_sidebar"
+                  v-model="open_stash_in" value="sidebar" />
+            Show the stash in the sidebar
+        </label></li>
+        <li><label for="open_stash_in_tab">
+            <input type="radio" name="open_stash_in" id="open_stash_in_tab"
+                  v-model="open_stash_in" value="tab" />
+            Show the stash in a tab
+        </label></li>
+        <li><label for="open_stash_in_none">
+            <input type="radio" name="open_stash_in" id="open_stash_in_none"
+                  v-model="open_stash_in" value="none" />
+            Don't show the stash
         </label></li>
       </ul>
     </li>
+
 
     <li class="advanced">
       <label>When stashing a single tab:</label>
@@ -63,7 +77,25 @@
 
   <hr>
 
-  <h4 title="Options in this section are stored only on this computer.">Tab and Memory Management (This Browser)</h4>
+  <h4>Privacy (All Synced Browsers)</h4>
+
+  <ul>
+    <li>
+      <label>When deleting items from your stash:</label>
+      <ul>
+        <li><label for="deleted_items_expiration_days">
+          Remember items that were deleted on this computer for
+          <input type="number" id="deleted_items_expiration_days"
+                  v-model="deleted_items_expiration_days" min="1">
+          days
+        </label></li>
+      </ul>
+    </li>
+  </ul>
+
+  <hr>
+
+  <h4>Tab and Memory Management (This Browser)</h4>
   <ul>
     <li>
       <label>Once a tab has been stashed:</label>

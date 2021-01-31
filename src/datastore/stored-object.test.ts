@@ -3,7 +3,11 @@ import {browser} from 'webextension-polyfill-ts';
 
 import * as events from '../mock/events';
 import storage_mock from '../mock/browser-storage';
+
+import {nextTick} from '../util';
 import StoredObject, {aBoolean, aNumber, aString, StorableDef} from './stored-object';
+
+const SO = StoredObject;
 
 describe('stored-object', function() {
     describe('mocks', function() {
@@ -91,7 +95,6 @@ describe('stored-object', function() {
 
     describe('behaviors', function() {
         storage_mock.reset();
-        let StoredObject = require('./stored-object').default;
 
         const DEF = {
             a: {default: 1, is: aNumber},
@@ -100,6 +103,8 @@ describe('stored-object', function() {
             bar: {default: 'foo', is: aString},
             bool: {default: false, is: aBoolean},
         };
+
+        let StoredObject = require('./stored-object').default as typeof SO;
 
         const defaults = <D extends StorableDef>(def: D) => Object.keys(def)
             .reduce((obj: StoredObject<D>, k: keyof D) => {
@@ -194,6 +199,60 @@ describe('stored-object', function() {
                    Object.assign({}, defaults(DEF)));
            });
 
+        it('fires events for objects which have been created out-of-band',
+            async function() {
+                const o = await StoredObject.local('foo', DEF);
+                let fired = false;
+                o.onChanged.addListener(obj => {
+                    fired = true;
+                    expect(obj.state).to.deep.include(
+                        Object.assign({}, defaults(DEF), {a: 42}));
+                });
+
+                await browser.storage.local.set({foo: {a: 42}});
+                await events.drain(1);
+                await nextTick();
+                expect(fired).to.be.true;
+            });
+
+        it('fires events for objects which have been updated out-of-band',
+            async function() {
+                await browser.storage.local.set({foo: {a: 42}});
+                await events.drain(1);
+
+                const o = await StoredObject.local('foo', DEF);
+                let fired = false;
+                o.onChanged.addListener(obj => {
+                    fired = true;
+                    expect(obj.state).to.deep.include(
+                        Object.assign({}, defaults(DEF), {a: 17}));
+                });
+
+                await browser.storage.local.set({foo: {a: 17}});
+                await events.drain(1);
+                await nextTick();
+                expect(fired).to.be.true;
+            });
+
+        it('fires events for objects which have been deleted out-of-band',
+            async function() {
+                await browser.storage.local.set({foo: {a: 42}});
+                await events.drain(1);
+
+                const o = await StoredObject.local('foo', DEF);
+                let fired = false;
+                o.onChanged.addListener(obj => {
+                    fired = true;
+                    expect(o.state).to.deep.include(
+                            Object.assign({}, defaults(DEF)));
+                });
+
+                await browser.storage.local.remove('foo');
+                await events.drain(1);
+                await nextTick();
+                expect(fired).to.be.true;
+            });
+
         it('sets values which are not the default', async function() {
             const OVERRIDES = {a: 42, bar: 'fred'};
             const o = await StoredObject.local('foo', DEF);
@@ -241,7 +300,7 @@ describe('stored-object', function() {
 
             const o = await StoredObject.local('foo', DEF);
 
-            await o.set({a: '17'});
+            await o.set({a: '17' as any});
             await events.drain(1);
 
             expect(await browser.storage.local.get('foo'))
@@ -272,7 +331,7 @@ describe('stored-object', function() {
 
             const o = await StoredObject.local('foo', DEF);
 
-            await o.set({a: "1"});
+            await o.set({a: "1" as any});
             await events.drain(1);
 
             expect(await browser.storage.local.get('foo'))

@@ -30,6 +30,8 @@
 import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
 
+import Listener from '../util/listener';
+
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {
     [k: string]: {
@@ -116,6 +118,10 @@ export default class StoredObject<D extends StorableDef> {
     // Read-only data properties as defined in your schema (named `state` to
     // follow Vue model conventions).
     readonly state: StorableData<D>;
+
+    // Event listener which is notified whenever the StoredObject changes or
+    // is deleted.
+    readonly onChanged = new Listener<(self: StoredObject<D>) => void>();
 
     // sync is for browser-synced storage.  This is generally very small but is
     // persisted across all of a user's computers.  `def` is the schema to use
@@ -307,14 +313,15 @@ export default class StoredObject<D extends StorableDef> {
         // the ONLY place where getting rid of `readonly` is acceptable.
         for (const k in this._def) (<any>this.state)[k] = this._def[k].default;
 
-        if (typeof values !== 'object') return;
-
-        for (const k in values) {
-            if (k in this._def) (<any>this.state)[k] = this._def[k].is(values[k]);
-            // Otherwise keys not present in defaults are dropped/ignored.
+        if (typeof values === 'object') {
+            for (const k in values) {
+                if (k in this._def) (<any>this.state)[k] = this._def[k].is(values[k]);
+                // Otherwise keys not present in defaults are dropped/ignored.
+            }
         }
-    }
 
+        this.onChanged.send(this);
+    }
 };
 
 export type StorableData<D extends StorableDef> = {

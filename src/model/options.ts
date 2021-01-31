@@ -13,6 +13,11 @@ import StoredObject, {
     aBoolean, anEnum, aNumber, aString, maybeUndef, StorableData
 } from '../datastore/stored-object';
 
+export const SHOW_WHAT_OPT = anEnum('sidebar', 'tab', 'none');
+export const STASH_WHAT_OPT = anEnum('all', 'single', 'none');
+export type ShowWhatOpt = ReturnType<typeof SHOW_WHAT_OPT>;
+export type StashWhatOpt = ReturnType<typeof STASH_WHAT_OPT>;
+
 export type SyncModel = StoredObject<typeof SYNC_DEF>;
 export type SyncState = SyncModel['state'];
 export const SYNC_DEF = {
@@ -23,7 +28,19 @@ export const SYNC_DEF = {
     // toolbar, do we show the "sidebar", "tab", or "none" (of the above)?
     open_stash_in: {
         default: 'sidebar',
-        is: anEnum('sidebar', 'tab', 'none'),
+        is: SHOW_WHAT_OPT,
+    },
+
+    // When the user clicks the browser toolbar button, what tabs do we stash?
+    browser_action_stash: {
+        default: 'none',
+        is: STASH_WHAT_OPT,
+    },
+
+    // When the user clicks the browser toolbar button, what UI do we show?
+    browser_action_show: {
+        default: 'sidebar',
+        is: SHOW_WHAT_OPT,
     },
 
     // If we're stashing to a "recent" unnamed folder, how recent is "recent"?

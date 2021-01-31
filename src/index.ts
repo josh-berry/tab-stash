@@ -12,6 +12,7 @@ import {
 } from './stash';
 import {CacheService} from './datastore/cache/service';
 import service_model from './service-model';
+import {StashWhatOpt, ShowWhatOpt} from './model/options';
 
 logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
@@ -92,24 +93,6 @@ menu('3:', ['page_action'], [
     ['copy_one', 'Copy This Tab to Stash'],
 ]);
 
-// show_stash_if_desired() shows either the Tab Stash sidebar, the Tab Stash
-// tab, or nothing, depending on the `open_stash_in` synced setting.
-function show_stash_if_desired() {
-    switch (model.options.sync.state.open_stash_in) {
-        case 'none':
-            break;
-
-        case 'tab':
-            logErrors(commands.show_tab);
-            break;
-
-        case 'sidebar':
-        default:
-            logErrors(commands.show_sidebar_or_tab);
-            break;
-    }
-}
-
 const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
@@ -127,13 +110,13 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     },
 
     stash_all: async function(tab?: Tabs.Tab) {
-        show_stash_if_desired();
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: true});
     },
 
     stash_one: async function(tab?: Tabs.Tab) {
-        show_stash_if_desired();
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
@@ -142,19 +125,19 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     },
 
     stash_one_newgroup: async function(tab?: Tabs.Tab) {
-        show_stash_if_desired();
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabs([tab], {close: true});
     },
 
     copy_all: async function(tab?: Tabs.Tab) {
-        show_stash_if_desired();
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabsInWindow(tab.windowId, {close: false});
     },
 
     copy_one: async function(tab?: Tabs.Tab) {
-        show_stash_if_desired();
+        show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await stashTabs([tab], {
             folderId: await mostRecentUnnamedFolderId(),
@@ -166,6 +149,43 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
         await browser.runtime.openOptionsPage();
     },
 };
+
+// Shows the Tab Stash UI in the manner requested by /show_what/.  NOTE that to
+// be able to open the sidebar, this function must be invoked in a
+// user-initiated event handler context BEFORE any async operations are done.
+function show_something(show_what: ShowWhatOpt) {
+    switch (show_what) {
+        case 'none':
+            break;
+
+        case 'tab':
+            logErrors(commands.show_tab);
+            break;
+
+        case 'sidebar':
+        default:
+            logErrors(commands.show_sidebar_or_tab);
+            break;
+    }
+}
+
+async function stash_something(stash_what: StashWhatOpt, tab: Tabs.Tab) {
+    switch (stash_what) {
+        case 'all':
+            await stashTabsInWindow(tab.windowId, {close: true});
+            break;
+
+        case 'single':
+            await stashTabs([tab], {
+                folderId: await mostRecentUnnamedFolderId(),
+                close: true,
+            });
+
+        case 'none':
+        default:
+            break;
+    }
+}
 
 
 
@@ -181,7 +201,16 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 if (browser.browserAction) {
-    browser.browserAction.onClicked.addListener(asyncEvent(commands.stash_all));
+    browser.browserAction.onClicked.addListener(asyncEvent(async tab => {
+        const opts = model.options.sync.state;
+        // Special case so the user doesn't think Tab Stash is broken
+        if (opts.browser_action_show === 'none' && opts.browser_action_stash === 'none') {
+            await browser.runtime.openOptionsPage();
+            return;
+        }
+        show_something(opts.browser_action_show);
+        await stash_something(opts.browser_action_stash, tab);
+    }));
 }
 if (browser.pageAction) {
     browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
@@ -205,6 +234,24 @@ if (model.options.local.state.last_notified_version === undefined) {
     }));
 }
 
+// Check which options are selected for the browser and page actions, and change
+// their icons accordingly.
+model.options.sync.onChanged.addListener(asyncEvent(async opts => {
+    function getTitle(stash: StashWhatOpt): string {
+        switch (stash) {
+            case 'all': return "Stash all (or selected) tabs";
+            case 'single': return "Stash this tab";
+            case 'none':
+            default:
+                return "Show stashed tabs";
+        }
+    }
+
+    if (browser.browserAction) {
+        await browser.browserAction.setTitle({
+            title: getTitle(opts.state.browser_action_stash)});
+    }
+}));
 
 
 //

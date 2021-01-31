@@ -31,18 +31,18 @@
         "scripts": ["index.js"]
     },
     "browser_action": {
-        "default_title": "Stash all (or selected) open tabs",
+        "default_title": "Tab Stash",
         "default_icon": {
-            "16": "icons/light/stash-16.png",
-            "32": "icons/light/stash-32.png"
+            "16": "icons/light/logo-16.png",
+            "32": "icons/light/logo-32.png"
         },
         "theme_icons": [{
-            "light": "icons/dark/stash-16.png",
-            "dark": "icons/light/stash-16.png",
+            "light": "icons/dark/logo-16.png",
+            "dark": "icons/light/logo-16.png",
             "size": 16
         }, {
-            "light": "icons/dark/stash-32.png",
-            "dark": "icons/light/stash-32.png",
+            "light": "icons/dark/logo-32.png",
+            "dark": "icons/light/logo-32.png",
             "size": 32
         }],
         "browser_style": false
@@ -54,8 +54,7 @@
             "32": "icons/stash-one.svg"
         },
         "browser_style": false,
-        "show_matches": ["<all_urls>"],
-        "hide_matches": ["file:///*"]
+        "show_matches": ["<all_urls>"]
     },
     "sidebar_action": {
         "default_title": "Tab Stash",

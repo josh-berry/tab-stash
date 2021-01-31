@@ -120,8 +120,8 @@ LOGO_ICONS = dist/icons/logo.svg \
 	dist/icons/warning.svg \
 	$(foreach size,48 96 128,dist/icons/logo-$(size).png)
 TOOLBAR_ICONS = dist/icons/stash-one.svg \
-	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/stash-$(size).png)) \
-	$(foreach size,16 32,dist/icons/stash-$(size).png)
+	$(foreach size,16 32,dist/icons/logo-$(size).png) \
+	$(foreach theme,dark light,$(foreach size,16 32,dist/icons/$(theme)/logo-$(size).png))
 
 icons: $(DARK_ICONS) $(LIGHT_ICONS) $(LOGO_ICONS) $(TOOLBAR_ICONS)
 .PHONY: icons
