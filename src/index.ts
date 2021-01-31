@@ -202,8 +202,14 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 
 if (browser.browserAction) {
     browser.browserAction.onClicked.addListener(asyncEvent(async tab => {
-        show_something(model.options.sync.state.browser_action_show);
-        await stash_something(model.options.sync.state.browser_action_stash, tab);
+        const opts = model.options.sync.state;
+        // Special case so the user doesn't think Tab Stash is broken
+        if (opts.browser_action_show === 'none' && opts.browser_action_stash === 'none') {
+            await browser.runtime.openOptionsPage();
+            return;
+        }
+        show_something(opts.browser_action_show);
+        await stash_something(opts.browser_action_stash, tab);
     }));
 }
 if (browser.pageAction) {
@@ -228,6 +234,24 @@ if (model.options.local.state.last_notified_version === undefined) {
     }));
 }
 
+// Check which options are selected for the browser and page actions, and change
+// their icons accordingly.
+model.options.sync.onChanged.addListener(asyncEvent(async opts => {
+    function getTitle(stash: StashWhatOpt): string {
+        switch (stash) {
+            case 'all': return "Stash all (or selected) tabs";
+            case 'single': return "Stash this tab";
+            case 'none':
+            default:
+                return "Show stashed tabs";
+        }
+    }
+
+    if (browser.browserAction) {
+        await browser.browserAction.setTitle({
+            title: getTitle(opts.state.browser_action_stash)});
+    }
+}));
 
 
 //
