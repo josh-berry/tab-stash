@@ -6,13 +6,13 @@
   <aside class="notification-overlay">
     <Notification v-if="recently_updated === 'features'"
                 @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} now remembers your deleted items.  See what else
-      is new!
+      Tab Stash {{my_version}} now allows you to customize the behavior of the
+      Tab Stash button in your toolbar.  See what else is new!
     </Notification>
     <Notification v-if="recently_updated === 'fixes'"
                 @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} fixes an issue with importing sites that take a
-      while to load.  Show release notes
+      Tab Stash {{my_version}} now allows you to customize the behavior of the
+      Tab Stash button in your toolbar.  See what else is new!
     </Notification>
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
       {{root_folder_warning[0]}}
