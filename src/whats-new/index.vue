@@ -9,6 +9,10 @@
   <div class="folder-list one-column">
 
     <Version v="2.8">
+      <L :issue="21" v="New:">The behavior of the Tab Stash button in your
+      browser's toolbar can now be customized.  Choose "Options..." from the Tab
+      Stash menu to change the setting.</L>
+
       <L :issue="64" v="New:">Allow all URLs (except URLs to Tab Stash itself)
       to be stashed and restored.  Privileged URLs which cannot be opened by Tab
       Stash will instead show an intermediate page to make it easy to open the
