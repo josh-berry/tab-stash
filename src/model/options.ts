@@ -33,7 +33,7 @@ export const SYNC_DEF = {
 
     // When the user clicks the browser toolbar button, what tabs do we stash?
     browser_action_stash: {
-        default: 'none',
+        default: 'all',
         is: STASH_WHAT_OPT,
     },
 
