@@ -86,8 +86,11 @@ html {
 .ephemeral {
     border: none;
     background: transparent;
+    border-radius: var(--ctrl-border-radius);
 
     &:focus { background-color: var(--ctrl-bg); }
+    &:hover { box-shadow: var(--ephemeral-hover-shadow); }
+    &:hover:focus { box-shadow: var(--focus-shadow); }
 }
 
 

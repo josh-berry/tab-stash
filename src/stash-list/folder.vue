@@ -44,7 +44,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label :class="{'folder-name': true, 'ephemeral': true,
+    <editable-label :class="{'folder-name': true, 'ephemeral': ! isWindow,
                             'disabled': isWindow || ! allowRenameDelete}"
                     :value="nonDefaultTitle"
                     :defaultValue="defaultTitle"
