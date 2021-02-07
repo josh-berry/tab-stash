@@ -17,11 +17,11 @@ to keep track of yet another account.
 
 ## Features
 
-- Stash your open tabs with the Tab Stash toolbar button
+- Stash your open tabs with the Tab Stash toolbar button, or individual tabs
+  with a button in the address bar
 - Select which tabs to stash with Shift+Click and Ctrl+Click (Cmd+Click on Mac)
-- Stash individual tabs with the Tab Stash button in the address bar
-- Show all stashed tabs in an unobtrusive Firefox sidebar
-- Show all stashed tabs in a full-browser tab view
+- Show all stashed tabs in an unobtrusive Firefox sidebar, or a full-browser tab
+  view
 - Search your stash
 - Restore and delete entire groups, or individual tabs
 - Recover recently-deleted tabs and groups
