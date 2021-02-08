@@ -3,6 +3,7 @@
 
 // istanbul ignore file
 
+import {browser} from 'webextension-polyfill-ts';
 import {VueConstructor, ComponentOptions} from 'vue';
 
 import {asyncEvent} from './util';
@@ -22,6 +23,13 @@ export default function launch<
             default:
                 document.documentElement.classList.add('view-tab');
                 break;
+        }
+
+        if (! browser.runtime.getBrowserInfo) {
+            document.documentElement.classList.add('browser-chrome');
+        } else {
+            const b = await browser.runtime.getBrowserInfo();
+            document.documentElement.classList.add(`browser-${b.name.toLowerCase()}`);
         }
 
         const opts = await options();

@@ -60,7 +60,6 @@
       </ul>
     </li>
 
-
     <li class="advanced">
       <label>When stashing a single tab:</label>
       <ul>
@@ -118,6 +117,8 @@
                       v-model="autodiscard_hidden_tabs" />
                 Automatically unload hidden tabs that haven't been used in a while
               </label>
+            </li>
+            <li>
               <ul :class="{advanced: true,
                            disabled: after_stashing_tab !== 'hide'
                                      || ! autodiscard_hidden_tabs}">

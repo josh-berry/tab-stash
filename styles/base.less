@@ -1,12 +1,16 @@
-// The extra <body> reference is needed to overcome some injected stylesheets in
-// Edge/Chrome...
-html, body {
+body {
     font: caption;
     user-select: none;
     -moz-user-select: none;
     background-color: var(--page-bg);
     color: var(--page-fg);
     scrollbar-color: var(--scroll-handle) var(--scroll-bar);
+}
+
+html.browser-chrome > body {
+    font: initial;
+    font-family: system-ui, sans-serif;
+    font-size: 9.5pt;
 }
 
 // Anything that has keyboard focus
