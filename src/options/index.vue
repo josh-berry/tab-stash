@@ -31,6 +31,7 @@
             <select id="browser_action_show" v-model="browser_action_show">
               <option v-if="hasSidebar" value="sidebar">show the stash in the sidebar</option>
               <option value="tab">show the stash in a tab</option>
+              <option v-if="ff_popup_view" value="popup">show the stash in a popup</option>
               <option :disabled="browser_action_stash === 'none'"
                       value="none">don't show the stash</option>
             </select>
@@ -51,6 +52,11 @@
             <input type="radio" name="open_stash_in" id="open_stash_in_tab"
                   v-model="open_stash_in" value="tab" />
             Show the stash in a tab
+        </label></li>
+        <li v-if="ff_popup_view"><label for="open_stash_in_popup">
+            <input type="radio" name="open_stash_in" id="open_stash_in_popup"
+                  v-model="open_stash_in" value="popup" />
+            Show the stash in a popup
         </label></li>
         <li><label for="open_stash_in_none">
             <input type="radio" name="open_stash_in" id="open_stash_in_none"
@@ -176,6 +182,25 @@
       </ul>
     </li>
   </ul>
+
+  <hr v-if="meta_show_advanced">
+
+  <div class="advanced">
+    <h4>Experimental Features (This Browser)</h4>
+
+    <p><em>WARNING: Changing feature flags may break Tab Stash or cause data
+    loss!  Use with care, and please report any issues you find on
+    GitHub.</em></p>
+
+    <ul>
+      <FeatureFlag name="ff_popup_view" v-model="ff_popup_view"
+                   :default_value="local_def().ff_popup_view.default">
+        <template v-slot:summary>Popup View</template>
+        Enables additional options (configurable above) to show the Tab Stash UI
+        in a popup panel instead of {{hasSidebar ? 'the sidebar or ' : ''}}a tab.
+      </FeatureFlag>
+    </ul>
+  </div>
 </main>
 </template>
 
@@ -183,8 +208,8 @@
 import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
 
-import launch from './launch-vue';
-import * as Options from './model/options';
+import launch from '../launch-vue';
+import * as Options from '../model/options';
 
 const prop = (area: string, name: string) => ({
     get: function(this: any) { return this[area][name]; },
@@ -205,12 +230,14 @@ function options() {
 }
 
 const Main = Vue.extend({
+    components: {
+        FeatureFlag: require('./feature-flag').default,
+    },
     props: {
       hasSidebar: Boolean,
       sync: Object,
       local: Object,
     },
-
     computed: options(),
 });
 export default Main;
@@ -226,6 +253,8 @@ launch(Main, async() => {
         }),
         methods: {
             model() { return opts; },
+            local_def() { return Options.LOCAL_DEF; },
+            sync_def() { return Options.SYNC_DEF; },
         },
     };
 });

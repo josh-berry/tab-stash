@@ -9,7 +9,7 @@ module.exports = {
         "deleted-items": "./src/deleted-items/index.vue",
         "restore": "./src/restore.vue",
         "stash-list": "./src/stash-list/index.vue",
-        "options": "./src/options.vue",
+        "options": "./src/options/index.vue",
         "whats-new": "./src/whats-new/index.vue",
     },
     mode: "development",
