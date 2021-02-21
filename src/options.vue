@@ -29,7 +29,7 @@
           <label for="browser_action_show">
             and
             <select id="browser_action_show" v-model="browser_action_show">
-              <option value="sidebar">show the stash in the sidebar</option>
+              <option v-if="hasSidebar" value="sidebar">show the stash in the sidebar</option>
               <option value="tab">show the stash in a tab</option>
               <option :disabled="browser_action_stash === 'none'"
                       value="none">don't show the stash</option>
@@ -42,7 +42,7 @@
     <li>
       <label>When stashing tabs from the context menu or address bar:</label>
       <ul>
-        <li><label for="open_stash_in_sidebar">
+        <li v-if="hasSidebar"><label for="open_stash_in_sidebar">
             <input type="radio" name="open_stash_in" id="open_stash_in_sidebar"
                   v-model="open_stash_in" value="sidebar" />
             Show the stash in the sidebar
@@ -59,7 +59,6 @@
         </label></li>
       </ul>
     </li>
-
 
     <li class="advanced">
       <label>When stashing a single tab:</label>
@@ -118,6 +117,8 @@
                       v-model="autodiscard_hidden_tabs" />
                 Automatically unload hidden tabs that haven't been used in a while
               </label>
+            </li>
+            <li>
               <ul :class="{advanced: true,
                            disabled: after_stashing_tab !== 'hide'
                                      || ! autodiscard_hidden_tabs}">
@@ -179,9 +180,10 @@
 </template>
 
 <script lang="ts">
-import launch from './launch-vue';
+import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
 
+import launch from './launch-vue';
 import * as Options from './model/options';
 
 const prop = (area: string, name: string) => ({
@@ -203,7 +205,12 @@ function options() {
 }
 
 const Main = Vue.extend({
-    props: {sync: Object, local: Object},
+    props: {
+      hasSidebar: Boolean,
+      sync: Object,
+      local: Object,
+    },
+
     computed: options(),
 });
 export default Main;
@@ -213,6 +220,7 @@ launch(Main, async() => {
     (<any>globalThis).model = opts;
     return {
         propsData: Vue.observable({
+            hasSidebar: !! browser.sidebarAction,
             sync: opts.sync.state,
             local: opts.local.state,
         }),

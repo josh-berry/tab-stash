@@ -159,7 +159,7 @@ export default Vue.extend({
 
 .dlg > * > output {
     display: block;
-    overflow-block: auto;
+    overflow-y: auto;
     overflow-wrap: anywhere;
     user-select: text;
     -moz-user-select: text;

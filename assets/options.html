@@ -24,7 +24,15 @@
         --gap: 4px;
         --indent: 2rem;
       }
-      * { font: caption; }
+      body { font: caption; }
+      html.browser-chrome > body {
+        width: 550px;
+        font: initial;
+        font-family: system-ui, sans-serif;
+        font-size: 9.5pt;
+      }
+      html.browser-chrome.os-win > body { font-size: 9pt; }
+
       h4 { font-weight: bold; }
       :focus {
         box-shadow: 0 0 2px 2px highlight;
@@ -39,6 +47,9 @@
           margin-left: calc(var(--indent) - var(--gap));
           padding-left: var(--gap);
       }
+      li {
+        margin: 1ex 0;
+      }
       hr {
           border: 1px solid #e0e0e0;
       }
@@ -46,11 +57,8 @@
           margin: 2ex 0;
       }
       label {
-        display: inline-flex;
-        padding: 0.5ex 0;
+        display: inline-block;
         align-items: center;
-        gap: var(--gap);
-        min-height: 26px;
       }
       input[type=number] {
           border: 1px solid #c0c0c0;

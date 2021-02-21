@@ -3,9 +3,10 @@
 
 // istanbul ignore file
 
+import {browser} from 'webextension-polyfill-ts';
 import {VueConstructor, ComponentOptions} from 'vue';
 
-import {asyncEvent} from './util';
+import {asyncEvent, resolveNamed} from './util';
 
 export default function launch<
     V extends Vue,
@@ -23,6 +24,16 @@ export default function launch<
                 document.documentElement.classList.add('view-tab');
                 break;
         }
+
+        const plat = await resolveNamed({
+            browser: browser.runtime.getBrowserInfo ?
+                browser.runtime.getBrowserInfo() : {name: 'chrome'},
+            platform: browser.runtime.getPlatformInfo ?
+                browser.runtime.getPlatformInfo() : {os: 'unknown'},
+        });
+
+        document.documentElement.classList.add(`browser-${plat.browser.name.toLowerCase()}`);
+        document.documentElement.classList.add(`os-${plat.platform.os}`);
 
         const opts = await options();
         const vue = new component(opts);

@@ -6,6 +6,7 @@
 // to change where an option is stored.  For another, options.vue expects this
 // and will break if it's not true.)
 
+import {browser} from 'webextension-polyfill-ts';
 import Vue from 'vue';
 
 import {resolveNamed} from '../util';
@@ -18,6 +19,8 @@ export const STASH_WHAT_OPT = anEnum('all', 'single', 'none');
 export type ShowWhatOpt = ReturnType<typeof SHOW_WHAT_OPT>;
 export type StashWhatOpt = ReturnType<typeof STASH_WHAT_OPT>;
 
+export const SHOW_WHAT_DEFAULT = browser.sidebarAction ? 'sidebar' : 'tab';
+
 export type SyncModel = StoredObject<typeof SYNC_DEF>;
 export type SyncState = SyncModel['state'];
 export const SYNC_DEF = {
@@ -27,7 +30,7 @@ export const SYNC_DEF = {
     // When the user stashes from the context menu or address bar button, do we
     // show the "sidebar", "tab", or "none" (of the above)?
     open_stash_in: {
-        default: 'sidebar',
+        default: SHOW_WHAT_DEFAULT,
         is: SHOW_WHAT_OPT,
     },
 
@@ -39,7 +42,7 @@ export const SYNC_DEF = {
 
     // When the user clicks the browser toolbar button, what UI do we show?
     browser_action_show: {
-        default: 'sidebar',
+        default: SHOW_WHAT_DEFAULT,
         is: SHOW_WHAT_OPT,
     },
 
