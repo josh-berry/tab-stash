@@ -20,6 +20,9 @@ export default function launch<
             case 'sidebar':
                 document.documentElement.classList.add('view-sidebar');
                 break;
+            case 'popup':
+                document.documentElement.classList.add('view-popup');
+                break;
             default:
                 document.documentElement.classList.add('view-tab');
                 break;

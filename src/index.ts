@@ -105,6 +105,20 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
         ? browser.sidebarAction.open().catch(console.log)
         : commands.show_tab(),
 
+    async show_popup() {
+        // Ugh, this hack where we set and then clear the popup is necessary
+        // because if the (Chrome) browser thinks ANY popup is set, either
+        // programmatically or thru manifest.json, it will just show the popup
+        // rather than running the browserAction.onClicked callback (which might
+        // do other things besides setting the popup).
+        try {
+            await browser.browserAction.setPopup({popup: 'stash-list.html?view=popup'});
+            await browser.browserAction.openPopup();
+        } finally {
+            await browser.browserAction.setPopup({popup: ''});
+        }
+    },
+
     async show_tab() {
         await restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
@@ -162,6 +176,9 @@ function show_something(show_what: ShowWhatOpt) {
             logErrors(commands.show_tab);
             break;
 
+        case 'popup':
+            logErrors(commands.show_popup);
+
         case 'sidebar':
         default:
             logErrors(commands.show_sidebar_or_tab);
@@ -201,6 +218,29 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 if (browser.browserAction) {
+    // In order for show_something('popup') to work, we must preconfigure the
+    // browser to know which popup to show.  This cannot be done at the time of
+    // show_something() because doing so requires an async call, and Firefox
+    // doesn't allow us to then show the popup after the async call
+    // returns--because we're no longer in a user event context.
+    function setupPopup() {
+        logErrors(async() => {
+            if (the.model.options.sync.state.browser_action_show === 'popup') {
+                // As soon as we configure a popup, the onClicked handler below
+                // will no longer run (the popup will be shown instead).  This
+                // unfortunately means that we can't stash and show the popup at
+                // the same time.  Sigh.
+                await browser.browserAction.setPopup({popup: 'stash-list.html?view=popup'});
+            } else {
+                // If the user turns off the popup, we must clear the popup in
+                // the browser if we expect anything else to work.
+                await browser.browserAction.setPopup({popup: ''});
+            }
+        })
+    }
+    setupPopup();
+    the.model.options.sync.onChanged.addListener(setupPopup);
+
     browser.browserAction.onClicked.addListener(asyncEvent(async tab => {
         const opts = model.options.sync.state;
         // Special case so the user doesn't think Tab Stash is broken
@@ -212,6 +252,7 @@ if (browser.browserAction) {
         await stash_something(opts.browser_action_stash, tab);
     }));
 }
+
 if (browser.pageAction) {
     browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 }

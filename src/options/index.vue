@@ -20,8 +20,10 @@
         <li>
           <label for="browser_action_stash">
             <select id="browser_action_stash" v-model="browser_action_stash">
-              <option value="all">Stash all (or selected) tabs</option>
-              <option value="single">Stash the active tab</option>
+              <option :disabled="browser_action_show === 'popup'"
+                      value="all">Stash all (or selected) tabs</option>
+              <option :disabled="browser_action_show === 'popup'"
+                      value="single">Stash the active tab</option>
               <option :disabled="browser_action_show === 'none'"
                       value="none">Don't stash any tabs</option>
             </select>
@@ -52,11 +54,6 @@
             <input type="radio" name="open_stash_in" id="open_stash_in_tab"
                   v-model="open_stash_in" value="tab" />
             Show the stash in a tab
-        </label></li>
-        <li v-if="ff_popup_view"><label for="open_stash_in_popup">
-            <input type="radio" name="open_stash_in" id="open_stash_in_popup"
-                  v-model="open_stash_in" value="popup" />
-            Show the stash in a popup
         </label></li>
         <li><label for="open_stash_in_none">
             <input type="radio" name="open_stash_in" id="open_stash_in_none"
@@ -206,7 +203,7 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue from 'vue';
+import Vue, { PropType } from 'vue';
 
 import launch from '../launch-vue';
 import * as Options from '../model/options';
@@ -233,12 +230,54 @@ const Main = Vue.extend({
     components: {
         FeatureFlag: require('./feature-flag').default,
     },
+
     props: {
       hasSidebar: Boolean,
-      sync: Object,
-      local: Object,
+      sync: Object as PropType<Options.SyncState>,
+      local: Object as PropType<Options.LocalState>,
     },
+
     computed: options(),
+
+    watch: {
+        browser_action_show(val: Options.ShowWhatOpt) {
+            switch (val) {
+                case 'popup':
+                    this.model().sync.set({browser_action_stash: 'none'})
+                        .catch(console.error);
+                    break;
+                case 'none':
+                    if (this.model().sync.state.browser_action_stash === 'none') {
+                        this.model().sync.set({browser_action_stash: 'single'})
+                            .catch(console.error);
+                    }
+                    break;
+            }
+        },
+
+        browser_action_stash(val: Options.StashWhatOpt) {
+            switch (val) {
+                case 'none':
+                    if (this.model().sync.state.browser_action_show === 'none') {
+                        this.model().sync.set({browser_action_show: 'tab'})
+                            .catch(console.error);
+                    }
+                    break;
+                default:
+                    if (this.model().sync.state.browser_action_show === 'popup') {
+                        this.model().sync.set({browser_action_show: 'tab'})
+                            .catch(console.error);
+                    }
+                    break;
+            }
+        },
+    },
+
+    methods: {
+        model(): Options.Model { throw new Error("dummy method overridden below"); },
+        local_def() { return Options.LOCAL_DEF; },
+        sync_def() { return Options.SYNC_DEF; },
+    },
 });
 export default Main;
 
@@ -253,8 +292,6 @@ launch(Main, async() => {
         }),
         methods: {
             model() { return opts; },
-            local_def() { return Options.LOCAL_DEF; },
-            sync_def() { return Options.SYNC_DEF; },
         },
     };
 });

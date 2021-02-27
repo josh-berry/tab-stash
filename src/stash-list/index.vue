@@ -171,6 +171,12 @@ const Main = Vue.extend({
         },
     },
 
+    mounted() {
+        if (document.documentElement.classList.contains('popup-view')) {
+            (<HTMLInputElement>this.$refs.search).focus();
+        }
+    },
+
     methods: {
         pageref,
 

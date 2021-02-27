@@ -7,6 +7,27 @@ body {
     scrollbar-color: var(--scroll-handle) var(--scroll-bar);
 }
 
+html.view-popup {
+    // NOTE: The weird widths here are so that everything looks right when Tab
+    // Stash is moved to Firefox's popup menu (which for some reason STILL,
+    // after who knows how many years, doesn't change width to accommodate
+    // extension popups...)
+    & > body {
+        min-width: 200px;
+        max-width: 600px;
+        width: 376px;
+        height: 600px;
+    }
+
+    &.os-mac > body {
+        width: 378px;
+    }
+
+    &.os-win > body {
+        width: 348px;
+    }
+}
+
 html.browser-chrome > body {
     font: initial;
     font-family: system-ui, sans-serif;

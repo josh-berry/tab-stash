@@ -43,9 +43,12 @@ let PLATFORM_INFO = {
     'arch': 'unknown',
 };
 browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
+// istanbul ignore next
 export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
+// istanbul ignore next
 export const bgKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Cmd' : 'Ctrl';
 
+// istanbul ignore next
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
 

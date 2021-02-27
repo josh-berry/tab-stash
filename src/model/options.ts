@@ -14,7 +14,7 @@ import StoredObject, {
     aBoolean, anEnum, aNumber, aString, maybeUndef, StorableData
 } from '../datastore/stored-object';
 
-export const SHOW_WHAT_OPT = anEnum('sidebar', 'tab', 'none');
+export const SHOW_WHAT_OPT = anEnum('sidebar', 'tab', 'popup', 'none');
 export const STASH_WHAT_OPT = anEnum('all', 'single', 'none');
 export type ShowWhatOpt = ReturnType<typeof SHOW_WHAT_OPT>;
 export type StashWhatOpt = ReturnType<typeof STASH_WHAT_OPT>;
