@@ -23,18 +23,19 @@
       html {
         --gap: 4px;
         --indent: 2rem;
+        --font-size: 9.5pt;
       }
+      html.browser-chrome.os-win { --font-size: 9pt; }
       body { font: caption; }
       html.browser-chrome > body {
         width: 550px;
         font: initial;
         font-family: system-ui, sans-serif;
-        font-size: 9.5pt;
+        font-size: var(--font-size);
       }
-      html.browser-chrome.os-win > body { font-size: 9pt; }
 
-      h4 { font-weight: bold; }
-      h5 { font-weight: bold; }
+      h4 { font-weight: bold; font-size: calc(var(--font-size) + 1pt);}
+      h5 { font-weight: bold; font-size: var(--font-size); }
       :focus {
         box-shadow: 0 0 2px 2px highlight;
         outline: none;

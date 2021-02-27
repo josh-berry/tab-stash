@@ -185,9 +185,9 @@
   <div class="advanced">
     <h4>Experimental Features (This Browser)</h4>
 
-    <p><em>WARNING: Changing feature flags may break Tab Stash or cause data
-    loss!  Use with care, and please report any issues you find on
-    GitHub.</em></p>
+    <p><em>WARNING: Changing experimental feature settings may break Tab Stash
+    or cause data loss!  They are "experimental" because they are not done and
+    there are likely to be bugs!  You have been warned...</em></p>
 
     <ul>
       <FeatureFlag name="ff_popup_view" v-model="ff_popup_view"
