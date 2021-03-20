@@ -26,7 +26,7 @@
         "unlimitedStorage"
     ],
     "content_security_policy":
-        "script-src 'self' 'unsafe-eval'; object-src 'self';",
+        "script-src 'self'; object-src 'self';",
     "background": {
         "scripts": ["index.js"]
     },
