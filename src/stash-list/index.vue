@@ -11,8 +11,8 @@
     </Notification>
     <Notification v-if="recently_updated === 'fixes'"
                 @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} now allows you to customize the behavior of the
-      Tab Stash button in your toolbar.  See what else is new!
+      Tab Stash has been updated to {{my_version}}, which is a maintenance
+      release containing bug fixes only.
     </Notification>
     <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
       {{root_folder_warning[0]}}
