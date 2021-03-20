@@ -5,7 +5,9 @@ import * as events from '../mock/events';
 import storage_mock from '../mock/browser-storage';
 
 import {nextTick} from '../util';
-import StoredObject, {aBoolean, aNumber, aString, StorableDef} from './stored-object';
+import StoredObject, {
+    aBoolean, anEnum, aNumber, aString, maybeNull, maybeUndef, StorableDef
+} from './stored-object';
 
 const SO = StoredObject;
 
@@ -96,12 +98,15 @@ describe('stored-object', function() {
     describe('behaviors', function() {
         storage_mock.reset();
 
-        const DEF = {
+        const DEF: StorableDef = {
             a: {default: 1, is: aNumber},
             b: {default: 2, is: aNumber},
             foo: {default: 'bar', is: aString},
             bar: {default: 'foo', is: aString},
             bool: {default: false, is: aBoolean},
+            enum: {default: 'maybe', is: anEnum('yes', 'no', 'maybe')},
+            tristate: {default: null, is: maybeNull(aBoolean)},
+            undef: {default: undefined, is: maybeUndef(aNumber)},
         };
 
         let StoredObject = require('./stored-object').default as typeof SO;
@@ -412,6 +417,23 @@ describe('stored-object', function() {
 
             expect(await browser.storage.sync.get()).to.deep.equal({foo: {}});
             expect(o.state).to.deep.include(defaults(DEF));
+        });
+
+        describe('invalid stored values', function() {
+            function test(name: string, obj: any, field: keyof typeof DEF) {
+                it(`converts invalid ${name}`, async() => {
+                    await browser.storage.local.set({obj});
+                    await events.drain(1);
+                    const o = await StoredObject.local('obj', DEF);
+                    expect(o.state[field]).to.equal(DEF[field].default);
+                });
+            }
+            test('booleans', {bool: 'string'}, 'bool');
+            test('integers', {a: 'pi'}, 'a');
+            //test('strings', {}) -- things can always become strings
+            test('enums', {enum: 'whatever'}, 'enum');
+            test('maybe-null booleans', {tristate: 'string'}, 'bool');
+            test('maybe-undefined numbers', {undef: 'three'}, 'undef');
         });
     });
 });
