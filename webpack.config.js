@@ -12,8 +12,8 @@ module.exports = {
         "options": "./src/options/index.vue",
         "whats-new": "./src/whats-new/index.vue",
     },
-    mode: "development",
-    devtool: "eval-source-map",
+    mode: "production",
+    devtool: "source-map",
     module: {
         rules: [
             {test: /\.vue$/, loader: 'vue-loader'},
@@ -46,15 +46,7 @@ module.exports = {
     ],
 
     optimization: {
-        // We always enable minimization so that debug and release builds look
-        // as similar as possible--have seen test failures in release builds
-        // when this isn't done.
-        minimize: true,
-
         // Enable some options for deterministic builds
-        moduleIds: 'deterministic',
-        chunkIds: 'deterministic',
-        mangleExports: 'deterministic',
         portableRecords: true,
     },
 

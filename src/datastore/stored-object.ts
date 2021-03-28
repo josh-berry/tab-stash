@@ -34,12 +34,14 @@ import Listener from '../util/listener';
 
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {
-    [k: string]: {
+    [k: string]: StorableDefEntry<any>,
+};
+
+export type StorableDefEntry<T extends StorableValue> = {
         // Each property has a default value...
-        default: StorableValue,
+        default: T,
         // ...and a type.
-        is: StorableType,
-    },
+        is: StorableType<T>,
 };
 
 // Allowed types (for each "is" property in the map above) are based on MDN's
@@ -49,12 +51,12 @@ type StorableValue = undefined | null | boolean | number | string | StorableValu
 // Storable types are set in the "is" property of a StorableDef, and are
 // expressed as functions which convert from arbitrary/undefined values the
 // desired type.
-type StorableType = (value: any) => StorableValue;
+type StorableType<T extends StorableValue> = (value: any, fallback: T) => T;
 
 // Here are the basic types (boolean, string, etc.).  We don't define types for
 // undefined/null right now because they're not very useful on their own.
 export const aBoolean =
-    (value: any): boolean => {
+    (value: any, fallback: boolean): boolean => {
         switch (value) {
             case 1: case true: return true;
             case 0: case false: return false;
@@ -63,43 +65,48 @@ export const aBoolean =
             case 'false': case 'no': return false;
             case 'true': case 'yes': return true;
             default:
-                throw new TypeError(`Not a boolean: ${value}`);
+                return fallback;
         }
     };
 export const aNumber =
-    (value: any): number => {
-        const res = Number(value);
-        if (Number.isNaN(res)) throw new TypeError(`Not a number: ${value}`);
+    (value: any, fallback: number): number => {
+        let res;
+        try {
+            res = Number(value);
+        } catch (e) {
+            return fallback;
+        }
+        if (Number.isNaN(res)) return fallback;
         return res;
     };
 
 export const aString =
-    (value: any): string => value.toString();
+    (value: any, _fallback: string): string => value.toString();
 
 // However, it IS possible to have "some other type OR undefined/null".  For
 // example: maybeUndef(aNumber) is equivalent to number | undefined.
-export const maybeUndef = <V extends StorableValue>(converter: (v: any) => V) =>
-    (value: any): V | undefined => {
+export const maybeUndef = <V extends StorableValue>(converter: (v: any, fallback: V) => V) =>
+    (value: any, fallback: V): V | undefined => {
         switch (value) {
             case undefined: case null: case '': return undefined;
-            default: return converter(value);
+            default: return converter(value, fallback);
         }
     };
 
-export const maybeNull = <V extends StorableValue>(converter: (v: any) => V) =>
-    (value: any): V | null => {
+export const maybeNull = <V extends StorableValue>(converter: (v: any, fallback: V) => V) =>
+    (value: any, fallback: V): V | null => {
         switch (value) {
             case undefined: case null: case '': return null;
-            default: return converter(value);
+            default: return converter(value, fallback);
         }
     };
 
 // Enum values are also supported, for example anEnum('a', 'b') is the same type
 // as 'a' | 'b'.
 export const anEnum = <V extends string | number>(...cases: V[]) =>
-    (value: any): V => {
+    (value: any, fallback: V): V => {
         if (cases.includes(value.toString())) return value;
-        throw new TypeError(`${value}: Not a valid enum value, expected ${cases}`);
+        return fallback;
     };
 
 
@@ -154,7 +161,7 @@ export default class StoredObject<D extends StorableDef> {
                 continue;
             }
 
-            const v = this._def[k].is(values[k]);
+            const v = this._def[k].is(values[k], this._def[k].default);
 
             // If /values/ explicitly specifies that /k/ should be the default
             // value, omit it from the saved object entirely.
@@ -315,7 +322,9 @@ export default class StoredObject<D extends StorableDef> {
 
         if (typeof values === 'object') {
             for (const k in values) {
-                if (k in this._def) (<any>this.state)[k] = this._def[k].is(values[k]);
+                if (k in this._def) {
+                    (<any>this.state)[k] = this._def[k].is(values[k], this._def[k].default);
+                }
                 // Otherwise keys not present in defaults are dropped/ignored.
             }
         }

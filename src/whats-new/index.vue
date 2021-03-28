@@ -8,6 +8,13 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.8.1">
+      <L>Changed build parameters as requested by Mozilla.</L>
+
+      <L v="Fixed">an issue loading settings that were set to invalid values
+      (e.g. due to manual editing of the settings object).</L>
+    </Version>
+
     <Version v="2.8">
       <L :issue="21" v="New:">The behavior of the Tab Stash button in your
       browser's toolbar can now be customized.  Choose "Options..." from the Tab
