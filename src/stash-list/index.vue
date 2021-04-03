@@ -49,7 +49,7 @@
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <folder title="Unstashed Tabs" :allowRenameDelete="false"
+    <folder :title="tabfolder_title" :allowRenameDelete="false"
             ref="unstashed" :children="unstashed_tabs.children"
             :filter="unstashedFilter" :userFilter="search_filter"
             :isItemStashed="isItemStashed"
@@ -133,6 +133,11 @@ const Main = Vue.extend({
     }),
 
     computed: {
+        tabfolder_title(): string {
+            if (this.state.options.sync.show_all_open_tabs) return "Open Tabs";
+            return "Unstashed Tabs";
+        },
+
         recently_updated(): undefined | 'features' | 'fixes' {
             const last_notified = this.state.options.local.last_notified_version;
             if (last_notified === this.my_version) return undefined;
@@ -196,7 +201,8 @@ const Main = Vue.extend({
 
         unstashedFilter(t: Tab) {
             return ! t.hidden && ! t.pinned && t.url
-                && isURLStashable(t.url) && ! this.isItemStashed(t);
+                && isURLStashable(t.url)
+                && (this.state.options.sync.show_all_open_tabs || ! this.isItemStashed(t));
         },
 
         isItemStashed(i: Tab) {

@@ -46,6 +46,13 @@ export const SYNC_DEF = {
         is: SHOW_WHAT_OPT,
     },
 
+    // In the stash list, show all open tabs at the top instead of just the
+    // unstashed tabs.
+    show_all_open_tabs: {
+        default: false,
+        is: aBoolean,
+    },
+
     // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
     // If the most recent unnamed folder is older than <X> minutes ago, we will
     // create a new folder instead of appending to the existing one.

@@ -196,6 +196,13 @@
         Enables additional options (configurable above) to show the Tab Stash UI
         in a popup panel instead of {{hasSidebar ? 'the sidebar or ' : ''}}a tab.
       </FeatureFlag>
+
+      <FeatureFlag name="show_all_open_tabs" v-model="show_all_open_tabs"
+                   :default_value="sync_def().show_all_open_tabs.default">
+        <template v-slot:summary>Show All Open Tabs</template>
+        In the stash list, show all open tabs at the top instead of just the
+        unstashed tabs.
+      </FeatureFlag>
     </ul>
   </div>
 </main>
