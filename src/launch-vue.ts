@@ -8,6 +8,8 @@ import {VueConstructor, ComponentOptions} from 'vue';
 
 import {asyncEvent, resolveNamed} from './util';
 
+import * as Options from './model/options';
+
 export default function launch<
     V extends Vue,
     C extends VueConstructor<V>,
@@ -33,10 +35,21 @@ export default function launch<
                 browser.runtime.getBrowserInfo() : {name: 'chrome'},
             platform: browser.runtime.getPlatformInfo ?
                 browser.runtime.getPlatformInfo() : {os: 'unknown'},
+            options: Options.live_source(),
         });
 
         document.documentElement.classList.add(`browser-${plat.browser.name.toLowerCase()}`);
         document.documentElement.classList.add(`os-${plat.platform.os}`);
+
+        function updateStyle(opts: Options.SyncModel) {
+            if (opts.state.compact_style) {
+                document.documentElement.classList.add('style-compact');
+            } else {
+                document.documentElement.classList.remove('style-compact');
+            }
+        }
+        updateStyle(plat.options.sync);
+        plat.options.sync.onChanged.addListener(updateStyle);
 
         const opts = await options();
         const vue = new component(opts);

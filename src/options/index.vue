@@ -203,6 +203,12 @@
         In the stash list, show all open tabs at the top instead of just the
         unstashed tabs.
       </FeatureFlag>
+
+      <FeatureFlag name="compact_style" v-model="compact_style"
+              :default_value="sync_def().compact_style.default">
+        <template v-slot:summary>Compact Styling</template>
+        Enable more compact styling in the UI.
+      </FeatureFlag>
     </ul>
   </div>
 </main>

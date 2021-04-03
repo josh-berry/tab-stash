@@ -53,6 +53,12 @@ export const SYNC_DEF = {
         is: aBoolean,
     },
 
+    // Compact styling especially in the panel and sidebar views
+    compact_style: {
+        default: false,
+        is: aBoolean,
+    },
+
     // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
     // If the most recent unnamed folder is older than <X> minutes ago, we will
     // create a new folder instead of appending to the existing one.
