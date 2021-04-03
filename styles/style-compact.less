@@ -21,17 +21,18 @@
 }
 
 .folder-name {
-    font-size: 10.5pt;
+    // NOTE: The font and other sizes here are designed to make the heading
+    // height the same as the icon toolbar height, which is the minimum height
+    // we can support without things looking weird when toolbar buttons appear
+    // and disappear on hover.
+    font-size: var(--icon-size);
     font-weight: 600;
 
-    // This min-height is needed to avoid vertical movement when hovering over a
-    // folder-name next to a toolbar button that only appears on hover (e.g. the
-    // collapse button).
-    min-height: calc(var(--icon-btn-size) - 2 * var(--input-text-ph));
+    height: calc(var(--icon-btn-size) - 2 * var(--input-text-ph));
 
-    // And the line-height is needed to correct for oddities when this folder
-    // name is an ephemeral text box--without it, switching between the <input>
-    // and the <span> produces some vertical displacement.
+    // The line-height is needed to correct for oddities when this folder name
+    // is an ephemeral text box--without it, switching between the <input> and
+    // the <span> produces some vertical displacement.
     line-height: calc(var(--icon-btn-size) - 2 * var(--input-text-ph));
 }
 
