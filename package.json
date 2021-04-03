@@ -5,7 +5,6 @@
   "author": "Joshua J. Berry <des@condordes.net>",
   "repository": "https://github.com/josh-berry/tab-stash",
   "license": "MPL-2.0",
-  "dependencies": {},
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@types/chai": "*",
