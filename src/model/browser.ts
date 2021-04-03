@@ -394,6 +394,23 @@ export class StashState {
             evq.wrap((new_id, old_id) => state._tab_replaced(new_id, old_id)));
         browser.tabs.onUpdated.addListener(
             evq.wrap((id, info, tab) => state._tab(id)._update(tab)));
+        browser.tabs.onActivated.addListener(evq.wrap(info => {
+            if (info.previousTabId !== undefined) {
+                state._tab(info.previousTabId)._update({active: false});
+            }
+            if (info.tabId !== undefined) {
+                state._tab(info.tabId)._update({active: true});
+            }
+        }));
+        // Not used yet but may come in handy later:
+        //
+        // browser.tabs.onHighlighted.addListener(evq.wrap(info => {
+        //     const win = state._window(info.windowId);
+        //     for (const c of win.children) {
+        //         if (! c) continue;
+        //         c._update({highlighted: info.tabIds.includes(c.id)});
+        //     }
+        // }));
 
         //
         // Once event handlers are setup, we can construct the state object.

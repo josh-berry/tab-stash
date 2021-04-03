@@ -2,7 +2,8 @@
 <a :class="{'action-container': true,
             'tab': true,
             'saved': !!bm,
-            'open': tab && ! tab.hidden}"
+            'open': !!(tab && ! tab.hidden),
+            'active': !!(tab && tab.active)}"
    target="_blank" :href="url" :title="bestTitle"
    @click.prevent.stop="open">
   <ItemIcon v-if="favIconUrl || (favicon && favicon.value)"

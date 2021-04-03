@@ -160,6 +160,19 @@ a.tab {
         cursor: pointer;
         background-color: var(--item-hover-bg);
     }
+
+    &.active {
+        font-weight: bold;
+        background: linear-gradient(to right,
+            var(--userlink-fg) var(--icon-p),
+            transparent var(--icon-p));
+
+        &:hover {
+            background: linear-gradient(to right,
+                var(--userlink-fg) var(--icon-p),
+                var(--item-hover-bg) var(--icon-p));
+        }
+    }
 }
 
 // Icons (which aren't toolbar buttons)
