@@ -58,9 +58,9 @@ input[type=number] {
 main:not(.show-advanced) .advanced { display: none; }
 .advanced.show-advanced { display: block !important; }
 .advanced {
-    background-color: rgba(229, 201, 201, 0.25);
+    background-color: var(--advanced-bg);
     border-radius: calc(var(--ctrl-border-radius) / 2);
-    box-shadow: 0 0 0 var(--ctrl-border-radius) rgba(229, 201, 201, 0.25);
+    box-shadow: 0 0 0 var(--ctrl-border-radius) var(--advanced-bg);
     margin: calc(var(--ctrl-mh) + var(--ctrl-border-radius)) 0;
 }
 
