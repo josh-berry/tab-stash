@@ -24,16 +24,15 @@ main {
     padding: var(--ctrl-border-radius) var(--ctrl-border-radius);
 }
 
-h4 { font-weight: bold; font-size: calc(var(--font-size) + 1pt);}
+section { margin: var(--ctrl-mh) 0; }
+
+h4 { font-weight: bold; font-size: calc(var(--font-size) + 2pt);}
 h5 { font-weight: bold; font-size: var(--font-size); }
 
 ul {
     list-style: none;
-    margin: 0;
+    margin: 0 0 0 var(--text-list-indent-w);
     padding: 0;
-}
-ul ul {
-    margin-left: calc(var(--text-list-indent-w));
 }
 li {
     margin: var(--ctrl-mh) 0;
@@ -62,6 +61,7 @@ main:not(.show-advanced) .advanced { display: none; }
     background-color: rgba(229, 201, 201, 0.25);
     border-radius: calc(var(--ctrl-border-radius) / 2);
     box-shadow: 0 0 0 var(--ctrl-border-radius) rgba(229, 201, 201, 0.25);
+    margin: calc(var(--ctrl-mh) + var(--ctrl-border-radius)) 0;
 }
 
 .feature-flag {
@@ -75,3 +75,5 @@ main:not(.show-advanced) .advanced { display: none; }
     & > button { grid-row: 1; grid-column: 3; }
     & > div    { grid-row: 2; grid-column: 1; }
 }
+
+.issue { .status-text(); }
