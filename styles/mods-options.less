@@ -1,0 +1,77 @@
+& {
+    --page-bg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+    & {
+        --page-bg: #202023;
+        --page-fg: #f9f9fa;
+        --scroll-bar: #48484e;
+        --scroll-handle: #202023;
+    }
+}
+
+// Allow the Firefox options page to dictate the size of the <html> element.
+// Without this, we'll get a scroll bar within the options section of the page
+// rather than on the page as a whole.
+& { overflow: auto; }
+body, main { overflow: unset; }
+
+// Add a bit of padding around the inside of the <main> to allow for the
+// advanced boxes to overflow their bounds a little bit (for corner rounding)
+main {
+    box-sizing: border-box;
+    padding: var(--ctrl-border-radius) var(--ctrl-border-radius);
+}
+
+h4 { font-weight: bold; font-size: calc(var(--font-size) + 1pt);}
+h5 { font-weight: bold; font-size: var(--font-size); }
+
+ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+ul ul {
+    margin-left: calc(var(--text-list-indent-w));
+}
+li {
+    margin: var(--ctrl-mh) 0;
+}
+hr {
+    border: 1px solid #e0e0e0;
+}
+h4, hr {
+    margin: calc(2 * var(--ctrl-mh)) 0;
+}
+h5 { margin: 0 0; }
+label {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--ctrl-pw);
+}
+
+input[type=number] {
+    max-width: 5em;
+}
+main:not(.show-advanced) .advanced { display: none; }
+.advanced.show-advanced { display: block !important; }
+.advanced {
+    background-color: rgba(229, 201, 201, 0.25);
+    border-radius: calc(var(--ctrl-border-radius) / 2);
+    box-shadow: 0 0 0 var(--ctrl-border-radius) rgba(229, 201, 201, 0.25);
+}
+
+.feature-flag {
+    display: grid;
+    grid-template-columns: 1fr 0fr 0fr;
+    align-items: center;
+    column-gap: var(--ctrl-mw);
+
+    & > label  { grid-row: 1; grid-column: 1; }
+    & > input  { grid-row: 1; grid-column: 2; }
+    & > button { grid-row: 1; grid-column: 3; }
+    & > div    { grid-row: 2; grid-column: 1; }
+}

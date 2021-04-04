@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="page-options">
   <head>
     <meta charset="utf-8">
     <title>Tab Stash: Options</title>
@@ -8,77 +8,7 @@
     <!-- XXX this doesn't work yet:
     <link rel="icon" media="inverted-colors: inverted" href="../icons/logo-light.svg">
     -->
-    <!--link rel="stylesheet" type="text/css" href="tab-stash.css"-->
-    <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension.css">
-    <link rel="stylesheet" type="text/css" href="chrome://browser/content/extension-mac.css">
-    <style type="text/css">
-      @media (prefers-color-scheme: dark) {
-        html, body, input {
-          background-color: #202023;
-          color: #f9f9fa;
-          scrollbar-color: #48484e #202023;
-        }
-      }
-
-      html {
-        --gap: 4px;
-        --indent: 2rem;
-        --font-size: 9.5pt;
-      }
-      html.browser-chrome.os-win { --font-size: 9pt; }
-      body { font: caption; }
-      html.browser-chrome > body {
-        width: 550px;
-        font: initial;
-        font-family: system-ui, sans-serif;
-        font-size: var(--font-size);
-      }
-
-      h4 { font-weight: bold; font-size: calc(var(--font-size) + 1pt);}
-      h5 { font-weight: bold; font-size: var(--font-size); }
-      :focus {
-        box-shadow: 0 0 2px 2px highlight;
-        outline: none;
-      }
-      ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-      }
-      ul ul {
-          margin-left: calc(var(--indent) - var(--gap));
-          padding-left: var(--gap);
-      }
-      li {
-        margin: 1ex 0;
-      }
-      hr {
-          border: 1px solid #e0e0e0;
-      }
-      h4, hr {
-          margin: 2ex 0;
-      }
-      h5 { margin: 0 0; }
-      label {
-        display: inline-block;
-        align-items: center;
-      }
-      em {
-        font-style: italic;
-      }
-      input[type=number] {
-          border: 1px solid #c0c0c0;
-          max-width: 5em;
-      }
-      main:not(.show-advanced) .advanced { display: none; }
-      .advanced.show-advanced { display: block !important; }
-      .advanced {
-          /*border: 1px solid rgba(255, 0, 0, 0.4);*/
-          background-color: rgba(229, 201, 201, 0.25);
-          border-radius: 4px;
-      }
-      .disabled, [disabled] { color: #808080; }
-    </style>
+    <link rel="stylesheet" type="text/css" href="tab-stash.css">
   </head>
 
   <body class="options">

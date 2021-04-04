@@ -18,7 +18,7 @@
       <label>When the toolbar button is clicked:</label>
       <ul>
         <li>
-          <label for="browser_action_stash">
+          <label>
             <select id="browser_action_stash" v-model="browser_action_stash">
               <option :disabled="browser_action_show === 'popup'"
                       value="all">Stash all (or selected) tabs</option>
@@ -27,8 +27,6 @@
               <option :disabled="browser_action_show === 'none'"
                       value="none">Don't stash any tabs</option>
             </select>
-          </label>
-          <label for="browser_action_show">
             and
             <select id="browser_action_show" v-model="browser_action_show">
               <option v-if="hasSidebar" value="sidebar">show the stash in the sidebar</option>
