@@ -181,14 +181,14 @@
     [brackets] below.</em></p>
 
     <FeatureFlag name="ff_popup_view" v-model="ff_popup_view"
-                  :default_value="local_def().ff_popup_view.default" :issue="116">
+                  :default_value="local_def().ff_popup_view.default" :issue="115">
       <template v-slot:summary>Popup View</template>
       Enables additional options (configurable above) to show the Tab Stash UI
       in a popup panel instead of {{hasSidebar ? 'the sidebar or ' : ''}}a tab.
     </FeatureFlag>
 
     <FeatureFlag name="show_all_open_tabs" v-model="show_all_open_tabs"
-                  :default_value="sync_def().show_all_open_tabs.default" :issue="115">
+                  :default_value="sync_def().show_all_open_tabs.default" :issue="116">
       <template v-slot:summary>Show All Open Tabs</template>
       In the stash list, show all open tabs at the top instead of just the
       unstashed tabs.
