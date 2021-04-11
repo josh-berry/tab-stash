@@ -188,16 +188,15 @@
   <hr v-if="meta_show_advanced">
 
   <section class="advanced">
-    <h4>Experimental Features (This Browser)</h4>
+    <h4>Experimental Features</h4>
 
-    <p><em>WARNING: Changing experimental feature settings may break Tab Stash
-    or cause data loss!  They are "experimental" because they are not done,
-    there are almost certainly bugs, and it is possible they could be removed or
-    changed significantly in future versions.  You have been warned...</em></p>
+    <p><em><b>WARNING:</b> Turning on experimental features may break Tab Stash
+    or cause data loss!  They are "experimental" because they are still in
+    development and there may be known issues.  Experimental features may change
+    significantly or be removed entirely in future versions.</em></p>
 
-    <p><em>If you want to discuss these features or report any problems, please
-    do NOT open a new bug.  Instead, leave a comment on the issue linked in
-    [brackets] below.</em></p>
+    <p><em>To provide feedback or report a problem with a feature, leave a
+    comment on the issue linked in [brackets] below.</em></p>
 
     <FeatureFlag name="ff_popup_view" v-model="ff_popup_view"
                   :default_value="local_def().ff_popup_view.default" :issue="115">
