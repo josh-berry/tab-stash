@@ -1,9 +1,16 @@
-& {
+&.theme-system, &.theme-light {
     --page-bg: #ffffff;
 }
 
+&.theme-dark {
+    --page-bg: #202023;
+    --page-fg: #f9f9fa;
+    --scroll-bar: #48484e;
+    --scroll-handle: #202023;
+}
+
 @media (prefers-color-scheme: dark) {
-    & {
+    &.theme-system {
         --page-bg: #202023;
         --page-fg: #f9f9fa;
         --scroll-bar: #48484e;
@@ -76,6 +83,17 @@ main:not(.show-advanced) .advanced { display: none; }
 section.advanced {
     margin-top: calc(3 * var(--ctrl-mh) + var(--ctrl-border-radius));
     margin-bottom: calc(3 * var(--ctrl-mh) + var(--ctrl-border-radius));
+}
+
+.two-col {
+    display: grid;
+    width: max-content;
+
+    grid-template-columns: 0fr 1fr;
+    row-gap: var(--ctrl-mh);
+    column-gap: var(--ctrl-mw);
+
+    & > label { white-space: nowrap; }
 }
 
 .feature-flag {

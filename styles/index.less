@@ -7,10 +7,13 @@
 //
 
 @import "icons";
-@import "theme-light";
-@media (prefers-color-scheme: dark) {
-    @import "theme-dark";
+
+html.theme-system {
+    @import (multiple) "theme-light";
+    @media (prefers-color-scheme: dark) { @import (multiple) "theme-dark"; }
 }
+html.theme-light { @import (multiple) "theme-light"; }
+html.theme-dark { @import (multiple) "theme-dark"; }
 
 // Colors common to both themes (mainly accents like shadows/dividers):
 html {
@@ -41,7 +44,7 @@ html {
 @media (max-width: 30rem) {
     @import "metrics-narrow";
 }
-
+html.metrics-compact { @import "metrics-compact"; }
 
 
 //
@@ -195,7 +198,6 @@ a.tab {
 .folder-item.deleted > .icon { filter: grayscale(50%); }
 
 html.view-tab { @import "view-tab"; }
-html.style-compact { @import "style-compact"; }
 
 html.page-whats-new { @import "mods-whats-new"; }
 html.page-restore { @import "mods-restore"; }

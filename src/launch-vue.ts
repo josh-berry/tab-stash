@@ -42,11 +42,14 @@ export default function launch<
         document.documentElement.classList.add(`os-${plat.platform.os}`);
 
         function updateStyle(opts: Options.SyncModel) {
-            if (opts.state.compact_style) {
-                document.documentElement.classList.add('style-compact');
-            } else {
-                document.documentElement.classList.remove('style-compact');
+            const classes = document.documentElement.classList;
+            for (const c of Array.from(classes)) {
+                if (c.startsWith('metrics-') || c.startsWith('theme-')) {
+                    classes.remove(c);
+                }
             }
+            classes.add(`metrics-${opts.state.ui_metrics}`);
+            classes.add(`theme-${opts.state.ui_theme}`);
         }
         updateStyle(plat.options.sync);
         plat.options.sync.onChanged.addListener(updateStyle);

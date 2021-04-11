@@ -69,6 +69,25 @@
 
   <hr>
 
+  <h4>Appearance (All Synced Browsers)</h4>
+
+  <section class="two-col">
+    <label for="ui_metrics">Spacing and Fonts:</label>
+    <select id="ui_metrics" v-model="ui_metrics">
+        <option value="normal">Normal</option>
+        <option value="compact">Compact</option>
+    </select>
+
+    <label for="ui_theme">Theme:</label>
+    <select id="ui_theme" v-model="ui_theme">
+      <option value="system">Same as operating system</option>
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+    </select>
+  </section>
+
+  <hr>
+
   <h4>Privacy (All Synced Browsers)</h4>
 
   <section>
@@ -192,12 +211,6 @@
       <template v-slot:summary>Show All Open Tabs</template>
       In the stash list, show all open tabs at the top instead of just the
       unstashed tabs.
-    </FeatureFlag>
-
-    <FeatureFlag name="compact_style" v-model="compact_style"
-            :default_value="sync_def().compact_style.default" :issue="13">
-      <template v-slot:summary>Compact Styling</template>
-      Enable more compact styling in the UI.
     </FeatureFlag>
   </section>
 </main>

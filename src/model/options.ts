@@ -53,10 +53,16 @@ export const SYNC_DEF = {
         is: aBoolean,
     },
 
-    // Compact styling especially in the panel and sidebar views
-    compact_style: {
-        default: false,
-        is: aBoolean,
+    // How big should the spacing/fonts be?
+    ui_metrics: {
+        default: 'normal',
+        is: anEnum('normal', 'compact'),
+    },
+
+    // What color scheme should the UI use?
+    ui_theme: {
+        default: 'system',
+        is: anEnum('system', 'light', 'dark'),
     },
 
     // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
