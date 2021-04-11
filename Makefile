@@ -164,7 +164,7 @@ site:
 
 distclean: clean
 	rm -rf node_modules $(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG) $(DIST_PKG)
-	rm -rf docs/.bundle docs/vendor
+	rm -rf docs/vendor
 .PHONY: distclean
 
 clean:

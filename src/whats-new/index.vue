@@ -8,6 +8,32 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.9">
+      <L :issue="108" v="New:">Force Tab Stash to use either light or dark
+      colors from the options page, so you can use Tab Stash with any browser
+      theme and the colors won't clash.</L>
+
+      <L :issue="13" v="New:">Switch between "compact" and "normal" spacing and
+      fonts from the options page, so you can see more of your stashes at
+      once.</L>
+
+      <L :subtext="`If you ever get lost, don't panic.  Just ask the nearest `
+                 + `Internet cat for directions.  You probably won't get a `
+                 + `helpful response—you're talking to a cat, after all—but `
+                 + `you'll feel better for having tried.`"
+         :issue="89" v="Improved:">The active tab is now marked, so you can
+      always see where you are.</L>
+
+      <L :subtext="`I'm genuinely grateful for all the feedback—both positive `
+                 + `and negative—I've gotten over the last 2.5 years of `
+                 + `building Tab Stash.  It's been constructive and inspiring, `
+                 + `and you've all been marvelous to work with.`"
+        ><b>Tab Stash is now part of Mozilla's Recommended Extensions
+      program!</b>  Thank you to everyone who's helped make Tab Stash
+      better&mdash;whether that's leaving a review, filing a bug report, or even
+      sending in patches.  It wouldn't have been possible without you!</L>
+    </Version>
+
     <Version v="2.8.1">
       <L>Changed build parameters as requested by Mozilla.</L>
 
