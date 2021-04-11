@@ -39,10 +39,18 @@
 &.view-sidebar, &.view-popup {
     // TODO duplicates what's in view-tab.less
     .folder {
-        & > header > nav.folder-actions {
-            grid-row: 1;
-            grid-column: 3;
-            display: none;
+        & > header {
+            & > nav.folder-actions {
+                grid-row: 1;
+                grid-column: 3;
+                display: none;
+            }
+            & > input.folder-name {
+                // When the folder name is being edited, make it overlap the
+                // folder-actions so it's easier to see the full name in narrow
+                // situations (like the sidebar).
+                grid-column: 1 / 4;
+            }
         }
         &:hover > header, &:focus-within > header {
             & > nav.folder-actions { display: flex; }
