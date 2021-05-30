@@ -39,7 +39,7 @@ it more quickly.
 I love to hear your suggestions because it helps me decide what to work on next!
 Before you submit a new suggestion, please make sure someone else hasn't
 submitted it already by
-[checking GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Aenhancement+).
+[checking GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Ai-enhancement).
 
 If your idea is already filed as an issue, feel free to participate in the
 discussion, and **be sure to up-vote it** by leaving a thumbs-up reaction on the
