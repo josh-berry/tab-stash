@@ -8,6 +8,12 @@
 
   <div class="folder-list one-column">
 
+    <Version v="Next">
+      <L :issue="122" v="Fixed:">Tab Stash no longer stashes new/blank tabs.
+      This also means that, if we are asked to stash tabs when only a new tab is
+      open, we won't create a group with just a single, lonely new tab.</L>
+    </Version>
+
     <Version v="2.9">
       <L :issue="108" v="New:">Force Tab Stash to use either light or dark
       colors from the options page, so you can use Tab Stash with any browser
