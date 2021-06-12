@@ -1,0 +1,42 @@
+{
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "modifications",
+    "editor.insertSpaces": true,
+    "editor.rulers": [80],
+    "editor.tabSize": 4,
+    "editor.trimAutoWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.eol": "\n",
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "githubIssues.queries": [
+        {
+            "label": "My Issues",
+            "query": "default"
+        },
+        {
+            "label": "My Created Issues",
+            "query": "author:${user} state:open repo:${owner}/${repository} sort:created-desc"
+        },
+        {
+            "label": "Bugs",
+            "query": "state:open repo:${owner}/${repository} label:i-bug"
+        },
+        {
+            "label": "Open Issues by Votes",
+            "query": "state:open repo:${owner}/${repository} sort:reactions-+1-desc"
+        },
+        {
+            "label": "All Issues",
+            "query": "repo:${owner}/${repository}"
+        }
+    ],
+    "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+    "javascript.format.semicolons": "insert",
+    "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+    "typescript.format.semicolons": "insert",
+}
