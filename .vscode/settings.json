@@ -1,6 +1,4 @@
 {
-    "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "modifications",
     "editor.insertSpaces": true,
     "editor.rulers": [80],
     "editor.tabSize": 4,
