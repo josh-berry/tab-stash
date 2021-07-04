@@ -70,7 +70,7 @@ export default function launch<
             },
         }, opts.propsData);
         Object.assign(<any>globalThis, {app, app_options: opts});
-        app.mount('main');
+        app.mount('body');
     };
     window.addEventListener('load', asyncEvent(loader));
 }
