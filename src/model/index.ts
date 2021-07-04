@@ -37,7 +37,7 @@
 // property, and child models are available through child properties of their
 // own.
 
-import Vue from 'vue';
+import {reactive} from 'vue';
 
 import * as Options from './options';
 import * as DeletedItems from './deleted-items';
@@ -63,7 +63,7 @@ export class Model {
         this.options = new Options.Model(sources.options);
         this.deleted_items = new DeletedItems.Model(sources.deleted_items);
 
-        this.state = Vue.observable({
+        this.state = reactive({
             options: this.options.state,
             deleted_items: this.deleted_items.state,
         });

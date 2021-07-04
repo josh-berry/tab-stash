@@ -31,13 +31,13 @@
 </template>
 
 <script lang="ts">
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
-import {logErrors} from '../util';
+import {logErrors, required} from '../util';
 import {Model} from '../model';
 import {DeletedFolder, DeletedItem, Deletion} from '../model/deleted-items';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -49,7 +49,7 @@ export default Vue.extend({
     inject: ['$model'],
 
     props: {
-        deletion: Object as PropType<Deletion>,
+        deletion: required(Object as PropType<Deletion>),
     },
 
     data: () => ({

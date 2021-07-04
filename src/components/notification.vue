@@ -13,12 +13,13 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
-import ButtonBox from './button-box.vue';
-import Button from './button.vue';
+import {defineComponent} from 'vue';
 
-export default Vue.extend({
-    components: {ButtonBox, Button},
+export default defineComponent({
+    components: {
+        ButtonBox: require('./button-box.vue').default,
+        Button: require('./button.vue').default,
+    },
 
     props: {
         onActivate: Function,

@@ -7,7 +7,7 @@
 // and will break if it's not true.)
 
 import {browser} from 'webextension-polyfill-ts';
-import Vue from 'vue';
+import {reactive} from 'vue';
 
 import {resolveNamed} from '../util';
 import StoredObject, {
@@ -126,7 +126,7 @@ export class Model {
         this.sync = source.sync;
         this.local = source.local;
 
-        this.state = Vue.observable({
+        this.state = reactive({
             sync: this.sync.state,
             local: this.local.state,
         });

@@ -21,6 +21,9 @@ export type AsyncReturnTypeOf<T extends (...args: any) => any> =
 
 export type Promised<T> = T extends Promise<infer V> ? V : T;
 
+// A small wrapper function to mark a Vue prop as 'required'
+export const required = <T>(type: T) => ({type, required: true} as const);
+
 // A "marker" type for a string which is a URL that is actually openable by Tab
 // Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
 // actually exist, it's just used to force an explicit cast so you can't use a

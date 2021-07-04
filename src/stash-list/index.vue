@@ -85,12 +85,12 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
     urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors, textMatcher,
-    parseVersion,
+    parseVersion, required,
 } from '../util';
 import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
@@ -102,7 +102,7 @@ import * as DI from '../model/deleted-items';
 import {Cache} from '../datastore/cache/client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
-const Main = Vue.extend({
+const Main = defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -116,11 +116,11 @@ const Main = Vue.extend({
     },
 
     props: {
-        state: Object as PropType<State>,
-        unstashed_tabs: Object as PropType<Window>,
-        stashed_tabs: Object as PropType<Bookmark>,
-        root_id: String,
-        my_version: String,
+        state: required(Object as PropType<State>),
+        unstashed_tabs: required(Object as PropType<Window>),
+        stashed_tabs: required(Object as PropType<Bookmark>),
+        root_id: required(String),
+        my_version: required(String),
         metadata_cache: Object as PropType<Cache<{collapsed: boolean}>>,
         root_folder_warning: Object as PropType<
             Promised<ReturnType<typeof rootFolderWarning>>>,

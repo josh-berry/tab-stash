@@ -38,10 +38,10 @@
 </template>
 
 <script lang="ts">
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 import LoadMore, {StateChanger} from 'vue-infinite-loading';
 
-import {filterMap, logErrors, textMatcher} from '../util';
+import {filterMap, logErrors, required, textMatcher} from '../util';
 import launch, {pageref} from '../launch-vue';
 import ui_model from '../ui-model';
 import {Model} from '../model';
@@ -55,7 +55,7 @@ type FilteredDeletedItem = FilteredCount<DI.DeletedItem>;
 
 type FilteredCount<F> = F & {filtered_count?: number};
 
-const Main = Vue.extend({
+const Main = defineComponent({
     components: {
         LoadMore,
         Bookmark: require('./bookmark.vue').default,
@@ -65,7 +65,7 @@ const Main = Vue.extend({
     },
 
     props: {
-        state: Object as PropType<DI.State>,
+        state: required(Object as PropType<DI.State>),
     },
 
     data: () => ({

@@ -11,15 +11,10 @@
 </template>
 
 <script lang="ts">
-import Vue, { VueConstructor } from 'vue';
+import {defineComponent} from 'vue';
 
-const Self = (): Promise<{default: VueConstructor}> =>
-    import('./progress-item.vue');
-
-export default Vue.extend({
-    components: {
-        Self,
-    },
+export default defineComponent({
+    name: 'Self',
     props: {
         progress: Object,
     },

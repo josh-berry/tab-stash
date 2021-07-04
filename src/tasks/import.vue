@@ -20,11 +20,11 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import {defineComponent} from 'vue';
 import {ParseOptions, parse, importURLs} from './import';
 import { TaskMonitor } from '../util';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Dialog: require('../components/dialog.vue').default,
         ProgressDialog: require('../components/progress-dialog.vue').default,

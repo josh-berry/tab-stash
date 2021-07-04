@@ -5,7 +5,7 @@
  * URL?" immediately (without a promise/context switches back into the browser).
  */
 
-import Vue from "vue";
+import {reactive} from "vue";
 import {browser} from "webextension-polyfill-ts";
 import {DeferQueue, resolveNamed} from "../util";
 
@@ -16,7 +16,7 @@ export type State = {
 };
 
 export class Model {
-    readonly state: State = Vue.observable({
+    readonly state: State = reactive({
         $loaded: 'no',
         newtab_url: '',
         home_url: '',

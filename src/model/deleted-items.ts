@@ -2,7 +2,7 @@
 // this fits in to the overall Tab Stash model (such as it is).
 
 import {browser} from 'webextension-polyfill-ts';
-import Vue from 'vue';
+import {reactive} from 'vue';
 
 import {
     bookmarkTabs, friendlyFolderName, mostRecentUnnamedFolderId, rootFolder
@@ -75,7 +75,7 @@ const RECENT_DELETION_TIMEOUT = 8000; // ms
 export class Model {
     // TODO make this transitively read-only (once I figure out the TypeScript
     // typing issues)
-    readonly state: State = Vue.observable({
+    readonly state: State = reactive({
         fullyLoaded: false,
         entries: [],
         recentlyDeleted: [],

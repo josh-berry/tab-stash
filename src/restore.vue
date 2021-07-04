@@ -25,17 +25,18 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import {defineComponent} from 'vue'
 
 import launch from './launch-vue';
+import {required} from './util';
 
-const Main = Vue.extend({
+const Main = defineComponent({
     components: {
         Notification: require('./components/notification.vue').default,
     },
 
     props: {
-        url: String,
+        url: required(String),
     },
 
     data: () => ({

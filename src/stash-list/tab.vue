@@ -27,9 +27,9 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
-import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed} from '../util';
+import {asyncEvent, altKeyName, bgKeyName, bgKeyPressed, required} from '../util';
 import {
     getFolderNameISODate, mostRecentUnnamedFolderId,
     restoreTabs, stashTabs,
@@ -38,7 +38,7 @@ import {
 import {Model} from '../model';
 import {Tab, Bookmark, ModelLeaf, ModelParent} from '../model/browser';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -49,11 +49,11 @@ export default Vue.extend({
 
     props: {
         // Common
-        id: [String, Number],
-        parent: Object as PropType<ModelParent>,
-        index: Number,
-        title: String,
-        url: String,
+        id: required([String, Number]),
+        parent: required(Object as PropType<ModelParent>),
+        index: required(Number),
+        title: required(String),
+        url: required(String),
         favicon: Object,
         related: Array,
 
@@ -65,6 +65,7 @@ export default Vue.extend({
         favIconUrl: String,
 
         // Bookmarks only
+        children: Array, // unused; must be here to avoid warnings though
         isBookmark: Boolean,
     },
 

@@ -2,6 +2,7 @@
     "compilerOptions": {
         "sourceMap": true,
         "esModuleInterop": true,
+        "jsx": "preserve",
         "module": "commonjs",
         "moduleResolution": "node",
         "noUnusedLocals": true,

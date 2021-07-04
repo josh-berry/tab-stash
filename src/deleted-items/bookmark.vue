@@ -18,14 +18,14 @@
 </template>
 
 <script lang="ts">
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
 import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedBookmark, Deletion} from '../model/deleted-items';
 import {bookmarkTabs, mostRecentUnnamedFolderId} from '../stash';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -95,7 +95,7 @@ export default Vue.extend({
                 await this.model().deleted_items.drop(this.deletion.key);
             } else {
                 await this.model().deleted_items.dropChildItem(
-                    this.parent!.key, this.childIndex);
+                    this.parent!.key, this.childIndex!);
             }
         },
     },

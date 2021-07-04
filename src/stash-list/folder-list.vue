@@ -1,25 +1,25 @@
 <template>
-<Draggable class="sortable-list folder-list" @update="move">
-  <Folder v-for="f in folders" v-if="f && f.children"
-          :key="f.id"
-          :id="f.id" :children="f.children" :allowRenameDelete="true"
-          :title="f.title" :dateAdded="f.dateAdded"
-          :filter="filter" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
-          :metadata="metadataCache.get(f.id)"
-          ref="folders">
-  </Folder>
+<Draggable class="sortable-list folder-list" @update="move"
+           v-model="folders" item-key="id">
+  <template #item="{element: f}">
+    <Folder :id="f.id" :children="f.children" :allowRenameDelete="true"
+            :title="f.title" :dateAdded="f.dateAdded"
+            :filter="filter" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
+            :metadata="metadataCache.get(f.id)"
+            ref="folders" />
+  </template>
 </Draggable>
 </template>
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
 import {CacheEntry} from '../datastore/cache/client';
 import {ModelLeaf, ModelParent} from '../model/browser';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Draggable: require('vuedraggable'),
         Folder: require('./folder.vue').default,

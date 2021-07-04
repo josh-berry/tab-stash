@@ -69,24 +69,25 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import {PropType, defineComponent} from 'vue';
 
+import {required} from '../util';
 import {Bookmark} from '../model/browser';
 import {friendlyFolderName} from '../stash';
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Dialog: require('../components/dialog.vue').default,
     },
     props: {
-        stash: Array,
+        stash: required(Array as PropType<(Bookmark | undefined)[]>),
     },
     computed: {
-        folders: function() {
-            return this.stash.filter((t: any) => t && t.children);
+        folders(): Bookmark[] {
+            return this.stash.filter((t: any) => t && t.children) as Bookmark[];
         },
     },
     data: () => ({

@@ -28,7 +28,7 @@
 //     await obj.delete();
 
 import {browser} from 'webextension-polyfill-ts';
-import Vue from 'vue';
+import {reactive} from 'vue';
 
 import Listener from '../util/listener';
 
@@ -276,7 +276,7 @@ export default class StoredObject<D extends StorableDef> {
         const state: any = {};
         for (const k in def) state[k] = def[k].default;
 
-        this.state = Vue.observable(state);
+        this.state = reactive(state);
         this._store = store;
         this._key = key;
         this._def = def;

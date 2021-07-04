@@ -53,12 +53,14 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
   </header>
   <div class="contents">
     <Draggable group="tab" ref="drag" class="tabs"
+               v-model="filteredChildren" item-key="id"
                @add="move" @update="move">
-      <tab v-for="item of filteredChildren"
-           :key="item.id" v-bind="item"
-           :class="{hidden: (filter && ! filter(item))
-                         || (userFilter && ! userFilter(item)),
-                    'folder-item': true}"></tab>
+      <template #item="{element: item}">
+        <tab v-bind="item"
+             :class="{hidden: (filter && ! filter(item))
+                        || (userFilter && ! userFilter(item)),
+                      'folder-item': true}" />
+      </template>
     </Draggable>
     <div class="folder-item disabled" v-if="userHiddenChildren.length > 0">
       <span class="icon" /> <!-- spacer -->
@@ -72,10 +74,10 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
-import {altKeyName, bgKeyName, bgKeyPressed, logErrors} from '../util';
+import {altKeyName, bgKeyName, bgKeyPressed, logErrors, required} from '../util';
 import {
     getFolderNameISODate, genDefaultFolderName, rootFolder,
     stashTabsInWindow, stashTabs, restoreTabs,
@@ -87,7 +89,7 @@ import {Cache, CacheEntry} from '../datastore/cache/client';
 import {ModelLeaf, Tab, Window, Bookmark, FaviconCacheEntry} from '../model/browser';
 import {DeletedItem} from '../model/deleted-items';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -102,19 +104,19 @@ export default Vue.extend({
         // View filter functions
         filter: Function,
         userFilter: Function as PropType<(item: ModelLeaf) => boolean>,
-        isItemStashed: Function,
+        isItemStashed: Function as PropType<(t: Tab) => boolean>,
         hideIfEmpty: Boolean,
 
         // Common
-        id: String,
+        id: String, // omitted if this is "Unstashed Tabs"
         children: Array as PropType<ModelLeaf[]>,
-        title: String,
+        title: required(String),
 
         // Bookmark folder
         dateAdded: Number,
         allowRenameDelete: Boolean,
 
-        metadata: Object as PropType<CacheEntry<{collapsed: boolean}>>,
+        metadata: required(Object as PropType<CacheEntry<{collapsed: boolean}>>),
     },
 
     computed: {
@@ -136,6 +138,7 @@ export default Vue.extend({
 
         isWindow(): boolean { return ! this.id; },
         defaultTitle(): string {
+            if (! this.dateAdded) return `Unstashed Tabs`;
             return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
         },
         nonDefaultTitle(): string {
@@ -143,8 +146,9 @@ export default Vue.extend({
                 ? '' : this.title;
         },
         filteredChildren(): ModelLeaf[] {
+            if (! this.children) return [];
             if (this.filter) {
-                return this.children.filter(c => c && c.url && this.filter(c));
+                return this.children.filter(c => c && c.url && this.filter!(c));
             } else {
                 return this.children.filter(c => c && c.url);
             }
@@ -159,7 +163,7 @@ export default Vue.extend({
         userHiddenChildren(): ModelLeaf[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(
-                    c => c && ! this.userFilter(c));
+                    c => c && ! this.userFilter!(c));
             } else {
                 return [];
             }
@@ -209,12 +213,15 @@ export default Vue.extend({
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
             console.assert(this.id); // Can't restore already-open tabs
 
+            if (! this.children) return;
             await restoreTabs(this.children.map(item => item.url),
                              {background: bgKeyPressed(ev)});
         })},
 
         async remove() {logErrors(async() => {
             if (this.id) {
+                if (! this.children) return;
+
                 // If we have any hidden tabs stored for these bookmarks, we
                 // should remove them first.  We do this explicitly to avoid the
                 // momentary reshuffling of hidden tabs into the "Unstashed
@@ -238,20 +245,28 @@ export default Vue.extend({
         async removeStashed() {logErrors(async() => {
             if (this.id) throw new Error(
                 "Called removeStashed from bookmark folder");
+            if (! this.isItemStashed) throw new Error(
+                "isItemStashed not provided to tab folder");
+            if (! this.children) return;
 
             await hideStashedTabs(this.children.filter(
                 t => t && ! (<Tab>t).hidden && ! (<Tab>t).pinned
-                       && this.isItemStashed(t)) as Tab[]);
+                       && this.isItemStashed!(<Tab>t)) as Tab[]);
         })},
 
         async removeOpen(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
-            console.assert(! this.id);
+            console.assert(! this.id, "removeOpen called on bookmark folder");
+            if (this.id) return;
+            if (! this.isItemStashed) throw new Error(
+                "isItemStashed not provided to tab folder");
+
+            if (! this.children) return;
             const children = this.children as (Tab | undefined)[];
 
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
                 const tabs = children.filter(
-                    t => t && t.hidden && this.isItemStashed(t));
+                    t => t && t.hidden && this.isItemStashed!(t));
                 await closeTabs(tabs as Tab[]);
             } else {
                 // Closes ALL open tabs (stashed and unstashed).  This is just a
@@ -261,10 +276,10 @@ export default Vue.extend({
                 // user might want to keep, and hide instead of close them.
                 const hide_tabs = children.filter(
                     t => t && ! t.hidden && ! t.pinned
-                           && this.isItemStashed(t)) as Tab[];
+                           && this.isItemStashed!(t)) as Tab[];
                 const close_tabs = children.filter(
                     t => t && ! t.hidden && ! t.pinned
-                           && ! this.isItemStashed(t)) as Tab[];
+                           && ! this.isItemStashed!(t)) as Tab[];
 
                 await refocusAwayFromTabs(hide_tabs.concat(close_tabs));
 
@@ -275,21 +290,27 @@ export default Vue.extend({
         })},
 
         async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
-            console.assert(this.id); // Can't restore already-open tabs
+            console.assert(this.id, "Can't restore already-open tabs");
+            if (! this.id) return;
 
             const bg = bgKeyPressed(ev);
 
-            await restoreTabs(this.children.map(item => item.url),
-                              {background: bg});
+            if (this.children) {
+                await restoreTabs(this.children.map(item => item.url),
+                                {background: bg});
+            }
 
             // Discard opened tabs as requested.
             await this._deleteSelfAndLog();
         })},
 
         rename(title: string) {
+            console.assert(this.id, "Can't rename non-bookmark folders");
+            if (! this.id) return;
+
             if (title === '') {
                 // Give it a default name based on when the folder was created
-                title = genDefaultFolderName(new Date(this.dateAdded));
+                title = genDefaultFolderName(new Date(this.dateAdded!));
             }
 
             // <any> is needed to work around incorrect typing in web-ext-types
@@ -426,7 +447,7 @@ export default Vue.extend({
                         url: item.url,
                         favIconUrl: item.favicon?.value,
                     }, {
-                        folder_id: this.id,
+                        folder_id: this.id!,
                         title: this.title,
                     });
                     await browser.bookmarks.remove(item.id);

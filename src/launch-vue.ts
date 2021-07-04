@@ -4,18 +4,21 @@
 // istanbul ignore file
 
 import {browser} from 'webextension-polyfill-ts';
-import {VueConstructor, ComponentOptions} from 'vue';
+import {createApp, MethodOptions, ExtractPropTypes} from 'vue';
 
 import {asyncEvent, resolveNamed} from './util';
 
 import * as Options from './model/options';
 
 export default function launch<
-    V extends Vue,
-    C extends VueConstructor<V>,
-    O extends ComponentOptions<V, any, any, any, any>
+    C extends {props?: object, provide?: object, methods?: MethodOptions},
 >(
-    component: C, options: () => Promise<O>,
+    component: C,
+    options: () => Promise<{
+        propsData: Readonly<ExtractPropTypes<C["props"]>>,
+        provide?: {[k: string]: any}
+        methods?: MethodOptions & Partial<C["methods"]>,
+    }>,
 ): void {
     const loader = async function() {
         switch (new URL(document.location.href).searchParams.get('view')) {
@@ -55,9 +58,19 @@ export default function launch<
         plat.options.sync.onChanged.addListener(updateStyle);
 
         const opts = await options();
-        const vue = new component(opts);
-        Object.assign(<any>globalThis, {vue, vue_options: opts});
-        vue.$mount('main');
+        const app = createApp({
+            ...component,
+            provide: {
+                ...(component.provide ?? {}),
+                ...(opts.provide ?? {}),
+            },
+            methods: {
+                ...(component.methods ?? {}),
+                ...(opts.methods ?? {}),
+            },
+        }, opts.propsData);
+        Object.assign(<any>globalThis, {app, app_options: opts});
+        app.mount('main');
     };
     window.addEventListener('load', asyncEvent(loader));
 }
