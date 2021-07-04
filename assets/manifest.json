@@ -28,7 +28,7 @@
     "content_security_policy":
         "script-src 'self'; object-src 'self';",
     "background": {
-        "scripts": ["index.js"]
+        "scripts": ["lib.js", "index.js"]
     },
     "browser_action": {
         "default_title": "Tab Stash",

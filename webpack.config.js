@@ -46,6 +46,18 @@ module.exports = {
     ],
 
     optimization: {
+        // Write common code into its own file which can be loaded in multiple
+        // views, to keep generated sizes down.
+        splitChunks: {
+            cacheGroups: {
+                lib: {
+                    test: /\/node_modules/,
+                    name: 'lib',
+                    chunks: 'all',
+                },
+            },
+        },
+
         // Enable some options for deterministic builds
         portableRecords: true,
     },
