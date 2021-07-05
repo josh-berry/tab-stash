@@ -2,7 +2,7 @@ import {reactive} from "vue";
 import {Bookmarks, browser} from "webextension-polyfill-ts";
 
 import {DeferQueue} from "../util";
-import {Index} from "./util";
+import {EventfulMap, Index} from "./util";
 
 // We modify the type of .children here to make it readonly, since we want it to
 // be managed by the model's index and not modified directly.
@@ -21,17 +21,20 @@ export type State = {
  * ensure the state is JSON-serializable.
  */
 export class Model {
-    readonly state: State;
+    readonly state: State = reactive({
+        $loaded: 'no',
+        root: undefined,
+    });
 
-    readonly by_id = new Map<string, Bookmark>();
+    readonly by_id = new EventfulMap<string, Bookmark>();
 
-    readonly by_parent = new Index<string | null, Bookmark>({
+    readonly by_parent = new Index(this.by_id, {
         keyFor: bm => bm.parentId ?? null,
         positionOf: bm => /* istanbul ignore next */ bm.index ?? Infinity,
         whenPositionChanged(bm, toIndex) { bm.index = toIndex; },
     });
 
-    readonly by_url = new Index<string, Bookmark>({
+    readonly by_url = new Index(this.by_id, {
         keyFor: bm => bm.url ?? '',
     });
 
@@ -39,12 +42,7 @@ export class Model {
     // Loading data and wiring up events
     //
 
-    constructor() {
-        this.state = reactive({
-            $loaded: 'no',
-            root: undefined,
-        });
-    }
+    constructor() { }
 
     // istanbul ignore next
     loadFromMemory(root: Bookmark) {
@@ -118,9 +116,7 @@ export class Model {
         let bm = this.by_id.get(newbm.id);
         if (! bm) {
             bm = reactive(newbm);
-            this.by_id.set(newbm.id, bm);
-            this.by_parent.insert(bm);
-            this.by_url.insert(bm);
+            this.by_id.insert(newbm.id, bm);
         } else {
             // For idempotency, if the bookmark already exists, we merge the new
             // info we got with the existing record.
@@ -167,8 +163,6 @@ export class Model {
         if (! bm) return;
 
         this.by_id.delete(id);
-        this.by_parent.delete(bm);
-        this.by_url.delete(bm);
 
         if (bm.children) for (const c of Array.from(bm.children)) {
             this.whenBookmarkRemoved(c.id);

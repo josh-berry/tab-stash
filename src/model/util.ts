@@ -1,6 +1,51 @@
 import {isProxy, reactive, shallowReadonly, watch} from 'vue';
 
 import {Atom} from '../util';
+import Listener from '../util/listener';
+
+/** A map which triggers events when its contents change.
+ *
+ * Notifications are sent on insertion and deletion, but not on updates--you can
+ * use Vue's reactive system to watch for updates.
+*/
+export class EventfulMap<K extends Atom, V extends object> {
+    readonly onInsert = new Listener<(key: K, value: V) => void>();
+    readonly onMove = new Listener<(oldKey: K, newKey: K, value: V) => void>();
+    readonly onDelete = new Listener<(key: K, value: V) => void>();
+
+    private readonly _map = new Map<K, V>();
+
+    constructor() {}
+
+    get(key: K): V | undefined { return this._map.get(key); }
+
+    insert(key: K, value: V) {
+        if (this._map.has(key)) throw new Error(`Key already exists`);
+        ensureProxy(value);
+        this._map.set(key, value);
+        this.onInsert.sendSync(key, value);
+        return this;
+    }
+
+    move(oldKey: K, newKey: K): V | undefined {
+        const value = this._map.get(oldKey);
+        if (! value) return;
+        this._map.delete(oldKey);
+        this.delete(newKey);
+        this._map.set(newKey, value);
+        this.onMove.sendSync(oldKey, newKey, value);
+        return value;
+    }
+
+    delete(key: K): V | undefined {
+        const v = this._map.get(key);
+        if (v) {
+            this._map.delete(key);
+            this.onDelete.sendSync(key, v);
+        }
+        return v;
+    }
+}
 
 export interface IndexDefinition<K extends Atom, V extends object> {
     /** Given a value, return the key that should be used to index the value. */
@@ -37,21 +82,29 @@ type KVP<K extends Atom, V extends object> = {
     position: number,
 };
 
-/** A Vue-reactive index of objects, which tracks which objects have which keys
- * (as computed with a key-derivation function).
+/** A Vue-reactive index of objects in an EventfulMap.  The index is keyed using
+ * a key-derivation function, and allows multiple objects to exist with the same
+ * key (that is, it is not a unique index).
  *
  * There is intentionally no way to iterate the index, because the index as a
  * whole is not reactive.  Only individual keys are reactive.
  */
-export class Index<K extends Atom, V extends object> {
+export class Index<K extends Atom, PK extends Atom, V extends object> {
+    /** The EventfulMap this index is indexing. */
+    readonly map: EventfulMap<PK, V>;
+
     /** How values are maintained in the index. */
     readonly def: IndexDefinition<K, V>;
 
-    private readonly _map = new Map<K, V[]>();
+    private readonly _entries = new Map<K, V[]>();
     private readonly _deleters = new WeakMap<V, () => void>();
 
-    constructor(def: IndexDefinition<K, V>) {
+    constructor(map: EventfulMap<PK, V>, def: IndexDefinition<K, V>) {
+        this.map = map;
         this.def = def;
+
+        this.map.onInsert.addListener((k, v) => this.insert(v));
+        this.map.onDelete.addListener((k, v) => this.delete(v));
     }
 
     /** Retrieve all the values matching `key` from the index.
@@ -64,10 +117,10 @@ export class Index<K extends Atom, V extends object> {
     }
 
     private _get(key: K): V[] {
-        let a = this._map.get(key);
+        let a = this._entries.get(key);
         if (! a) {
             a = reactive([]);
-            this._map.set(key, a);
+            this._entries.set(key, a);
         }
         return a;
     }
@@ -75,7 +128,7 @@ export class Index<K extends Atom, V extends object> {
     /** Insert a value in the index.  The value's key is derived using `keyFor()`.
      * The inserted value must be a Vue proxy object (reactive(), ref() or
      * readonly()). */
-    insert(value: V): V {
+    private insert(value: V): V {
         ensureProxy(value);
 
         if (this._deleters.get(value) !== undefined) {
@@ -120,7 +173,7 @@ export class Index<K extends Atom, V extends object> {
     }
 
     /** Deletes a value from the index. */
-    delete(value: V) {
+    private delete(value: V) {
         const deleter = this._deleters.get(value);
         if (deleter) deleter();
     }

@@ -1,7 +1,7 @@
 import {reactive} from "vue";
 import {browser, Tabs, Windows} from "webextension-polyfill-ts";
 import {DeferQueue} from "../util";
-import {Index} from "./util";
+import {EventfulMap, Index} from "./util";
 
 export type Tab = Tabs.Tab & {id: number, windowId: number};
 
@@ -20,17 +20,19 @@ export type State = {
  * JSON-serializable (for transmission between contexts).
  */
 export class Model {
-    readonly state: State;
+    readonly state: State = reactive({
+        $loaded: 'no',
+    });
 
-    readonly by_id = new Map<number, Tab>();
+    readonly by_id = new EventfulMap<number, Tab>();
 
-    readonly by_window = new Index<number, Tab>({
+    readonly by_window = new Index(this.by_id, {
         keyFor: tab => tab.windowId,
         positionOf: tab => tab.index,
         whenPositionChanged(tab, toIndex) { tab.index = toIndex; },
     });
 
-    readonly by_url = new Index<string, Tab>({
+    readonly by_url = new Index(this.by_id, {
         keyFor: tab => tab.url ?? '',
     });
 
@@ -38,11 +40,7 @@ export class Model {
     // Loading data and wiring up events
     //
 
-    constructor() {
-        this.state = reactive({
-            $loaded: 'no',
-        });
-    }
+    constructor() { }
 
     // istanbul ignore next
     loadFromMemory(tabs: Tab[]) {
@@ -142,9 +140,7 @@ export class Model {
         let t = this.by_id.get(tab.id!);
         if (! t) {
             t = reactive(tab);
-            this.by_id.set(tab.id!, t);
-            this.by_window.insert(t);
-            this.by_url.insert(t);
+            this.by_id.insert(tab.id!, t);
         } else {
             Object.assign(t, tab);
         }
@@ -174,19 +170,20 @@ export class Model {
         const t = this.by_id.get(oldId);
         // istanbul ignore if -- should only happen if events are misdelivered
         if (! t) return;
-        this.by_id.delete(oldId);
 
-        this.whenTabClosed(newId);
+        // The following is unnecessary; the map will take care of it for us.
+        // If we ever do anything more complicated than by_id.delete() in here,
+        // we may need to revisit this.
+        //
+        // this.whenTabClosed(newId);
 
+        this.by_id.move(oldId, newId);
         t.id = newId;
-        this.by_id.set(newId, t);
     }
 
     whenTabClosed(tabId: number) {
         const t = this.by_id.get(tabId);
         if (! t) return;
-        this.by_window.delete(t);
-        this.by_url.delete(t);
         this.by_id.delete(tabId);
     }
 };
