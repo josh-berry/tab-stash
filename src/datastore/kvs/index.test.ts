@@ -17,13 +17,14 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         kvs = await kvs_factory();
     });
 
-    function setDefaults() {
-        return kvs.set([
+    async function setDefaults() {
+        await kvs.set([
             {key: 'c', value: 'christine'},
             {key: 'a', value: 'alice'},
             {key: 'b', value: 'bob'},
             {key: 'd', value: 'derek'},
         ]);
+        await nextTick();
     }
 
     describe('stores and updates entries', () => {
