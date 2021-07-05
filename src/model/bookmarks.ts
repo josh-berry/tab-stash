@@ -1,18 +1,13 @@
 import {reactive} from "vue";
 import {Bookmarks, browser} from "webextension-polyfill-ts";
 
-import {DeferQueue} from "../util";
+import {EventWiring} from "../util";
 import {EventfulMap, Index} from "./util";
 
 // We modify the type of .children here to make it readonly, since we want it to
 // be managed by the model's index and not modified directly.
 export type Bookmark = Omit<Bookmarks.BookmarkTreeNode, 'children'>
     & {children?: readonly Bookmark[]};
-
-export type State = {
-    $loaded: 'no' | 'loading' | 'yes',
-    root?: Bookmark,
-};
 
 /** A Vue model for the state of the browser bookmark tree.
  *
@@ -21,10 +16,7 @@ export type State = {
  * ensure the state is JSON-serializable.
  */
 export class Model {
-    readonly state: State = reactive({
-        $loaded: 'no',
-        root: undefined,
-    });
+    readonly root: Bookmark;
 
     readonly by_id = new EventfulMap<string, Bookmark>();
 
@@ -42,66 +34,54 @@ export class Model {
     // Loading data and wiring up events
     //
 
-    constructor() { }
-
-    // istanbul ignore next
-    loadFromMemory(root: Bookmark) {
-        if (this.state.$loaded !== 'no') return;
-
-        this.whenBookmarkCreated(root);
-        this.state.root = this.by_id.get(root.id);
-
-        this._wire_events().unplug();
-        this.state.$loaded = 'yes';
+    /** Construct a model for testing use.  It will not listen to any browser
+     * events and will not update itself--you must use the `when*()` methods to
+     * update it manually. */
+    static for_test(root: Bookmark): Model {
+        return new Model(root);
     }
 
     // istanbul ignore next
-    async loadFromBrowser() {
-        if (this.state.$loaded !== 'no') return;
-        this.state.$loaded = 'loading';
+    /** Construct a model by loading bookmarks from the browser bookmark store.
+     * It will listen for bookmark events to keep itself updated. */
+    static async from_browser(): Promise<Model> {
+        const wiring = Model._wiring();
+        const tree = await browser.bookmarks.getTree();
 
-        try {
-            const evq = this._wire_events();
-
-            const tree = await browser.bookmarks.getTree();
-            this.whenBookmarkUpdated(tree[0].id, tree[0]);
-            this.state.root = this.by_id.get(tree[0].id);
-
-            evq.unplug();
-            this.state.$loaded = 'yes';
-
-        } catch (e) {
-            this.state.$loaded = 'no';
-            throw e;
-        }
+        const model = new Model(tree[0]!);
+        wiring.wire(model);
+        return model;
     }
 
     // istanbul ignore next
-    private _wire_events(): DeferQueue {
-        // Wire up browser events so that we update the state when the browser
-        // tells us something has changed.  All the event handlers are wrapped
-        // with DeferQueue.wrap() because we will start receiving events
-        // immediately, even before the state has been constructed.
-        //
-        // This is by design--we record these events in the DeferQueue, and then
-        // perform all the (asynchronous) queries needed to build the state.
-        // However, these queries will race with the events we receive, and the
-        // result of the query might be out-of-date compared to what info we get
-        // from events.  So we queue and delay processing of any events until
-        // the state is fully constructed.
+    /** Construct a model by loading it from an in-memory cache of the browser
+     * bookmark store.  It will listen for bookmark events to keep itself
+     * updated. */
+    static from_cache(root: Bookmark): Model {
+        const wiring = Model._wiring();
+        const model = new Model(root);
+        wiring.wire(model);
+        return model;
+    }
 
-        const evq = new DeferQueue();
+    // istanbul ignore next
+    /** Wire up browser events so that we update the state when the browser
+     * tells us something has changed.  We use EventWiring to get around the
+     * chicken-and-egg problem that we want to start listening for events before
+     * the model is fully-constructed yet.  EventWiring will queue events for us
+     * until the model is ready, at which point they will all be dispatched. */
+    static _wiring(): EventWiring<Model> {
+        const wiring = new EventWiring<Model>();
+        wiring.listen(browser.bookmarks.onCreated, 'whenBookmarkCreated');
+        wiring.listen(browser.bookmarks.onChanged, 'whenBookmarkChanged');
+        wiring.listen(browser.bookmarks.onMoved, 'whenBookmarkMoved');
+        wiring.listen(browser.bookmarks.onRemoved, 'whenBookmarkRemoved');
+        return wiring;
+    }
 
-        browser.bookmarks.onCreated.addListener(
-            evq.wrap((id, bm) => this.whenBookmarkCreated(bm)));
-        browser.bookmarks.onChanged.addListener(
-            evq.wrap((id, info) => this.whenBookmarkUpdated(id, info)));
-        browser.bookmarks.onMoved.addListener(
-            evq.wrap((id, info) => this.whenBookmarkMoved(id, info)));
-        browser.bookmarks.onRemoved.addListener(
-            evq.wrap(id => this.whenBookmarkRemoved(id)));
-
-        return evq;
+    private constructor(root: Bookmark) {
+        this.whenBookmarkCreated(root.id, root);
+        this.root = this.by_id.get(root.id)!;
     }
 
     //
@@ -112,8 +92,12 @@ export class Model {
     // senders.)
     //
 
-    whenBookmarkCreated(newbm: Bookmark) {
-        let bm = this.by_id.get(newbm.id);
+    whenBookmarkCreated(id: string, newbm: Bookmark) {
+        // istanbul ignore next -- this is kind of a dumb/redundant API, but it
+        // must conform to browser.bookmarks.onCreated...
+        if (id !== newbm.id) throw new Error(`Bookmark IDs don't match`);
+
+        let bm = this.by_id.get(id);
         if (! bm) {
             bm = reactive(newbm);
             this.by_id.insert(newbm.id, bm);
@@ -137,11 +121,11 @@ export class Model {
             bm.children = this.by_parent.get(bm.id);
 
             // Now, if we were given actual children, insert them.
-            if (children) for (const c of children) this.whenBookmarkCreated(c);
+            if (children) for (const c of children) this.whenBookmarkCreated(c.id, c);
         }
     }
 
-    whenBookmarkUpdated(id: string, info: Bookmarks.OnChangedChangeInfoType) {
+    whenBookmarkChanged(id: string, info: Bookmarks.OnChangedChangeInfoType) {
         const bm = this.by_id.get(id);
         // istanbul ignore if
         if (! bm) return; // out-of-order event delivery?

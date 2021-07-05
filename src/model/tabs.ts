@@ -1,13 +1,9 @@
 import {reactive} from "vue";
 import {browser, Tabs, Windows} from "webextension-polyfill-ts";
-import {DeferQueue} from "../util";
+import {EventWiring} from "../util";
 import {EventfulMap, Index} from "./util";
 
 export type Tab = Tabs.Tab & {id: number, windowId: number};
-
-export type State = {
-    $loaded: 'no' | 'loading' | 'yes',
-};
 
 /** A Vue model for the state of all open browser windows and their tabs.
  *
@@ -20,10 +16,6 @@ export type State = {
  * JSON-serializable (for transmission between contexts).
  */
 export class Model {
-    readonly state: State = reactive({
-        $loaded: 'no',
-    });
-
     readonly by_id = new EventfulMap<number, Tab>();
 
     readonly by_window = new Index(this.by_id, {
@@ -40,78 +32,47 @@ export class Model {
     // Loading data and wiring up events
     //
 
-    constructor() { }
-
-    // istanbul ignore next
-    loadFromMemory(tabs: Tab[]) {
-        if (this.state.$loaded !== 'no') return;
-
-        for (const t of tabs) this.whenTabUpdated(t);
-
-        this._wire_events().unplug();
-        this.state.$loaded = 'yes';
+    /** Construct a model for testing use.  It will not listen to any browser
+     * events and will not update itself--you must use the `when*()` methods to
+     * update it manually. */
+    static for_test(tabs: Tab[]): Model {
+        return new Model(tabs);
     }
 
     // istanbul ignore next
-    async loadFromBrowser() {
-        if (this.state.$loaded !== 'no') return;
-        this.state.$loaded = 'loading';
+    /** Construct a model by loading tabs from the browser.  The model will keep
+     * itself updated by listening to browser events. */
+    static async from_browser(): Promise<Model> {
+        const wiring = Model._wiring();
+        const tabs = await browser.tabs.query({});
 
-        try {
-            // Start collecting events immediately per the explanation in
-            // _wire_events().
-            const evq = this._wire_events();
-
-            for (const t of await browser.tabs.query({})) {
-                this.whenTabUpdated(t as Tab);
-            }
-
-            evq.unplug();
-            this.state.$loaded = 'yes';
-
-        } catch (e) {
-            this.state.$loaded = 'no';
-            throw e;
-        }
+        const model = new Model(tabs);
+        wiring.wire(model);
+        return model;
     }
 
     // istanbul ignore next
-    private _wire_events(): DeferQueue {
-        // Wire up browser events so that we update the state when the browser
-        // tells us something has changed.  All the event handlers are wrapped
-        // with DeferQueue.wrap() because we will start receiving events
-        // immediately, even before the state has been constructed.
-        //
-        // This is by design--we record these events in the DeferQueue, and then
-        // perform all the (asynchronous) queries needed to build the state.
-        // However, these queries will race with the events we receive, and the
-        // result of the query might be out-of-date compared to what info we get
-        // from events.  So we queue and delay processing of any events until
-        // the state is fully constructed.
+    /** Wire up browser events so that we update the state when the browser
+     * tells us something has changed.  We use EventWiring to get around the
+     * chicken-and-egg problem that we want to start listening for events before
+     * the model is fully-constructed yet.  EventWiring will queue events for us
+     * until the model is ready, at which point they will all be dispatched. */
+    static _wiring(): EventWiring<Model> {
+        const wiring = new EventWiring<Model>();
+        wiring.listen(browser.windows.onCreated, 'whenWindowCreated');
+        wiring.listen(browser.windows.onRemoved, 'whenWindowRemoved');
+        wiring.listen(browser.tabs.onCreated, 'whenTabCreated');
+        wiring.listen(browser.tabs.onUpdated, 'whenTabUpdated');
+        wiring.listen(browser.tabs.onAttached, 'whenTabAttached');
+        wiring.listen(browser.tabs.onMoved, 'whenTabMoved');
+        wiring.listen(browser.tabs.onReplaced, 'whenTabReplaced');
+        wiring.listen(browser.tabs.onActivated, 'whenTabActivated');
+        wiring.listen(browser.tabs.onRemoved, 'whenTabRemoved');
+        return wiring;
+    }
 
-        const evq = new DeferQueue();
-
-        browser.windows.onCreated.addListener(evq.wrap(
-            win => this.whenWindowUpdated(win)));
-        browser.windows.onRemoved.addListener(evq.wrap(
-            id => this.whenWindowClosed(id)));
-
-        browser.tabs.onCreated.addListener(evq.wrap(
-            tab => this.whenTabUpdated(tab as Tab)));
-        browser.tabs.onAttached.addListener(evq.wrap(
-            (id, info) => this.whenTabMoved(id, info.newWindowId, info.newPosition)));
-        browser.tabs.onMoved.addListener(evq.wrap(
-            (id, info) => this.whenTabMoved(id, info.windowId, info.toIndex)));
-        browser.tabs.onRemoved.addListener(evq.wrap(
-            id => this.whenTabClosed(id)));
-        browser.tabs.onReplaced.addListener(evq.wrap(
-            (newId, oldId) => this.whenTabReplaced(newId, oldId)));
-        browser.tabs.onUpdated.addListener(evq.wrap(
-            (id, info, tab) => this.whenTabUpdated(tab as Tab)));
-        browser.tabs.onActivated.addListener(evq.wrap(
-            info => this.whenTabActivated(info)));
-
-        return evq;
+    private constructor(tabs: Tabs.Tab[]) {
+        for (const t of tabs) this.whenTabCreated(t);
     }
 
     //
@@ -122,48 +83,47 @@ export class Model {
     // senders.)
     //
 
-    whenWindowUpdated(win: Windows.Window) {
+    whenWindowCreated(win: Windows.Window) {
         // istanbul ignore else
         if (win.tabs !== undefined) {
-            for (const t of win.tabs) this.whenTabUpdated(t as Tab);
+            for (const t of win.tabs) this.whenTabCreated(t);
         }
     }
 
-    whenWindowClosed(winId: number) {
+    whenWindowRemoved(winId: number) {
         const win = Array.from(this.by_window.get(winId));
-        for (const t of win) {
-            this.whenTabClosed(t.id);
-        }
+        for (const t of win) this.whenTabRemoved(t.id);
     }
 
-    whenTabUpdated(tab: Tab) {
+    whenTabCreated(tab: Tabs.Tab) {
         let t = this.by_id.get(tab.id!);
         if (! t) {
-            t = reactive(tab);
+            // CAST: Tabs.Tab says the id should be optional, but it isn't...
+            t = reactive(tab as Tab);
             this.by_id.insert(tab.id!, t);
         } else {
             Object.assign(t, tab);
         }
     }
 
-    whenTabMoved(tabId: number, toWinId: number, toIndex: number) {
+    whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
+        const t = this.by_id.get(id);
+        // istanbul ignore next -- defensive coding for internal inconsistency
+        if (! t) return;
+        Object.assign(t, info);
+    }
+
+    whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {
+        this.whenTabMoved(id,
+            {windowId: info.newWindowId, toIndex: info.newPosition});
+    }
+
+    whenTabMoved(tabId: number, info: {windowId: number, toIndex: number}) {
         const t = this.by_id.get(tabId);
         // istanbul ignore if -- should only happen if events are misdelivered
         if (! t) return;
-        t.windowId = toWinId;
-        t.index = toIndex;
-    }
-
-    whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
-        if (info.previousTabId !== undefined) {
-            const prev = this.by_id.get(info.previousTabId);
-            // istanbul ignore else -- guardrail against misdelivered events
-            if (prev) prev.active = false;
-        }
-
-        const tab = this.by_id.get(info.tabId);
-        // istanbul ignore else -- guardrail against misdelivered events
-        if (tab) tab.active = true;
+        t.windowId = info.windowId;
+        t.index = info.toIndex;
     }
 
     whenTabReplaced(newId: number, oldId: number) {
@@ -181,7 +141,19 @@ export class Model {
         t.id = newId;
     }
 
-    whenTabClosed(tabId: number) {
+    whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
+        if (info.previousTabId !== undefined) {
+            const prev = this.by_id.get(info.previousTabId);
+            // istanbul ignore else -- guardrail against misdelivered events
+            if (prev) prev.active = false;
+        }
+
+        const tab = this.by_id.get(info.tabId);
+        // istanbul ignore else -- guardrail against misdelivered events
+        if (tab) tab.active = true;
+    }
+
+    whenTabRemoved(tabId: number) {
         const t = this.by_id.get(tabId);
         if (! t) return;
         this.by_id.delete(tabId);

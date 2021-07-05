@@ -19,18 +19,14 @@ describe('model/tabs', () => {
     }
 
     beforeEach(() => {
-        model = new M.Model();
-        for (const t of [
+        model = M.Model.for_test([
             mktab({id: 1, url: "foo", windowId: 1, index: 0}),
             mktab({id: 2, url: "bar", windowId: 1, index: 1}),
             mktab({id: 3, url: "fred", windowId: 1, index: 2}),
             mktab({id: 4, url: "robert", windowId: 2, index: 0}),
             mktab({id: 5, url: "robert", windowId: 2, index: 1}),
             mktab({id: 6, url: "foo", windowId: 2, index: 2}),
-        ]) {
-            model.whenTabUpdated(t);
-        }
-        model.state.$loaded = 'yes';
+        ]);
     });
 
     it("tracks tabs by window", async () => {
@@ -47,7 +43,7 @@ describe('model/tabs', () => {
     });
 
     it("inserts new tabs into the correct window", async () => {
-        model.whenTabUpdated(mktab({id: 7, url: "a", windowId: 1, index: 3}));
+        model.whenTabCreated(mktab({id: 7, url: "a", windowId: 1, index: 3}));
 
         expect(model.by_window.get(1)).to.deep.equal([
             mktab({id: 1, url: "foo", windowId: 1, index: 0}),
@@ -75,7 +71,7 @@ describe('model/tabs', () => {
 
     it("tracks tabs as their URLs change", async () => {
         // Initial state validated by the earlier tabs-by-url test
-        model.whenTabUpdated(mktab({id: 4, windowId: 2, index: 0, url: "fred"}));
+        model.whenTabUpdated(4, {url: "fred"});
         await nextTick();
 
         expect(model.by_url.get("fred")).to.deep.equal([
@@ -88,7 +84,7 @@ describe('model/tabs', () => {
     });
 
     it("opens windows", async () => {
-        model.whenWindowUpdated({
+        model.whenWindowCreated({
             id: 17,
             focused: true,
             incognito: false,
@@ -108,7 +104,7 @@ describe('model/tabs', () => {
     });
 
     it("opens tabs in new windows", async () => {
-        model.whenTabUpdated(mktab({id: 42, windowId: 17, index: 0, url: "hurf"}));
+        model.whenTabCreated(mktab({id: 42, windowId: 17, index: 0, url: "hurf"}));
         await nextTick();
 
         expect(model.by_id.get(42))
@@ -121,9 +117,35 @@ describe('model/tabs', () => {
         ]);
     });
 
+    it("handles duplicate tab-creation events gracefully", async () => {
+        model.whenTabCreated(mktab({id: 42, windowId: 17, index: 0, url: "hurf"}));
+        model.whenTabCreated(mktab({id: 42, windowId: 17, index: 0, url: "cats"}));
+        await nextTick();
+
+        expect(model.by_id.get(42))
+            .to.deep.equal(mktab({id: 42, windowId: 17, index: 0, url: "cats"}));
+        expect(model.by_url.get("cats")).to.deep.equal([
+            mktab({id: 42, windowId: 17, index: 0, url: "cats"}),
+        ]);
+        expect(model.by_window.get(17)).to.deep.equal([
+            mktab({id: 42, windowId: 17, index: 0, url: "cats"})
+        ]);
+    });
+
     it("closes tabs", async () => {
         // Initial state validated by the earlier tabs-by-window test
-        model.whenTabClosed(5);
+        model.whenTabRemoved(5);
+
+        expect(model.by_window.get(2)).to.deep.equal([
+            mktab({id: 4, url: "robert", windowId: 2, index: 0}),
+            mktab({id: 6, url: "foo", windowId: 2, index: 1}),
+        ]);
+    });
+
+    it("handles duplicate tab-close events gracefully", async () => {
+        // Initial state validated by the earlier tabs-by-window test
+        model.whenTabRemoved(5);
+        model.whenTabRemoved(5);
 
         expect(model.by_window.get(2)).to.deep.equal([
             mktab({id: 4, url: "robert", windowId: 2, index: 0}),
@@ -133,7 +155,7 @@ describe('model/tabs', () => {
 
     it("drops tabs in a window when the window is closed", async () => {
         // Initial state validated by the earlier tabs-by-window test
-        model.whenWindowClosed(2);
+        model.whenWindowRemoved(2);
 
         expect(model.by_window.get(1)).to.not.be.undefined;
         expect(model.by_window.get(2)).to.deep.equal([]);
@@ -146,7 +168,7 @@ describe('model/tabs', () => {
     });
 
     it("moves tabs within a window (forwards)", async () => {
-        model.whenTabMoved(1, 1, 2);
+        model.whenTabMoved(1, {windowId: 1, toIndex: 2});
         await nextTick();
         expect(model.by_window.get(1)).to.deep.equal([
             mktab({id: 2, url: "bar", windowId: 1, index: 0}),
@@ -161,7 +183,7 @@ describe('model/tabs', () => {
     });
 
     it("moves tabs within a window (backwards)", async () => {
-        model.whenTabMoved(3, 1, 0);
+        model.whenTabMoved(3, {windowId: 1, toIndex: 0});
         await nextTick();
         expect(model.by_window.get(1)).to.deep.equal([
             mktab({id: 3, url: "fred", windowId: 1, index: 0}),
@@ -176,7 +198,7 @@ describe('model/tabs', () => {
     });
 
     it("moves tabs between windows", async () => {
-        model.whenTabMoved(2, 2, 1)
+        model.whenTabAttached(2, {newWindowId: 2, newPosition: 1})
         await nextTick();
         expect(model.by_window.get(1)).to.deep.equal([
             mktab({id: 1, url: "foo", windowId: 1, index: 0}),
@@ -213,24 +235,25 @@ describe('model/tabs', () => {
     });
 
     it("handles incomplete tabs gracefully", async () => {
-        model.whenTabUpdated(mktab({id: 42, windowId: 17, index: 0, /* no url */}));
+        model.whenTabCreated(mktab({id: 42, windowId: 17, index: 0, /* no url */}));
         await nextTick();
 
         expect(model.by_id.get(42))
             .to.deep.equal(mktab({id: 42, windowId: 17, index: 0}));
 
-        model.whenTabUpdated(mktab({id: 42, windowId: 2, index: 0, url: 'hi'}));
+        model.whenTabUpdated(42, {url: 'hi'});
+        model.whenTabMoved(42, {windowId: 2, toIndex: 1});
         await nextTick();
 
         expect(model.by_id.get(42))
-            .to.deep.equal(mktab({id: 42, windowId: 2, index: 0, url: 'hi'}));
+            .to.deep.equal(mktab({id: 42, windowId: 2, index: 1, url: 'hi'}));
         expect(model.by_url.get('hi')).to.deep.equal([
-            mktab({id: 42, windowId: 2, index: 0, url: 'hi'})
+            mktab({id: 42, windowId: 2, index: 1, url: 'hi'})
         ]);
         expect(model.by_window.get(17)).to.deep.equal([]);
         expect(model.by_window.get(2)).to.deep.equal([
-            mktab({id: 42, windowId: 2, index: 0, url: 'hi'}),
-            mktab({id: 4, url: "robert", windowId: 2, index: 1}),
+            mktab({id: 4, url: "robert", windowId: 2, index: 0}),
+            mktab({id: 42, url: 'hi', windowId: 2, index: 1}),
             mktab({id: 5, url: "robert", windowId: 2, index: 2}),
             mktab({id: 6, url: "foo", windowId: 2, index: 3}),
         ]);

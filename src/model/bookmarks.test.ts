@@ -74,10 +74,8 @@ describe('model/bookmarks', () => {
     beforeEach(async () => {
         // Typically bookmarks are loaded as a whole tree, so that's what we do
         // here.
-        model = new M.Model();
-        model.whenBookmarkCreated(JSON.parse(JSON.stringify(BMS.root)));
+        model = M.Model.for_test(JSON.parse(JSON.stringify(BMS.root)));
         await nextTick();
-        model.state.$loaded = 'yes';
     });
 
     describe('creates bookmarks from a tree', () => {
@@ -103,7 +101,7 @@ describe('model/bookmarks', () => {
 
     it('inserts bookmarks into the tree', async () => {
         const bm = {id: 'new', title: 'New', url: '/new', parentId: 'tools', index: 2};
-        model.whenBookmarkCreated(JSON.parse(JSON.stringify(bm)));
+        model.whenBookmarkCreated(bm.id, JSON.parse(JSON.stringify(bm)));
         await nextTick();
 
         expect(model.by_id.get('new'), 'by_id').to.deep.equal(bm);
@@ -117,7 +115,7 @@ describe('model/bookmarks', () => {
 
     it('inserts duplicate bookmarks gracefully', async () => {
         const new_b = {...BMS.b, title: 'The New A', url: '/new_a'};
-        model.whenBookmarkCreated(JSON.parse(JSON.stringify(new_b)));
+        model.whenBookmarkCreated(new_b.id, JSON.parse(JSON.stringify(new_b)));
         await nextTick();
 
         expect(model.by_id.get('b')).to.deep.equal(new_b);
@@ -132,7 +130,7 @@ describe('model/bookmarks', () => {
 
     it('updates bookmarks', async () => {
         const new_b = {...BMS.b, title: 'The New A', url: '/new_a'};
-        model.whenBookmarkUpdated('b', {title: new_b.title, url: new_b.url});
+        model.whenBookmarkChanged('b', {title: new_b.title, url: new_b.url});
         await nextTick();
 
         expect(model.by_id.get('b')).to.deep.equal(new_b);
@@ -147,7 +145,7 @@ describe('model/bookmarks', () => {
 
     it('updates folder titles', async () => {
         const sub = {...BMS.subfolder, title: 'Secret'};
-        model.whenBookmarkUpdated('subfolder', {title: 'Secret'});
+        model.whenBookmarkChanged('subfolder', {title: 'Secret'});
         await nextTick();
         expect(model.by_id.get('subfolder')).to.deep.equal(sub);
     });
