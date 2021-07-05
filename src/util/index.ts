@@ -6,6 +6,13 @@ export {
     TaskMonitor, Progress, TaskCancelled,
 } from './progress';
 
+export type Atom = null | boolean | number | string;
+
+/** A value that's convertible to JSON without losing information. */
+export type ToJSON = Atom
+                 | {[k: string]: ToJSON}
+                 | [...ToJSON[]] | ToJSON[];
+
 // Args is the arguments of a function
 export type Args<F extends Function> =
     F extends (...args: infer A) => any ? A : never;
@@ -54,6 +61,34 @@ export const bgKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Cmd' : 'Ctrl';
 // istanbul ignore next
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
+
+/** Tests if two JSON-like values are deeply equal. */
+export function deepEqual<T extends ToJSON>(l: T, r: T): boolean {
+    if (l === r) return true;
+    if (typeof l !== 'object' || typeof r !== 'object') return false;
+    if (l === null || r === null) return false;
+    if (l instanceof Array && r instanceof Array) {
+        if (l.length !== r.length) return false;
+        for (let i = 0; i < l.length; ++i) {
+            if (! deepEqual(l[i], r[i])) return false;
+        }
+        return true;
+    }
+    if (! (l instanceof Array) && ! (r instanceof Array)) {
+        // Casts needed here to work around a TypeScript oddity... it takes the
+        // un-narrowed type of /l/ or /r/ and tries to match against a prototype
+        // of Object.keys(), rather than taking the narrowed type (which is
+        // guaranteed to be an object).)
+        const lk = Object.keys(l as {}).sort();
+        const rk = Object.keys(r as {}).sort();
+        if (! deepEqual(lk, rk)) return false;
+        for (const k of lk) {
+            if (! deepEqual(l[k], r[k])) return false;
+        }
+        return true;
+    }
+    return false;
+}
 
 export const parseVersion = (v: string): number[] =>
     v.split('.').map(x => parseInt(x));
