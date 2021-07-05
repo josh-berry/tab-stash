@@ -26,6 +26,7 @@ describe('model/deleted-items', () => {
         // We first prepopulate the KVS using the model's test-only code, and
         // then we reset the model to an empty/new state.
         await model.makeFakeData_testonly(DATASET_SIZE);
+        await nextTick();
         model = new M.Model(source);
 
         expect(model.state.entries).to.be.empty;
@@ -47,6 +48,7 @@ describe('model/deleted-items', () => {
 
     it('loads items newest-first', async() => {
         await model.makeFakeData_testonly(DATASET_SIZE);
+        await nextTick();
         model = new M.Model(source);
 
         while (! model.state.fullyLoaded) await model.loadMore();
@@ -59,6 +61,7 @@ describe('model/deleted-items', () => {
 
     it('observes newly-added items', async() => {
         await model.makeFakeData_testonly(DATASET_SIZE);
+        await nextTick();
         model = new M.Model(source);
         await model.loadMore();
         expect(model.state.entries.length).to.equal(10);
