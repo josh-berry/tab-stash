@@ -3,7 +3,7 @@ import {browser, Bookmarks, Tabs} from 'webextension-polyfill-ts';
 import * as Options from './model/options';
 import * as BrowserSettings from './model/browser-settings';
 
-import {urlToOpen, TaskMonitor, logErrors} from './util';
+import {urlToOpen, TaskMonitor} from './util';
 
 type BookmarkTreeNode = Bookmarks.BookmarkTreeNode;
 
@@ -30,8 +30,7 @@ const isFolder = (bm: BookmarkTreeNode) =>
 // Small model to keep track of browser settings like new-tab URLs and such.
 // TODO move this into a proper model (with proper init sequencing) once
 // stash.ts itself moves...
-const the_browser_settings = new BrowserSettings.Model();
-logErrors(() => the_browser_settings.loadFromBrowser());
+const the_browser_settings = BrowserSettings.Model.live_imm();
 
 // Find or create the root of the stash.
 export async function rootFolder(): Promise<BookmarkTreeNode> {

@@ -1,55 +1,65 @@
+import {reactive} from "vue";
+import {browser} from "webextension-polyfill-ts";
+
+import {EventWiring, logErrors, resolveNamed} from "../util";
+
+export type State = {
+    newtab_url: string;
+    home_url: string;
+};
+
 /** This model keeps track of any browser settings which are relevant to Tab
  * Stash.  Mainly that's just the URLs of new-tab and home pages.
  *
  * All this exists mainly so we can answer the question, "is this URL a new-tab
  * URL?" immediately (without a promise/context switches back into the browser).
  */
-
-import {reactive} from "vue";
-import {browser} from "webextension-polyfill-ts";
-import {DeferQueue, resolveNamed} from "../util";
-
-export type State = {
-    $loaded: 'no' | 'loading' | 'yes';
-    newtab_url: string;
-    home_url: string;
-};
-
 export class Model {
-    readonly state: State = reactive({
-        $loaded: 'no',
-        newtab_url: '',
-        home_url: '',
-    });
+    readonly state: State;
 
-    // TODO loadFromMemory() initializer if needed for testing
+    /** TODO remove me -- use live() instead.  This only exists so we can
+     * construct an object immediately, to support `stash.ts` for now. */
+    static live_imm(): Model {
+        const wiring = Model._wiring();
+        const model = new Model({newtab_url: '', home_url: ''});
+        wiring.wire(model);
 
-    async loadFromBrowser(): Promise<void> {
-        this.state.$loaded = 'loading';
-        try {
-            const evq = this._wire_events();
-            const urls = await resolveNamed({
-                newtab_url: browser.browserSettings.newTabPageOverride.get({})
-                    .then(s => s.value),
-                home_url: browser.browserSettings.homepageOverride.get({})
-                    .then(s => s.value),
-            });
-            Object.assign(this.state, urls);
-            this.state.$loaded = 'yes';
-            evq.unplug();
-        } catch (e) {
-            this.state.$loaded = 'no';
-            throw e;
-        }
+        logErrors(async() => {
+            model.state.newtab_url =
+                (await browser.browserSettings.newTabPageOverride.get({})).value;
+            model.state.home_url =
+                (await browser.browserSettings.homepageOverride.get({})).value;
+        });
+
+        return model;
     }
 
-    private _wire_events(): DeferQueue {
-        const evq = new DeferQueue();
-        browser.browserSettings.newTabPageOverride.onChange.addListener(
-            evq.wrap(s => this.state.newtab_url = s.value));
-        browser.browserSettings.homepageOverride.onChange.addListener(
-            evq.wrap(s => this.state.home_url = s.value));
-        return evq;
+    static async live(): Promise<Model> {
+        const wiring = Model._wiring();
+
+        const state: State = await resolveNamed({
+            newtab_url: browser.browserSettings.newTabPageOverride.get({})
+                .then(s => s.value),
+            home_url: browser.browserSettings.homepageOverride.get({})
+                .then(s => s.value),
+        });
+
+        const model = new Model(state);
+        wiring.wire(model);
+        return model;
+    }
+
+    private static _wiring(): EventWiring<Model> {
+        const wiring = new EventWiring<Model>();
+        wiring.listen(browser.browserSettings.newTabPageOverride.onChange,
+            'whenNewTabPageChanged');
+        wiring.listen(browser.browserSettings.homepageOverride.onChange,
+            'whenHomepageChanged');
+        return wiring;
+    }
+
+    private constructor(state: State) {
+        this.state = reactive(state);
     }
 
     /** Determine if the URL provided is a new-tab URL or homepage URL (i.e.
@@ -69,5 +79,17 @@ export class Model {
                 if (url.startsWith("chrome://vivaldi-webui/startpage")) return true;
                 return false;
         }
+    }
+
+    //
+    // Events from the browser
+    //
+
+    whenNewTabPageChanged(setting: {value: string}) {
+        this.state.newtab_url = setting.value;
+    }
+
+    whenHomepageChanged(setting: {value: string}) {
+        this.state.home_url = setting.value;
     }
 }
