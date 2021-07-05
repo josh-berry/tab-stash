@@ -1,5 +1,6 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 import {browser} from 'webextension-polyfill-ts';
+import * as Vue from 'vue';
 
 export {
     TaskHandle, Task, TaskIterator,
@@ -218,10 +219,13 @@ export async function resolveNamed<T extends {[k: string]: any}>(
     return objects;
 }
 
-// Waits for the next iteration of the event loop (allowing event handlers etc.
-// to run in the meantime).
+/** Waits for the next iteration of the event loop and for Vue to flush any
+ * pending watches (allowing event handlers etc. to run in the meantime). */
 export function nextTick(): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve));
+    return Promise.all([
+        new Promise(resolve => setTimeout(resolve)),
+        Vue.nextTick.apply(undefined),
+    ]).then();
 }
 
 // Returns a function which, when called, arranges to call the async function

@@ -1,6 +1,6 @@
 import {expect} from 'chai';
-import {nextTick} from '../util';
 
+import {nextTick} from '../util';
 import * as M from './tabs';
 
 describe('model/tabs', () => {
