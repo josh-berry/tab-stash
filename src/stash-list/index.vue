@@ -96,7 +96,7 @@ import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
 import ui_model from '../ui-model';
-import {Model, State} from '../model/';
+import {Model} from '../model/';
 import {StashState, Bookmark, Tab} from '../model/browser';
 import * as DI from '../model/deleted-items';
 import {Cache} from '../datastore/cache/client';
@@ -116,7 +116,6 @@ const Main = defineComponent({
     },
 
     props: {
-        state: required(Object as PropType<State>),
         unstashed_tabs: required(Object as PropType<Window>),
         stashed_tabs: required(Object as PropType<Bookmark>),
         root_id: required(String),
@@ -134,12 +133,12 @@ const Main = defineComponent({
 
     computed: {
         tabfolder_title(): string {
-            if (this.state.options.sync.show_all_open_tabs) return "Open Tabs";
+            if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
             return "Unstashed Tabs";
         },
 
         recently_updated(): undefined | 'features' | 'fixes' {
-            const last_notified = this.state.options.local.last_notified_version;
+            const last_notified = this.model().options.local.state.last_notified_version;
             if (last_notified === this.my_version) return undefined;
 
             const my = parseVersion(this.my_version);
@@ -150,7 +149,7 @@ const Main = defineComponent({
         },
 
         recently_deleted(): DI.Deletion[] {
-            return this.state.deleted_items.recentlyDeleted;
+            return this.model().deleted_items.state.recentlyDeleted;
         },
 
         counts(): {tabs: number, groups: number} {
@@ -202,7 +201,8 @@ const Main = defineComponent({
         unstashedFilter(t: Tab) {
             return ! t.hidden && ! t.pinned && t.url
                 && isURLStashable(t.url)
-                && (this.state.options.sync.show_all_open_tabs || ! this.isItemStashed(t));
+                && (this.model().options.sync.state.show_all_open_tabs
+                    || ! this.isItemStashed(t));
         },
 
         isItemStashed(i: Tab) {
@@ -278,7 +278,6 @@ launch(Main, async() => {
 
     return {
         propsData: {
-            state: model.state,
             unstashed_tabs: p.stash_state.wins_by_id.get(p.win.id!),
             stashed_tabs: p.stash_state.bms_by_id.get(p.root.id),
             root_id: p.root.id,

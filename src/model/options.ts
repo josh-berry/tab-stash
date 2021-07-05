@@ -7,11 +7,10 @@
 // and will break if it's not true.)
 
 import {browser} from 'webextension-polyfill-ts';
-import {reactive} from 'vue';
 
 import {resolveNamed} from '../util';
 import StoredObject, {
-    aBoolean, anEnum, aNumber, aString, maybeUndef, StorableData
+    aBoolean, anEnum, aNumber, aString, maybeUndef
 } from '../datastore/stored-object';
 
 export const SHOW_WHAT_OPT = anEnum('sidebar', 'tab', 'popup', 'none');
@@ -111,29 +110,19 @@ export type Source = {
     readonly local: StoredObject<typeof LOCAL_DEF>;
 };
 
-export type State = {
-    readonly sync: StorableData<typeof SYNC_DEF>,
-    readonly local: StorableData<typeof LOCAL_DEF>,
-};
-
 export class Model {
-    readonly state: State;
-
     readonly sync: StoredObject<typeof SYNC_DEF>;
     readonly local: StoredObject<typeof LOCAL_DEF>;
 
-    constructor(source: Source) {
-        this.sync = source.sync;
-        this.local = source.local;
+    static async live(): Promise<Model> {
+        return new Model(await resolveNamed({
+            sync: StoredObject.sync('options', SYNC_DEF),
+            local: StoredObject.local('options', LOCAL_DEF),
+        }));
+    }
 
-        this.state = reactive({
-            sync: this.sync.state,
-            local: this.local.state,
-        });
+    private constructor(src: Source) {
+        this.sync = src.sync;
+        this.local = src.local;
     }
 }
-
-export const live_source = (): Promise<Source> => resolveNamed({
-    sync: StoredObject.sync('options', SYNC_DEF),
-    local: StoredObject.local('options', LOCAL_DEF),
-});

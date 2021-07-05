@@ -195,7 +195,7 @@ launch(Main, async() => {
     const model = await ui_model();
     return {
         propsData: {
-            state: model.state.deleted_items,
+            state: model.deleted_items.state,
         },
         provide: {
             $model: model,

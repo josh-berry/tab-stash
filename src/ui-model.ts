@@ -11,11 +11,14 @@ import * as DI from './model/deleted-items';
 
 export default async function(): Promise<Model> {
     const sources = await resolveNamed({
-        options: Options.live_source(),
+        options: Options.Model.live(),
         deleted_items: new KVSClient<string, DI.SourceValue>('deleted_items'),
     });
 
-    const model = new Model(sources);
+    const model = new Model({
+        options: sources.options,
+        deleted_items: new DI.Model(sources.deleted_items),
+    });
     (<any>globalThis).model = model;
     return model;
 }

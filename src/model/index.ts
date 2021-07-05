@@ -37,35 +37,21 @@
 // property, and child models are available through child properties of their
 // own.
 
-import {reactive} from 'vue';
-
 import * as Options from './options';
 import * as DeletedItems from './deleted-items';
 
 export type Source = {
-    readonly options: Options.Source,
-    readonly deleted_items: DeletedItems.Source,
-};
-
-export type State = {
-    readonly options: Options.State,
-    readonly deleted_items: DeletedItems.State,
+    readonly options: Options.Model,
+    readonly deleted_items: DeletedItems.Model,
 };
 
 export class Model {
-    readonly state: State;
-
     readonly options: Options.Model;
     readonly deleted_items: DeletedItems.Model;
     // TODO For now just deleted_items is here; other stuff to come later
 
     constructor(sources: Source) {
-        this.options = new Options.Model(sources.options);
-        this.deleted_items = new DeletedItems.Model(sources.deleted_items);
-
-        this.state = reactive({
-            options: this.options.state,
-            deleted_items: this.deleted_items.state,
-        });
+        this.options = sources.options;
+        this.deleted_items = sources.deleted_items;
     }
 };

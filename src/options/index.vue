@@ -296,7 +296,7 @@ const Main = defineComponent({
 export default Main;
 
 launch(Main, async() => {
-    const opts = new Options.Model(await Options.live_source());
+    const opts = await Options.Model.live();
     (<any>globalThis).model = opts;
     return {
         propsData: reactive({

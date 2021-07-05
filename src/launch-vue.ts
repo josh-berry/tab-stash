@@ -38,7 +38,7 @@ export default function launch<
                 browser.runtime.getBrowserInfo() : {name: 'chrome'},
             platform: browser.runtime.getPlatformInfo ?
                 browser.runtime.getPlatformInfo() : {os: 'unknown'},
-            options: Options.live_source(),
+            options: Options.Model.live(),
         });
 
         document.documentElement.classList.add(`browser-${plat.browser.name.toLowerCase()}`);

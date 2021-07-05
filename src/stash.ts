@@ -142,7 +142,7 @@ export function friendlyFolderName(name: string): string {
 }
 
 export async function mostRecentUnnamedFolderId() {
-    const {sync: options} = await Options.live_source();
+    const {sync: options} = await Options.Model.live();
     const root = await rootFolder();
     const topmost = (await browser.bookmarks.getChildren(root.id))[0];
 
@@ -230,7 +230,7 @@ export async function stashTabs(
 
 // Hides tabs that we know are stashed.
 export async function hideStashedTabs(tabs: PartialTabInfo[]): Promise<void> {
-    const opts_p = Options.live_source();
+    const opts_p = Options.Model.live();
 
     await refocusAwayFromTabs(tabs);
     const opts = (await opts_p).local;

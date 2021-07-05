@@ -324,7 +324,7 @@ export default Main;
 
 launch(Main, async() => {
     const r = await resolveNamed({
-        options: Options.live_source(),
+        options: Options.Model.live(),
         extn: browser.management.getSelf(),
     });
     (<any>globalThis).options = r.options;
