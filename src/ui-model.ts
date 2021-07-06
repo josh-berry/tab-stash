@@ -5,19 +5,24 @@
 import {resolveNamed} from './util';
 import KVSClient from './datastore/kvs/client';
 
-import {Model, BrowserSettings, Options, Tabs, Bookmarks, DeletedItems} from './model';
+import * as M from './model';
+import KVSCache from './model/kvs-cache';
 
-export default async function(): Promise<Model> {
+export default async function(): Promise<M.Model> {
     const sources = await resolveNamed({
-        browser_settings: BrowserSettings.Model.live(),
-        options: Options.Model.live(),
-        tabs: Tabs.Model.from_browser(), // TODO load from cache
-        bookmarks: Bookmarks.Model.from_browser(), // TODO load from cache
-        deleted_items: new DeletedItems.Model(
-            new KVSClient<string, DeletedItems.SourceValue>('deleted_items')),
+        browser_settings: M.BrowserSettings.Model.live(),
+        options: M.Options.Model.live(),
+        tabs: M.Tabs.Model.from_browser(), // TODO load from cache
+        bookmarks: M.Bookmarks.Model.from_browser(), // TODO load from cache
+        deleted_items: new M.DeletedItems.Model(
+            new KVSClient<string, M.DeletedItems.SourceValue>('deleted_items')),
     });
 
-    const model = new Model(sources);
+    const model = new M.Model({
+        ...sources,
+        favicons: new M.Favicons.Model(
+            sources.tabs, new KVSCache(new KVSClient('favicons'))),
+    });
     (<any>globalThis).model = model;
     return model;
 }

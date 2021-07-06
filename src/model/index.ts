@@ -37,7 +37,9 @@ import * as Tabs from './tabs';
 import * as Bookmarks from './bookmarks';
 import * as DeletedItems from './deleted-items';
 
-export {BrowserSettings, Options, Tabs, Bookmarks, DeletedItems};
+import * as Favicons from './favicons';
+
+export {BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons};
 
 export type Source = {
     readonly browser_settings: BrowserSettings.Model;
@@ -46,6 +48,8 @@ export type Source = {
     readonly tabs: Tabs.Model;
     readonly bookmarks: Bookmarks.Model;
     readonly deleted_items: DeletedItems.Model,
+
+    readonly favicons: Favicons.Model;
 };
 
 /** The One Model To Rule Them All.
@@ -61,6 +65,8 @@ export class Model {
     readonly bookmarks: Bookmarks.Model;
     readonly deleted_items: DeletedItems.Model;
 
+    readonly favicons: Favicons.Model;
+
     constructor(src: Source) {
         this.browser_settings = src.browser_settings;
         this.options = src.options;
@@ -68,5 +74,7 @@ export class Model {
         this.tabs = src.tabs;
         this.bookmarks = src.bookmarks;
         this.deleted_items = src.deleted_items;
+
+        this.favicons = src.favicons;
     }
 };

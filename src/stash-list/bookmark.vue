@@ -7,7 +7,7 @@
    target="_blank" :href="bookmark.url" :title="bookmark.title"
    :data-id="bookmark.id"
    @click.prevent.stop="open">
-  <ItemIcon v-if="favicon" :src="favicon" />
+  <ItemIcon v-if="favicon?.value?.favIconUrl" :src="favicon?.value?.favIconUrl" />
   <span v-else class="icon" />
   <span class="text">{{bookmark.title}}</span>
   <ButtonBox>
@@ -29,6 +29,7 @@ import {getFolderNameISODate, restoreTabs} from '../stash';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
+import {FaviconEntry} from '../model/favicons';
 
 export default defineComponent({
     components: {
@@ -62,9 +63,9 @@ export default defineComponent({
             return !! this.related_tabs.find(t => t.active);
         },
 
-        favicon(): string | undefined {
-            // TODO
-            return undefined;
+        favicon(): FaviconEntry | null {
+            if (! this.bookmark.url) return null;
+            return this.model().favicons.get(this.bookmark.url);
         },
     },
 
@@ -94,7 +95,7 @@ export default defineComponent({
             await this.model().deleted_items.add({
                 title: this.bookmark.title ?? '<no title>',
                 url: this.bookmark.url ?? 'about:blank',
-                favIconUrl: this.favicon,
+                favIconUrl: this.favicon?.value?.favIconUrl || undefined,
             }, folder ? {
                 folder_id: folder.id,
                 title: folder.title!,

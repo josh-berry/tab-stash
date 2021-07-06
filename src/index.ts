@@ -17,6 +17,13 @@ import {StashWhatOpt, ShowWhatOpt} from './model/options';
 logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
 //
+// Migrations -- these are old DBs which are in the wrong format
+//
+
+indexedDB.deleteDatabase('cache:favicons');
+indexedDB.deleteDatabase('cache:bookmarks');
+
+//
 // Start our various services and set global variables used throughout the rest
 // of this file.
 //
@@ -24,7 +31,6 @@ logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 const the = await resolveNamed({
     model: service_model(),
 
-    favicon_cache: CacheService.start('favicons'),
     bookmark_cache: CacheService.start('bookmarks'),
 });
 const model = the.model;

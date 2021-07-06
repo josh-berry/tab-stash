@@ -21,6 +21,8 @@
 // broadcast in quick succession; if this is a concern (and it's REALLY worth
 // the extra complexity), code changes are required. :)
 
+import {reactive} from 'vue';
+
 import {Send, connect} from '../../util/nanoservice';
 import {ServicePort, FetchMessage, UpdateMessage} from './proto';
 
@@ -134,7 +136,7 @@ export class Cache<Content extends Send> {
     _cached(key: string): CacheEntry<Content> {
         let ent = this._local_cache.get(key);
         if (! ent) {
-            ent = {key, value: undefined, fetched: false};
+            ent = reactive({key, value: undefined, fetched: false});
             this._local_cache.set(key, ent);
             this._local_cache_for_vue.push(ent);
         }
