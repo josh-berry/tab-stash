@@ -49,12 +49,11 @@
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <folder :title="tabfolder_title" :allowRenameDelete="false"
+    <window :title="tabfolder_title" :allowRenameDelete="false"
             ref="unstashed" :children="unstashed_tabs.children"
             :filter="unstashedFilter" :userFilter="search_filter"
             :isItemStashed="isItemStashed"
-            :metadata="metadata_cache.get('')">
-    </folder>
+            :metadata="metadata_cache.get('')" />
     <!-- XXX This is presently disabled because it exposes a bug in
          Vue.Draggable, wherein if the draggable goes away as the result of a
          drag operation, the "ghost" element which is being dragged doesn't get
@@ -113,6 +112,7 @@ const Main = defineComponent({
         Menu: require('../components/menu.vue').default,
         Notification: require('../components/notification.vue').default,
         ProgressDialog: require('../components/progress-dialog.vue').default,
+        Window: require('./window.vue').default,
     },
 
     props: {
