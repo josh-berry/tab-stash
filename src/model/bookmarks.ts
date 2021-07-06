@@ -92,23 +92,23 @@ export class Model {
     // senders.)
     //
 
-    whenBookmarkCreated(id: string, newbm: Bookmark) {
+    whenBookmarkCreated(id: string, new_bm: Bookmark) {
         // istanbul ignore next -- this is kind of a dumb/redundant API, but it
         // must conform to browser.bookmarks.onCreated...
-        if (id !== newbm.id) throw new Error(`Bookmark IDs don't match`);
+        if (id !== new_bm.id) throw new Error(`Bookmark IDs don't match`);
 
         let bm = this.by_id.get(id);
         if (! bm) {
-            bm = reactive(newbm);
-            this.by_id.insert(newbm.id, bm);
+            bm = reactive(new_bm);
+            this.by_id.insert(new_bm.id, bm);
         } else {
             // For idempotency, if the bookmark already exists, we merge the new
             // info we got with the existing record.
-            Object.assign(bm, newbm);
+            Object.assign(bm, new_bm);
         }
 
-        if (isFolder(newbm)) {
-            const children = newbm.children; // to avoid aliasing issues
+        if (isFolder(new_bm)) {
+            const children = new_bm.children; // to avoid aliasing issues
 
             // Make sure the children recorded in the bookmark always reflect
             // what's in the by_parent index (which maintains the invariant
