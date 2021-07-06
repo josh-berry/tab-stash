@@ -56,7 +56,11 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                v-model="filteredChildren" item-key="id"
                @add="move" @update="move">
       <template #item="{element: item}">
-        <tab v-bind="item"
+        <tab v-if="item.isTab" :tab="item"
+             :class="{hidden: (filter && ! filter(item))
+                        || (userFilter && ! userFilter(item)),
+                      'folder-item': true}" />
+        <bookmark v-else :bookmark="item"
              :class="{hidden: (filter && ! filter(item))
                         || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />
@@ -96,6 +100,7 @@ export default defineComponent({
         Draggable: require('vuedraggable'),
         EditableLabel: require('../components/editable-label.vue').default,
         Tab: require('./tab.vue').default,
+        Bookmark: require('./bookmark.vue').default,
     },
 
     inject: ['$model'],
