@@ -30,6 +30,8 @@ export class Model {
         keyFor: bm => bm.url ?? '',
     });
 
+
+
     //
     // Loading data and wiring up events
     //
@@ -85,6 +87,24 @@ export class Model {
     }
 
     //
+    // Accessors
+    //
+
+    /** Check if `bm` is contained, directly or indirectly, by the folder with
+     * the specified ID. */
+    isBookmarkInFolder(bm: Bookmark, folder_id: string): boolean {
+        let item: Bookmark | undefined = bm;
+        while (item) {
+            if (item.id === folder_id) return true;
+            if (! item.parentId) return false;
+            item = this.by_id.get(item.parentId);
+        }
+        return false;
+    }
+
+
+
+    //
     // Events which are detected automatically by this model; these can be
     // called for testing purposes but otherwise you can ignore them.
     //
@@ -130,7 +150,7 @@ export class Model {
         // istanbul ignore if
         if (! bm) return; // out-of-order event delivery?
 
-        bm.title = info.title;
+        if ('title' in info) bm.title = info.title;
         if ('url' in info && ! bm.children) bm.url = info.url;
     }
 

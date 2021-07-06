@@ -17,7 +17,7 @@ import {PropType, defineComponent} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
 import {CacheEntry} from '../datastore/cache/client';
-import {ModelLeaf, ModelParent} from '../model/browser';
+import {Bookmark} from '../model/bookmarks';
 
 export default defineComponent({
     components: {
@@ -26,9 +26,9 @@ export default defineComponent({
     },
 
     props: {
-        folders: Array as PropType<ModelParent[]>,
-        filter: Function as PropType<(i: ModelLeaf) => boolean>,
-        userFilter: Function as PropType<(i: ModelLeaf) => boolean>,
+        folders: Array as PropType<Bookmark[]>,
+        filter: Function as PropType<(i: Bookmark) => boolean>,
+        userFilter: Function as PropType<(i: Bookmark) => boolean>,
 
         // Whether to hide a folder entirely if it has no elements (e.g. because
         // we're filtering at the moment)

@@ -4,7 +4,6 @@ import { TaskMonitor } from '../util';
 import { bookmarkTabs, isURLStashable } from '../stash';
 import { fetchInfoForSites } from './siteinfo';
 import { Cache } from '../datastore/cache/client';
-import {FaviconCache} from '../model/browser';
 
 type Bookmark = Bookmarks.BookmarkTreeNode;
 
@@ -216,7 +215,7 @@ export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
             }
         }
 
-        const favicon_cache: FaviconCache = Cache.open('favicons');
+        const favicon_cache = Cache.open('favicons');
         for await (const siteinfo of siteinfo_aiter) {
             if (siteinfo.error) {
                 top_tm.cancel();

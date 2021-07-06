@@ -50,7 +50,7 @@
   </header>
   <div class="folder-list">
     <window :title="tabfolder_title" :allowRenameDelete="false"
-            ref="unstashed" :children="unstashed_tabs.children"
+            ref="unstashed" :children="unstashed_tabs"
             :filter="unstashedFilter" :userFilter="search_filter"
             :isItemStashed="isItemStashed"
             :metadata="metadata_cache.get('')" />
@@ -95,9 +95,9 @@ import {
     isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
 } from '../stash';
 import ui_model from '../ui-model';
-import {Model} from '../model/';
-import {StashState, Bookmark, Tab} from '../model/browser';
-import * as DI from '../model/deleted-items';
+import {Model, DeletedItems as DI} from '../model';
+import {Tab} from '../model/tabs';
+import {Bookmark} from '../model/bookmarks';
 import {Cache} from '../datastore/cache/client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -116,8 +116,7 @@ const Main = defineComponent({
     },
 
     props: {
-        unstashed_tabs: required(Object as PropType<Window>),
-        stashed_tabs: required(Object as PropType<Bookmark>),
+        window_id: required(Number),
         root_id: required(String),
         my_version: required(String),
         metadata_cache: Object as PropType<Cache<{collapsed: boolean}>>,
@@ -132,6 +131,13 @@ const Main = defineComponent({
     }),
 
     computed: {
+        unstashed_tabs(): readonly Tab[] {
+            return this.model().tabs.by_window.get(this.window_id) ?? [];
+        },
+        stashed_tabs(): Bookmark {
+            // TODO remove !
+            return this.model().bookmarks.by_id.get(this.root_id)!;
+        },
         tabfolder_title(): string {
             if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
             return "Unstashed Tabs";
@@ -205,9 +211,11 @@ const Main = defineComponent({
                     || ! this.isItemStashed(t));
         },
 
-        isItemStashed(i: Tab) {
-            return i.related && i.related.find(
-                i => i instanceof Bookmark && i.isInFolder(this.root_id));
+        isItemStashed(i: Tab): boolean {
+            if (! i.url) return false;
+            const bookmarks = this.model().bookmarks;
+            const bms = bookmarks.by_url.get(i.url);
+            return !!bms.find(bm => bookmarks.isBookmarkInFolder(bm, this.root_id));
         },
 
         showOptions() {
@@ -261,35 +269,31 @@ export default Main;
 
 launch(Main, async() => {
     const p = await resolveNamed({
-        stash_state: StashState.make(),
-        root: rootFolder(),
+        model: ui_model(),
+        root: rootFolder(), // TODO move into bookmarks model
         win: browser.windows.getCurrent(),
         curtab: browser.tabs.getCurrent(),
         extinfo: browser.management.getSelf(),
         warning: rootFolderWarning(),
     });
 
-    const model = await ui_model();
-
     // For debugging purposes only...
     (<any>globalThis).metadata_cache = Cache.open('bookmarks');
     (<any>globalThis).favicon_cache = Cache.open('favicons');
-    (<any>globalThis).stash_state = p.stash_state;
 
     return {
         propsData: {
-            unstashed_tabs: p.stash_state.wins_by_id.get(p.win.id!),
-            stashed_tabs: p.stash_state.bms_by_id.get(p.root.id),
+            window_id: p.win.id!,
             root_id: p.root.id,
             my_version: p.extinfo.version,
             metadata_cache: Cache.open('bookmarks'),
             root_folder_warning: p.warning,
         },
         provide: {
-            $model: model,
+            $model: p.model,
         },
         methods: {
-            model() { return model; },
+            model() { return p.model; },
         },
     };
 });

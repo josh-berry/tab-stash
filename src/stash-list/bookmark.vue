@@ -1,12 +1,13 @@
 <template>
 <a :class="{'action-container': true,
-            'tab': true, // TODO...
+            'tab': true, // TODO fix the CSS classes...
             'saved': true,
             'open': hasOpenTab,
             'active': hasActiveTab}"
    target="_blank" :href="bookmark.url" :title="bookmark.title"
+   :data-id="bookmark.id"
    @click.prevent.stop="open">
-  <ItemIcon v-if="favicon && favicon.value" :src="favicon.value" />
+  <ItemIcon v-if="favicon" :src="favicon" />
   <span v-else class="icon" />
   <span class="text">{{bookmark.title}}</span>
   <ButtonBox>
@@ -26,7 +27,8 @@ import {PropType, defineComponent} from 'vue';
 import {altKeyName, bgKeyName, bgKeyPressed, required, logErrors} from '../util';
 import {getFolderNameISODate, restoreTabs} from '../stash';
 import {Model} from '../model';
-import {Tab, Bookmark, ModelLeaf, FaviconCacheEntry} from '../model/browser';
+import {Tab} from '../model/tabs';
+import {Bookmark} from '../model/bookmarks';
 
 export default defineComponent({
     components: {
@@ -45,17 +47,25 @@ export default defineComponent({
         altkey: altKeyName,
         bgKey: bgKeyName,
 
-        tab(): Tab | undefined {
-            if (! this.bookmark.related) return undefined;
-            return this.bookmark.related.find((t: ModelLeaf) => t.isTab) as
-                Tab | undefined;
+        related_tabs(): readonly Tab[] {
+            if (! this.bookmark.url) return [];
+            const related = this.model().tabs.by_url.get(this.bookmark.url);
+            if (! related) return [];
+            return related;
         },
 
-        hasOpenTab(): boolean { return !!(this.tab && ! this.tab.hidden); },
-        // TODO look only at the current window
-        hasActiveTab(): boolean { return !!this.tab?.active; },
+        hasOpenTab(): boolean {
+            return !! this.related_tabs.find(t => ! t.hidden);
+        },
+        hasActiveTab(): boolean {
+            // TODO look only at the current window
+            return !! this.related_tabs.find(t => t.active);
+        },
 
-        favicon(): FaviconCacheEntry | undefined { return this.bookmark.favicon; },
+        favicon(): string | undefined {
+            // TODO
+            return undefined;
+        },
     },
 
     methods: {
@@ -69,13 +79,6 @@ export default defineComponent({
         })},
 
         remove() { logErrors(async () => {
-            let tab = this.tab;
-            if (tab && tab.hidden) {
-                // So we don't momentarily put this tab into "Unstashed
-                // Tabs" after it's removed and before the garbage collector
-                // gets to it.
-                await browser.tabs.remove(tab.id);
-            }
             await this._removeBM();
         })},
 
@@ -86,12 +89,12 @@ export default defineComponent({
         })},
 
         async _removeBM() {
-            const folder = this.bookmark.parent;
+            const folder = this.model().bookmarks.by_id.get(this.bookmark.parentId!);
 
             await this.model().deleted_items.add({
                 title: this.bookmark.title ?? '<no title>',
                 url: this.bookmark.url ?? 'about:blank',
-                favIconUrl: this.favicon?.value,
+                favIconUrl: this.favicon,
             }, folder ? {
                 folder_id: folder.id,
                 title: folder.title!,

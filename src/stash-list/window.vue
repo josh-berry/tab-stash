@@ -63,7 +63,8 @@ import {
 
 import {Model} from '../model';
 import {Cache, CacheEntry} from '../datastore/cache/client';
-import {ModelLeaf, Tab, Window, Bookmark} from '../model/browser';
+import {Tab} from '../model/tabs';
+import {Bookmark} from '../model/bookmarks';
 
 export default defineComponent({
     components: {
@@ -80,7 +81,7 @@ export default defineComponent({
     props: {
         // View filter functions
         filter: Function,
-        userFilter: Function as PropType<(item: ModelLeaf) => boolean>,
+        userFilter: Function as PropType<(item: Tab) => boolean>,
         isItemStashed: Function as PropType<(t: Tab) => boolean>,
         hideIfEmpty: Boolean,
 
@@ -108,7 +109,7 @@ export default defineComponent({
             },
         },
 
-        filteredChildren(): ModelLeaf[] {
+        filteredChildren(): Tab[] {
             if (! this.children) return [];
             if (this.filter) {
                 return this.children.filter(c => c && c.url && this.filter!(c));
@@ -116,14 +117,14 @@ export default defineComponent({
                 return this.children.filter(c => c && c.url);
             }
         },
-        visibleChildren(): ModelLeaf[] {
+        visibleChildren(): Tab[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(this.userFilter);
             } else {
                 return this.filteredChildren;
             }
         },
-        userHiddenChildren(): ModelLeaf[] {
+        userHiddenChildren(): Tab[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(
                     c => c && ! this.userFilter!(c));
@@ -315,7 +316,7 @@ export default defineComponent({
             }
         })},
 
-        async _maybeCleanupEmptyFolder(folder: Window | Bookmark, removing_item: ModelLeaf) {
+        async _maybeCleanupEmptyFolder(folder: Bookmark, removing_item: Bookmark) {
             // If the folder we are removing an item from is empty and has a
             // default name, remove the folder automatically so we don't leave
             // any empty stashes lying around unnecessarily.

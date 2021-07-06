@@ -3,7 +3,8 @@
               'action-container': true,
               collapsed: collapsed,
               hidden: hideIfEmpty && visibleChildren.length == 0,
-              }">
+              }"
+          :data-id="id">
   <header>
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
@@ -74,7 +75,8 @@ import {
 
 import {Model} from '../model';
 import {Cache, CacheEntry} from '../datastore/cache/client';
-import {ModelLeaf, Tab, Window, Bookmark, FaviconCacheEntry} from '../model/browser';
+import {Tab} from '../model/tabs';
+import {Bookmark} from '../model/bookmarks';
 import {DeletedItem} from '../model/deleted-items';
 
 export default defineComponent({
@@ -92,13 +94,13 @@ export default defineComponent({
     props: {
         // View filter functions
         filter: Function,
-        userFilter: Function as PropType<(item: ModelLeaf) => boolean>,
+        userFilter: Function as PropType<(item: Bookmark) => boolean>,
         isItemStashed: Function as PropType<(t: Tab) => boolean>,
         hideIfEmpty: Boolean,
 
         // Bookmark folder
         id: required(String),
-        children: required(Array as PropType<ModelLeaf[]>),
+        children: required(Array as PropType<Bookmark[]>),
         title: required(String),
 
         // Bookmark folder
@@ -134,7 +136,7 @@ export default defineComponent({
             return getFolderNameISODate(this.title) !== null
                 ? '' : this.title;
         },
-        filteredChildren(): ModelLeaf[] {
+        filteredChildren(): Bookmark[] {
             if (! this.children) return [];
             if (this.filter) {
                 return this.children.filter(c => c && c.url && this.filter!(c));
@@ -142,14 +144,14 @@ export default defineComponent({
                 return this.children.filter(c => c && c.url);
             }
         },
-        visibleChildren(): ModelLeaf[] {
+        visibleChildren(): Bookmark[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(this.userFilter);
             } else {
                 return this.filteredChildren;
             }
         },
-        userHiddenChildren(): ModelLeaf[] {
+        userHiddenChildren(): Bookmark[] {
             if (this.userFilter) {
                 return this.filteredChildren.filter(
                     c => c && ! this.userFilter!(c));
@@ -172,17 +174,11 @@ export default defineComponent({
         })},
 
         async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
-            if (this.id) {
-                // Stashing possibly-selected open tabs into the current group.
-                await stashTabsInWindow(undefined, {
-                    folderId: this.id,
-                    close: ! ev.altKey,
-                });
-            } else {
-                // This is the "Unstashed Tabs" group--stash everything in
-                // "Unstashed Tabs" to a new group.
-                await stashTabs(this.visibleChildren as Tab[], {close: ! ev.altKey});
-            }
+            // Stashing possibly-selected open tabs into the current group.
+            await stashTabsInWindow(undefined, {
+                folderId: this.id,
+                close: ! ev.altKey,
+            });
         })},
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
@@ -197,38 +193,19 @@ export default defineComponent({
         })},
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
-            if (! this.children) return;
             await restoreTabs(this.children.map(item => item.url),
                              {background: bgKeyPressed(ev)});
         })},
 
         async remove() {logErrors(async() => {
-            if (! this.children) return;
-
-            // If we have any hidden tabs stored for these bookmarks, we
-            // should remove them first.  We do this explicitly to avoid the
-            // momentary reshuffling of hidden tabs into the "Unstashed
-            // Tabs" list which would happen if this was left to the garbage
-            // collector in index.js.
-            const tabs = this.children
-                .map(bm => <Tab | undefined>(
-                        bm.related && bm.related.find(t => t instanceof Tab)))
-                .filter(t => t?.hidden)
-                .map(t => t?.id) as number[];
-            await browser.tabs.remove(tabs);
-
             await this._deleteSelfAndLog();
         })},
 
         async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             const bg = bgKeyPressed(ev);
 
-            if (this.children) {
-                await restoreTabs(this.children.map(item => item.url),
-                                {background: bg});
-            }
-
-            // Discard opened tabs as requested.
+            await restoreTabs(this.children.map(item => item.url),
+                            {background: bg});
             await this._deleteSelfAndLog();
         })},
 
@@ -327,7 +304,7 @@ export default defineComponent({
         })},
 
         // TODO duplicated in window.vue
-        async _maybeCleanupEmptyFolder(folder: Window | Bookmark, removing_item: ModelLeaf) {
+        async _maybeCleanupEmptyFolder(folder: Window | Bookmark, removing_item: Bookmark) {
             // If the folder we are removing an item from is empty and has a
             // default name, remove the folder automatically so we don't leave
             // any empty stashes lying around unnecessarily.
@@ -365,6 +342,7 @@ export default defineComponent({
         },
 
         async _deleteSelfAndLog() {
+            // TODO save favicons
             const toDeletedItem = (item: Bookmarkable): DeletedItem => {
                 if (item.children) {
                     return {
@@ -376,7 +354,7 @@ export default defineComponent({
                     return {
                         title: item.title ?? item.url ?? '',
                         url: item.url ?? '',
-                        favIconUrl: item.favicon?.value,
+                        // favIconUrl: item.favicon?.value,
                     }
                 }
             };
@@ -392,8 +370,8 @@ export default defineComponent({
 type Bookmarkable = {
     title?: string,
     url?: string,
-    favicon?: FaviconCacheEntry,
-    children?: (Bookmarkable | undefined)[],
+    // favicon?: FaviconCacheEntry,
+    children?: readonly Bookmarkable[],
 };
 </script>
 

@@ -4,7 +4,7 @@
             'saved': !!bm,
             'open': ! tab.hidden,
             'active': !!tab.active}"
-   target="_blank" :href="tab.url" :title="tab.title"
+   target="_blank" :href="tab.url" :title="tab.title" :data-id="tab.id"
    @click.prevent.stop="open">
   <ItemIcon v-if="tab.favIconUrl" :src="tab.favIconUrl" />
   <span v-else class="icon" />
@@ -26,7 +26,7 @@ import {
     restoreTabs, stashTabs, closeTabs,
 } from '../stash';
 import {Model} from '../model';
-import {Tab} from '../model/browser';
+import {Tab} from '../model/tabs';
 
 export default defineComponent({
     components: {

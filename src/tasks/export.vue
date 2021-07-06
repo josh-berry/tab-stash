@@ -72,7 +72,7 @@
 import {PropType, defineComponent} from 'vue';
 
 import {required} from '../util';
-import {Bookmark} from '../model/browser';
+import {Bookmark} from '../model/bookmarks';
 import {friendlyFolderName} from '../stash';
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
@@ -83,7 +83,7 @@ export default defineComponent({
         Dialog: require('../components/dialog.vue').default,
     },
     props: {
-        stash: required(Array as PropType<(Bookmark | undefined)[]>),
+        stash: required(Array as PropType<Bookmark[]>),
     },
     computed: {
         folders(): Bookmark[] {
