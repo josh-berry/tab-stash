@@ -53,7 +53,7 @@
             ref="unstashed" :children="unstashed_tabs"
             :filter="unstashedFilter" :userFilter="search_filter"
             :isItemStashed="isItemStashed"
-            :metadata="metadata_cache.get('')" />
+            :metadata="model().bookmark_metadata.get('')" />
     <!-- XXX This is presently disabled because it exposes a bug in
          Vue.Draggable, wherein if the draggable goes away as the result of a
          drag operation, the "ghost" element which is being dragged doesn't get
@@ -72,9 +72,7 @@
   </div>
   <folder-list ref="stashed" :folders="stashed_tabs.children"
                :userFilter="search_filter"
-               :hideIfEmpty="searchtext !== ''"
-               :metadataCache="metadata_cache">
-  </folder-list>
+               :hideIfEmpty="searchtext !== ''" />
   <footer class="page status-text">
     Tab Stash {{my_version}} &mdash;
     <a :href="pageref('whats-new.html')">What's New</a>
@@ -98,7 +96,6 @@ import ui_model from '../ui-model';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
-import {Cache} from '../datastore/cache/client';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
 const Main = defineComponent({
@@ -119,7 +116,6 @@ const Main = defineComponent({
         window_id: required(Number),
         root_id: required(String),
         my_version: required(String),
-        metadata_cache: Object as PropType<Cache<{collapsed: boolean}>>,
         root_folder_warning: Object as PropType<
             Promised<ReturnType<typeof rootFolderWarning>>>,
     },
@@ -237,12 +233,12 @@ const Main = defineComponent({
         },
 
         async fetchMissingFavicons() { logErrors(async() => {
-            const cache = Cache.open('favicons');
+            const favicons = this.model().favicons;
             const urls = new Set(urlsInTree(await tabStashTree()));
 
             // This is just an async filter :/
             for (const url of urls) {
-                const favicon = await cache.get(url);
+                const favicon = favicons.get(url);
                 if (favicon && favicon.value) urls.delete(url);
             }
 
@@ -255,7 +251,7 @@ const Main = defineComponent({
             try {
                 for await (const info of iter) {
                     if (info.favIconUrl) {
-                        cache.set(info.originalUrl, info.favIconUrl);
+                        favicons.set(info.originalUrl, info.favIconUrl);
                     }
                 }
             } finally {
@@ -277,16 +273,11 @@ launch(Main, async() => {
         warning: rootFolderWarning(),
     });
 
-    // For debugging purposes only...
-    (<any>globalThis).metadata_cache = Cache.open('bookmarks');
-    (<any>globalThis).favicon_cache = Cache.open('favicons');
-
     return {
         propsData: {
             window_id: p.win.id!,
             root_id: p.root.id,
             my_version: p.extinfo.version,
-            metadata_cache: Cache.open('bookmarks'),
             root_folder_warning: p.warning,
         },
         provide: {

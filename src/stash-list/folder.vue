@@ -117,9 +117,8 @@ export default defineComponent({
         collapsed: {
             get(): boolean { return !! this.metadata.value?.collapsed; },
             set(collapsed: boolean) {
-                this.model().bookmark_metadata.set(
-                    this.metadata.key,
-                    {...this.metadata.value || {}, collapsed});
+                this.model().bookmark_metadata.setCollapsed(
+                    this.metadata.key, collapsed);
             },
         },
 

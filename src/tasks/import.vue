@@ -23,6 +23,7 @@
 import {defineComponent} from 'vue';
 import {ParseOptions, parse, importURLs} from './import';
 import { TaskMonitor } from '../util';
+import {Model} from '../model';
 
 export default defineComponent({
     components: {
@@ -36,15 +37,20 @@ export default defineComponent({
       splitOn: 'p+h' as ParseOptions['splitOn'],
     }),
 
+    inject: ['$model'],
+
     mounted() { (<HTMLElement>this.$refs.data).focus(); },
 
     methods: {
+        model(): Model { return (<any>this).$model as Model },
+
         start() {
             const groups = parse(this.$refs.data as Element,
                                  {splitOn: this.splitOn});
 
             const task = TaskMonitor.run(tm =>
-                importURLs(groups, tm).finally(() => this.$emit('close')));
+                importURLs(groups, this.model().favicons, tm)
+                    .finally(() => this.$emit('close')));
 
             (<any>this).cancel = () => task.cancel();
             (<any>this).progress = task.progress;

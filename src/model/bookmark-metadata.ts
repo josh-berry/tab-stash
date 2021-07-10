@@ -27,4 +27,8 @@ export class Model {
     set(id: string, metadata: BookmarkMetadata): BookmarkMetadataEntry {
         return this._kvc.set(id, metadata);
     }
+
+    setCollapsed(id: string, collapsed: boolean) {
+        this.set(id, {...this.get(id).value || {}, collapsed});
+    }
 }

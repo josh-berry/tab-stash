@@ -62,9 +62,9 @@ import {
 } from '../stash';
 
 import {Model} from '../model';
-import {Cache, CacheEntry} from '../datastore/cache/client';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
+import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
 export default defineComponent({
     components: {
@@ -90,22 +90,17 @@ export default defineComponent({
         children: required(Array as PropType<Tab[]>),
 
         // Metadata (for collapsed state)
-        metadata: required(Object as PropType<CacheEntry<{collapsed: boolean}>>),
+        metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
     computed: {
         altkey: altKeyName,
 
         collapsed: {
-            get(): boolean {
-                const m = this.metadata.value;
-                if (m) return !! m.collapsed;
-                return false;
-            },
+            get(): boolean { return !! this.metadata.value?.collapsed; },
             set(collapsed: boolean) {
-                let m = {...this.metadata.value};
-                m.collapsed = collapsed;
-                Cache.open('bookmarks').set(this.metadata.key, m);
+                this.model().bookmark_metadata.setCollapsed(
+                    this.metadata.key, collapsed);
             },
         },
 

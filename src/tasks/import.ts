@@ -1,9 +1,9 @@
 import {browser, Bookmarks} from 'webextension-polyfill-ts';
 
 import { TaskMonitor } from '../util';
+import {Favicons} from '../model';
 import { bookmarkTabs, isURLStashable } from '../stash';
 import { fetchInfoForSites } from './siteinfo';
-import { Cache } from '../datastore/cache/client';
 
 type Bookmark = Bookmarks.BookmarkTreeNode;
 
@@ -153,9 +153,11 @@ export function* extractURLs(str: string): Generator<string> {
     }
 }
 
-export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
-    Promise<void>
-{
+export async function importURLs(
+    groups: BookmarkGroup[],
+    favicon_cache: Favicons.Model,
+    tm: TaskMonitor
+): Promise<void> {
     const top_tm = tm;
 
     tm.status = 'Importing tabs...';
@@ -215,7 +217,6 @@ export async function importURLs(groups: BookmarkGroup[], tm: TaskMonitor):
             }
         }
 
-        const favicon_cache = Cache.open('favicons');
         for await (const siteinfo of siteinfo_aiter) {
             if (siteinfo.error) {
                 top_tm.cancel();
