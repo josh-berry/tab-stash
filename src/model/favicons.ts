@@ -47,9 +47,11 @@ export class Model {
     get(url: string): FaviconEntry {
         let ent = this._kvc.get(urlToOpen(url));
 
-        // Stamp our updated atime (don't worry, it's lazy...)
-        if (ent.value) {
-            ent.value.atime = Date.now();
+        // Stamp our updated atime (don't worry, it's lazy, and we stamp at most
+        // once per minute...)
+        const now = Date.now();
+        if (ent.value && ent.value.atime < now - 60000) {
+            ent.value.atime = now;
             this._kvc.set(url, ent.value);
         }
         return ent;
