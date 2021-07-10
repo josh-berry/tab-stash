@@ -74,10 +74,10 @@ import {
 } from '../stash';
 
 import {Model} from '../model';
-import {Cache, CacheEntry} from '../datastore/cache/client';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
 import {DeletedItem} from '../model/deleted-items';
+import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
 export default defineComponent({
     components: {
@@ -107,7 +107,7 @@ export default defineComponent({
         dateAdded: Number,
         allowRenameDelete: Boolean,
 
-        metadata: required(Object as PropType<CacheEntry<{collapsed: boolean}>>),
+        metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
     computed: {
@@ -115,15 +115,11 @@ export default defineComponent({
         bgKey: bgKeyName,
 
         collapsed: {
-            get(): boolean {
-                const m = this.metadata.value;
-                if (m) return !! m.collapsed;
-                return false;
-            },
+            get(): boolean { return !! this.metadata.value?.collapsed; },
             set(collapsed: boolean) {
-                let m = {...this.metadata.value};
-                m.collapsed = collapsed;
-                Cache.open('bookmarks').set(this.metadata.key, m);
+                this.model().bookmark_metadata.set(
+                    this.metadata.key,
+                    {...this.metadata.value || {}, collapsed});
             },
         },
 

@@ -5,7 +5,7 @@
     <Folder :id="f.id" :children="f.children" :allowRenameDelete="true"
             :title="f.title" :dateAdded="f.dateAdded"
             :filter="filter" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
-            :metadata="metadataCache.get(f.id)"
+            :metadata="model().bookmark_metadata.get(f.id)"
             ref="folders" />
   </template>
 </Draggable>
@@ -16,7 +16,7 @@ import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
-import {CacheEntry} from '../datastore/cache/client';
+import {Model} from '../model';
 import {Bookmark} from '../model/bookmarks';
 
 export default defineComponent({
@@ -24,6 +24,8 @@ export default defineComponent({
         Draggable: require('vuedraggable'),
         Folder: require('./folder.vue').default,
     },
+
+    inject: ['$model'],
 
     props: {
         folders: Array as PropType<Bookmark[]>,
@@ -33,11 +35,11 @@ export default defineComponent({
         // Whether to hide a folder entirely if it has no elements (e.g. because
         // we're filtering at the moment)
         hideIfEmpty: Boolean,
-
-        metadataCache: Object as PropType<CacheEntry<{collapsed: boolean}>>,
     },
 
     methods: {
+        model(): Model { return (<any>this).$model as Model; },
+
         move(ev: SortableEvent) {
             browser.bookmarks.move((<any>ev.item).__vue__.id, {
                 index: ev.newIndex!,

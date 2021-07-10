@@ -22,6 +22,8 @@ export default async function(): Promise<M.Model> {
         ...sources,
         favicons: new M.Favicons.Model(
             sources.tabs, new KVSCache(new KVSClient('favicons'))),
+        bookmark_metadata: new M.BookmarkMetadata.Model(
+            new KVSCache(new KVSClient('bookmark-metadata'))),
     });
     (<any>globalThis).model = model;
     return model;

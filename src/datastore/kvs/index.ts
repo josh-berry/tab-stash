@@ -120,6 +120,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
                 const keys = Array.from(this._needs_fetch.keys());
                 this._needs_fetch = new Map();
 
+                if (keys.length == 0) return;
                 const entries = await this.kvs.get(keys);
                 for (const e of entries) this._update(e.key, e.value);
             }

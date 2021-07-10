@@ -10,7 +10,6 @@ import {
     stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
     mostRecentUnnamedFolderId,
 } from './stash';
-import {CacheService} from './datastore/cache/service';
 import service_model from './service-model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
 
@@ -30,8 +29,6 @@ indexedDB.deleteDatabase('cache:bookmarks');
 
 const the = await resolveNamed({
     model: service_model(),
-
-    bookmark_cache: CacheService.start('bookmarks'),
 });
 const model = the.model;
 (<any>globalThis).the = the;

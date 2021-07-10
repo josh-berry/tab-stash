@@ -16,6 +16,8 @@ export default async function(): Promise<M.Model> {
             'deleted_items', 'deleted_items'),
         favicons: KVSService.open<string, M.Favicons.Favicon>(
             'favicons', 'favicons'),
+        bookmark_metadata: KVSService.open<string, M.BookmarkMetadata.BookmarkMetadata>(
+            'bookmark-metadata', 'bookmark-metadata'),
     });
 
     const sources = await resolveNamed({
@@ -28,10 +30,12 @@ export default async function(): Promise<M.Model> {
 
     listen('deleted_items', kvs.deleted_items);
     listen('favicons', kvs.favicons);
+    listen('bookmark-metadata', kvs.bookmark_metadata);
 
     const model = new M.Model({
         ...sources,
         favicons: new M.Favicons.Model(sources.tabs, new KVSCache(kvs.favicons)),
+        bookmark_metadata: new M.BookmarkMetadata.Model(new KVSCache(kvs.bookmark_metadata)),
     });
     (<any>globalThis).model = model;
     return model;
