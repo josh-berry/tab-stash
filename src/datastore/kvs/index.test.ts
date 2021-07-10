@@ -1,14 +1,15 @@
-// Behavioral tests which are common to both client and service.
-//
-// These are "abstract" tests in that they are run against a concrete
-// implementation of the KVS.  So the tests here are imported and reused in both
-// client and service tests.
-
 import {expect} from 'chai';
 
-import {Entry, KeyValueStore} from '.';
 import {nextTick} from '../../util';
 
+import {Entry, KeyValueStore, KVSCache} from '.';
+import MemoryKVS from './memory';
+
+/** Behavioral tests which are common to both client and service.
+ *
+ * These are "abstract" tests in that they are run against a concrete
+ * implementation of the KVS.  So the tests here are imported and reused in both
+ * client and service tests. */
 export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>) {
     let kvs: KeyValueStore<string, string>;
 
@@ -238,6 +239,112 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         });
     });
 }
+
+describe('datastore/kvs', () => {
+    describe('KVSCache', () => {
+        let kvs: MemoryKVS<string, string>;
+        let cache: KVSCache<string, string>;
+
+        beforeEach(() => {
+            kvs = new MemoryKVS();
+            cache = new KVSCache(kvs);
+            cache.maxFlushTimeoutMS = 0; // for deterministic test behavior
+        });
+
+        it('caches content locally and flushes it asynchronously', async () => {
+            cache.set('key', 'value');
+            cache.set('a', 'b');
+            expect(kvs.data.get('key')).to.be.undefined;
+            expect(kvs.data.get('a')).to.be.undefined;
+            await nextTick();
+            expect(kvs.data.get('key')).to.deep.equal('value');
+            expect(kvs.data.get('a')).to.deep.equal('b');
+        });
+
+        it('fetches already-existing objects in the cache', async () => {
+            kvs.data.set('a', 'b');
+            kvs.data.set('b', 'c');
+            const a = cache.get('a');
+            const b = cache.get('b')
+            expect(a.value).to.be.null;
+            expect(b.value).to.be.null;
+
+            await nextTick();
+            expect(a.value).to.deep.equal('b');
+            expect(b.value).to.deep.equal('c');
+        });
+
+        it('returns the same object when get() is called twice', async () => {
+            kvs.data.set('a', 'b');
+            const a = cache.get('a');
+            expect(a.value).to.be.null;
+
+            await nextTick();
+            expect(a.value).to.deep.equal('b');
+            expect(a).to.equal(cache.get('a'));
+        });
+
+        it('updates objects returned via get() previously', async () => {
+            const a = cache.get('a');
+            expect(a.value).to.be.null;
+
+            cache.set('a', 'b');
+            expect(a.value).to.equal('b');
+        });
+
+        it("loads content it doesn't know about from the KVS", async () => {
+            // Blatantly breaking the rule in memory.ts because we don't want
+            // events to fire
+            kvs.data.set('a', 'b');
+            const a = cache.get('a');
+            expect(a.value).to.be.null;
+            await nextTick();
+            expect(a.value).to.deep.equal('b');
+        });
+
+        it('applies updates from the KVS to objects in the cache', async () => {
+            const a = cache.get('a');
+            expect(a.value).to.be.null;
+
+            await kvs.set([{key: 'a', value: 'b'}]);
+            await nextTick();
+            expect(a.value).to.deep.equal('b');
+        });
+
+        it('deletes and resurrects objects in the cache', async () => {
+            const a = cache.get('a');
+            cache.set('a', 'b');
+            expect(a.value).to.deep.equal('b');
+
+            await nextTick();
+            expect(kvs.data.get('a')).to.deep.equal('b');
+
+            await kvs.delete(['a']);
+            await nextTick();
+            expect(a.value).to.be.null;
+
+            await kvs.set([{key: 'a', value: 'c'}]);
+            await nextTick();
+            expect(a.value).to.deep.equal('c');
+        });
+
+        it('drops its own updates in favor of updates from the KVS', async () => {
+            // Set up the race--KVS onSet should happen before cache flush.
+            const a = cache.get('a');
+            const p = kvs.set([{key: 'a', value: 'c'}]);
+            cache.set('a', 'b');
+            expect(a.value).to.deep.equal('b');
+
+            // Start the race
+            await p;
+            await nextTick();
+
+            // See who won...
+            expect(kvs.data.get('a')).to.deep.equal('c');
+            expect(a.value).to.deep.equal('c');
+        });
+    });
+});
 
 // TODO move this somewhere if it's used more often...
 async function collect<I>(iter: AsyncIterable<I>): Promise<I[]> {

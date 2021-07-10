@@ -6,9 +6,9 @@
 import {resolveNamed} from './util';
 import {listen} from './util/nanoservice';
 import KVSService from './datastore/kvs/service';
+import {KVSCache} from './datastore/kvs';
 
 import * as M from './model';
-import KVSCache from './model/kvs-cache';
 
 export default async function(): Promise<M.Model> {
     const kvs = await resolveNamed({

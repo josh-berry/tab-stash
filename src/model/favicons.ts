@@ -1,6 +1,6 @@
 import {urlToOpen} from '../util';
 
-import KVSCache, {Entry} from './kvs-cache';
+import {KVSCache, Entry} from '../datastore/kvs';
 import * as Tabs from './tabs';
 
 /** The persistent cache which holds favicons, keyed by URL. */
