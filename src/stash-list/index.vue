@@ -70,7 +70,7 @@
     </folder>
     -->
   </div>
-  <folder-list ref="stashed" :folders="stashed_tabs.children"
+  <folder-list ref="stashed" :parentFolder="stashed_tabs"
                :userFilter="search_filter"
                :hideIfEmpty="searchtext !== ''" />
   <footer class="page status-text">
