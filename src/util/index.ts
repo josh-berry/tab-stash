@@ -112,8 +112,8 @@ export function cmpVersions(a: string, b: string): number {
 }
 
 type BMTree = {
-    children?: BMTree[],
-    url?: string,
+    readonly children?: readonly BMTree[],
+    readonly url?: string,
 };
 export function urlsInTree(bm_tree?: BMTree): OpenableURL[] {
     let urls: OpenableURL[] = [];

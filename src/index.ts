@@ -4,12 +4,7 @@ import {browser, Tabs, Menus} from 'webextension-polyfill-ts';
 
 import {
     asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
-    resolveNamed,
 } from './util';
-import {
-    stashTabsInWindow, stashTabs, restoreTabs, tabStashTree,
-    mostRecentUnnamedFolderId,
-} from './stash';
 import service_model from './service-model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
 
@@ -27,12 +22,8 @@ indexedDB.deleteDatabase('cache:bookmarks');
 // of this file.
 //
 
-const the = await resolveNamed({
-    model: service_model(),
-});
-const model = the.model;
-(<any>globalThis).the = the;
-(<any>globalThis).model = the.model;
+const model = await service_model();
+(<any>globalThis).model = model;
 
 
 
@@ -123,20 +114,20 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     },
 
     async show_tab() {
-        await restoreTabs([browser.extension.getURL('stash-list.html')], {});
+        await model.restoreTabs([browser.extension.getURL('stash-list.html')], {});
     },
 
     stash_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab) return;
-        await stashTabsInWindow(tab.windowId, {close: true});
+        if (! tab || tab.windowId === undefined) return;
+        await model.stashTabsInWindow(tab.windowId, {close: true});
     },
 
     stash_one: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab) return;
-        await stashTabs([tab], {
-            folderId: await mostRecentUnnamedFolderId(),
+        if (! tab || tab.windowId === undefined) return;
+        await model.stashTabs([tab], {
+            folderId: model.mostRecentUnnamedFolderId(),
             close: true,
         });
     },
@@ -144,20 +135,20 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     stash_one_newgroup: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
-        await stashTabs([tab], {close: true});
+        await model.stashTabs([tab], {close: true});
     },
 
     copy_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab) return;
-        await stashTabsInWindow(tab.windowId, {close: false});
+        if (! tab || tab.windowId === undefined) return;
+        await model.stashTabsInWindow(tab.windowId, {close: false});
     },
 
     copy_one: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
-        await stashTabs([tab], {
-            folderId: await mostRecentUnnamedFolderId(),
+        await model.stashTabs([tab], {
+            folderId: model.mostRecentUnnamedFolderId(),
             close: false,
         });
     },
@@ -190,14 +181,15 @@ function show_something(show_what: ShowWhatOpt) {
 }
 
 async function stash_something(stash_what: StashWhatOpt, tab: Tabs.Tab) {
+    if (tab.windowId === undefined) return;
     switch (stash_what) {
         case 'all':
-            await stashTabsInWindow(tab.windowId, {close: true});
+            await model.stashTabsInWindow(tab.windowId, {close: true});
             break;
 
         case 'single':
-            await stashTabs([tab], {
-                folderId: await mostRecentUnnamedFolderId(),
+            await model.stashTabs([tab], {
+                folderId: model.mostRecentUnnamedFolderId(),
                 close: true,
             });
 
@@ -228,7 +220,7 @@ if (browser.browserAction) {
     // returns--because we're no longer in a user event context.
     function setupPopup() {
         logErrors(async() => {
-            if (the.model.options.sync.state.browser_action_show === 'popup') {
+            if (model.options.sync.state.browser_action_show === 'popup') {
                 // As soon as we configure a popup, the onClicked handler below
                 // will no longer run (the popup will be shown instead).  This
                 // unfortunately means that we can't stash and show the popup at
@@ -242,7 +234,7 @@ if (browser.browserAction) {
         })
     }
     setupPopup();
-    the.model.options.sync.onChanged.addListener(setupPopup);
+    model.options.sync.onChanged.addListener(setupPopup);
 
     browser.browserAction.onClicked.addListener(asyncEvent(async tab => {
         const opts = model.options.sync.state;
@@ -318,14 +310,12 @@ model.options.sync.onChanged.addListener(asyncEvent(async opts => {
 //
 
 logErrors(async () => {
-    let managed_urls = new Set(urlsInTree(await tabStashTree()));
+    let managed_urls = new Set(urlsInTree(model.bookmarks.stash_root.value));
 
     const close_removed_bookmarks = nonReentrant(async function() {
-        let tree = await tabStashTree();
-
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
-        let new_urls = new Set(urlsInTree(tree));
+        let new_urls = new Set(urlsInTree(model.bookmarks.stash_root.value));
         let windows = await browser.windows.getAll(
             {windowTypes: ['normal'], populate: true});
 
@@ -460,7 +450,7 @@ const gc_deleted_items = nonReentrant(async function() {
     // for it later.
     setTimeout(gc_deleted_items, 24*60*60*1000);
 
-    await the.model.deleted_items.dropOlderThan(
+    await model.deleted_items.dropOlderThan(
         Date.now() - (model.options.sync.state.deleted_items_expiration_days * 24*60*60*1000));
 });
 

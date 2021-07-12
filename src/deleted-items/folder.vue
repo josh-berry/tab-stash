@@ -78,7 +78,7 @@ export default defineComponent({
         },
 
         restore() { this.run("Restoring", async() => {
-            await this.model().deleted_items.undelete(this.deletion);
+            await this.model().undelete(this.deletion);
         })},
 
         remove() { this.run("Deleting Forever", async() => {

@@ -1,16 +1,13 @@
 // Model for storing/tracking deleted items persistently.  See index.ts for how
 // this fits in to the overall Tab Stash model (such as it is).
 
-import {browser} from 'webextension-polyfill-ts';
 import {reactive} from 'vue';
 
-import {
-    bookmarkTabs, friendlyFolderName, mostRecentUnnamedFolderId, rootFolder
-} from '../stash';
 import {nonReentrant} from '../util';
+import {makeRandomString} from '../util/random';
 
 import {KeyValueStore, Entry} from '../datastore/kvs';
-import {makeRandomString} from '../util/random';
+import {friendlyFolderName} from './bookmarks';
 
 // The key for a deleted record should be opaque but monotonically increasing as
 // time passes, so items deleted more recently have greater keys.
@@ -206,64 +203,6 @@ export class Model {
         // it in the model.
 
         return entry;
-    }
-
-    // XXX This does not belong here; it belongs in the parent model, since it
-    // touches both browser.bookmarks AND deleted-items.  That's also why...
-    // istanbul ignore next
-    async undelete(deletion: Deletion): Promise<void> {
-        // We optimistically remove immediately from recentlyDeleted to prevent
-        // users from trying to un-delete the same thing multiple times.
-        this.state.recentlyDeleted = this.state.recentlyDeleted.filter(
-            ({key: k}) => k !== deletion.key);
-
-        if ('children' in deletion.item) {
-            // Restoring an entire folder of bookmarks; just put it at the root.
-            const root = await rootFolder();
-            const folder = await browser.bookmarks.create({
-                parentId: root.id,
-                title: deletion.item.title,
-                index: 0,
-            });
-            await bookmarkTabs(folder.id, deletion.item.children);
-
-        } else {
-            // We're restoring an individual bookmark.  Try to find where to put
-            // it, IF we remember where it came from.
-            let folderId: string | undefined;
-
-            if (deletion.deleted_from) {
-                try {
-                    await browser.bookmarks.get(deletion.deleted_from.folder_id);
-
-                    // The exact bookmark we want still exists, use it
-                    folderId = deletion.deleted_from.folder_id;
-
-                } catch (e) {
-                    // Search for an existing folder inside the stash root with
-                    // the same name as the folder it was deleted from.
-                    const root = await rootFolder();
-                    for (const bm of await browser.bookmarks.search(
-                            {title: deletion.deleted_from.title}))
-                    {
-                        if (bm.type !== 'folder') continue;
-                        if (bm.parentId !== root.id) continue;
-                        if (bm.title !== deletion.deleted_from.title) continue;
-                        folderId = bm.id;
-                        break;
-                    }
-                }
-            }
-
-            // If we still don't know where it came from or its prior containing
-            // folder was deleted, just put it in an unnamed folder.
-            if (! folderId) folderId = await mostRecentUnnamedFolderId();
-
-            // Restore the bookmark.
-            await bookmarkTabs(folderId, [deletion.item]);
-        }
-
-        await this.drop(deletion.key);
     }
 
     drop(key: string): Promise<void> {

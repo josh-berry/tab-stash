@@ -1,11 +1,8 @@
-import {browser, Bookmarks} from 'webextension-polyfill-ts';
+import {browser} from 'webextension-polyfill-ts';
 
 import { TaskMonitor } from '../util';
-import {Favicons} from '../model';
-import { bookmarkTabs, isURLStashable } from '../stash';
+import {Model, Bookmarks} from '../model';
 import { fetchInfoForSites } from './siteinfo';
-
-type Bookmark = Bookmarks.BookmarkTreeNode;
 
 // This is based on RFC 3986, but is rather more permissive in some ways,
 // because CERTAIN COMPANIES (looking at you, Office365 with your un-encoded
@@ -32,15 +29,16 @@ export type BookmarkGroup = {
     urls: string[],
 };
 
-export function parse(node: Node,
-                      options?: Partial<ParseOptions>): BookmarkGroup[]
-{
-    const parser = new Parser(options);
+export function parse(
+    node: Node, model: Model, options?: Partial<ParseOptions>
+): BookmarkGroup[] {
+    const parser = new Parser(model, options);
     parser.parseChildren(node);
     return parser.end();
 }
 
 class Parser {
+    readonly model: Model;
     readonly options: ParseOptions = {
         splitOn: 'p+h',
     };
@@ -49,7 +47,8 @@ class Parser {
     built: BookmarkGroup[] = [];
     afterBR: boolean = false;
 
-    constructor(options?: Partial<ParseOptions>) {
+    constructor(model: Model, options?: Partial<ParseOptions>) {
+        this.model = model;
         if (options) this.options = Object.assign({}, this.options, options);
     }
 
@@ -59,7 +58,7 @@ class Parser {
             .filter(group => group.urls.length > 0)
             .map(group => {
                 group.urls = Array.from(new Set(
-                    group.urls.filter(isURLStashable)));
+                    group.urls.filter(url => this.model.isURLStashable(url))));
                 return group;
             });
     }
@@ -154,8 +153,8 @@ export function* extractURLs(str: string): Generator<string> {
 }
 
 export async function importURLs(
+    model: Model,
     groups: BookmarkGroup[],
-    favicon_cache: Favicons.Model,
     tm: TaskMonitor
 ): Promise<void> {
     const top_tm = tm;
@@ -183,7 +182,7 @@ export async function importURLs(
         for (const g of groups_rev) {
             if (tm.cancelled) break;
 
-            const res = await tm.spawn(tm => bookmarkTabs(
+            const res = await tm.spawn(tm => model.bookmarkTabs(
                 undefined, // Always make new folders
                 g.urls.map(url => ({url, title: "Importing..."})),
                 {newFolderTitle: g.title, taskMonitor: tm}));
@@ -205,7 +204,7 @@ export async function importURLs(
         tm.status = "Updating bookmarks...";
 
         const {bookmarks, folderIds} = await create_bms_p;
-        const bms_by_url = new Map<string, Bookmark[]>();
+        const bms_by_url = new Map<string, Bookmarks.Bookmark[]>();
 
         tm.max = bookmarks.length;
         for (const bm of bookmarks) {
@@ -247,7 +246,7 @@ export async function importURLs(
                 }
             }
 
-            if (siteinfo.favIconUrl) favicon_cache.set(url, siteinfo.favIconUrl);
+            if (siteinfo.favIconUrl) model.favicons.set(url, siteinfo.favIconUrl);
 
             ++tm.value;
         }

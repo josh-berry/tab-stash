@@ -25,10 +25,9 @@ import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
 
 import {altKeyName, bgKeyName, bgKeyPressed, required, logErrors} from '../util';
-import {getFolderNameISODate, restoreTabs} from '../stash';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {Bookmark} from '../model/bookmarks';
+import {Bookmark, getDefaultFolderNameISODate} from '../model/bookmarks';
 import {FaviconEntry} from '../model/favicons';
 
 export default defineComponent({
@@ -74,9 +73,10 @@ export default defineComponent({
         model() { return (<any>this).$model as Model; },
 
         open(ev: MouseEvent) { logErrors(async () => {
+            if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
 
-            await restoreTabs([this.bookmark.url], {background: bg});
+            await this.model().restoreTabs([this.bookmark.url], {background: bg});
         })},
 
         remove() { logErrors(async () => {
@@ -84,8 +84,9 @@ export default defineComponent({
         })},
 
         openRemove(ev: MouseEvent) { logErrors(async () => {
+            if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
-            await restoreTabs([this.bookmark.url], {background: bg});
+            await this.model().restoreTabs([this.bookmark.url], {background: bg});
             await this._removeBM();
         })},
 
@@ -110,7 +111,7 @@ export default defineComponent({
             // folder.vue:_maybeCleanupEmptyFolder().  See the comment there for
             // further discussion.
 
-            if (! folder || getFolderNameISODate(folder.title!) === null) return;
+            if (! folder || getDefaultFolderNameISODate(folder.title!) === null) return;
 
             if (folder.children!.length > 1) return;
             if (folder.children?.length === 1

@@ -67,15 +67,15 @@ import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
-import {altKeyName, bgKeyName, bgKeyPressed, logErrors, required} from '../util';
 import {
-    getFolderNameISODate, genDefaultFolderName, rootFolder,
-    stashTabsInWindow, stashTabs, restoreTabs, hideStashedTabs,
-} from '../stash';
+    altKeyName, bgKeyName, bgKeyPressed, filterMap, logErrors, required
+} from '../util';
 
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {Bookmark} from '../model/bookmarks';
+import {
+    Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
+} from '../model/bookmarks';
 import {DeletedItem} from '../model/deleted-items';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
@@ -128,7 +128,7 @@ export default defineComponent({
             return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
         },
         nonDefaultTitle(): string {
-            return getFolderNameISODate(this.title) !== null
+            return getDefaultFolderNameISODate(this.title) !== null
                 ? '' : this.title;
         },
         filteredChildren(): Bookmark[] {
@@ -160,36 +160,24 @@ export default defineComponent({
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
 
-        async newGroup() {logErrors(async() => {
-            await browser.bookmarks.create({
-                parentId: (await rootFolder()).id,
-                title: genDefaultFolderName(new Date()),
-                index: 0, // Newest folders should show up on top
-            });
-        })},
-
         async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             // Stashing possibly-selected open tabs into the current group.
-            await stashTabsInWindow(undefined, {
-                folderId: this.id,
-                close: ! ev.altKey,
-            });
+            const win_id = this.model().tabs.current_window;
+            if (! win_id) return;
+            await this.model().stashTabsInWindow(
+                win_id, {folderId: this.id, close: ! ev.altKey});
         })},
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
-            let tabs = (await browser.tabs.query(
-                    {currentWindow: true, hidden: false, active: true}))
-                .sort((a, b) => a.index - b.index);
-
-            await stashTabs(tabs, {
-                folderId: this.id,
-                close: ! ev.altKey,
-            });
+            const tab = this.model().tabs.activeTab();
+            if (! tab) return;
+            await this.model().stashTabs([tab], {folderId: this.id, close: ! ev.altKey});
         })},
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
-            await restoreTabs(this.children.map(item => item.url),
-                             {background: bgKeyPressed(ev)});
+            await this.model().restoreTabs(
+                filterMap(this.children, item => item.url),
+                {background: bgKeyPressed(ev)});
         })},
 
         async remove() {logErrors(async() => {
@@ -199,8 +187,9 @@ export default defineComponent({
         async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             const bg = bgKeyPressed(ev);
 
-            await restoreTabs(this.children.map(item => item.url),
-                            {background: bg});
+            await this.model().restoreTabs(
+                filterMap(this.children, item => item.url),
+                {background: bg});
             await this._deleteSelfAndLog();
         })},
 
@@ -294,7 +283,7 @@ export default defineComponent({
                     url: item.url,
                     index: new_model_idx,
                 });
-                await hideStashedTabs([item]);
+                await this.model().hideOrCloseStashedTabs([item]);
             }
         })},
 
@@ -306,7 +295,7 @@ export default defineComponent({
 
             if (folder instanceof Window) return;
             if (folder.id === this.id) return;
-            if (getFolderNameISODate(folder.title ?? '') === null) return;
+            if (getDefaultFolderNameISODate(folder.title ?? '') === null) return;
 
             // Now we check if the folder is empty, or about to be.  Note that
             // there are three cases here:

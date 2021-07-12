@@ -72,8 +72,7 @@
 import {PropType, defineComponent} from 'vue';
 
 import {required} from '../util';
-import {Bookmark} from '../model/bookmarks';
-import {friendlyFolderName} from '../stash';
+import {Bookmark, friendlyFolderName} from '../model/bookmarks';
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;

@@ -21,10 +21,6 @@
 import {PropType, defineComponent} from 'vue';
 
 import {altKeyName, bgKeyName, bgKeyPressed, required, logErrors} from '../util';
-import {
-    mostRecentUnnamedFolderId,
-    restoreTabs, stashTabs, closeTabs,
-} from '../stash';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 
@@ -51,19 +47,20 @@ export default defineComponent({
         model() { return (<any>this).$model as Model; },
 
         stash(ev: MouseEvent) { logErrors(async () => {
-            await stashTabs([this.tab], {
-                folderId: await mostRecentUnnamedFolderId(),
+            await this.model().stashTabs([this.tab], {
+                folderId: this.model().mostRecentUnnamedFolderId(),
                 close: ! ev.altKey,
             });
         })},
 
         open(ev: MouseEvent) { logErrors(async () => {
+            if (! this.tab.url) return;
             const bg = bgKeyPressed(ev);
-            await restoreTabs([this.tab.url], {background: bg});
+            await this.model().restoreTabs([this.tab.url], {background: bg});
         })},
 
         remove() { logErrors(async () => {
-            await closeTabs([this.tab]);
+            await this.model().tabs.closeTabs([this.tab.id]);
         })},
     },
 });

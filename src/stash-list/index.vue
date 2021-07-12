@@ -14,8 +14,8 @@
       Tab Stash {{my_version}} now offers options to customize how it looks.
       See what's new!
     </Notification>
-    <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
-      {{root_folder_warning[0]}}
+    <Notification v-if="stash_root_warning" @activate="stash_root_warning.help">
+      {{stash_root_warning.text}}
     </Notification>
     <Notification v-if="recently_deleted.length === 1"
                   @activate="model().deleted_items.undelete(recently_deleted[0])">
@@ -54,23 +54,9 @@
             :filter="unstashedFilter" :userFilter="search_filter"
             :isItemStashed="isItemStashed"
             :metadata="model().bookmark_metadata.get('')" />
-    <!-- XXX This is presently disabled because it exposes a bug in
-         Vue.Draggable, wherein if the draggable goes away as the result of a
-         drag operation, the "ghost" element which is being dragged doesn't get
-         cleaned up, and it looks like there is a duplicate.
-
-         We hit the bug in this case, because the "Unfiled" folder disappears
-         after the last unfiled entry is dragged out of it.
-
-    <folder title="Unfiled" :allowRenameDelete="false"
-            :id="stashed_tabs.id" :children="stashed_tabs.children"
-            :dateAdded="stashed_tabs.dateAdded"
-            :filter="search_filter" :isItemStashed="isItemStashed"
-            :hideIfEmpty="true">
-    </folder>
-    -->
   </div>
-  <folder-list ref="stashed" :parentFolder="stashed_tabs"
+  <folder-list ref="stashed" v-if="stashed_tabs"
+               :parentFolder="stashed_tabs"
                :userFilter="search_filter"
                :hideIfEmpty="searchtext !== ''" />
   <footer class="page status-text">
@@ -82,16 +68,13 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import {PropType, defineComponent} from 'vue';
+import {defineComponent} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
-    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors, textMatcher,
+    urlsInTree, TaskMonitor, resolveNamed, logErrors, textMatcher,
     parseVersion, required,
 } from '../util';
-import {
-    isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
-} from '../stash';
 import ui_model from '../ui-model';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab} from '../model/tabs';
@@ -114,10 +97,7 @@ const Main = defineComponent({
 
     props: {
         window_id: required(Number),
-        root_id: required(String),
         my_version: required(String),
-        root_folder_warning: Object as PropType<
-            Promised<ReturnType<typeof rootFolderWarning>>>,
     },
 
     data: () => ({
@@ -127,12 +107,14 @@ const Main = defineComponent({
     }),
 
     computed: {
+        stash_root_warning(): {text: string, help: () => void} | undefined {
+            return this.model().bookmarks.stash_root_warning.value;
+        },
         unstashed_tabs(): readonly Tab[] {
             return this.model().tabs.by_window.get(this.window_id) ?? [];
         },
-        stashed_tabs(): Bookmark {
-            // TODO remove !
-            return this.model().bookmarks.by_id.get(this.root_id)!;
+        stashed_tabs(): Bookmark | undefined {
+            return this.model().bookmarks.stash_root.value;
         },
         tabfolder_title(): string {
             if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
@@ -156,8 +138,9 @@ const Main = defineComponent({
 
         counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
-            for (const f of this.stashed_tabs.children!) {
-                if (f?.children) {
+            if (this.stashed_tabs?.children) {
+                for (const f of this.stashed_tabs.children!) {
+                    if (! f?.children) continue;
                     tabs += f.children.length;
                     groups++;
                 }
@@ -202,16 +185,20 @@ const Main = defineComponent({
 
         unstashedFilter(t: Tab) {
             return ! t.hidden && ! t.pinned && t.url
-                && isURLStashable(t.url)
+                && this.model().isURLStashable(t.url)
                 && (this.model().options.sync.state.show_all_open_tabs
                     || ! this.isItemStashed(t));
         },
 
         isItemStashed(i: Tab): boolean {
             if (! i.url) return false;
+
             const bookmarks = this.model().bookmarks;
+            const stash_root_id = bookmarks.stash_root.value?.id;
+            if (stash_root_id === undefined) return false;
+
             const bms = bookmarks.by_url.get(i.url);
-            return !!bms.find(bm => bookmarks.isBookmarkInFolder(bm, this.root_id));
+            return !!bms.find(bm => bookmarks.isBookmarkInFolder(bm, stash_root_id));
         },
 
         showOptions() {
@@ -228,13 +215,14 @@ const Main = defineComponent({
         showExportDialog() {
             this.dialog = {
                 class: 'ExportDialog',
-                props: {stash: this.stashed_tabs.children},
+                props: {stash: this.stashed_tabs?.children || []},
             };
         },
 
         async fetchMissingFavicons() { logErrors(async() => {
             const favicons = this.model().favicons;
-            const urls = new Set(urlsInTree(await tabStashTree()));
+            const stash_root = this.model().bookmarks.stash_root.value;
+            const urls = new Set(urlsInTree(stash_root));
 
             // This is just an async filter :/
             for (const url of urls) {
@@ -266,19 +254,15 @@ export default Main;
 launch(Main, async() => {
     const p = await resolveNamed({
         model: ui_model(),
-        root: rootFolder(), // TODO move into bookmarks model
         win: browser.windows.getCurrent(),
         curtab: browser.tabs.getCurrent(),
         extinfo: browser.management.getSelf(),
-        warning: rootFolderWarning(),
     });
 
     return {
         propsData: {
             window_id: p.win.id!,
-            root_id: p.root.id,
             my_version: p.extinfo.version,
-            root_folder_warning: p.warning,
         },
         provide: {
             $model: p.model,

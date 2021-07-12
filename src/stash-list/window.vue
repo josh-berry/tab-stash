@@ -55,15 +55,13 @@ import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
 import {SortableEvent} from 'sortablejs';
 
-import {altKeyName, logErrors, required} from '../util';
-import {
-    getFolderNameISODate, genDefaultFolderName, rootFolder,
-    stashTabs, restoreTabs, closeTabs, hideStashedTabs, refocusAwayFromTabs,
-} from '../stash';
+import {altKeyName, filterMap, logErrors, required} from '../util';
 
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {Bookmark} from '../model/bookmarks';
+import {
+    Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
+} from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
 export default defineComponent({
@@ -80,9 +78,9 @@ export default defineComponent({
 
     props: {
         // View filter functions
-        filter: Function,
+        filter: required(Function as PropType<(tab: Tab) => boolean>),
         userFilter: Function as PropType<(item: Tab) => boolean>,
-        isItemStashed: Function as PropType<(t: Tab) => boolean>,
+        isItemStashed: required(Function as PropType<(t: Tab) => boolean>),
         hideIfEmpty: Boolean,
 
         // Window contents
@@ -105,12 +103,7 @@ export default defineComponent({
         },
 
         filteredChildren(): Tab[] {
-            if (! this.children) return [];
-            if (this.filter) {
-                return this.children.filter(c => c && c.url && this.filter!(c));
-            } else {
-                return this.children.filter(c => c && c.url);
-            }
+            return this.children.filter(c => c.url && this.filter(c));
         },
         visibleChildren(): Tab[] {
             if (this.userFilter) {
@@ -121,8 +114,7 @@ export default defineComponent({
         },
         userHiddenChildren(): Tab[] {
             if (this.userFilter) {
-                return this.filteredChildren.filter(
-                    c => c && ! this.userFilter!(c));
+                return this.filteredChildren.filter(c => ! this.userFilter!(c));
             } else {
                 return [];
             }
@@ -135,60 +127,55 @@ export default defineComponent({
 
         async newGroup() {logErrors(async() => {
             await browser.bookmarks.create({
-                parentId: (await rootFolder()).id,
+                parentId: (await this.model().bookmarks.ensureStashRoot()).id,
                 title: genDefaultFolderName(new Date()),
                 index: 0, // Newest folders should show up on top
             });
         })},
 
         async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
-            await stashTabs(this.visibleChildren as Tab[], {close: ! ev.altKey});
+            await this.model().stashTabs(this.visibleChildren, {close: ! ev.altKey});
         })},
 
         async remove() {logErrors(async() => {
-            await closeTabs(this.visibleChildren as Tab[]);
+            await this.model().tabs.closeTabs(this.visibleChildren.map(t => t.id));
         })},
 
         async removeStashed() {logErrors(async() => {
             if (! this.isItemStashed) throw new Error(
                 "isItemStashed not provided to tab folder");
-            if (! this.children) return;
 
-            await hideStashedTabs(this.children.filter(
-                t => t && ! (<Tab>t).hidden && ! (<Tab>t).pinned
-                       && this.isItemStashed!(<Tab>t)) as Tab[]);
+            await this.model().hideOrCloseStashedTabs(this.children
+                .filter(t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t))
+                .map(t => t.id));
         })},
 
         async removeOpen(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             if (! this.isItemStashed) throw new Error(
                 "isItemStashed not provided to tab folder");
 
-            if (! this.children) return;
-            const children = this.children as (Tab | undefined)[];
-
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
-                const tabs = children.filter(
-                    t => t && t.hidden && this.isItemStashed!(t));
-                await closeTabs(tabs as Tab[]);
+                const tabs = this.children.filter(
+                    t => t && t.hidden && this.isItemStashed(t));
+                await this.model().tabs.closeTabs(filterMap(tabs, t => t?.id));
             } else {
-                // Closes ALL open tabs (stashed and unstashed).  This is just a
-                // convenience button for the "Unstashed Tabs" view.
+                // Closes ALL open tabs (stashed and unstashed).
                 //
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
-                const hide_tabs = children.filter(
-                    t => t && ! t.hidden && ! t.pinned
-                           && this.isItemStashed!(t)) as Tab[];
-                const close_tabs = children.filter(
-                    t => t && ! t.hidden && ! t.pinned
-                           && ! this.isItemStashed!(t)) as Tab[];
+                const hide_tabs = this.children
+                    .filter(t => ! t.hidden && ! t.pinned && this.isItemStashed(t))
+                    .map(t => t.id);
+                const close_tabs = this.children
+                    .filter(t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t))
+                    .map(t => t.id);
 
-                await refocusAwayFromTabs(hide_tabs.concat(close_tabs));
+                await this.model().tabs.refocusAwayFromTabs(
+                    hide_tabs.concat(close_tabs));
 
-                hideStashedTabs(hide_tabs).catch(console.log);
-                browser.tabs.remove(close_tabs.map(t => t.id))
-                    .catch(console.log);
+                this.model().hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+                browser.tabs.remove(close_tabs).catch(console.log);
             }
         })},
 
@@ -281,11 +268,11 @@ export default defineComponent({
 
             if (! tid) {
                 // Restoring from the stash.
-                let tabs = await restoreTabs(
+                let tabs = await this.model().restoreTabs(
                     [item.url], {background: true});
 
-                if (tabs[0]) {
-                    tid = tabs[0].id;
+                if (tabs[0] !== undefined) {
+                    tid = tabs[0];
                 } else {
                     // We didn't actually restore anything; just go with the
                     // tabid we already have.
@@ -317,7 +304,7 @@ export default defineComponent({
             // any empty stashes lying around unnecessarily.
 
             if (folder instanceof Window) return;
-            if (getFolderNameISODate(folder.title ?? '') === null) return;
+            if (getDefaultFolderNameISODate(folder.title ?? '') === null) return;
 
             // Now we check if the folder is empty, or about to be.  Note that
             // there are three cases here:

@@ -23,7 +23,6 @@ import {PropType, defineComponent} from 'vue';
 import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedBookmark, Deletion} from '../model/deleted-items';
-import {bookmarkTabs, mostRecentUnnamedFolderId} from '../stash';
 
 export default defineComponent({
     components: {
@@ -80,11 +79,12 @@ export default defineComponent({
 
         restore() { this.run("Restoring", async() => {
             if (! this.deletion) {
-                await bookmarkTabs(await mostRecentUnnamedFolderId(), [this.item]);
+                await this.model().bookmarkTabs(
+                    this.model().mostRecentUnnamedFolderId(), [this.item]);
                 await this._remove();
             } else {
                 // Try to put the bookmark back in its original folder
-                await this.model().deleted_items.undelete(this.deletion);
+                await this.model().undelete(this.deletion);
             }
         })},
 

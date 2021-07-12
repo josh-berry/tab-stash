@@ -32,9 +32,9 @@ export default defineComponent({
     },
 
     data: () => ({
-      cancel: undefined,
-      progress: undefined,
-      splitOn: 'p+h' as ParseOptions['splitOn'],
+        cancel: undefined,
+        progress: undefined,
+        splitOn: 'p+h' as ParseOptions['splitOn'],
     }),
 
     inject: ['$model'],
@@ -45,11 +45,11 @@ export default defineComponent({
         model(): Model { return (<any>this).$model as Model },
 
         start() {
-            const groups = parse(this.$refs.data as Element,
-                                 {splitOn: this.splitOn});
+            const groups = parse(
+                this.$refs.data as Element, this.model(), {splitOn: this.splitOn});
 
             const task = TaskMonitor.run(tm =>
-                importURLs(groups, this.model().favicons, tm)
+                importURLs(this.model(), groups, tm)
                     .finally(() => this.$emit('close')));
 
             (<any>this).cancel = () => task.cancel();
