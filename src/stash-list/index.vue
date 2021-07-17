@@ -51,8 +51,7 @@
   <div class="folder-list">
     <window :title="tabfolder_title" :allowRenameDelete="false"
             ref="unstashed" :children="unstashed_tabs"
-            :filter="unstashedFilter" :userFilter="search_filter"
-            :isItemStashed="isItemStashed"
+            :userFilter="search_filter"
             :metadata="model().bookmark_metadata.get('')" />
   </div>
   <folder-list ref="stashed" v-if="stashed_tabs"
@@ -181,24 +180,6 @@ const Main = defineComponent({
             if (this.searchtext === '') return true;
             return (i.title && this.text_matcher(i.title))
                 || (i.url && this.text_matcher(i.url));
-        },
-
-        unstashedFilter(t: Tab) {
-            return ! t.hidden && ! t.pinned && t.url
-                && this.model().isURLStashable(t.url)
-                && (this.model().options.sync.state.show_all_open_tabs
-                    || ! this.isItemStashed(t));
-        },
-
-        isItemStashed(i: Tab): boolean {
-            if (! i.url) return false;
-
-            const bookmarks = this.model().bookmarks;
-            const stash_root_id = bookmarks.stash_root.value?.id;
-            if (stash_root_id === undefined) return false;
-
-            const bms = bookmarks.by_url.get(i.url);
-            return !!bms.find(bm => bookmarks.isBookmarkInFolder(bm, stash_root_id));
         },
 
         showOptions() {

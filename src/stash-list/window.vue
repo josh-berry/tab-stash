@@ -3,7 +3,6 @@
               window: true,
               'action-container': true,
               collapsed: collapsed,
-              hidden: hideIfEmpty && visibleChildren.length == 0,
               }">
   <header>
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
@@ -77,11 +76,8 @@ export default defineComponent({
     inject: ['$model'],
 
     props: {
-        // View filter functions
-        filter: required(Function as PropType<(tab: Tab) => boolean>),
+        // View filter function
         userFilter: Function as PropType<(item: Tab) => boolean>,
-        isItemStashed: required(Function as PropType<(t: Tab) => boolean>),
-        hideIfEmpty: Boolean,
 
         // Window contents
         title: required(String),
@@ -90,6 +86,14 @@ export default defineComponent({
         // Metadata (for collapsed state)
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
+
+    data() { return {
+        /** If a drag-and-drop operation has just completed, but the actual
+         * model hasn't been updated yet, we temporarily show the user the model
+         * "as if" the operation was already done, so it doesn't look like the
+         * dragged item snaps back to its original location temporarily. */
+        dirtyChildren: undefined as Bookmark[] | undefined,
+    }; },
 
     computed: {
         altkey: altKeyName,
@@ -103,7 +107,7 @@ export default defineComponent({
         },
 
         filteredChildren(): Tab[] {
-            return this.children.filter(c => c.url && this.filter(c));
+            return this.children.filter(c => this.filter(c));
         },
         visibleChildren(): Tab[] {
             if (this.userFilter) {
@@ -124,6 +128,24 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+
+        filter(t: Tab) {
+            return ! t.hidden && ! t.pinned && t.url
+                && this.model().isURLStashable(t.url)
+                && (this.model().options.sync.state.show_all_open_tabs
+                    || ! this.isItemStashed(t));
+        },
+
+        isItemStashed(i: Tab): boolean {
+            if (! i.url) return false;
+
+            const bookmarks = this.model().bookmarks;
+            const stash_root_id = bookmarks.stash_root.value?.id;
+            if (stash_root_id === undefined) return false;
+
+            const bms = bookmarks.by_url.get(i.url);
+            return !!bms.find(bm => bookmarks.isBookmarkInFolder(bm, stash_root_id));
+        },
 
         async newGroup() {logErrors(async() => {
             await browser.bookmarks.create({
