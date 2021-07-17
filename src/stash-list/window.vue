@@ -29,20 +29,18 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                     :value="title" :defaultValue="title" :enabled="false" />
   </header>
   <div class="contents">
-    <Draggable group="tab" ref="drag" class="tabs"
-               v-model="filteredChildren" item-key="id"
-               @add="move" @update="move">
+    <Draggable group="tab" class="tabs" @change="move"
+               v-model="children" item-key="id">
       <template #item="{element: item}">
         <tab :tab="item"
-             :class="{hidden: (filter && ! filter(item))
-                        || (userFilter && ! userFilter(item)),
+             :class="{hidden: (! filter(item)) || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />
       </template>
     </Draggable>
-    <div class="folder-item disabled" v-if="userHiddenChildren.length > 0">
+    <div class="folder-item disabled" v-if="filterCount > 0">
       <span class="icon" /> <!-- spacer -->
       <span class="text status-text hidden-count">
-        + {{userHiddenChildren.length}} filtered
+        + {{filterCount}} filtered
       </span>
     </div>
   </div>
@@ -52,16 +50,14 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
-import {SortableEvent} from 'sortablejs';
 
 import {altKeyName, filterMap, logErrors, required} from '../util';
 
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {
-    Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
-} from '../model/bookmarks';
+import {Bookmark, genDefaultFolderName} from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
+import { ChangeEvent } from 'vuedraggable';
 
 export default defineComponent({
     components: {
@@ -80,8 +76,7 @@ export default defineComponent({
         userFilter: Function as PropType<(item: Tab) => boolean>,
 
         // Window contents
-        title: required(String),
-        children: required(Array as PropType<Tab[]>),
+        tabs: required(Array as PropType<readonly Tab[]>),
 
         // Metadata (for collapsed state)
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
@@ -92,11 +87,28 @@ export default defineComponent({
          * model hasn't been updated yet, we temporarily show the user the model
          * "as if" the operation was already done, so it doesn't look like the
          * dragged item snaps back to its original location temporarily. */
-        dirtyChildren: undefined as Bookmark[] | undefined,
+        dirtyChildren: undefined as Tab[] | undefined,
     }; },
 
     computed: {
         altkey: altKeyName,
+
+        title(): string {
+            if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
+            return "Unstashed Tabs";
+        },
+
+        children: {
+            get(): readonly Tab[] {
+                if (this.dirtyChildren) return this.dirtyChildren;
+                return this.tabs;
+            },
+            set(children: Tab[]) {
+                console.log("set dirty = ", children.map(c => c.title));
+                // Triggered only by drag-and-drop
+                // this.dirtyChildren = children;
+            },
+        },
 
         collapsed: {
             get(): boolean { return !! this.metadata.value?.collapsed; },
@@ -116,12 +128,8 @@ export default defineComponent({
                 return this.filteredChildren;
             }
         },
-        userHiddenChildren(): Tab[] {
-            if (this.userFilter) {
-                return this.filteredChildren.filter(c => ! this.userFilter!(c));
-            } else {
-                return [];
-            }
+        filterCount(): number {
+            return this.filteredChildren.length - this.visibleChildren.length;
         },
     },
 
@@ -201,159 +209,59 @@ export default defineComponent({
             }
         })},
 
-        async move(ev: SortableEvent) {logErrors(async() => {
-            console.log("drag and drop not implemented for Vue 3 yet");
-            return false;
+        move(ev: ChangeEvent<Bookmark | Tab>) {
+            // NOTE: This is for dragging INTO the window (either from within
+            // the window itself or from a folder).
+            const what = ev.moved || ev.added;
+            if (! what) return false;
 
-            // Move is somewhat complicated, since we can have a combination of
-            // different types of tabs (open tabs vs bookmarks) and folders
-            // (folder of open tabs vs folder of bookmarks), and each needs to
-            // be handled differently.
-            //
-            // Note that because of the way the events are bound, if we are
-            // dragging between two folders, move is always triggered only on
-            // the destination folder.
-            //
-            // One other critical thing to keep in mind--we have to calculate
-            // indexes based on our children's .index values, and NOT the
-            // positions as reported by ev.newIndex etc.  This is because the
-            // children array might be filtered.
+            // Disallow(maybe?) dragging of windows/bookmarks without URLs...
+            if (! what.element?.url) return false;
 
-            // XXX All this nonsense with __vue__ is *totally documented*
-            // (StackOverflow counts as documentation, right? :D), and super
-            // #$*&ing janky because we're reaching into HTML to find out what
-            // the heck Vue.Draggable is doing, but it seems to work...
-            //
-            // Note that ev.from is the <draggable>, so we want the parent
-            // <folder>.
-            const from_folder = (<any>ev.from).__vue__.$parent;
-            const item = (<any>ev.item).__vue__;
-            const tab = (<any>item).tab;
+            this.moveInternal(what)
+                .catch(console.log)
+                .finally(() => { this.dirtyChildren = undefined; });
+        },
 
-            // Note that ev.to.children ALREADY reflects the updated state of
-            // the list post-move, so we have to do some weird black-magic math
-            // to determine which item got replaced, and thus the final index at
-            // which to place the moved item in the model.
-            let new_model_idx: number;
-            if (this === from_folder) {
-                // Moving within the same folder, so this is a rotation.  The
-                // item was previously removed from oldIndex, so subsequent
-                // items would have rotated upwards, and then when it was
-                // reinserted, items after the new position would have rotated
-                // downwards again.
-                new_model_idx = ev.newIndex! < ev.oldIndex!
-                    ? (<any>ev.to.children[ev.newIndex! + 1]).__vue__.index
-                    : (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index;
+        async moveInternal(moved: {newIndex: number, element: Bookmark | Tab}) {
+            const item = moved.element;
+            if (! item.url) return false; // just to avoid casting
 
-            } else if (tab) {
-                // Moving a bookmark with an open tab from a bookmark folder to
-                // the window folder.  This is ALSO a rotation, though it
-                // doesn't much look like it--it's the case below where we
-                // restore a tab and then remove the bookmark.  In this case,
-                // however, we can't rely on oldIndex to tell us which way we're
-                // rotating, so we have to infer based on our neighbors.
-                if (ev.to.children.length > 1) {
-                    const prev_idx: number = ev.newIndex! > 0
-                        ? (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index
-                        : (<any>ev.to.children[1]).__vue__.index - 1;
-                    new_model_idx = tab.index < prev_idx
-                        ? prev_idx
-                        : prev_idx + 1;
-                } else {
-                    // The destination doesn't have any unfiltered children, so
-                    // we have nothing whatsoever to go on, so just don't have
-                    // an opinion because it doesn't matter.
-                    new_model_idx = -1;
-                }
-
-            } else if (ev.to.children.length > 1) {
-                // Moving from another folder to a (non-empty) folder, so this
-                // is strictly an insertion.  Pick the model index based on
-                // neighboring items, assuming that the insertion would have
-                // shifted everything else down.
-                //
-                // (NOTE: index > 1 above, since ev.to.children already contains
-                // the item we are moving.)
-                new_model_idx = ev.newIndex! < ev.to.children.length - 1
-                    ? (<any>ev.to.children[ev.newIndex! + 1]).__vue__.index
-                    : (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index + 1;
+            let tid;
+            if ('windowId' in item) {
+                // Item being dragged is a Tab, so we are just moving it from
+                // one place in the window to another.
+                tid = item.id;
 
             } else {
-                // Moving from another folder, to an empty folder.  Just assume
-                // we are inserting at the top.
-                new_model_idx = 0;
-            }
+                // Item being dragged is a Bookmark--that is, we're restoring a
+                // tab to a particular location in the window.  If there's
+                // already an open tab for this bookmark in the same window,
+                // we will just move it to the right place.
 
-            // Placing a tab at a particular location in the open window
-            // (and possibly restoring it from the stash if necessary).
-            let tid = tab ? tab.id : undefined;
+                const cur_win = this.model().tabs.current_window;
 
-            if (! tid) {
-                // Restoring from the stash.
-                let tabs = await this.model().restoreTabs(
-                    [item.url], {background: true});
-
-                if (tabs[0] !== undefined) {
-                    tid = tabs[0];
-                } else {
-                    // We didn't actually restore anything; just go with the
-                    // tabid we already have.
+                // First see if we have an open tab in this window already.  If
+                // so, we need only move it into position.
+                const already_open = this.model().tabs.by_url.get(item.url);
+                tid = already_open.filter(t => t.windowId === cur_win)[0]?.id;
+                if (tid === undefined) {
+                    // There is no open tab, so we must restore one.
+                    tid = (await this.model().restoreTabs(
+                        [item.url], {background: true}))[0];
                 }
             }
 
-            console.assert(tid !== undefined);
-            await browser.tabs.move(tid, {index: new_model_idx});
+            // For sanity; we should always restore a tab or have one open.
+            if (tid === undefined) return;
+
+            // Move the (possibly-restored) tab to the right place in the
+            // browser window.
+            await browser.tabs.move(tid, {index: moved.newIndex});
             if (browser.tabs.show) await browser.tabs.show(tid);
 
-            // Remove the restored bookmark
-            if (item.isBookmark) {
-                await this.model().deleted_items.add({
-                    title: item.title,
-                    url: item.url,
-                    favIconUrl: item.favicon?.value,
-                }, {
-                    folder_id: item.parent.id,
-                    title: this.title,
-                });
-                await browser.bookmarks.remove(item.id);
-                await this._maybeCleanupEmptyFolder(from_folder, item);
-            }
-        })},
-
-        async _maybeCleanupEmptyFolder(folder: Bookmark, removing_item: Bookmark) {
-            // If the folder we are removing an item from is empty and has a
-            // default name, remove the folder automatically so we don't leave
-            // any empty stashes lying around unnecessarily.
-
-            if (folder instanceof Window) return;
-            if (getDefaultFolderNameISODate(folder.title ?? '') === null) return;
-
-            // Now we check if the folder is empty, or about to be.  Note that
-            // there are three cases here:
-            //
-            // 1. The model has been updated and /removing_item/ removed
-            //    (so: length == 0),
-            //
-            // 2. The model hasn't yet been updated and /removing_item/ still
-            //    appears to be present (but should have been removed already)
-            //    (so: length == 1 and the only child is /removing_item/),
-            //
-            // 3. There are other children present which aren't /removing_item/,
-            //    in which case the folder doesn't need to be cleaned up.
-            //
-            // The following paragraph detects case #3 and returns early.
-
-            if (folder.children) {
-                if (folder.children.length > 1) return;
-                if (folder.children.length === 1
-                    && folder.children[0]?.id !== removing_item.id) {
-                    return;
-                }
-            }
-
-            // If we reach this point, we have an empty, unnamed bookmark
-            // folder.
-            await browser.bookmarks.remove(folder.id);
+            // Remove the previously-stashed tab (if there was one).
+            if (! ('windowId' in item)) await this.model().deleteBookmark(item);
         },
     },
 });

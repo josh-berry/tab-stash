@@ -18,7 +18,7 @@
       {{stash_root_warning.text}}
     </Notification>
     <Notification v-if="recently_deleted.length === 1"
-                  @activate="model().deleted_items.undelete(recently_deleted[0])">
+                  @activate="model().undelete(recently_deleted[0])">
       Deleted "{{recently_deleted[0].item.title}}".  Undo?
     </Notification>
     <Notification v-else-if="recently_deleted.length > 1"
@@ -49,13 +49,11 @@
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <window :title="tabfolder_title" :allowRenameDelete="false"
-            ref="unstashed" :children="unstashed_tabs"
-            :userFilter="search_filter"
+    <window :tabs="tabs" :userFilter="search_filter"
             :metadata="model().bookmark_metadata.get('')" />
   </div>
-  <folder-list ref="stashed" v-if="stashed_tabs"
-               :parentFolder="stashed_tabs"
+  <folder-list ref="stashed" v-if="stash_root"
+               :parentFolder="stash_root"
                :userFilter="search_filter"
                :hideIfEmpty="searchtext !== ''" />
   <footer class="page status-text">
@@ -109,15 +107,11 @@ const Main = defineComponent({
         stash_root_warning(): {text: string, help: () => void} | undefined {
             return this.model().bookmarks.stash_root_warning.value;
         },
-        unstashed_tabs(): readonly Tab[] {
+        tabs(): readonly Tab[] {
             return this.model().tabs.by_window.get(this.window_id) ?? [];
         },
-        stashed_tabs(): Bookmark | undefined {
+        stash_root(): Bookmark | undefined {
             return this.model().bookmarks.stash_root.value;
-        },
-        tabfolder_title(): string {
-            if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
-            return "Unstashed Tabs";
         },
 
         recently_updated(): undefined | 'features' | 'fixes' {
@@ -137,8 +131,8 @@ const Main = defineComponent({
 
         counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
-            if (this.stashed_tabs?.children) {
-                for (const f of this.stashed_tabs.children!) {
+            if (this.stash_root?.children) {
+                for (const f of this.stash_root.children!) {
                     if (! f?.children) continue;
                     tabs += f.children.length;
                     groups++;
@@ -196,7 +190,7 @@ const Main = defineComponent({
         showExportDialog() {
             this.dialog = {
                 class: 'ExportDialog',
-                props: {stash: this.stashed_tabs?.children || []},
+                props: {stash: this.stash_root?.children || []},
             };
         },
 

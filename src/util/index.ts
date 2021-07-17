@@ -221,11 +221,14 @@ export async function resolveNamed<T extends {[k: string]: any}>(
 
 /** Waits for the next iteration of the event loop and for Vue to flush any
  * pending watches (allowing event handlers etc. to run in the meantime). */
-export function nextTick(): Promise<void> {
-    return Promise.all([
-        new Promise(resolve => setTimeout(resolve)),
-        Vue.nextTick.apply(undefined),
-    ]).then();
+export async function nextTick(): Promise<void> {
+    // We FIRST wait for the event loop, which may deliver outside events that
+    // percolate through to Vue reactive objects.
+    await new Promise(resolve => setTimeout(resolve));
+
+    // Only once we've drained the event loop do we then wait for Vue to catch
+    // up and apply any changes.
+    await Vue.nextTick.apply(undefined);
 }
 
 // Returns a function which, when called, arranges to call the async function
@@ -432,7 +435,7 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
 }
 
 // Maps and filters an array at the same time, removing `undefined`s
-export function filterMap<T, U>(array: T[], map: (i: T) => U | undefined): U[] {
+export function filterMap<T, U>(array: readonly T[], map: (i: T) => U | undefined): U[] {
     const res = [];
     for (const i of array) {
         const m = map(i);

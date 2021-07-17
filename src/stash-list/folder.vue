@@ -30,32 +30,27 @@
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label :class="{'folder-name': true, 'ephemeral': ! isWindow,
-                            'disabled': isWindow || ! allowRenameDelete}"
+    <editable-label :class="{'folder-name': true, 'ephemeral': true,
+                            'disabled': ! allowRenameDelete}"
                     :value="nonDefaultTitle"
                     :defaultValue="defaultTitle"
-                    :enabled="! isWindow && allowRenameDelete"
+                    :enabled="allowRenameDelete"
                     @update:value="rename"></editable-label>
   </header>
   <div class="contents">
-    <Draggable group="tab" ref="drag" class="tabs"
-               v-model="filteredChildren" item-key="id"
-               @add="move" @update="move">
+    <Draggable group="tab" class="tabs" @change="move"
+               v-model="allChildren" item-key="id">
       <template #item="{element: item}">
-        <tab v-if="item.isTab" :tab="item"
-             :class="{hidden: (filter && ! filter(item))
-                        || (userFilter && ! userFilter(item)),
-                      'folder-item': true}" />
-        <bookmark v-else :bookmark="item"
+        <bookmark :bookmark="item"
              :class="{hidden: (filter && ! filter(item))
                         || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />
       </template>
     </Draggable>
-    <div class="folder-item disabled" v-if="userHiddenChildren.length > 0">
+    <div class="folder-item disabled" v-if="filterCount > 0">
       <span class="icon" /> <!-- spacer -->
       <span class="text status-text hidden-count">
-        + {{userHiddenChildren.length}} filtered
+        + {{filterCount}} filtered
       </span>
     </div>
   </div>
@@ -65,19 +60,19 @@
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
-import {SortableEvent} from 'sortablejs';
 
 import {
     altKeyName, bgKeyName, bgKeyPressed, filterMap, logErrors, required
 } from '../util';
 
 import {Model} from '../model';
-import {Tab} from '../model/tabs';
 import {
     Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
 } from '../model/bookmarks';
 import {DeletedItem} from '../model/deleted-items';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
+import { ChangeEvent } from 'vuedraggable';
+import { Tab } from '../model/tabs';
 
 export default defineComponent({
     components: {
@@ -85,7 +80,6 @@ export default defineComponent({
         ButtonBox: require('../components/button-box.vue').default,
         Draggable: require('vuedraggable'),
         EditableLabel: require('../components/editable-label.vue').default,
-        Tab: require('./tab.vue').default,
         Bookmark: require('./bookmark.vue').default,
     },
 
@@ -93,9 +87,7 @@ export default defineComponent({
 
     props: {
         // View filter functions
-        filter: Function,
         userFilter: Function as PropType<(item: Bookmark) => boolean>,
-        isItemStashed: Function as PropType<(t: Tab) => boolean>,
         hideIfEmpty: Boolean,
 
         // Bookmark folder
@@ -110,9 +102,29 @@ export default defineComponent({
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
+    data() { return {
+        /** If a drag-and-drop operation has just completed, but the actual
+         * model hasn't been updated yet, we temporarily show the user the model
+         * "as if" the operation was already done, so it doesn't look like the
+         * dragged item snaps back to its original location temporarily. */
+        dirtyChildren: undefined as Bookmark[] | undefined,
+    }; },
+
     computed: {
         altkey: altKeyName,
         bgKey: bgKeyName,
+
+        allChildren: {
+            get(): readonly Bookmark[] {
+                if (this.dirtyChildren) return this.dirtyChildren;
+                return this.children;
+            },
+            set(children: Bookmark[]) {
+                console.log("set dirty = ", children.map(c => c.title));
+                // Triggered only by drag-and-drop
+                // this.dirtyChildren = children;
+            },
+        },
 
         collapsed: {
             get(): boolean { return !! this.metadata.value?.collapsed; },
@@ -122,7 +134,6 @@ export default defineComponent({
             },
         },
 
-        isWindow(): boolean { return ! this.id; },
         defaultTitle(): string {
             if (! this.dateAdded) return `Unstashed Tabs`;
             return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
@@ -131,13 +142,9 @@ export default defineComponent({
             return getDefaultFolderNameISODate(this.title) !== null
                 ? '' : this.title;
         },
+
         filteredChildren(): Bookmark[] {
-            if (! this.children) return [];
-            if (this.filter) {
-                return this.children.filter(c => c && c.url && this.filter!(c));
-            } else {
-                return this.children.filter(c => c && c.url);
-            }
+            return this.allChildren.filter(c => c && c.url);
         },
         visibleChildren(): Bookmark[] {
             if (this.userFilter) {
@@ -146,13 +153,8 @@ export default defineComponent({
                 return this.filteredChildren;
             }
         },
-        userHiddenChildren(): Bookmark[] {
-            if (this.userFilter) {
-                return this.filteredChildren.filter(
-                    c => c && ! this.userFilter!(c));
-            } else {
-                return [];
-            }
+        filterCount(): number {
+            return this.filteredChildren.length - this.visibleChildren.length;
         },
     },
 
@@ -176,7 +178,7 @@ export default defineComponent({
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
             await this.model().restoreTabs(
-                filterMap(this.children, item => item.url),
+                filterMap(this.allChildren, item => item.url),
                 {background: bgKeyPressed(ev)});
         })},
 
@@ -188,7 +190,7 @@ export default defineComponent({
             const bg = bgKeyPressed(ev);
 
             await this.model().restoreTabs(
-                filterMap(this.children, item => item.url),
+                filterMap(this.allChildren, item => item.url),
                 {background: bg});
             await this._deleteSelfAndLog();
         })},
@@ -203,126 +205,48 @@ export default defineComponent({
             browser.bookmarks.update(this.id, <any>{title}).catch(console.log);
         },
 
-        async move(ev: SortableEvent) {logErrors(async() => {
-            console.log("drag and drop not implemented for Vue 3 yet");
-            return false;
+        move(ev: ChangeEvent<Bookmark | Tab>) {
+            console.log(ev);
+            // NOTE: This is for dragging INTO the folder (either from within
+            // the folder itself, from another folder, or from a window).
+            const what = ev.moved || ev.added;
+            if (! what) return false;
 
-            // Move is somewhat complicated, since we can have a combination of
-            // different types of tabs (open tabs vs bookmarks) and folders
-            // (folder of open tabs vs folder of bookmarks), and each needs to
-            // be handled differently.
-            //
-            // Note that because of the way the events are bound, if we are
-            // dragging between two folders, move is always triggered only on
-            // the destination folder.
-            //
-            // One other critical thing to keep in mind--we have to calculate
-            // indexes based on our children's .index values, and NOT the
-            // positions as reported by ev.newIndex etc.  This is because the
-            // children array might be filtered.
+            // Disallow(maybe?) dragging of windows/bookmarks without URLs...
+            if (! what.element?.url) return false;
 
-            // XXX All this nonsense with __vue__ is *totally documented*
-            // (StackOverflow counts as documentation, right? :D), and super
-            // #$*&ing janky because we're reaching into HTML to find out what
-            // the heck Vue.Draggable is doing, but it seems to work...
-            //
-            // Note that ev.from is the <draggable>, so we want the parent
-            // <folder>.
-            const from_folder = (<any>ev.from).__vue__.$parent;
-            const item = (<any>ev.item).__vue__;
+            this.moveInternal(what)
+                .catch(console.log)
+                .finally(() => { this.dirtyChildren = undefined; });
+        },
 
-            // Note that ev.to.children ALREADY reflects the updated state of
-            // the list post-move, so we have to do some weird black-magic math
-            // to determine which item got replaced, and thus the final index at
-            // which to place the moved item in the model.
-            let new_model_idx: number;
-            if (this === from_folder) {
-                // Moving within the same folder, so this is a rotation.  The
-                // item was previously removed from oldIndex, so subsequent
-                // items would have rotated upwards, and then when it was
-                // reinserted, items after the new position would have rotated
-                // downwards again.
-                new_model_idx = ev.newIndex! < ev.oldIndex!
-                    ? (<any>ev.to.children[ev.newIndex! + 1]).__vue__.index
-                    : (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index;
+        async moveInternal(moved: {newIndex: number, element: Bookmark | Tab}) {
+            const item = moved.element;
+            if (! item.url) return false; // just to avoid casting
 
-            } else if (ev.to.children.length > 1) {
-                // Moving from another folder to a (non-empty) folder, so this
-                // is strictly an insertion.  Pick the model index based on
-                // neighboring items, assuming that the insertion would have
-                // shifted everything else down.
-                //
-                // (NOTE: index > 1 above, since ev.to.children already contains
-                // the item we are moving.)
-                new_model_idx = ev.newIndex! < ev.to.children.length - 1
-                    ? (<any>ev.to.children[ev.newIndex! + 1]).__vue__.index
-                    : (<any>ev.to.children[ev.newIndex! - 1]).__vue__.index + 1;
-
-            } else {
-                // Moving from another folder, to an empty folder.  Just assume
-                // we are inserting at the top.
-                new_model_idx = 0;
-            }
-
-            if (! from_folder.isWindow && ! this.isWindow) {
-                console.assert(item.isBookmark);
-                // Moving a stashed tab from one place to another.
-                await browser.bookmarks.move(item.id, {
-                    parentId: this.id,
-                    index: new_model_idx,
-                });
-
-                await this._maybeCleanupEmptyFolder(from_folder, item);
-
-            } else {
-                console.assert(item.isTab);
-                // Save a single tab at a specific location.
+            if ('windowId' in item) {
+                // We are dragging a tab into this bookmark folder.  Create a
+                // new bookmark and close the tab.
                 await browser.bookmarks.create({
                     parentId: this.id,
                     title: item.title,
                     url: item.url,
-                    index: new_model_idx,
+                    index: moved.newIndex,
                 });
-                await this.model().hideOrCloseStashedTabs([item]);
+                await this.model().hideOrCloseStashedTabs([item.id]);
+
+            } else {
+                // We are dragging only bookmarks around.  Just move the
+                // bookmark.
+                const fromFolder = item.parentId;
+                await browser.bookmarks.move(item.id, {
+                    parentId: this.id,
+                    index: moved.newIndex,
+                });
+
+                if (fromFolder === undefined) return;
+                await this.model().bookmarks.removeFolderIfEmptyAndUnnamed(fromFolder);
             }
-        })},
-
-        // TODO duplicated in window.vue
-        async _maybeCleanupEmptyFolder(folder: Window | Bookmark, removing_item: Bookmark) {
-            // If the folder we are removing an item from is empty and has a
-            // default name, remove the folder automatically so we don't leave
-            // any empty stashes lying around unnecessarily.
-
-            if (folder instanceof Window) return;
-            if (folder.id === this.id) return;
-            if (getDefaultFolderNameISODate(folder.title ?? '') === null) return;
-
-            // Now we check if the folder is empty, or about to be.  Note that
-            // there are three cases here:
-            //
-            // 1. The model has been updated and /removing_item/ removed
-            //    (so: length == 0),
-            //
-            // 2. The model hasn't yet been updated and /removing_item/ still
-            //    appears to be present (but should have been removed already)
-            //    (so: length == 1 and the only child is /removing_item/),
-            //
-            // 3. There are other children present which aren't /removing_item/,
-            //    in which case the folder doesn't need to be cleaned up.
-            //
-            // The following paragraph detects case #3 and returns early.
-
-            if (folder.children) {
-                if (folder.children.length > 1) return;
-                if (folder.children.length === 1
-                    && folder.children[0]?.id !== removing_item.id) {
-                    return;
-                }
-            }
-
-            // If we reach this point, we have an empty, unnamed bookmark
-            // folder.
-            await browser.bookmarks.remove(folder.id);
         },
 
         async _deleteSelfAndLog() {

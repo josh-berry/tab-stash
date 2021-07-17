@@ -21,13 +21,12 @@
 </template>
 
 <script lang="ts">
-import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
 
 import {altKeyName, bgKeyName, bgKeyPressed, required, logErrors} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {Bookmark, getDefaultFolderNameISODate} from '../model/bookmarks';
+import {Bookmark} from '../model/bookmarks';
 import {FaviconEntry} from '../model/favicons';
 
 export default defineComponent({
@@ -80,47 +79,15 @@ export default defineComponent({
         })},
 
         remove() { logErrors(async () => {
-            await this._removeBM();
+            await this.model().deleteBookmark(this.bookmark);
         })},
 
         openRemove(ev: MouseEvent) { logErrors(async () => {
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
             await this.model().restoreTabs([this.bookmark.url], {background: bg});
-            await this._removeBM();
+            await this.model().deleteBookmark(this.bookmark);
         })},
-
-        async _removeBM() {
-            const folder = this.model().bookmarks.by_id.get(this.bookmark.parentId!);
-
-            await this.model().deleted_items.add({
-                title: this.bookmark.title ?? '<no title>',
-                url: this.bookmark.url ?? 'about:blank',
-                favIconUrl: this.favicon?.value?.favIconUrl || undefined,
-            }, folder ? {
-                folder_id: folder.id,
-                title: folder.title!,
-            } : undefined);
-            await browser.bookmarks.remove(this.bookmark.id);
-
-            // If we are the only thing in our parent folder, AND the parent
-            // folder has a "default" name, remove the parent folder, so we
-            // don't leave any empty unnamed stashes lying around.
-            //
-            // XXX this logic is mirrored (ish) in
-            // folder.vue:_maybeCleanupEmptyFolder().  See the comment there for
-            // further discussion.
-
-            if (! folder || getDefaultFolderNameISODate(folder.title!) === null) return;
-
-            if (folder.children!.length > 1) return;
-            if (folder.children?.length === 1
-                && folder.children![0]?.id !== this.bookmark.id) {
-                return;
-            }
-
-            await browser.bookmarks.remove(folder.id);
-        },
     },
 });
 </script>

@@ -375,7 +375,11 @@ export class Model {
     }
 
     /** Restores the specified URLs as new tabs in the current window.  Returns
-     * the IDs of the restored tabs. */
+     * the IDs of the restored tabs.
+     *
+     * Note that if a tab is already open and not hidden, we will do nothing,
+     * since we don't want to open duplicate tabs.  Such tabs will not be
+     * included in the returned list. */
     async restoreTabs(
         urls: string[],
         options: {background?: boolean}
@@ -491,6 +495,27 @@ export class Model {
         }
 
         return tab_ids;
+    }
+
+    /** Deletes the specified bookmark, saving it to deleted items.  If it was
+     * the last bookmark in its parent folder, AND the parent folder has a
+     * "default" name, removes the parent folder as well. */
+    async deleteBookmark(bm: Bookmarks.Bookmark) {
+        const parent = this.bookmarks.by_id.get(bm.parentId!);
+
+        await this.deleted_items.add({
+            title: bm.title ?? '<no title>',
+            url: bm.url ?? 'about:blank',
+            favIconUrl: this.favicons.get(bm.url!)?.value?.favIconUrl || undefined,
+        }, parent ? {
+            folder_id: parent.id,
+            title: parent.title!,
+        } : undefined);
+
+        await browser.bookmarks.remove(bm.id);
+
+        if (! parent) return;
+        await this.bookmarks.removeFolderIfEmptyAndUnnamed(parent?.id);
     }
 
     /** Un-delete a deleted item.  Removes it from deleted_items and adds it

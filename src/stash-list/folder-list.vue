@@ -4,7 +4,7 @@
   <template #item="{element: f}">
     <Folder :id="f.id" :children="f.children" :allowRenameDelete="true"
             :title="f.title" :dateAdded="f.dateAdded"
-            :filter="filter" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
+            :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
             :metadata="model().bookmark_metadata.get(f.id)"
             ref="folders" />
   </template>
@@ -31,7 +31,6 @@ export default defineComponent({
 
     props: {
         parentFolder: required(Object as PropType<Bookmark>),
-        filter: Function as PropType<(i: Bookmark) => boolean>,
         userFilter: Function as PropType<(i: Bookmark) => boolean>,
 
         // Whether to hide a folder entirely if it has no elements (e.g. because
@@ -49,12 +48,10 @@ export default defineComponent({
 
     computed: {
         children: {
-            get(): Bookmark[] {
+            get(): readonly Bookmark[] {
                 if (this.dirtyChildren) return this.dirtyChildren;
 
-                const children = this.parentFolder.children;
-                if (! children) return [];
-                return children.filter(c => c.children !== undefined);
+                return this.parentFolder.children ?? [];
             },
             set(children: Bookmark[]) {
                 // Triggered only by drag and drop

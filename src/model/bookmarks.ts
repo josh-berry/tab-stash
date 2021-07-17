@@ -178,6 +178,41 @@ export class Model {
     }
 
     //
+    // Mutators
+    //
+
+    /** Removes the folder `folder_id` if it is empty and unnamed.
+     * `last_child_id` is the ID of some child that was just removed from the
+     * folder; if the child still appears to be present in the model, we will
+     * assume it's just because the model hasn't been updated yet and remove the
+     * folder anyway.
+     *
+     * But if any children OTHER than `last_child_id` appear in the folder, it
+     * will be left untouched.
+      */
+    async removeFolderIfEmptyAndUnnamed(folder_id: string) {
+        const folder = this.by_id.get(folder_id);
+        if (! folder || ! folder.children) return;
+
+        // Folder does not have a default/unnamed-shape name
+        if (getDefaultFolderNameISODate(folder.title) === null) return;
+
+        // HACK: We wait for any pending model updates to happen here, because
+        // this method is commonly called after deleting something that's in the
+        // folder.  So we want to make doubly-sure the folder is actually empty
+        // (and give the model a chance to catch up with any moves etc. that
+        // happened out of the folder) before deleting it.
+        //
+        // Otherwise, we might get into model inconsistencies (e.g. if the
+        // folder removal shows up before we've finished processing its
+        // contents).
+        await nextTick();
+
+        if (folder.children.length > 0) return;
+        await browser.bookmarks.remove(folder.id);
+    }
+
+    //
     // Events which are detected automatically by this model; these can be
     // called for testing purposes but otherwise you can ignore them.
     //
