@@ -3,7 +3,7 @@
     <header class="page action-container">
         <a class="action back" title="Back to Tab Stash"
            :href="pageref('stash-list.html')"></a>
-        <input slot="after" type="search" ref="search" class="ephemeral"
+        <input type="search" ref="search" class="ephemeral"
                placeholder="Search Deleted Items" aria-label="Search Deleted Items"
                @keyup.esc.prevent="search=''"
                v-model="search">
@@ -21,27 +21,31 @@
             </ul>
         </section>
     </div>
-    <LoadMore :identifier="search" @infinite="loadMore">
-        <footer v-if="search" slot="no-results" class="page footer status-text">
-            No matching items were found.  Your item may have been deleted on
-            another computer, or outside of Tab Stash entirely.
-        </footer>
-        <footer v-else slot="no-results" class="page footer status-text">
-            It doesn't look like you've deleted anything on this computer yet.
-        </footer>
-        <footer slot="no-more" class="page footer status-text">
-            Didn't find what you're looking for?  It may have been deleted on
-            another computer, or outside of Tab Stash entirely.
-        </footer>
+    <LoadMore is="footer" class="page footer status-text"
+              :load="loadMore" :isFullyLoaded="state.fullyLoaded">
+        <template #fully-loaded>
+            <span v-if="search && this.state.entries.length === 0">
+                No matching items were found.  Your item may have been deleted
+                on another computer, or outside of Tab Stash entirely.
+            </span>
+            <span v-else-if="this.state.entries.length === 0
+                          && this.state.fullyLoaded">
+                It doesn't look like you've deleted anything on this computer
+                yet.
+            </span>
+            <span v-else>
+                Didn't find what you're looking for?  It may have been deleted
+                on another computer, or outside of Tab Stash entirely.
+            </span>
+        </template>
     </LoadMore>
 </main>
 </template>
 
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
-import LoadMore, {StateChanger} from 'vue-infinite-loading';
 
-import {filterMap, logErrors, required, textMatcher} from '../util';
+import {filterMap, required, textMatcher} from '../util';
 import launch, {pageref} from '../launch-vue';
 import ui_model from '../ui-model';
 import {Model} from '../model';
@@ -57,7 +61,7 @@ type FilteredCount<F> = F & {filtered_count?: number};
 
 const Main = defineComponent({
     components: {
-        LoadMore,
+        LoadMore: require('../components/load-more.vue').default,
         Bookmark: require('./bookmark.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         Folder: require('./folder.vue').default,
@@ -168,11 +172,7 @@ const Main = defineComponent({
         model(): Model { return (<any>this).$model; },
         pageref,
 
-        loadMore(state: StateChanger) { logErrors(async() => {
-            await this.model().deleted_items.loadMore();
-            if (this.state.entries.length > 0) state.loaded();
-            if (this.state.fullyLoaded) state.complete();
-        })},
+        loadMore() { return this.model().deleted_items.loadMore(); },
 
         startOfToday(): Date {
             const d = new Date();
