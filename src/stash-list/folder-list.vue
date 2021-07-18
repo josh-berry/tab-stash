@@ -2,8 +2,7 @@
 <Draggable class="sortable-list folder-list" @change="move"
            v-model="children" item-key="id">
   <template #item="{element: f}">
-    <Folder :id="f.id" :children="f.children" :allowRenameDelete="true"
-            :title="f.title" :dateAdded="f.dateAdded"
+    <Folder :folder="f" :allowRenameDelete="true"
             :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
             :metadata="model().bookmark_metadata.get(f.id)"
             ref="folders" />

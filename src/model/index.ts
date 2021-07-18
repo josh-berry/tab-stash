@@ -497,6 +497,30 @@ export class Model {
         return tab_ids;
     }
 
+    /** Deletes the specified bookmark subtree, saving it to deleted items.  You
+     * should use {@link deleteBookmark()} for individual bookmarks, because it
+     * will cleanup the parent folder if the parent folder has a "default" name
+     * and would be empty. */
+    async deleteBookmarkTree(id: string) {
+        const bm = this.bookmarks.by_id.get(id);
+        if (! bm) return;
+
+        const toDelItem = (item: Bookmarks.Bookmark): DeletedItems.DeletedItem =>
+            item.children
+                ? {
+                    title: item.title ?? '',
+                    children: filterMap(item.children, i => i && toDelItem(i)),
+                } : {
+                    title: item.title ?? item.url ?? '',
+                    url: item.url ?? '',
+                    favIconUrl: this.favicons.get(item.url!).value?.favIconUrl
+                        || undefined,
+                };
+
+        await this.deleted_items.add(toDelItem(bm));
+        await browser.bookmarks.removeTree(bm.id);
+    }
+
     /** Deletes the specified bookmark, saving it to deleted items.  If it was
      * the last bookmark in its parent folder, AND the parent folder has a
      * "default" name, removes the parent folder as well. */

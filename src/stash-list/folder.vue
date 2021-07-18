@@ -4,7 +4,7 @@
               collapsed: collapsed,
               hidden: hideIfEmpty && visibleChildren.length == 0,
               }"
-          :data-id="id">
+          :data-id="folder.id">
   <header>
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
@@ -69,7 +69,6 @@ import {Model} from '../model';
 import {
     Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
 } from '../model/bookmarks';
-import {DeletedItem} from '../model/deleted-items';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 import { ChangeEvent } from 'vuedraggable';
 import { Tab } from '../model/tabs';
@@ -91,9 +90,7 @@ export default defineComponent({
         hideIfEmpty: Boolean,
 
         // Bookmark folder
-        id: required(String),
-        children: required(Array as PropType<Bookmark[]>),
-        title: required(String),
+        folder: required(Object as PropType<Bookmark>),
 
         // Bookmark folder
         dateAdded: Number,
@@ -117,7 +114,7 @@ export default defineComponent({
         allChildren: {
             get(): readonly Bookmark[] {
                 if (this.dirtyChildren) return this.dirtyChildren;
-                return this.children;
+                return this.folder.children || [];
             },
             set(children: Bookmark[]) {
                 console.log("set dirty = ", children.map(c => c.title));
@@ -135,12 +132,11 @@ export default defineComponent({
         },
 
         defaultTitle(): string {
-            if (! this.dateAdded) return `Unstashed Tabs`;
-            return `Saved ${(new Date(this.dateAdded)).toLocaleString()}`;
+            return `Saved ${(new Date(this.folder.dateAdded || 0)).toLocaleString()}`;
         },
         nonDefaultTitle(): string {
-            return getDefaultFolderNameISODate(this.title) !== null
-                ? '' : this.title;
+            return getDefaultFolderNameISODate(this.folder.title) !== null
+                ? '' : this.folder.title;
         },
 
         filteredChildren(): Bookmark[] {
@@ -167,13 +163,14 @@ export default defineComponent({
             const win_id = this.model().tabs.current_window;
             if (! win_id) return;
             await this.model().stashTabsInWindow(
-                win_id, {folderId: this.id, close: ! ev.altKey});
+                win_id, {folderId: this.folder.id, close: ! ev.altKey});
         })},
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             const tab = this.model().tabs.activeTab();
             if (! tab) return;
-            await this.model().stashTabs([tab], {folderId: this.id, close: ! ev.altKey});
+            await this.model().stashTabs([tab],
+                {folderId: this.folder.id, close: ! ev.altKey});
         })},
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
@@ -183,7 +180,7 @@ export default defineComponent({
         })},
 
         async remove() {logErrors(async() => {
-            await this._deleteSelfAndLog();
+            await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
         async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
@@ -192,7 +189,7 @@ export default defineComponent({
             await this.model().restoreTabs(
                 filterMap(this.allChildren, item => item.url),
                 {background: bg});
-            await this._deleteSelfAndLog();
+            await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
         rename(title: string) {
@@ -201,8 +198,7 @@ export default defineComponent({
                 title = genDefaultFolderName(new Date(this.dateAdded!));
             }
 
-            // <any> is needed to work around incorrect typing in web-ext-types
-            browser.bookmarks.update(this.id, <any>{title}).catch(console.log);
+            browser.bookmarks.update(this.folder.id, {title}).catch(console.log);
         },
 
         move(ev: ChangeEvent<Bookmark | Tab>) {
@@ -228,7 +224,7 @@ export default defineComponent({
                 // We are dragging a tab into this bookmark folder.  Create a
                 // new bookmark and close the tab.
                 await browser.bookmarks.create({
-                    parentId: this.id,
+                    parentId: this.folder.id,
                     title: item.title,
                     url: item.url,
                     index: moved.newIndex,
@@ -240,7 +236,7 @@ export default defineComponent({
                 // bookmark.
                 const fromFolder = item.parentId;
                 await browser.bookmarks.move(item.id, {
-                    parentId: this.id,
+                    parentId: this.folder.id,
                     index: moved.newIndex,
                 });
 
@@ -248,39 +244,8 @@ export default defineComponent({
                 await this.model().bookmarks.removeFolderIfEmptyAndUnnamed(fromFolder);
             }
         },
-
-        async _deleteSelfAndLog() {
-            // TODO save favicons
-            const toDeletedItem = (item: Bookmarkable): DeletedItem => {
-                if (item.children) {
-                    return {
-                        title: item.title ?? '',
-                        children: (item.children.filter(i => i) as Bookmark[])
-                            .map(i => toDeletedItem(i)),
-                    };
-                } else {
-                    return {
-                        title: item.title ?? item.url ?? '',
-                        url: item.url ?? '',
-                        // favIconUrl: item.favicon?.value,
-                    }
-                }
-            };
-            await this.model().deleted_items.add(toDeletedItem(this));
-            await browser.bookmarks.removeTree(this.id);
-        }
     },
 });
-
-// TODO helper type for things that look like a bookmark (including this
-// component).  Fix this by taking a bookmark as a single prop, rather than a
-// bunch of fields of a bookmark as different props...
-type Bookmarkable = {
-    title?: string,
-    url?: string,
-    // favicon?: FaviconCacheEntry,
-    children?: readonly Bookmarkable[],
-};
 </script>
 
 <style>

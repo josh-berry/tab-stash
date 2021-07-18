@@ -52,7 +52,7 @@ export type DeletedFolder = {
 };
 
 export function src2state(e: Entry<string, SourceValue>): Deletion {
-    return {
+    return reactive({
         key: e.key,
         deleted_at: new Date(e.value.deleted_at),
         deleted_from: e.value.deleted_from ? {...e.value.deleted_from} : undefined,
@@ -62,7 +62,7 @@ export function src2state(e: Entry<string, SourceValue>): Deletion {
                 children: e.value.item.children,
             }
             : e.value.item,
-    };
+    });
 }
 
 const RECENT_DELETION_TIMEOUT = 8000; // ms
