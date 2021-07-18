@@ -62,6 +62,12 @@ export class Model {
         return this._kvc.set(url, {favIconUrl, atime: Date.now()});
     }
 
+    /** Set the icon for a URL in the cache, but only if it doesn't have one
+     * already. */
+    maybeSet(url: string, favIconUrl: string) {
+        this._kvc.maybeInsert(url, {favIconUrl, atime: Date.now()});
+    }
+
     private _updateFavicon(tab: Tabs.Tab) {
         // We ignore favicons when the tab is still loading, because Firefox may
         // send us events where a tab has a new URL, but an old favicon which is

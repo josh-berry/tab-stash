@@ -196,7 +196,12 @@ export class Model {
         // The ISO string has the advantage of being sortable...
         const deleted_at = new Date().toISOString();
         const key = `${deleted_at}-${makeRandomString(4)}`;
-        const entry = {key, value: {deleted_at, deleted_from, item}};
+        const entry = {key, value: {
+            deleted_at,
+            deleted_from,
+            // Get rid of reactivity (if any)
+            item: JSON.parse(JSON.stringify(item))
+        }};
 
         await this._kvs.set([entry]);
         // We will get an event that the entry has been added, which will insert
@@ -217,16 +222,14 @@ export class Model {
         // istanbul ignore next
         if (! ('children' in entry.item)) throw new Error(`${key}: Not a folder`);
 
-        const newchildren = Array.from(entry.item.children);
-        newchildren.splice(index, 1);
+        // Must do a full JSON parse/stringify here to get rid of reactivity
+        const children = JSON.parse(JSON.stringify(entry.item.children));
+        children.splice(index, 1);
         await this._kvs.set([{
             key,
             value: {
                 deleted_at: entry.deleted_at.toISOString(),
-                item: {
-                    title: entry.item.title,
-                    children: newchildren,
-                },
+                item: {title: entry.item.title, children},
             },
         }]);
     }

@@ -50,18 +50,11 @@ export interface KeyValueStore<K extends Key, V extends Value> {
      * result. */
     readonly kvs: KeyValueStore<K, V>;
 
-    /** Tunable allowing users to adjust the max delay before flushing dirty
-     * entries to the KVS.  (The actual delay is a random number of milliseconds
-     * between 0 and `maxFlushTimeoutMS`.) Set this to 0 to flush as quickly as
-     * possible (but still in the background). */
-    maxFlushTimeoutMS: number = 100;
-
     private readonly _entries = new Map<K, Entry<K, V | null>>();
     private _needs_flush = new Map<K, Entry<K, V>>();
     private _needs_fetch = new Map<K, Entry<K, V | null>>();
 
-    private _pending_flush: NodeJS.Timeout | null = null;
-    private _pending_fetch: NodeJS.Timeout | null = null;
+    private _pending_io: NodeJS.Timeout | null = null;
 
     constructor(kvs: KeyValueStore<K, V>) {
         this.kvs = kvs;
@@ -79,10 +72,12 @@ export interface KeyValueStore<K extends Key, V extends Value> {
      * will be fetched in the background.  The returned entry is reactive, so it
      * will be updated once the value is available. */
     get(key: K): Entry<K, V | null> {
-        const e = this._ensure(key);
-        if (e.value === null) {
+        let e = this._entries.get(key);
+        if (! e) {
+            e = reactive({key, value: null}) as Entry<K, V | null>;
+            this._entries.set(key, e);
             this._needs_fetch.set(key, e);
-            this._fetch();
+            this._io();
         }
         return e;
     }
@@ -90,48 +85,76 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     /** Updates an entry in the KVS.  The cache is updated immediately, but
      * entries will be flushed in the background. */
     set(key: K, value: V): Entry<K, V | null> {
-        const ent = this._ensure(key);
+        const ent = this.get(key);
         ent.value = value;
         this._needs_flush.set(key, ent as Entry<K, V>);
         this._needs_fetch.delete(key);
-        this._flush();
+        this._io();
         return ent;
     }
 
-    private _ensure(key: K): Entry<K, V | null> {
-        let e = this._entries.get(key);
-        if (! e) {
-            e = reactive({key, value: null}) as Entry<K, V | null>;
-            this._entries.set(key, e);
-        }
-        return e;
+    /** If `key` is not present in the KVS, adds `key` with `value`.  But if key
+     * is already present, does nothing--that is, the `value` provided here will
+     * not override any pre-existing value.
+     *
+     * If the value isn't loaded yet, the returned entry may momentarily appear
+     * to have the provided value.
+     *
+     * Note that this is inherently racy; it's possible that in some situations,
+     * maybeInsert() will still overwrite another recently-written value. */
+    maybeInsert(key: K, value: V): Entry<K, V | null> {
+        const ent = this.get(key);
+        if (ent.value !== null) return ent;
+
+        ent.value = value;
+
+        // This works because we always fetch entries before flushing them, and
+        // fetched entries always override flushes.  If the entry is not present
+        // on the service, it will remain in _needs_flush until the flush phase
+        // of _io().
+        this._needs_fetch.set(key, ent);
+        this._needs_flush.set(key, ent as Entry<K, V>);
+        this._io();
+        return ent;
     }
 
+    /** Apply an update to an entry that was received from the service (which
+     * always overrides any pending flush for that entry). */
     private _update(key: K, value: V | null) {
-        this._ensure(key).value = value;
+        const ent = this._entries.get(key);
+
+        // istanbul ignore if -- trivial case; we don't want to update things
+        // nobody has asked for.
+        if (! ent) return;
+
+        ent.value = value;
         this._needs_fetch.delete(key);
         this._needs_flush.delete(key);
     }
 
-    private _fetch() {
-        if (this._pending_fetch) return;
-        this._pending_fetch = setTimeout(() => logErrors(async () => {
-            while (this._needs_fetch.size > 0) {
-                const keys = Array.from(this._needs_fetch.keys());
-                this._needs_fetch = new Map();
-
-                if (keys.length == 0) return;
-                const entries = await this.kvs.get(keys);
-                for (const e of entries) this._update(e.key, e.value);
+    private _io() {
+        if (this._pending_io) return;
+        this._pending_io = setTimeout(() => logErrors(async () => {
+            while (this._needs_fetch.size > 0 || this._needs_flush.size > 0) {
+                await this._fetch();
+                await this._flush();
             }
-
-            this._pending_fetch = null;
+            this._pending_io = null;
         }));
     }
 
-    private _flush() {
-        if (this._pending_flush) return;
-        this._pending_flush = setTimeout(() => logErrors(async () => {
+    private async _fetch() {
+        while (this._needs_fetch.size > 0) {
+            const keys = Array.from(this._needs_fetch.keys());
+            this._needs_fetch = new Map();
+
+            const entries = await this.kvs.get(keys);
+            for (const e of entries) this._update(e.key, e.value);
+        }
+    }
+
+    private async _flush() {
+        while (this._needs_flush.size > 0) {
             // Capture all values to write and strip off any reactivity.  If we
             // don't strip the reactivity, we will not be able to send the
             // values via IPC (if this.kvs is a KVSClient, for example).
@@ -139,10 +162,8 @@ export interface KeyValueStore<K extends Key, V extends Value> {
                 this._needs_flush.values())));
             this._needs_flush = new Map();
 
-            this._pending_flush = null;
-
-            if (dirty.length > 0) await this.kvs.set(dirty as Entry<K, V>[]);
-        }), Math.random() * this.maxFlushTimeoutMS);
+            await this.kvs.set(dirty as Entry<K, V>[]);
+        }
     }
 }
 

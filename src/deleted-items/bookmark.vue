@@ -78,26 +78,25 @@ export default defineComponent({
         },
 
         restore() { this.run("Restoring", async() => {
-            if (! this.deletion) {
-                await this.model().bookmarkTabs(
-                    this.model().mostRecentUnnamedFolderId(), [this.item]);
-                await this._remove();
-            } else {
-                // Try to put the bookmark back in its original folder
+            if (this.parent) {
+                // We are restoring an individual child of a deleted parent
+                // folder.
+                await this.model().undeleteChild(this.parent, this.childIndex!);
+
+            } else if (this.deletion) {
+                // We are restoring a top-level deletion.
                 await this.model().undelete(this.deletion);
             }
         })},
 
-        async remove() { this.run("Deleting Forever", () => this._remove()); },
-
-        async _remove() {
+        async remove() { this.run("Deleting Forever", () => {
             if (this.deletion) {
-                await this.model().deleted_items.drop(this.deletion.key);
+                return this.model().deleted_items.drop(this.deletion.key);
             } else {
-                await this.model().deleted_items.dropChildItem(
+                return this.model().deleted_items.dropChildItem(
                     this.parent!.key, this.childIndex!);
             }
-        },
+        })},
     },
 });
 </script>

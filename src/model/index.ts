@@ -562,6 +562,12 @@ export class Model {
             });
             await this.bookmarkTabs(folder.id, deletion.item.children);
 
+            // Restore their favicons.
+            for (const c of deletion.item.children) {
+                if (! ('url' in c && c.favIconUrl)) continue;
+                this.favicons.maybeSet(c.url, c.favIconUrl);
+            }
+
         } else {
             // We're restoring an individual bookmark.  Try to find where to put
             // it, IF we remember where it came from.
@@ -596,9 +602,38 @@ export class Model {
 
             // Restore the bookmark.
             await this.bookmarkTabs(folderId, [deletion.item]);
+
+            // Restore its favicon.
+            if (deletion.item.favIconUrl) {
+                this.favicons.maybeSet(deletion.item.url, deletion.item.favIconUrl);
+            }
         }
 
         await di.drop(deletion.key);
+    }
+
+    /** Un-delete a single child item inside a deleted folder.  Removes it from
+     * deleted_items and re-stashes it as if it were a single stashed tab, into
+     * a new (or recent) unnamed folder. */
+    async undeleteChild(
+        deletion: DeletedItems.Deletion,
+        childIndex: number
+    ): Promise<void> {
+        // istanbul ignore if
+        if (! ('children' in deletion.item)) {
+            throw new Error(`Deletion ${deletion.key} is not a folder`);
+        }
+
+        const child = deletion.item.children[childIndex];
+        if (! child) return;
+
+        await this.bookmarkTabs(this.mostRecentUnnamedFolderId(), [child]);
+
+        if ('url' in child && child.favIconUrl) {
+            this.favicons.maybeSet(child.url, child.favIconUrl);
+        }
+
+        await this.deleted_items.dropChildItem(deletion.key, childIndex);
     }
 };
 

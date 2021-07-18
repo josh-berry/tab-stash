@@ -251,7 +251,6 @@ describe('datastore/kvs', () => {
         beforeEach(() => {
             kvs = new MemoryKVS();
             cache = new KVSCache(kvs);
-            cache.maxFlushTimeoutMS = 0; // for deterministic test behavior
         });
 
         it('caches content locally and flushes it asynchronously', async () => {
@@ -331,20 +330,24 @@ describe('datastore/kvs', () => {
             expect(a.value).to.deep.equal('c');
         });
 
-        it('drops its own updates in favor of updates from the KVS', async () => {
-            // Set up the race--KVS onSet should happen before cache flush.
-            const a = cache.get('a');
-            const p = kvs.set([{key: 'a', value: 'c'}]);
-            cache.set('a', 'b');
-            expect(a.value).to.deep.equal('b');
-
-            // Start the race
-            await p;
+        it('maybe inserts entries that do not exist yet', async () => {
+            cache.maybeInsert('a', 'b');
             await nextTick();
+            expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
+        });
 
-            // See who won...
-            expect(kvs.data.get('a')).to.deep.equal('c');
-            expect(a.value).to.deep.equal('c');
+        it('maybe inserts entries that already exist in the KVS', async () => {
+            await kvs.set([{key: 'a', value: 'b'}]);
+            cache.maybeInsert('a', 'c');
+            await nextTick();
+            expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
+        });
+
+        it('maybe inserts entries that already exist in the cache', async () => {
+            cache.set('a', 'b');
+            cache.maybeInsert('a', 'c');
+            await nextTick();
+            expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
         });
     });
 });
