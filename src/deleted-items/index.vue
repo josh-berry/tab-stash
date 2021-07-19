@@ -23,6 +23,9 @@
     </div>
     <LoadMore is="footer" class="page footer status-text"
               :load="loadMore" :isFullyLoaded="state.fullyLoaded">
+        <template #loading>
+            <span class="spinner size-2x-icon" />
+        </template>
         <template #fully-loaded>
             <span v-if="search && this.state.entries.length === 0">
                 No matching items were found.  Your item may have been deleted

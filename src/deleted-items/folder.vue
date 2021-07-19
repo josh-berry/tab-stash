@@ -1,5 +1,6 @@
 <template>
 <div v-if="loading" class="folder-item deleted loading">
+    <ItemIcon class="spinner size-icon" />
     <span class="text status-text">{{loading}}...</span>
 </div>
 <div v-else>
