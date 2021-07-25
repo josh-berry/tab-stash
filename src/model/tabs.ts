@@ -70,6 +70,7 @@ export class Model {
         wiring.listen(browser.tabs.onMoved, 'whenTabMoved');
         wiring.listen(browser.tabs.onReplaced, 'whenTabReplaced');
         wiring.listen(browser.tabs.onActivated, 'whenTabActivated');
+        wiring.listen(browser.tabs.onHighlighted, 'whenTabsHighlighted');
         wiring.listen(browser.tabs.onRemoved, 'whenTabRemoved');
         return wiring;
     }
@@ -229,15 +230,20 @@ export class Model {
     }
 
     whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
-        if (info.previousTabId !== undefined) {
-            const prev = this.by_id.get(info.previousTabId);
-            // istanbul ignore else -- guardrail against misdelivered events
-            if (prev) prev.active = false;
-        }
+        // Chrome doesn't tell us which tab was deactivated, so we have to
+        // find it and mark it deactivated ourselves...
+        const win = this.by_window.get(info.windowId);
+        for (const t of win) t.active = false;
 
         const tab = this.by_id.get(info.tabId);
         // istanbul ignore else -- guardrail against misdelivered events
         if (tab) tab.active = true;
+    }
+
+    whenTabsHighlighted(info: Tabs.OnHighlightedHighlightInfoType) {
+        for (const t of this.by_window.get(info.windowId)) {
+            t.highlighted = info.tabIds.findIndex(id => id === t.id) !== -1;
+        }
     }
 
     whenTabRemoved(tabId: number) {

@@ -146,6 +146,10 @@ html.metrics-compact { @import "metrics-compact"; }
             grid-column: 1;
 
             min-width: 32px;
+
+            // Otherwise the progress bar will be a weird size
+            height: auto;
+            width: auto;
         }
 
         & > label {

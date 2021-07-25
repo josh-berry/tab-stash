@@ -1,7 +1,7 @@
 import {reactive} from "vue";
 import {browser} from "webextension-polyfill-ts";
 
-import {EventWiring, logErrors, resolveNamed} from "../util";
+import {EventWiring, resolveNamed} from "../util";
 
 export type State = {
     newtab_url: string;
@@ -17,24 +17,17 @@ export type State = {
 export class Model {
     readonly state: State;
 
-    /** TODO remove me -- use live() instead.  This only exists so we can
-     * construct an object immediately, to support `stash.ts` for now. */
-    static live_imm(): Model {
-        const wiring = Model._wiring();
-        const model = new Model({newtab_url: '', home_url: ''});
-        wiring.wire(model);
-
-        logErrors(async() => {
-            model.state.newtab_url =
-                (await browser.browserSettings.newTabPageOverride.get({})).value;
-            model.state.home_url =
-                (await browser.browserSettings.homepageOverride.get({})).value;
-        });
-
-        return model;
-    }
-
     static async live(): Promise<Model> {
+        if (! browser.browserSettings) {
+            // This is Chrome, which does not report the new-tab and homepage
+            // URLs to extensions.  So we have to fall back to guessing/only
+            // looking for built-in URLs.
+            return new Model({
+                newtab_url: 'about:newtab',
+                home_url: 'about:blank',
+            });
+        }
+
         const wiring = Model._wiring();
 
         const state: State = await resolveNamed({

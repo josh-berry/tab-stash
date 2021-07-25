@@ -264,7 +264,7 @@ describe('model/tabs', () => {
         await nextTick();
         expect(model.by_id.get(1)!.active).to.be.true;
 
-        model.whenTabActivated({tabId: 2, previousTabId: 1, windowId: 1});
+        model.whenTabActivated({tabId: 2, windowId: 1});
         await nextTick();
         expect(model.by_id.get(1)!.active).to.be.false;
         expect(model.by_id.get(2)!.active).to.be.true;

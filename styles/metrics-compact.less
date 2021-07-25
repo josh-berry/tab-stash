@@ -15,9 +15,13 @@
     --item-h: var(--icon-btn-size); /* must match because items have favicons */
 }
 
-&, body {
+&, & > body {
     font: small-caption;
     font-weight: normal;
+}
+
+&.browser-chrome, &.browser-chrome > body {
+    font-size: 8.5pt;
 }
 
 .folder-name {

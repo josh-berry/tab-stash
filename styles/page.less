@@ -61,6 +61,10 @@ header.page {
     flex-direction: column;
     padding: var(--notification-mh) var(--notification-mw);
     gap: var(--notification-mh);
+
+    // Needed to prevent the padding from blocking the user from interacting
+    // with elements at the top of the page.
+    &:empty { display: none; }
 }
 
 .notification {

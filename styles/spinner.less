@@ -8,12 +8,22 @@
             rgba(0, 0, 0, 0%) calc(100% - var(--icon-p)),
             rgba(0, 0, 0, 100%) calc(100% - var(--icon-p)),
             rgba(0, 0, 0, 100%) 100%);
+        -webkit-mask-image: radial-gradient(closest-side,
+            rgba(0, 0, 0, 0%) 0%,
+            rgba(0, 0, 0, 0%) calc(100% - var(--icon-p)),
+            rgba(0, 0, 0, 100%) calc(100% - var(--icon-p)),
+            rgba(0, 0, 0, 100%) 100%);
     }
 
     &.size-2x-icon {
         width: calc(var(--icon-size) * 2);
         height: calc(var(--icon-size) * 2);
         mask-image: radial-gradient(closest-side,
+            rgba(0, 0, 0, 0%) 0%,
+            rgba(0, 0, 0, 0%) calc(100% - calc(var(--icon-p) * 2)),
+            rgba(0, 0, 0, 100%) calc(100% - calc(var(--icon-p) * 2)),
+            rgba(0, 0, 0, 100%) 100%);
+        -webkit-mask-image: radial-gradient(closest-side,
             rgba(0, 0, 0, 0%) 0%,
             rgba(0, 0, 0, 0%) calc(100% - calc(var(--icon-p) * 2)),
             rgba(0, 0, 0, 100%) calc(100% - calc(var(--icon-p) * 2)),
@@ -27,12 +37,16 @@
 
     border-radius: 50%;
     background-image: var(--spinner-gradient);
+
     mask-position: 50% 50%;
     mask-size: cover;
     mask-type: alpha;
+    -webkit-mask-position: 50% 50%;
+    -webkit-mask-size: cover;
+    -webkit-mask-type: alpha;
 }
 
 @keyframes spinner {
-    from { rotate: 0; }
-    to { rotate: 360deg; }
+    from { transform: rotate(0); }
+    to { transform: rotate(1turn); }
 }
