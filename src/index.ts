@@ -342,9 +342,9 @@ logErrors(async () => {
         managed_urls = new_urls;
     });
 
-    browser.bookmarks.onRemoved.addListener(close_removed_bookmarks);
-    browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
-    browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
+    model.bookmarks.by_id.onUpdate.addListener(close_removed_bookmarks);
+    model.bookmarks.by_id.onMove.addListener(close_removed_bookmarks);
+    model.bookmarks.by_id.onDelete.addListener(close_removed_bookmarks);
 });
 
 
