@@ -7,29 +7,30 @@
       </component>
     </transition>
   </teleport>
-  <aside class="notification-overlay">
-    <Notification v-if="recently_updated === 'features'"
-                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
+  <transition-group tag="aside" class="notification-overlay" appear name="notification">
+    <Notification key="new-features" v-if="recently_updated === 'features'"
+                  @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       Tab Stash {{my_version}} now offers options to customize how it looks.
       See what's new!
     </Notification>
-    <Notification v-if="recently_updated === 'fixes'"
-                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
+    <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
+                  @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       Tab Stash {{my_version}} now offers options to customize how it looks.
       See what's new!
     </Notification>
-    <Notification v-if="stash_root_warning" @activate="stash_root_warning.help">
+    <Notification key="stash-root-warning" v-if="stash_root_warning"
+                  @activate="stash_root_warning.help">
       {{stash_root_warning.text}}
     </Notification>
-    <Notification v-if="recently_deleted.length === 1"
+    <Notification key="recently-deleted-one" v-if="recently_deleted.length === 1"
                   @activate="model().undelete(recently_deleted[0])">
       Deleted "{{recently_deleted[0].item.title}}".  Undo?
     </Notification>
-    <Notification v-else-if="recently_deleted.length > 1"
+    <Notification key="recently-deleted-many" v-else-if="recently_deleted.length > 1"
                   @activate="go('deleted-items.html')">
       Deleted {{recently_deleted.length}} items.  Show what was deleted?
     </Notification>
-  </aside>
+  </transition-group>
   <header class="page action-container">
     <Menu class="menu" summaryClass="action mainmenu">
       <a @click.prevent.stop="showOptions">Options...</a>

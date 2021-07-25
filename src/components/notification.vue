@@ -1,15 +1,13 @@
 <template>
-<transition appear name="notification">
-    <aside class="notification" v-if="! dismissed">
-        <div class="contents" @click.prevent.stop="activate">
-            <slot></slot>
-        </div>
-        <ButtonBox>
-            <Button class="cancel" name="Dismiss" tooltip="Dismiss notification"
-                    @action="dismiss" />
-        </ButtonBox>
-    </aside>
-</transition>
+<aside class="notification" v-if="! dismissed">
+    <div class="contents" @click.prevent.stop="activate">
+        <slot></slot>
+    </div>
+    <ButtonBox>
+        <Button class="cancel" name="Dismiss" tooltip="Dismiss notification"
+                @action="dismiss" />
+    </ButtonBox>
+</aside>
 </template>
 
 <script lang="ts">

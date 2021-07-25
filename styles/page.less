@@ -42,16 +42,28 @@ header.page {
     top: 0;
     left: 0;
     right: 0;
-    margin: var(--notification-mh) var(--notification-mw);
 
-    display: grid;
-    grid-template-columns: 1fr minmax(auto, 40rem) 1fr;
-    gap: var(--page-ph);
+    // By using the margin to center the notifications, we allow clicks to go
+    // through to whatever is behind the notifications on either side (so the
+    // user doesn't try to click the menu, even though it's not covering the
+    // notification, and get confused why the menu isn't opening.)
+    //
+    // By computing the margin this way, we center the notification-overlay if
+    // it gets too wide, while still allowing it to gracefully shrink if the
+    // window is too narrow.
+    //
+    // (This has to be escaped so Less doesn't try to calculate it at compile
+    // time...)
+    margin: 0 ~"max(0px, calc(50% - 20rem))";
+    max-width: 40rem;
+
+    display: flex;
+    flex-direction: column;
+    padding: var(--notification-mh) var(--notification-mw);
+    gap: var(--notification-mh);
 }
 
 .notification {
-    grid-column: 2;
-
     display: grid;
     grid-template-columns: 1fr 0fr;
     align-items: center;
@@ -68,7 +80,7 @@ header.page {
 
 .notification-enter-active { transition: all var(--notification-fade-time) ease-out; }
 .notification-leave-active { transition: all var(--notification-fade-time) ease-in; }
-.notification-enter, .notification-leave-to {
+.notification-enter-from, .notification-leave-to {
     opacity: 0;
     scale: 1 0.5;
 }

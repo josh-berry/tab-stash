@@ -18,7 +18,6 @@
     "glob": "^7.1",
     "idb": "^6.1",
     "less": "^4.1",
-    "less-plugin-clean-css": "^1.5",
     "mocha": "^8.2",
     "nyc": "^15.1.0",
     "ts-loader": "^9.2",
@@ -36,7 +35,7 @@
   "scripts": {
     "build": "webpack && copyfiles -u 1 'assets/**/*' dist",
     "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 'assets/**/*' dist",
-    "build-styles": "lessc --plugin=clean-css --source-map styles/index.less dist/tab-stash.css",
+    "build-styles": "lessc --math=strict --source-map styles/index.less dist/tab-stash.css",
     "test": "nyc --reporter=text --reporter=lcov --reporter=html mocha"
   }
 }
