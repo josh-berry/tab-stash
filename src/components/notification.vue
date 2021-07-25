@@ -19,6 +19,8 @@ export default defineComponent({
         Button: require('./button.vue').default,
     },
 
+    emits: ['activate', 'dismiss'],
+
     props: {
         onActivate: Function,
         onDismiss: Function,

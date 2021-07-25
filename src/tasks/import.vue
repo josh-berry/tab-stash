@@ -31,6 +31,8 @@ export default defineComponent({
         ProgressDialog: require('../components/progress-dialog.vue').default,
     },
 
+    emits: ['close'],
+
     data: () => ({
         cancel: undefined,
         progress: undefined,

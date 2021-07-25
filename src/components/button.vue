@@ -7,6 +7,7 @@
 
 <script lang="ts">
 export default {
+    emits: ['action'],
     props: {
         name: String,
         tooltip: String,

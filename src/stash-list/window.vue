@@ -26,7 +26,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
     <editable-label :class="{'folder-name': true, 'disabled': true}"
-                    :value="title" :defaultValue="title" :enabled="false" />
+                    :value="title" :defaultValue="title" />
   </header>
   <div class="contents">
     <Draggable group="tab" class="tabs" @change="move"

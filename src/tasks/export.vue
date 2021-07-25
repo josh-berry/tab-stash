@@ -69,7 +69,7 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from 'vue';
+import {PropType, defineComponent, nextTick} from 'vue';
 
 import {required} from '../util';
 import {Bookmark, friendlyFolderName} from '../model/bookmarks';
@@ -81,21 +81,29 @@ export default defineComponent({
     components: {
         Dialog: require('../components/dialog.vue').default,
     },
+
+    emits: ['close'],
+
     props: {
         stash: required(Array as PropType<Bookmark[]>),
     },
+
     computed: {
         folders(): Bookmark[] {
             return this.stash.filter((t: any) => t && t.children) as Bookmark[];
         },
     },
+
     data: () => ({
         format: 'urls-folders',
     }),
+
     mounted(this: any) { this.$nextTick(() => this.select_all()); },
+
     watch: {
         format(this: any, val: string) { this.select_all(); },
     },
+
     methods: {
         friendlyFolderName,
         leaves: function(folder: Bookmark) {
@@ -120,7 +128,7 @@ export default defineComponent({
         copy() { document.execCommand('copy'); },
         select_all() {
             (<HTMLElement>this.$refs.output).focus();
-            this.$nextTick(() => window.getSelection()!
+            nextTick(() => window.getSelection()!
                 .selectAllChildren(<Element>this.$refs.output));
         }
     },

@@ -19,23 +19,19 @@
       <Button class="restore" @action="restoreAll"
               :tooltip="`Open all tabs in this group `
                       + `(hold ${bgKey} to open in background)`" />
-      <Button v-if="allowRenameDelete"
-              class="restore-remove" @action="restoreAndRemove"
+      <Button class="restore-remove" @action="restoreAndRemove"
               :tooltip="`Open all tabs in the group and delete the group `
                       + `(hold ${bgKey} to open in background)`" />
-      <Button v-if="allowRenameDelete && ! collapsed"
-              class="remove" @action="remove"
+      <Button v-if="! collapsed" class="remove" @action="remove"
               tooltip="Delete this group" />
     </ButtonBox>
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label :class="{'folder-name': true, 'ephemeral': true,
-                            'disabled': ! allowRenameDelete}"
+    <editable-label :class="{'folder-name': true, 'ephemeral': true}"
                     :value="nonDefaultTitle"
                     :defaultValue="defaultTitle"
-                    :enabled="allowRenameDelete"
-                    @update:value="rename"></editable-label>
+                    :edit="rename"></editable-label>
   </header>
   <div class="contents">
     <Draggable group="tab" class="tabs" @change="move"
@@ -92,10 +88,6 @@ export default defineComponent({
         // Bookmark folder
         folder: required(Object as PropType<Bookmark>),
 
-        // Bookmark folder
-        dateAdded: Number,
-        allowRenameDelete: Boolean,
-
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
@@ -134,9 +126,9 @@ export default defineComponent({
         defaultTitle(): string {
             return `Saved ${(new Date(this.folder.dateAdded || 0)).toLocaleString()}`;
         },
-        nonDefaultTitle(): string {
+        nonDefaultTitle(): string | undefined {
             return getDefaultFolderNameISODate(this.folder.title) !== null
-                ? '' : this.folder.title;
+                ? undefined : this.folder.title;
         },
 
         filteredChildren(): Bookmark[] {
@@ -192,13 +184,13 @@ export default defineComponent({
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
-        rename(title: string) {
+        async rename(title: string) {
             if (title === '') {
                 // Give it a default name based on when the folder was created
-                title = genDefaultFolderName(new Date(this.dateAdded!));
+                title = genDefaultFolderName(new Date(this.folder.dateAdded || 0));
             }
 
-            browser.bookmarks.update(this.folder.id, {title}).catch(console.log);
+            await browser.bookmarks.update(this.folder.id, {title});
         },
 
         move(ev: ChangeEvent<Bookmark | Tab>) {
