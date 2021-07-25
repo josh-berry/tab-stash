@@ -8,7 +8,7 @@ export type FaviconCache = KVSCache<string, Favicon>;
 
 /** A (reactive) entry in the favicon cache.  Its value property is updated when
  * the favicon for the URL changes. */
-export type Favicon = {favIconUrl: string | null, atime: number};
+export type Favicon = {favIconUrl: string | null};
 
 /** The actual entry stored in the KVS (well, sans null). */
 export type FaviconEntry = Entry<string, Favicon | null>;
@@ -35,7 +35,18 @@ export class Model {
         for (const [_id, tab] of this._tabs.by_id) this._updateFavicon(tab);
     }
 
-    // TODO garbage collection in the service worker
+    /** Removes favicons for whom `keep(url)` returns false. */
+    async gc(keep: (url: string) => boolean) {
+        const toDelete = [];
+
+        for await (const entry of this._kvc.kvs.list()) {
+            if (keep(entry.key)) continue;
+            toDelete.push(entry.key);
+        }
+
+        console.log(`GC: Removing favicons for unneeded URLs:`, toDelete);
+        await this._kvc.kvs.delete(toDelete);
+    }
 
     /** Retrieve a favicon from the cache.
      *
@@ -44,28 +55,17 @@ export class Model {
      * known, the returned object will be filled in (and the change will be
      * visible to Vue's reactivity system).
      */
-    get(url: string): FaviconEntry {
-        let ent = this._kvc.get(urlToOpen(url));
-
-        // Stamp our updated atime (don't worry, it's lazy, and we stamp at most
-        // once per minute...)
-        const now = Date.now();
-        if (ent.value && ent.value.atime < now - 60000) {
-            ent.value.atime = now;
-            this._kvc.set(url, ent.value);
-        }
-        return ent;
-    }
+    get(url: string): FaviconEntry { return this._kvc.get(urlToOpen(url)); }
 
     /** Update the icon for a URL in the cache. */
     set(url: string, favIconUrl: string): FaviconEntry {
-        return this._kvc.set(url, {favIconUrl, atime: Date.now()});
+        return this._kvc.set(url, {favIconUrl});
     }
 
     /** Set the icon for a URL in the cache, but only if it doesn't have one
      * already. */
     maybeSet(url: string, favIconUrl: string) {
-        this._kvc.maybeInsert(url, {favIconUrl, atime: Date.now()});
+        this._kvc.maybeInsert(url, {favIconUrl});
     }
 
     private _updateFavicon(tab: Tabs.Tab) {

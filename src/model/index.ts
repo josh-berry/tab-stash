@@ -145,6 +145,16 @@ export class Model {
     // Mutators
     //
 
+    /** Garbage-collect various caches and deleted items. */
+    async gc() {
+        const deleted_exp = this.options.sync.state.deleted_items_expiration_days * 24*60*60*1000;
+
+        await this.deleted_items.dropOlderThan(deleted_exp);
+        await this.favicons.gc(url =>
+            this.bookmarks.by_url.has(url) || this.tabs.by_url.has(url));
+        await this.bookmark_metadata.gc(id => this.bookmarks.by_id.has(id));
+    }
+
     /** Stash either all tabs (if none are selected) or the selected tabs in the
      * window `windowId` (or the current window, if `windowId` is undefined).
      *

@@ -19,9 +19,6 @@ export class Model {
         this._kvc = kvc;
     }
 
-    // TODO garbage collection (taking into account the "Unstashed Tabs" virtual
-    // bookmark)
-
     get(id: string): BookmarkMetadataEntry { return this._kvc.get(id); }
 
     set(id: string, metadata: BookmarkMetadata): BookmarkMetadataEntry {
@@ -30,5 +27,17 @@ export class Model {
 
     setCollapsed(id: string, collapsed: boolean) {
         this.set(id, {...this.get(id).value || {}, collapsed});
+    }
+
+    /** Remove metadata for bookmarks for whom `keep(id)` returns false. */
+    async gc(keep: (id: string) => boolean) {
+        const toDelete = [];
+        for await (const ent of this._kvc.kvs.list()) {
+            if (keep(ent.key)) continue;
+            toDelete.push(ent.key);
+        }
+
+        console.log(`GC: Removing metadata for deleted bookmarks:`, toDelete);
+        await this._kvc.kvs.delete(toDelete);
     }
 }

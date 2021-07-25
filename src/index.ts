@@ -437,25 +437,22 @@ setTimeout(discard_old_hidden_tabs,
 
 
 //
-// Setup a periodic background job to cleanup old deleted items.
-//
-// These are items that were previously deleted by the user but have remained
-// deleted for so long they're probably not useful to keep around anymore.  We
-// need this to prevent our usage of local storage from growing unbounded.
+// Setup a periodic background job to cleanup various deleted items and caches.
+// Needed to prevent Tab Stash from consuming an unbounded amount of the user's
+// local storage.
 //
 
-const gc_deleted_items = nonReentrant(async function() {
+const gc = nonReentrant(async function() {
     // Hard-coded to a day for now, for people who don't restart their browsers
     // regularly.  If this ever needs to be changed, we can always add an option
     // for it later.
-    setTimeout(gc_deleted_items, 24*60*60*1000);
+    setTimeout(gc, 24*60*60*1000);
 
-    await model.deleted_items.dropOlderThan(
-        Date.now() - (model.options.sync.state.deleted_items_expiration_days * 24*60*60*1000));
+    await model.gc();
 });
 
-// Here we call gc_deleted_items() on browser restart to ensure it happens
+// Here we call gc() on browser restart to ensure it happens
 // at least once.
-logErrors(gc_deleted_items);
+logErrors(gc);
 
 }); // END FILE-WIDE ASYNC BLOCK

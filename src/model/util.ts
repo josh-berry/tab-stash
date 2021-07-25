@@ -21,7 +21,10 @@ export class EventfulMap<K extends Atom, V extends object> {
     constructor() {}
 
     [Symbol.iterator](): IterableIterator<[K, V]> { return this._map.entries(); }
+    keys(): IterableIterator<K> { return this._map.keys(); }
+    values(): IterableIterator<V> { return this._map.values(); }
 
+    has(key: K): boolean { return this._map.has(key); }
     get(key: K): V | undefined { return this._map.get(key); }
 
     insert(key: K, value: V) {
@@ -118,6 +121,11 @@ export class Index<K extends Atom, PK extends Atom, V extends object> {
         this.map.onDelete.addListener((k, v) => this.delete(v));
         for (const [_k, v] of this.map) this.insert(v);
     }
+
+    /** Check if a key is present in the index.  This is cheaper than get(),
+     * which will insert new empty entries (in case you want to watch if
+     * something gets inserted later). */
+    has(key: K): boolean { return this._entries.has(key); }
 
     /** Retrieve all the values matching `key` from the index.
      *
