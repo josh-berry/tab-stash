@@ -22,13 +22,16 @@
                   @activate="stash_root_warning.help">
       {{stash_root_warning.text}}
     </Notification>
-    <Notification key="recently-deleted-one" v-if="recently_deleted.length === 1"
-                  @activate="model().undelete(recently_deleted[0])">
-      Deleted "{{recently_deleted[0].item.title}}".  Undo?
-    </Notification>
-    <Notification key="recently-deleted-many" v-else-if="recently_deleted.length > 1"
-                  @activate="go('deleted-items.html')">
-      Deleted {{recently_deleted.length}} items.  Show what was deleted?
+    <Notification key="recently-deleted" v-if="recently_deleted.length > 0"
+                  @activate="recently_deleted.length === 1
+                    ? model().undelete(recently_deleted[0])
+                    : go('deleted-items.html')">
+        <span v-if="recently_deleted.length === 1">
+            Deleted "{{recently_deleted[0].item.title}}".  Undo?
+        </span>
+        <span v-else>
+            Deleted {{recently_deleted.length}} items.  Show what was deleted?
+        </span>
     </Notification>
   </transition-group>
   <header class="page action-container">
