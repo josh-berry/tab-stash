@@ -1,10 +1,18 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 import {browser} from 'webextension-polyfill-ts';
+import * as Vue from 'vue';
 
 export {
     TaskHandle, Task, TaskIterator,
     TaskMonitor, Progress, TaskCancelled,
 } from './progress';
+
+export type Atom = null | boolean | number | string;
+
+/** A value that's convertible to JSON without losing information. */
+export type ToJSON = Atom
+                 | {[k: string]: ToJSON}
+                 | [...ToJSON[]] | ToJSON[];
 
 // Args is the arguments of a function
 export type Args<F extends Function> =
@@ -20,6 +28,9 @@ export type AsyncReturnTypeOf<T extends (...args: any) => any> =
     ReturnType<T> extends Promise<infer U> ? U : void;
 
 export type Promised<T> = T extends Promise<infer V> ? V : T;
+
+// A small wrapper function to mark a Vue prop as 'required'
+export const required = <T>(type: T) => ({type, required: true} as const);
 
 // A "marker" type for a string which is a URL that is actually openable by Tab
 // Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
@@ -52,6 +63,34 @@ export const bgKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Cmd' : 'Ctrl';
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
 
+/** Tests if two JSON-like values are deeply equal. */
+export function deepEqual<T extends ToJSON>(l: T, r: T): boolean {
+    if (l === r) return true;
+    if (typeof l !== 'object' || typeof r !== 'object') return false;
+    if (l === null || r === null) return false;
+    if (l instanceof Array && r instanceof Array) {
+        if (l.length !== r.length) return false;
+        for (let i = 0; i < l.length; ++i) {
+            if (! deepEqual(l[i], r[i])) return false;
+        }
+        return true;
+    }
+    if (! (l instanceof Array) && ! (r instanceof Array)) {
+        // Casts needed here to work around a TypeScript oddity... it takes the
+        // un-narrowed type of /l/ or /r/ and tries to match against a prototype
+        // of Object.keys(), rather than taking the narrowed type (which is
+        // guaranteed to be an object).)
+        const lk = Object.keys(l as {}).sort();
+        const rk = Object.keys(r as {}).sort();
+        if (! deepEqual(lk, rk)) return false;
+        for (const k of lk) {
+            if (! deepEqual(l[k], r[k])) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 export const parseVersion = (v: string): number[] =>
     v.split('.').map(x => parseInt(x));
 
@@ -73,8 +112,8 @@ export function cmpVersions(a: string, b: string): number {
 }
 
 type BMTree = {
-    children?: BMTree[],
-    url?: string,
+    readonly children?: readonly BMTree[],
+    readonly url?: string,
 };
 export function urlsInTree(bm_tree?: BMTree): OpenableURL[] {
     let urls: OpenableURL[] = [];
@@ -180,10 +219,16 @@ export async function resolveNamed<T extends {[k: string]: any}>(
     return objects;
 }
 
-// Waits for the next iteration of the event loop (allowing event handlers etc.
-// to run in the meantime).
-export function nextTick(): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve));
+/** Waits for the next iteration of the event loop and for Vue to flush any
+ * pending watches (allowing event handlers etc. to run in the meantime). */
+export async function nextTick(): Promise<void> {
+    // We FIRST wait for the event loop, which may deliver outside events that
+    // percolate through to Vue reactive objects.
+    await new Promise(resolve => setTimeout(resolve));
+
+    // Only once we've drained the event loop do we then wait for Vue to catch
+    // up and apply any changes.
+    await Vue.nextTick.apply(undefined);
 }
 
 // Returns a function which, when called, arranges to call the async function
@@ -275,6 +320,67 @@ export class DeferQueue {
 
 
 
+/** EventWiring solves the chicken-and-egg problem of, "I want to start
+ * listening for events right away, but the object I need to update hasn't been
+ * created yet".
+ *
+ * It does this by "wiring" up events ahead of time--listener functions will be
+ * added right away to event emitters.  The listener function, when called, will
+ * push its arguments onto a queue.  Then, when the actual object is provided,
+ * the queued events will be delivered by calling the relevant method on the
+ * object. */
+export class EventWiring<O> {
+    private _forward: (method: string | number | symbol, ...args: any[]) => void;
+
+    private _queue: {method: string | number | symbol, args: any[]}[] = [];
+    private _object: any = null;
+
+    constructor() {
+        this._forward = (method, ...args) => this._queue.push({method, args});
+    }
+
+    /** Listen for events from `emitter` by registering a listener function
+     * which works as described in the class documentation.  The listener is
+     * returned so the caller can unregister it later if desired. */
+    listen<K extends keyof O>(
+        emitter: {addListener: (listener: EvWiringListener<O, K>) => void},
+        methodName: K
+    ): EvWiringListener<O, K> {
+        // CAST: TypeScript cannot infer that the function below has the same
+        // signature as what's expected by the listener, I guess because it
+        // can't look inside the EvWiringListener to determine that the function
+        // arguments match what is expected.
+        //
+        // I did test that the API is type-safe at least (it will reject method
+        // names which don't have the right signature for the listener).
+        const listener =
+            ((...rest: any) => this._forward(methodName, ...rest)) as EvWiringListener<O, K>;
+        emitter.addListener(listener);
+        return listener;
+    }
+
+    /** Deliver queued and all subsequent events to `obj`.  Call this to
+     * actually start delivering events, once you know what `obj` actually is.
+     * This can only be called once per EventWiring object. */
+    wire(obj: O) {
+        if (this._object) throw new Error(`Attempt to wire() multiple times`);
+
+        this._object = obj;
+        this._forward = (method, ...args) =>
+            this._object[method].apply(this._object, args);
+
+        for (const ev of this._queue) this._forward(ev.method, ev.args);
+        this._queue = [];
+    }
+}
+
+type EvWiringListener<O, K extends keyof O> =
+    O[K] extends (this: O, ...args: infer A) => void
+        ? (...args: A) => void
+        : never;
+
+
+
 // An AsyncIterator which yields values that are provided to it as soon as they
 // are available.  Values can be sent with send(), and close() must be called to
 // stop iteration.
@@ -329,7 +435,7 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
 }
 
 // Maps and filters an array at the same time, removing `undefined`s
-export function filterMap<T, U>(array: T[], map: (i: T) => U | undefined): U[] {
+export function filterMap<T, U>(array: readonly T[], map: (i: T) => U | undefined): U[] {
     const res = [];
     for (const i of array) {
         const m = map(i);

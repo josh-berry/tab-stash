@@ -11,18 +11,18 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import {PropType, defineComponent} from 'vue';
 
-export default Vue.extend({
+export default defineComponent({
     props: {
         v: String, // v is for "verb"
         subtext: String,
-        issue: [Array, Number],
+        issue: [Array, Number] as PropType<number | number[]>,
     },
     computed: {
-        issues() {
+        issues(): number[] {
             if (this.issue instanceof Array) return this.issue;
-            return [this.issue];
+            return [this.issue as number];
         },
     },
 });

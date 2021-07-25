@@ -1,6 +1,6 @@
 const path = require("path");
 const glob = require('glob').sync;
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const VueLoaderPlugin = require('vue-loader/dist/plugin').default;
 const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
@@ -33,7 +33,7 @@ module.exports = {
         modules: [path.resolve(__dirname, 'src'), 'node_modules'],
         extensions: ['.ts', '.js', '.vue', '.json'],
         alias: {
-            'vue$': 'vue/dist/vue.runtime.esm'
+            'vue$': 'vue/dist/vue.runtime.esm-bundler'
         },
         fallback: {
             // Don't try to polyfill crypto; we detect in random.ts whether to

@@ -14,12 +14,13 @@
 </template>
 
 <script lang="ts">
-import ButtonBox from '../components/button-box.vue';
-import Button from '../components/button.vue';
 import {cmpVersions} from '../util';
 
 export default {
-    components: {ButtonBox, Button},
+    components: {
+        ButtonBox: require('../components/button-box.vue').default,
+        Button: require('../components/button.vue').default,
+    },
     props: {v: String},
     inject: ['the_last_notified_version'],
     data: () => ({collapsed: undefined}),

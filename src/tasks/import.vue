@@ -20,31 +20,39 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import {defineComponent} from 'vue';
 import {ParseOptions, parse, importURLs} from './import';
 import { TaskMonitor } from '../util';
+import {Model} from '../model';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Dialog: require('../components/dialog.vue').default,
         ProgressDialog: require('../components/progress-dialog.vue').default,
     },
 
+    emits: ['close'],
+
     data: () => ({
-      cancel: undefined,
-      progress: undefined,
-      splitOn: 'p+h' as ParseOptions['splitOn'],
+        cancel: undefined,
+        progress: undefined,
+        splitOn: 'p+h' as ParseOptions['splitOn'],
     }),
+
+    inject: ['$model'],
 
     mounted() { (<HTMLElement>this.$refs.data).focus(); },
 
     methods: {
+        model(): Model { return (<any>this).$model as Model },
+
         start() {
-            const groups = parse(this.$refs.data as Element,
-                                 {splitOn: this.splitOn});
+            const groups = parse(
+                this.$refs.data as Element, this.model(), {splitOn: this.splitOn});
 
             const task = TaskMonitor.run(tm =>
-                importURLs(groups, tm).finally(() => this.$emit('close')));
+                importURLs(this.model(), groups, tm)
+                    .finally(() => this.$emit('close')));
 
             (<any>this).cancel = () => task.cancel();
             (<any>this).progress = task.progress;
@@ -54,7 +62,7 @@ export default Vue.extend({
 </script>
 
 <style module>
-.input > :global(.dialog) {
+.input {
     grid-template-columns: 1fr;
     grid-template-rows: 0fr 1fr;
     width: 60rem;
@@ -62,7 +70,7 @@ export default Vue.extend({
     height: 67%;
 }
 
-.input :global(.input) {
+.input > :global(.input) {
     display: block;
     overflow-y: auto;
     overflow-wrap: anywhere;

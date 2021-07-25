@@ -15,7 +15,13 @@ export default class MemoryKVS<K extends Key, V extends Value>
     readonly onSet: Listener<(entries: Entry<K, V>[]) => void> = new Listener();
     readonly onDelete: Listener<(keys: K[]) => void> = new Listener();
 
-    private data = new Map<K, V>();
+    /** The in-memory KVS data, exposed here for readers to be able to inspect
+     * the KVS directly without having to go thru async methods.
+     *
+     * This should mainly be used for testing purposes; if you modify it
+     * directly, onSet and/or onDelete events will not be fired.  (You should
+     * not modify it directly under normal circumstances.) */
+    readonly data = new Map<K, V>();
 
     async get(keys: K[]): Promise<Entry<K, V>[]> {
         return keys.map(k => ({key: k, value: this.data.get(k)}))

@@ -217,7 +217,7 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue, { PropType } from 'vue';
+import {PropType, defineComponent, reactive} from 'vue';
 
 import launch from '../launch-vue';
 import * as Options from '../model/options';
@@ -240,7 +240,7 @@ function options() {
     return ret;
 }
 
-const Main = Vue.extend({
+const Main = defineComponent({
     components: {
         FeatureFlag: require('./feature-flag').default,
     },
@@ -296,10 +296,10 @@ const Main = Vue.extend({
 export default Main;
 
 launch(Main, async() => {
-    const opts = new Options.Model(await Options.live_source());
+    const opts = await Options.Model.live();
     (<any>globalThis).model = opts;
     return {
-        propsData: Vue.observable({
+        propsData: reactive({
             hasSidebar: !! browser.sidebarAction,
             sync: opts.sync.state,
             local: opts.local.state,

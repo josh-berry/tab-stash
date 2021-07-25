@@ -116,6 +116,7 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
     try {
         events = watchForTabEvents();
         tab = await browser.tabs.create({active: false, url});
+        if (browser.tabs.hide) await browser.tabs.hide(tab.id!);
         timeout = setTimeout(onTimeout, LOADING_TIMEOUT);
 
         // Watch for tab events until the timeout above fires or we get a

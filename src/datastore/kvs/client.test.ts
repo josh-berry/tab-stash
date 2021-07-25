@@ -1,7 +1,9 @@
+// This must come first because of dependencies on mocks which must be loaded
+// before trying to load the "live" code.
+import {tests} from './index.test';
+
 import Client from './client';
 import * as Proto from './proto';
-
-import {tests} from './index.test';
 
 async function kvs_factory(): Promise<Client<string, string>> {
     return new Client(new MockServicePort());

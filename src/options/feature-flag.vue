@@ -5,33 +5,30 @@
                 :href="`https://github.com/josh-berry/tab-stash/issues/${issue}`"
             >#{{issue}}</a>]</span></h5></label>
         <input type="checkbox" :name="name" :id="name"
-               :checked="value" @input="set" />
-        <button @click="reset" :disabled="value === default_value">Reset</button>
+               :checked="modelValue" @input="set" />
+        <button @click="reset" :disabled="modelValue === default_value">Reset</button>
         <div><slot/></div>
     </section>
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
-export default Vue.extend({
-    model: {
-        prop: 'value',
-        event: 'input',
-    },
+import {defineComponent} from 'vue'
+export default defineComponent({
+    emits: ['update:modelValue'],
 
     props: {
         name: String,
-        value: Boolean,
+        modelValue: Boolean,
         default_value: Boolean,
         issue: Number,
     },
 
     methods: {
         set(ev: InputEvent) {
-            this.$emit('input', (<HTMLInputElement>ev.target).checked);
+            this.$emit('update:modelValue', (<HTMLInputElement>ev.target).checked);
         },
         reset() {
-            this.$emit('input', this.default_value);
+            this.$emit('update:modelValue', this.default_value);
         },
     },
 })

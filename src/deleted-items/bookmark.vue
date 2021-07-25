@@ -1,5 +1,6 @@
 <template>
 <div v-if="loading" class="folder-item deleted loading">
+    <ItemIcon class="spinner size-icon" />
     <span class="text status-text">{{loading}}...</span>
 </div>
 <div v-else class="folder-item deleted action-container">
@@ -18,14 +19,13 @@
 </template>
 
 <script lang="ts">
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
 import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedBookmark, Deletion} from '../model/deleted-items';
-import {bookmarkTabs, mostRecentUnnamedFolderId} from '../stash';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -79,25 +79,25 @@ export default Vue.extend({
         },
 
         restore() { this.run("Restoring", async() => {
-            if (! this.deletion) {
-                await bookmarkTabs(await mostRecentUnnamedFolderId(), [this.item]);
-                await this._remove();
-            } else {
-                // Try to put the bookmark back in its original folder
-                await this.model().deleted_items.undelete(this.deletion);
+            if (this.parent) {
+                // We are restoring an individual child of a deleted parent
+                // folder.
+                await this.model().undeleteChild(this.parent, this.childIndex!);
+
+            } else if (this.deletion) {
+                // We are restoring a top-level deletion.
+                await this.model().undelete(this.deletion);
             }
         })},
 
-        async remove() { this.run("Deleting Forever", () => this._remove()); },
-
-        async _remove() {
+        async remove() { this.run("Deleting Forever", () => {
             if (this.deletion) {
-                await this.model().deleted_items.drop(this.deletion.key);
+                return this.model().deleted_items.drop(this.deletion.key);
             } else {
-                await this.model().deleted_items.dropChildItem(
-                    this.parent!.key, this.childIndex);
+                return this.model().deleted_items.dropChildItem(
+                    this.parent!.key, this.childIndex!);
             }
-        },
+        })},
     },
 });
 </script>

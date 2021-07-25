@@ -1,97 +1,96 @@
 <template>
-<input v-if="editing" type="text"
-       :value="value" :placeholder="defaultValue" :disabled="disabled"
+<input v-if="state != 'displaying'" type="text"
+       :value="editableValue" :placeholder="defaultValue" :disabled="state != 'editing'"
        ref="input"
        @dragenter.stop="" @dragover.stop="" @mousedown.stop=""
        @pointerdown.stop="" @touchstart.stop="" @click.stop=""
        @dblclick.stop="" @altclick.stop=""
        @blur="commit" @keyup.enter.prevent="commit"
-       @keyup.esc.prevent="editing = false">
-<span v-else :title="value !== '' ? value : defaultValue"
-      @click.prevent.stop="begin">{{value !== '' ? value : defaultValue}}</span>
+       @keyup.esc.prevent="cancel">
+<span v-else :title="displayValue" @click.prevent.stop="begin">{{displayValue}}</span>
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import {defineComponent, PropType, nextTick} from 'vue';
 
-export default Vue.extend({
+import {required} from '../util';
+
+export default defineComponent({
     props: {
-        // Whether to allow editing or not
-        enabled: Boolean,
+        /** If provided, the async function to call to do an edit.  Otherwise,
+         * editing is disabled. */
+        edit: Function as PropType<(newValue: string) => Promise<void>>,
 
-        // The value to show
+        /** The value to show */
         value: String,
 
-        // The value to show if no value is provided
-        defaultValue: String,
+        /** The value to show if no value is provided */
+        defaultValue: required(String),
     },
 
     data: () => ({
-        editing: false,
-        oldValue: undefined as string | undefined,
-        newValue: undefined as string | undefined,
+        state: 'displaying' as 'displaying' | 'editing' | 'committing',
+        dirtyValue: undefined as string | undefined,
     }),
 
     computed: {
-        disabled(): boolean {
-            // We disable the text box if we're in the middle of an update
-            // operation...
-            return this.oldValue !== undefined
-                // ...and we haven't seen a change in the model yet.
-                && this.value === this.oldValue;
-        }
+        displayValue(): string {
+            return this.dirtyValue ?? this.value ?? this.defaultValue;
+        },
+        editableValue(): string {
+            return this.dirtyValue ?? this.value ?? '';
+        },
     },
 
-    updated() {
-        // If we are just now showing the text box, make sure it's focused so
-        // the user can start typing.
-        const inp = this.$refs.input as HTMLInputElement | undefined;
-        if (inp && ! this.disabled) inp.focus();
-
-        // All of this convoluted logic is to prevent the user from seeing a
-        // momentary switch back to the "old" value before the model has
-        // actually been updated.  Basically we save and show the user the new
-        // value they entered (/newValue/), but with the text box disabled,
-        // until we see SOME change to the actual model value (regardless of
-        // what it is).
-        //
-        // At that point, we discard the old and new values and use whatever the
-        // model provides, resetting our state to "not editing".
-        if (this.editing
-            && this.oldValue !== undefined
-            && this.oldValue !== this.value)
-        {
-            this.editing = false;
-            this.oldValue = undefined;
-            this.newValue = undefined;
-        }
+    watch: {
+        value() {
+            // Whenever the actual value changes, we want to clear the
+            // dirtyValue, so we go back to using the actual value (and always
+            // show the most up-to-date info to the user).
+            //
+            // This is more of a safety net and should only be needed in rare
+            // corner cases (e.g. we see an update while in the process of
+            // editing/committing).
+            this.dirtyValue = undefined;
+        },
     },
 
     methods: {
-        begin: function() {
-            if (! this.enabled) return;
-            this.editing = true;
+        begin() {
+            if (! this.edit) return;
+            this.state = 'editing';
+            nextTick().then(() => { (this.$refs.input as HTMLInputElement).focus(); });
         },
-        commit: function() {
+        cancel() {
+            if (this.state !== 'editing') return;
+            this.state = 'displaying';
+        },
+        commit() {
+            if (this.state !== 'editing') return;
             const inp = this.$refs.input as HTMLInputElement;
-            if (inp.value === this.value) {
-                this.editing = false;
+            if (! this.edit || inp.value === this.value) {
+                this.cancel();
                 return;
             }
 
-            // This convoluted logic saves the old value (so we know when the
-            // model has been changed), and the new value (so we can continue to
-            // display it to the user), and then disables the text box and fires
-            // the event.  At some time later, we expect something to magically
-            // update the model, and the logic in "upddated" above will kick in
-            // and move us back to not-editing state.
-            this.oldValue = this.value;
-            this.newValue = inp.value;
-            this.$emit('update:value', this.newValue);
+            // Save the dirty value so it's visible to the user, and move into
+            // 'committing' state (where the input box is still editable but
+            // disabled).
+            this.dirtyValue = inp.value;
+            this.state = 'committing';
+
+            // When the edit operation completes, we go back into 'displaying'
+            // state and clear `dirtyValue`.  Note that we wait a tick for the
+            // underlying model (and thus `value`) to be updated first, so that
+            // the user doesn't see any flickering back to the original value.
+            this.edit(this.dirtyValue)
+                .catch(console.log)
+                .finally(nextTick)
+                .finally(() => {
+                    this.dirtyValue = undefined;
+                    this.state = 'displaying';
+                });
         },
     },
 });
 </script>
-
-<style>
-</style>

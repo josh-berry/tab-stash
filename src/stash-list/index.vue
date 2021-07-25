@@ -1,31 +1,39 @@
 <template>
 <main>
-  <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
-             v-on="dialog.on" @close="dialog = undefined">
-  </component>
-  <aside class="notification-overlay">
-    <Notification v-if="recently_updated === 'features'"
-                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
+  <teleport to="body">
+    <transition appear name="dialog">
+      <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
+                 v-on="dialog.on" @close="dialog = undefined">
+      </component>
+    </transition>
+  </teleport>
+  <transition-group tag="aside" class="notification-overlay" appear name="notification">
+    <Notification key="new-features" v-if="recently_updated === 'features'"
+                  @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       Tab Stash {{my_version}} now offers options to customize how it looks.
       See what's new!
     </Notification>
-    <Notification v-if="recently_updated === 'fixes'"
-                @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
+    <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
+                  @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       Tab Stash {{my_version}} now offers options to customize how it looks.
       See what's new!
     </Notification>
-    <Notification v-if="root_folder_warning" @activate="root_folder_warning[1]">
-      {{root_folder_warning[0]}}
+    <Notification key="stash-root-warning" v-if="stash_root_warning"
+                  @activate="stash_root_warning.help">
+      {{stash_root_warning.text}}
     </Notification>
-    <Notification v-if="recently_deleted.length === 1"
-                  @activate="model().deleted_items.undelete(recently_deleted[0])">
-      Deleted "{{recently_deleted[0].item.title}}".  Undo?
+    <Notification key="recently-deleted" v-if="recently_deleted.length > 0"
+                  @activate="recently_deleted.length === 1
+                    ? model().undelete(recently_deleted[0])
+                    : go('deleted-items.html')">
+        <span v-if="recently_deleted.length === 1">
+            Deleted "{{recently_deleted[0].item.title}}".  Undo?
+        </span>
+        <span v-else>
+            Deleted {{recently_deleted.length}} items.  Show what was deleted?
+        </span>
     </Notification>
-    <Notification v-else-if="recently_deleted.length > 1"
-                  @activate="go('deleted-items.html')">
-      Deleted {{recently_deleted.length}} items.  Show what was deleted?
-    </Notification>
-  </aside>
+  </transition-group>
   <header class="page action-container">
     <Menu class="menu" summaryClass="action mainmenu">
       <a @click.prevent.stop="showOptions">Options...</a>
@@ -49,33 +57,13 @@
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <folder :title="tabfolder_title" :allowRenameDelete="false"
-            ref="unstashed" :children="unstashed_tabs.children"
-            :filter="unstashedFilter" :userFilter="search_filter"
-            :isItemStashed="isItemStashed"
-            :metadata="metadata_cache.get('')">
-    </folder>
-    <!-- XXX This is presently disabled because it exposes a bug in
-         Vue.Draggable, wherein if the draggable goes away as the result of a
-         drag operation, the "ghost" element which is being dragged doesn't get
-         cleaned up, and it looks like there is a duplicate.
-
-         We hit the bug in this case, because the "Unfiled" folder disappears
-         after the last unfiled entry is dragged out of it.
-
-    <folder title="Unfiled" :allowRenameDelete="false"
-            :id="stashed_tabs.id" :children="stashed_tabs.children"
-            :dateAdded="stashed_tabs.dateAdded"
-            :filter="search_filter" :isItemStashed="isItemStashed"
-            :hideIfEmpty="true">
-    </folder>
-    -->
+    <window :tabs="tabs" :userFilter="search_filter"
+            :metadata="model().bookmark_metadata.get('')" />
   </div>
-  <folder-list ref="stashed" :folders="stashed_tabs.children"
+  <folder-list ref="stashed" v-if="stash_root"
+               :parentFolder="stash_root"
                :userFilter="search_filter"
-               :hideIfEmpty="searchtext !== ''"
-               :metadataCache="metadata_cache">
-  </folder-list>
+               :hideIfEmpty="searchtext !== ''" />
   <footer class="page status-text">
     Tab Stash {{my_version}} &mdash;
     <a :href="pageref('whats-new.html')">What's New</a>
@@ -85,24 +73,20 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue, {PropType} from 'vue';
+import {defineComponent} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
-    urlsInTree, TaskMonitor, resolveNamed, Promised, logErrors, textMatcher,
-    parseVersion,
+    urlsInTree, TaskMonitor, resolveNamed, logErrors, textMatcher,
+    parseVersion, required,
 } from '../util';
-import {
-    isURLStashable, rootFolder, rootFolderWarning, tabStashTree,
-} from '../stash';
 import ui_model from '../ui-model';
-import {Model, State} from '../model/';
-import {StashState, Bookmark, Tab} from '../model/browser';
-import * as DI from '../model/deleted-items';
-import {Cache} from '../datastore/cache/client';
+import {Model, DeletedItems as DI} from '../model';
+import {Tab} from '../model/tabs';
+import {Bookmark} from '../model/bookmarks';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
-const Main = Vue.extend({
+const Main = defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -113,17 +97,12 @@ const Main = Vue.extend({
         Menu: require('../components/menu.vue').default,
         Notification: require('../components/notification.vue').default,
         ProgressDialog: require('../components/progress-dialog.vue').default,
+        Window: require('./window.vue').default,
     },
 
     props: {
-        state: Object as PropType<State>,
-        unstashed_tabs: Object as PropType<Window>,
-        stashed_tabs: Object as PropType<Bookmark>,
-        root_id: String,
-        my_version: String,
-        metadata_cache: Object as PropType<Cache<{collapsed: boolean}>>,
-        root_folder_warning: Object as PropType<
-            Promised<ReturnType<typeof rootFolderWarning>>>,
+        window_id: required(Number),
+        my_version: required(String),
     },
 
     data: () => ({
@@ -133,13 +112,18 @@ const Main = Vue.extend({
     }),
 
     computed: {
-        tabfolder_title(): string {
-            if (this.state.options.sync.show_all_open_tabs) return "Open Tabs";
-            return "Unstashed Tabs";
+        stash_root_warning(): {text: string, help: () => void} | undefined {
+            return this.model().bookmarks.stash_root_warning.value;
+        },
+        tabs(): readonly Tab[] {
+            return this.model().tabs.by_window.get(this.window_id) ?? [];
+        },
+        stash_root(): Bookmark | undefined {
+            return this.model().bookmarks.stash_root.value;
         },
 
         recently_updated(): undefined | 'features' | 'fixes' {
-            const last_notified = this.state.options.local.last_notified_version;
+            const last_notified = this.model().options.local.state.last_notified_version;
             if (last_notified === this.my_version) return undefined;
 
             const my = parseVersion(this.my_version);
@@ -150,13 +134,14 @@ const Main = Vue.extend({
         },
 
         recently_deleted(): DI.Deletion[] {
-            return this.state.deleted_items.recentlyDeleted;
+            return this.model().deleted_items.state.recentlyDeleted;
         },
 
         counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
-            for (const f of this.stashed_tabs.children!) {
-                if (f?.children) {
+            if (this.stash_root?.children) {
+                for (const f of this.stash_root.children!) {
+                    if (! f?.children) continue;
                     tabs += f.children.length;
                     groups++;
                 }
@@ -180,6 +165,37 @@ const Main = Vue.extend({
         if (document.documentElement.classList.contains('popup-view')) {
             (<HTMLInputElement>this.$refs.search).focus();
         }
+
+        // The following block of code is just to help me test out progress
+        // dialogs (since they only appear for a limited time when things are
+        // happening):
+        /*
+        this.dialog = {
+            class: 'ProgressDialog',
+            props: {
+                cancel() {},
+                progress: {
+                    status: 'Top',
+                    max: 100,
+                    value: 50,
+                    children: [
+                        {
+                            status: 'Child 1',
+                            max: 10,
+                            value: 5,
+                            children: [
+                                {status: 'Grandchild A', max: 5, value: 1, children: []},
+                                {status: 'Grandchild B', max: 5, value: 2, children: []},
+                                {status: 'Grandchild C', max: 5, value: 5, children: []},
+                            ]
+                        },
+                        {status: 'Child 2', max: 10, value: 2, children: []},
+                        {status: 'Child 3', max: 10, value: 0, children: []},
+                    ],
+                }
+            },
+        };
+        */
     },
 
     methods: {
@@ -199,17 +215,6 @@ const Main = Vue.extend({
                 || (i.url && this.text_matcher(i.url));
         },
 
-        unstashedFilter(t: Tab) {
-            return ! t.hidden && ! t.pinned && t.url
-                && isURLStashable(t.url)
-                && (this.state.options.sync.show_all_open_tabs || ! this.isItemStashed(t));
-        },
-
-        isItemStashed(i: Tab) {
-            return i.related && i.related.find(
-                i => i instanceof Bookmark && i.isInFolder(this.root_id));
-        },
-
         showOptions() {
             browser.runtime.openOptionsPage().catch(console.log);
         },
@@ -224,17 +229,18 @@ const Main = Vue.extend({
         showExportDialog() {
             this.dialog = {
                 class: 'ExportDialog',
-                props: {stash: this.stashed_tabs.children},
+                props: {stash: this.stash_root?.children || []},
             };
         },
 
         async fetchMissingFavicons() { logErrors(async() => {
-            const cache = Cache.open('favicons');
-            const urls = new Set(urlsInTree(await tabStashTree()));
+            const favicons = this.model().favicons;
+            const stash_root = this.model().bookmarks.stash_root.value;
+            const urls = new Set(urlsInTree(stash_root));
 
             // This is just an async filter :/
             for (const url of urls) {
-                const favicon = await cache.get(url);
+                const favicon = favicons.get(url);
                 if (favicon && favicon.value) urls.delete(url);
             }
 
@@ -247,7 +253,7 @@ const Main = Vue.extend({
             try {
                 for await (const info of iter) {
                     if (info.favIconUrl) {
-                        cache.set(info.originalUrl, info.favIconUrl);
+                        favicons.set(info.originalUrl, info.favIconUrl);
                     }
                 }
             } finally {
@@ -261,36 +267,22 @@ export default Main;
 
 launch(Main, async() => {
     const p = await resolveNamed({
-        stash_state: StashState.make(),
-        root: rootFolder(),
+        model: ui_model(),
         win: browser.windows.getCurrent(),
         curtab: browser.tabs.getCurrent(),
         extinfo: browser.management.getSelf(),
-        warning: rootFolderWarning(),
     });
-
-    const model = await ui_model();
-
-    // For debugging purposes only...
-    (<any>globalThis).metadata_cache = Cache.open('bookmarks');
-    (<any>globalThis).favicon_cache = Cache.open('favicons');
-    (<any>globalThis).stash_state = p.stash_state;
 
     return {
         propsData: {
-            state: model.state,
-            unstashed_tabs: p.stash_state.wins_by_id.get(p.win.id!),
-            stashed_tabs: p.stash_state.bms_by_id.get(p.root.id),
-            root_id: p.root.id,
+            window_id: p.win.id!,
             my_version: p.extinfo.version,
-            metadata_cache: Cache.open('bookmarks'),
-            root_folder_warning: p.warning,
         },
         provide: {
-            $model: model,
+            $model: p.model,
         },
         methods: {
-            model() { return model; },
+            model() { return p.model; },
         },
     };
 });

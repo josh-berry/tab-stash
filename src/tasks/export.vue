@@ -21,7 +21,7 @@
         </form>
 
         <!-- HTML format -->
-        <output v-if="format.startsWith('html-')" ref="output"
+        <output v-if="format.startsWith('html-')" ref="output" tabindex="0"
                 :for="$style.dlg">
             <div v-for="f of folders" :key="f.id">
                 <h3>{{friendlyFolderName(f.title)}}</h3>
@@ -39,7 +39,7 @@
 
         <!-- Markdown format -->
         <output v-if="format == 'markdown'" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
+                :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
                 <div>## {{friendlyFolderName(f.title)}}</div>
                 <div v-for="bm of leaves(f)" :key="bm.id">- [{{quote_link_md(bm.title)}}](<a :href="bm.url">{{quote_url_md(bm.url)}}</a>)</div>
@@ -49,7 +49,7 @@
 
         <!-- OneTab format -->
         <output v-if="format == 'onetab'" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
+                :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
                 <div v-for="bm of leaves(f)" :key="bm.id"><a :href="bm.url">{{bm.url}}</a> | {{bm.title}}</div>
                 <div><br/></div>
@@ -58,7 +58,7 @@
 
         <!-- List of URLs -->
         <output v-if="format.startsWith('urls-')" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
+                :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
                 <div v-if="format.endsWith('-folders')">## {{friendlyFolderName(f.title)}}</div>
                 <div v-for="bm of leaves(f)" :key="bm.id"><a :href="bm.url">{{bm.url}}</a></div>
@@ -69,33 +69,41 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import {PropType, defineComponent, nextTick} from 'vue';
 
-import {Bookmark} from '../model/browser';
-import {friendlyFolderName} from '../stash';
+import {required} from '../util';
+import {Bookmark, friendlyFolderName} from '../model/bookmarks';
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Dialog: require('../components/dialog.vue').default,
     },
+
+    emits: ['close'],
+
     props: {
-        stash: Array,
+        stash: required(Array as PropType<Bookmark[]>),
     },
+
     computed: {
-        folders: function() {
-            return this.stash.filter((t: any) => t && t.children);
+        folders(): Bookmark[] {
+            return this.stash.filter((t: any) => t && t.children) as Bookmark[];
         },
     },
+
     data: () => ({
         format: 'urls-folders',
     }),
+
     mounted(this: any) { this.$nextTick(() => this.select_all()); },
+
     watch: {
         format(this: any, val: string) { this.select_all(); },
     },
+
     methods: {
         friendlyFolderName,
         leaves: function(folder: Bookmark) {
@@ -120,7 +128,7 @@ export default Vue.extend({
         copy() { document.execCommand('copy'); },
         select_all() {
             (<HTMLElement>this.$refs.output).focus();
-            this.$nextTick(() => window.getSelection()!
+            nextTick(() => window.getSelection()!
                 .selectAllChildren(<Element>this.$refs.output));
         }
     },
@@ -128,7 +136,7 @@ export default Vue.extend({
 </script>
 
 <style module>
-.dlg > * {
+.dlg {
     overflow: hidden;
     grid-template-columns: 1fr;
     grid-template-rows: 0fr 1fr;
@@ -137,27 +145,27 @@ export default Vue.extend({
     height: 67%;
 }
 
-.dlg > * > form {
+.dlg > form {
     display: flex;
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.dlg > * > form > nav {
+.dlg > form > nav {
     display: flex;
     flex-direction: row;
     row-gap: inherit;
     column-gap: inherit;
 }
-.dlg > * > form > select, .dlg > * > form > nav { min-width: max-content; }
-.dlg > * > form > .help { flex-grow: 1; text-align: right; }
+.dlg > form > select, .dlg > form > nav { min-width: max-content; }
+.dlg > form > .help { flex-grow: 1; text-align: right; }
 
 @media all and (max-width: 20rem) {
-    .dlg > * > form > label.format { display: none; }
+    .dlg > form > label.format { display: none; }
 }
 
-.dlg > * > output {
+.dlg > output {
     display: block;
     overflow-y: auto;
     overflow-wrap: anywhere;

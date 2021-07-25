@@ -6,21 +6,37 @@
 import {resolveNamed} from './util';
 import {listen} from './util/nanoservice';
 import KVSService from './datastore/kvs/service';
+import {KVSCache} from './datastore/kvs';
 
-import {Model} from './model';
-import * as Options from './model/options';
-import * as DI from './model/deleted-items';
+import * as M from './model';
 
-export default async function(): Promise<Model> {
-    const sources = await resolveNamed({
-        options: Options.live_source(),
-        deleted_items: KVSService.open<string, DI.SourceValue>(
+export default async function(): Promise<M.Model> {
+    const kvs = await resolveNamed({
+        deleted_items: KVSService.open<string, M.DeletedItems.SourceValue>(
             'deleted_items', 'deleted_items'),
+        favicons: KVSService.open<string, M.Favicons.Favicon>(
+            'favicons', 'favicons'),
+        bookmark_metadata: KVSService.open<string, M.BookmarkMetadata.BookmarkMetadata>(
+            'bookmark-metadata', 'bookmark-metadata'),
     });
 
-    listen('deleted_items', sources.deleted_items);
+    const sources = await resolveNamed({
+        browser_settings: M.BrowserSettings.Model.live(),
+        options: M.Options.Model.live(),
+        tabs: M.Tabs.Model.from_browser(),
+        bookmarks: M.Bookmarks.Model.from_browser(),
+        deleted_items: new M.DeletedItems.Model(kvs.deleted_items),
+    });
 
-    const model = new Model(sources);
+    listen('deleted_items', kvs.deleted_items);
+    listen('favicons', kvs.favicons);
+    listen('bookmark-metadata', kvs.bookmark_metadata);
+
+    const model = new M.Model({
+        ...sources,
+        favicons: new M.Favicons.Model(sources.tabs, new KVSCache(kvs.favicons)),
+        bookmark_metadata: new M.BookmarkMetadata.Model(new KVSCache(kvs.bookmark_metadata)),
+    });
     (<any>globalThis).model = model;
     return model;
 };

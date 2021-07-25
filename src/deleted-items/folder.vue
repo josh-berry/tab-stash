@@ -1,5 +1,6 @@
 <template>
 <div v-if="loading" class="folder-item deleted loading">
+    <ItemIcon class="spinner size-icon" />
     <span class="text status-text">{{loading}}...</span>
 </div>
 <div v-else>
@@ -31,13 +32,13 @@
 </template>
 
 <script lang="ts">
-import Vue, {PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
-import {logErrors} from '../util';
+import {logErrors, required} from '../util';
 import {Model} from '../model';
 import {DeletedFolder, DeletedItem, Deletion} from '../model/deleted-items';
 
-export default Vue.extend({
+export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
@@ -49,7 +50,7 @@ export default Vue.extend({
     inject: ['$model'],
 
     props: {
-        deletion: Object as PropType<Deletion>,
+        deletion: required(Object as PropType<Deletion>),
     },
 
     data: () => ({
@@ -78,7 +79,7 @@ export default Vue.extend({
         },
 
         restore() { this.run("Restoring", async() => {
-            await this.model().deleted_items.undelete(this.deletion);
+            await this.model().undelete(this.deletion);
         })},
 
         remove() { this.run("Deleting Forever", async() => {

@@ -1,24 +1,25 @@
 <template>
-<transition appear name="notification">
-    <aside class="notification" v-if="! dismissed">
-        <div class="contents" @click.prevent.stop="activate">
-            <slot></slot>
-        </div>
-        <ButtonBox>
-            <Button class="cancel" name="Dismiss" tooltip="Dismiss notification"
-                    @action="dismiss" />
-        </ButtonBox>
-    </aside>
-</transition>
+<aside class="notification" v-if="! dismissed">
+    <div class="contents" @click.prevent.stop="activate">
+        <slot></slot>
+    </div>
+    <ButtonBox>
+        <Button class="cancel" name="Dismiss" tooltip="Dismiss notification"
+                @action="dismiss" />
+    </ButtonBox>
+</aside>
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
-import ButtonBox from './button-box.vue';
-import Button from './button.vue';
+import {defineComponent} from 'vue';
 
-export default Vue.extend({
-    components: {ButtonBox, Button},
+export default defineComponent({
+    components: {
+        ButtonBox: require('./button-box.vue').default,
+        Button: require('./button.vue').default,
+    },
+
+    emits: ['activate', 'dismiss'],
 
     props: {
         onActivate: Function,

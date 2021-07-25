@@ -299,25 +299,22 @@
 
 <script lang="ts">
 import {browser} from 'webextension-polyfill-ts';
-import Vue from 'vue';
+import {defineComponent} from 'vue';
 import launch, {pageref} from '../launch-vue';
 
 import * as Options from "../model/options";
-import {resolveNamed} from '../util';
+import {resolveNamed, required} from '../util';
 
-import Version from './version.vue';
-import L from './item.vue';
-
-const Main = Vue.extend({
+const Main = defineComponent({
     components: {
-        Version,
-        L,
+        Version: require('./version.vue').default,
+        L: require('./item.vue').default,
     },
     provide() {
         return {the_last_notified_version: this.last_notified_version};
     },
     props: {
-        last_notified_version: String,
+        last_notified_version: required(String),
     },
     methods: {
         pageref,
@@ -327,7 +324,7 @@ export default Main;
 
 launch(Main, async() => {
     const r = await resolveNamed({
-        options: Options.live_source(),
+        options: Options.Model.live(),
         extn: browser.management.getSelf(),
     });
     (<any>globalThis).options = r.options;

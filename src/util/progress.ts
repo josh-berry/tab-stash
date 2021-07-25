@@ -264,6 +264,8 @@ async function onCancelHandler(data: any[], tm: TaskMonitor) {
 
 //***** END DOCUMENTATION AND CLEVER USE OF MULTI-LINE COMMENTS */
 
+import {reactive} from "vue";
+
 
 
 export interface TaskHandle {
@@ -329,7 +331,7 @@ export class TaskMonitor {
     }
 
     constructor(parent?: TaskMonitor, weight?: number) {
-        this.progress = new Progress(parent?.progress, weight);
+        this.progress = make_progress(parent?.progress, weight);
         this._parent = parent;
         if (this._parent) {
             this._parent._children.push(this);
@@ -395,65 +397,69 @@ export class TaskMonitor {
     }
 }
 
-export class Progress {
-    readonly id: string = '';
-    status: string = '';
+export interface Progress {
+    readonly id: string;
+    status: string;
+    value: number;
+    max: number;
+    readonly children: Progress[];
 
-    private _value: number = 0;
-    private _max: number = 1;
+    _child_count: number;
+    _detach(): void;
+}
 
-    private _children: Progress[] = [];
-    private _subcount: number = 0;
+function make_progress(parent?: Progress, weight?: number): Progress {
+    let value = 0;
+    let max = 1;
 
-    private _parent?: Progress;
-    private _weight: number = 1;
-
-    constructor(parent?: Progress, weight?: number) {
+    function updateParentProgress(old_value: number, old_max: number) {
         if (parent) {
-            this.id = `${parent.id}/${parent._subcount}`;
-            if (weight && weight > 0) this._weight = weight;
-
-            this._parent = parent;
-            this._parent._subcount += 1;
-            this._parent._children.push(this);
+            const old_progress = (weight || 1) * old_value / old_max;
+            const new_progress = (weight || 1) * value / max;
+            parent.value += new_progress - old_progress;
         }
     }
 
-    get value() { return this._value; }
-    get max() { return this._max; }
-    get children(): Progress[] { return this._children; }
+    const progress = reactive({
+        id: parent ? `${parent.id}/${parent._child_count}` : '',
+        status: '',
+        children: [] as Progress[],
 
-    set value(v: number) {
-        if (v < 0) throw new RangeError("value must be >= 0");
-        if (v > this._max) v = this._max;
+        _child_count: 0,
 
-        const old_value = this._value;
-        this._value = v;
-        this._updateParentProgress(old_value, this._max);
+        get value() { return value; },
+        set value(v: number) {
+            if (v < 0) throw new RangeError("value must be >= 0");
+            if (v > max) v = max;
+
+            const old_value = value;
+            value = v;
+            updateParentProgress(old_value, max);
+        },
+
+        get max() { return max; },
+        set max(m: number) {
+            if (m <= 0) throw new RangeError("max must be > 0");
+
+            const old_max = max;
+            max = m;
+            updateParentProgress(value, old_max);
+        },
+
+        _detach() {
+            if (parent) {
+                parent.children.splice(parent.children.indexOf(this), 1);
+                parent = undefined;
+            }
+        },
+    });
+
+    if (parent) {
+        parent._child_count += 1;
+        parent.children.push(progress);
     }
 
-    set max(m: number) {
-        if (m <= 0) throw new RangeError("max must be > 0");
-
-        const old_max = this._max;
-        this._max = m;
-        this._updateParentProgress(this._value, old_max);
-    }
-
-    _detach() {
-        if (this._parent) {
-            this._parent._children.splice(this._parent._children.indexOf(this), 1);
-            this._parent = undefined;
-        }
-    }
-
-    private _updateParentProgress(old_value: number, old_max: number) {
-        if (this._parent) {
-            const old_progress = this._weight * old_value / old_max;
-            const new_progress = this._weight * this._value / this._max;
-            this._parent.value += new_progress - old_progress;
-        }
-    }
+    return progress;
 }
 
 export class TaskCancelled extends Error {}
