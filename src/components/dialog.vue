@@ -1,5 +1,5 @@
 <template>
-    <ModalBackdrop @click="$emit('close')"
+    <ModalBackdrop :class="backdropClass" @click="$emit('close')"
                    @keydown.esc.prevent.stop="$emit('close')">
         <div ref="dialog" class="dialog" v-bind="$attrs" @click.stop="">
             <slot></slot>
@@ -8,11 +8,15 @@
 </template>
 
 <script lang="ts">
-import {defineComponent} from 'vue';
+import {defineComponent, PropType} from 'vue';
 
 export default defineComponent({
     components: {
         ModalBackdrop: require('./modal-backdrop.vue').default,
+    },
+    emits: ['close'],
+    props: {
+        backdropClass: Object as PropType<{[k: string]: boolean}>,
     },
     inheritAttrs: false,
 });

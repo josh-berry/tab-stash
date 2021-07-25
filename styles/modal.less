@@ -19,8 +19,11 @@
     box-shadow: var(--shadow);
     padding: var(--dialog-ph) var(--dialog-pw);
     display: grid;
-    row-gap: var(--ctrl-mh);
-    column-gap: var(--ctrl-mw);
+
+    &, * {
+        row-gap: var(--ctrl-mh);
+        column-gap: var(--ctrl-mw);
+    }
 }
 
 // Pop-up menus (which may or may not use the modal backdrop)

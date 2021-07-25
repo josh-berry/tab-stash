@@ -162,6 +162,37 @@ const Main = defineComponent({
         if (document.documentElement.classList.contains('popup-view')) {
             (<HTMLInputElement>this.$refs.search).focus();
         }
+
+        // The following block of code is just to help me test out progress
+        // dialogs (since they only appear for a limited time when things are
+        // happening):
+        /*
+        this.dialog = {
+            class: 'ProgressDialog',
+            props: {
+                cancel() {},
+                progress: {
+                    status: 'Top',
+                    max: 100,
+                    value: 50,
+                    children: [
+                        {
+                            status: 'Child 1',
+                            max: 10,
+                            value: 5,
+                            children: [
+                                {status: 'Grandchild A', max: 5, value: 1, children: []},
+                                {status: 'Grandchild B', max: 5, value: 2, children: []},
+                                {status: 'Grandchild C', max: 5, value: 5, children: []},
+                            ]
+                        },
+                        {status: 'Child 2', max: 10, value: 2, children: []},
+                        {status: 'Child 3', max: 10, value: 0, children: []},
+                    ],
+                }
+            },
+        };
+        */
     },
 
     methods: {

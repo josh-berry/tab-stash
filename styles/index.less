@@ -126,25 +126,53 @@ html.metrics-compact { @import "metrics-compact"; }
 }
 
 // Progress Dialogs
-.progress {
+.modal-backdrop.progress { cursor: wait; }
+.dialog.progress {
     &.cancellable { cursor: progress; }
     &:not(.cancellable) { cursor: wait; }
+    // Define a fixed width for progress dialogs so they're not constantly
+    // resizing as statuses are changing.
+    width: 50rem;
 
-    & > .dialog {
-        // Define a fixed width for progress dialogs so they're not constantly
-        // resizing as statuses are changing.
-        width: 50rem;
+    display: flex;
+    flex-direction: column;
 
-        display: flex;
-        flex-direction: column;
+    .progress-item {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
 
-        .progress-item {
-            div {
+        & > progress {
+            grid-row: 1;
+            grid-column: 1;
 
-            }
-            ul {
+            min-width: 32px;
+        }
+
+        & > label {
+            grid-row: 1;
+            grid-column: 2;
+
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: inherit;
+        }
+
+        & > ul {
+            grid-row: 2;
+            grid-column: 1 / 3;
+
+            margin: 0;
+            padding-left: var(--page-pw);
+            display: flex;
+            flex-direction: column;
+
+            & > li {
+                display: block;
                 margin: 0;
-                padding-left: var(--page-pw);
+                padding: 0;
+                list-style: none;
             }
         }
     }
