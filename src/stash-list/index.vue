@@ -1,8 +1,12 @@
 <template>
 <main>
-  <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
-             v-on="dialog.on" @close="dialog = undefined">
-  </component>
+  <teleport to="body">
+    <transition appear name="dialog">
+      <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
+                 v-on="dialog.on" @close="dialog = undefined">
+      </component>
+    </transition>
+  </teleport>
   <aside class="notification-overlay">
     <Notification v-if="recently_updated === 'features'"
                 @activate="go('whats-new.html')" @dismiss="hideWhatsNew">

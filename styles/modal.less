@@ -8,9 +8,9 @@
         box-sizing: border-box;
     }
 }
-.modal-backdrop-enter-active { transition: opacity var(--modal-fade-time) ease-out; }
-.modal-backdrop-leave-active { transition: opacity var(--modal-fade-time) ease-in; }
-.modal-backdrop-enter, .modal-backdrop-leave-to { opacity: 0; }
+.dialog-enter-active { transition: all var(--modal-fade-time) ease-out; }
+.dialog-leave-active { transition: all var(--modal-fade-time) ease-in; }
+.dialog-enter-from, .dialog-leave-to { opacity: 0; }
 
 // Dialogs themselves
 .dialog {

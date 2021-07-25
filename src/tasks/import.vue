@@ -60,7 +60,7 @@ export default defineComponent({
 </script>
 
 <style module>
-.input > :global(.dialog) {
+.input {
     grid-template-columns: 1fr;
     grid-template-rows: 0fr 1fr;
     width: 60rem;
@@ -68,7 +68,7 @@ export default defineComponent({
     height: 67%;
 }
 
-.input :global(.input) {
+.input > :global(.input) {
     display: block;
     overflow-y: auto;
     overflow-wrap: anywhere;

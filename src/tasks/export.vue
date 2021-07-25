@@ -21,7 +21,7 @@
         </form>
 
         <!-- HTML format -->
-        <output v-if="format.startsWith('html-')" ref="output"
+        <output v-if="format.startsWith('html-')" ref="output" tabindex="0"
                 :for="$style.dlg">
             <div v-for="f of folders" :key="f.id">
                 <h3>{{friendlyFolderName(f.title)}}</h3>
@@ -39,7 +39,7 @@
 
         <!-- Markdown format -->
         <output v-if="format == 'markdown'" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
+                :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
                 <div>## {{friendlyFolderName(f.title)}}</div>
                 <div v-for="bm of leaves(f)" :key="bm.id">- [{{quote_link_md(bm.title)}}](<a :href="bm.url">{{quote_url_md(bm.url)}}</a>)</div>
@@ -49,7 +49,7 @@
 
         <!-- OneTab format -->
         <output v-if="format == 'onetab'" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
+                :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
                 <div v-for="bm of leaves(f)" :key="bm.id"><a :href="bm.url">{{bm.url}}</a> | {{bm.title}}</div>
                 <div><br/></div>
@@ -58,7 +58,7 @@
 
         <!-- List of URLs -->
         <output v-if="format.startsWith('urls-')" ref="output" :for="$style.dlg"
-                :class="$style.plaintext">
+                :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
                 <div v-if="format.endsWith('-folders')">## {{friendlyFolderName(f.title)}}</div>
                 <div v-for="bm of leaves(f)" :key="bm.id"><a :href="bm.url">{{bm.url}}</a></div>
@@ -128,7 +128,7 @@ export default defineComponent({
 </script>
 
 <style module>
-.dlg > * {
+.dlg {
     overflow: hidden;
     grid-template-columns: 1fr;
     grid-template-rows: 0fr 1fr;
@@ -137,27 +137,27 @@ export default defineComponent({
     height: 67%;
 }
 
-.dlg > * > form {
+.dlg > form {
     display: flex;
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.dlg > * > form > nav {
+.dlg > form > nav {
     display: flex;
     flex-direction: row;
     row-gap: inherit;
     column-gap: inherit;
 }
-.dlg > * > form > select, .dlg > * > form > nav { min-width: max-content; }
-.dlg > * > form > .help { flex-grow: 1; text-align: right; }
+.dlg > form > select, .dlg > form > nav { min-width: max-content; }
+.dlg > form > .help { flex-grow: 1; text-align: right; }
 
 @media all and (max-width: 20rem) {
-    .dlg > * > form > label.format { display: none; }
+    .dlg > form > label.format { display: none; }
 }
 
-.dlg > * > output {
+.dlg > output {
     display: block;
     overflow-y: auto;
     overflow-wrap: anywhere;

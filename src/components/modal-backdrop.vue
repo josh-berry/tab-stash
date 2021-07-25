@@ -1,24 +1,15 @@
 <template>
-<transition appear name="modal-backdrop">
-    <aside :class="{'modal-backdrop': true, [$style.modal]: true}"
-           tabindex="-1"
-           v-on="$listeners"
-           @keypress.stop="" @keydown.stop="" @keyup.stop=""
-           @click.stop="" @auxclick.stop="" @dblclick.stop=""
-           @mousedown.stop="" @mouseup.stop=""
-           @mouseenter.stop="" @mouseleave.stop=""
-           @mousemove.stop="" @mouseout.stop="" @mouseover.stop=""
-           @scroll.stop="" @select.stop="" @wheel.stop="">
-        <slot></slot>
-    </aside>
-</transition>
+<aside :class="{'modal-backdrop': true, [$style.modal]: true}"
+       tabindex="-1" v-bind="$attrs" ref="modal">
+    <slot></slot>
+</aside>
 </template>
 
 <script lang="ts">
 import {defineComponent} from 'vue';
 
 export default defineComponent({
-    mounted() { (<HTMLElement>this.$el).focus(); }
+    mounted() { (<HTMLElement>this.$refs.modal).focus(); }
 });
 </script>
 
@@ -31,7 +22,6 @@ export default defineComponent({
     right: 0;
     z-index: 99;
     cursor: default;
-    background: transparent;
     overflow: hidden;
 
     display: flex;
