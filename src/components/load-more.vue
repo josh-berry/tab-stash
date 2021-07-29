@@ -60,6 +60,10 @@ export default defineComponent({
         /** Are we currently trying to load more data (i.e. waiting for load()
          * to return)? */
         isLoading: false,
+
+        /** We keep a ref to the IntersectionObserver so we can disconnect it
+         * when the component is unmounted. */
+        observer: undefined as IntersectionObserver | undefined,
     }),
 
     computed: {
@@ -86,11 +90,11 @@ export default defineComponent({
     },
 
     mounted() {
-        const observer = new IntersectionObserver(entries => {
+        this.observer = new IntersectionObserver(entries => {
             this.isVisible = entries[0].isIntersecting;
             this.tryLoadMore();
         });
-        observer.observe(this.el!);
+        this.observer.observe(this.el!);
     },
     unmounted() {
         if (this.observer) this.observer.disconnect();
