@@ -46,6 +46,10 @@ export default defineComponent({
         altkey: altKeyName,
         bgKey: bgKeyName,
 
+        currentWindow(): number | undefined {
+            return this.model().tabs.current_window;
+        },
+
         related_tabs(): readonly Tab[] {
             if (! this.bookmark.url) return [];
             const related = this.model().tabs.by_url.get(this.bookmark.url);
@@ -54,11 +58,13 @@ export default defineComponent({
         },
 
         hasOpenTab(): boolean {
-            return !! this.related_tabs.find(t => ! t.hidden);
+            return !! this.related_tabs.find(
+                t => ! t.hidden && t.windowId === this.currentWindow);
         },
         hasActiveTab(): boolean {
             // TODO look only at the current window
-            return !! this.related_tabs.find(t => t.active);
+            return !! this.related_tabs.find(
+                t => t.active && t.windowId === this.currentWindow);
         },
 
         favicon(): FaviconEntry | null {

@@ -40,6 +40,12 @@ export default defineComponent({
     computed: {
         altKey: altKeyName,
         bgKey: bgKeyName,
+        currentWindow(): number | undefined {
+            return this.model().tabs.current_window;
+        },
+        isActive(): boolean {
+            return this.tab.active && this.tab.windowId === this.currentWindow;
+        },
     },
 
     methods: {
