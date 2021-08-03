@@ -34,15 +34,15 @@
                     :edit="rename"></editable-label>
   </header>
   <div class="contents">
-    <Draggable group="tab" class="tabs" @change="move"
-               v-model="allChildren" item-key="id">
-      <template #item="{element: item}">
+    <dnd-list class="tabs" v-model="allChildren" item-key="id"
+              :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
+      <template #item="{item}">
         <bookmark :bookmark="item"
              :class="{hidden: (filter && ! filter(item))
                         || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />
       </template>
-    </Draggable>
+    </dnd-list>
     <div class="folder-item disabled" v-if="filterCount > 0">
       <span class="icon" /> <!-- spacer -->
       <span class="text status-text hidden-count">
@@ -60,20 +60,24 @@ import {PropType, defineComponent} from 'vue';
 import {
     altKeyName, bgKeyName, bgKeyPressed, filterMap, logErrors, required
 } from '../util';
+import {DragAction, DropAction} from '../components/dnd-list';
 
 import {Model} from '../model';
 import {
     Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
 } from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
-import { ChangeEvent } from 'vuedraggable';
-import { Tab } from '../model/tabs';
+
+const DROP_FORMATS = [
+    'application/x-tab-stash-bookmark-id',
+    'application/x-tab-stash-tab-id',
+];
 
 export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
-        Draggable: require('vuedraggable'),
+        DndList: require('../components/dnd-list.vue').default,
         EditableLabel: require('../components/editable-label.vue').default,
         Bookmark: require('./bookmark.vue').default,
     },
@@ -91,28 +95,14 @@ export default defineComponent({
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
-    data() { return {
-        /** If a drag-and-drop operation has just completed, but the actual
-         * model hasn't been updated yet, we temporarily show the user the model
-         * "as if" the operation was already done, so it doesn't look like the
-         * dragged item snaps back to its original location temporarily. */
-        dirtyChildren: undefined as Bookmark[] | undefined,
-    }; },
-
     computed: {
         altkey: altKeyName,
         bgKey: bgKeyName,
 
-        allChildren: {
-            get(): readonly Bookmark[] {
-                if (this.dirtyChildren) return this.dirtyChildren;
-                return this.folder.children || [];
-            },
-            set(children: Bookmark[]) {
-                console.log("set dirty = ", children.map(c => c.title));
-                // Triggered only by drag-and-drop
-                // this.dirtyChildren = children;
-            },
+        accepts() { return DROP_FORMATS; },
+
+        allChildren(): readonly Bookmark[] {
+            return this.folder.children || [];
         },
 
         collapsed: {
@@ -193,44 +183,37 @@ export default defineComponent({
             await browser.bookmarks.update(this.folder.id, {title});
         },
 
-        move(ev: ChangeEvent<Bookmark | Tab>) {
-            console.log(ev);
-            // NOTE: This is for dragging INTO the folder (either from within
-            // the folder itself, from another folder, or from a window).
-            const what = ev.moved || ev.added;
-            if (! what) return false;
-
-            // Disallow(maybe?) dragging of windows/bookmarks without URLs...
-            if (! what.element?.url) return false;
-
-            this.moveInternal(what)
-                .catch(console.log)
-                .finally(() => { this.dirtyChildren = undefined; });
+        drag(ev: DragAction<Bookmark>) {
+            ev.dataTransfer.setData('application/x-tab-stash-bookmark-id', ev.value.id);
         },
 
-        async moveInternal(moved: {newIndex: number, element: Bookmark | Tab}) {
-            const item = moved.element;
-            if (! item.url) return false; // just to avoid casting
+        async drop(ev: DropAction) {
+            const bmId = ev.dataTransfer.getData('application/x-tab-stash-bookmark-id');
+            const tabId = ev.dataTransfer.getData('application/x-tab-stash-tab-id');
 
-            if ('windowId' in item) {
+            if (tabId) {
                 // We are dragging a tab into this bookmark folder.  Create a
                 // new bookmark and close the tab.
+                const tab = this.model().tabs.by_id.get(Number.parseInt(tabId));
+                if (! tab) return;
+
                 await browser.bookmarks.create({
                     parentId: this.folder.id,
-                    title: item.title,
-                    url: item.url,
-                    index: moved.newIndex,
+                    title: tab.title,
+                    url: tab.url,
+                    index: ev.toIndex,
                 });
-                await this.model().hideOrCloseStashedTabs([item.id]);
+                await this.model().hideOrCloseStashedTabs([tab.id]);
 
-            } else {
+            } else if (bmId) {
                 // We are dragging only bookmarks around.  Just move the
                 // bookmark.
-                const fromFolder = item.parentId;
-                await browser.bookmarks.move(item.id, {
-                    parentId: this.folder.id,
-                    index: moved.newIndex,
-                });
+                const bm = this.model().bookmarks.by_id.get(bmId);
+                if (! bm) return;
+
+                const fromFolder = bm.parentId;
+                await this.model().bookmarks.move(
+                    bm.id, this.folder.id, ev.toIndex);
 
                 if (fromFolder === undefined) return;
                 await this.model().bookmarks.removeFolderIfEmptyAndUnnamed(fromFolder);

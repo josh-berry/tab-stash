@@ -1,27 +1,29 @@
 <template>
-<Draggable class="sortable-list folder-list" @change="move"
-           v-model="children" item-key="id">
-  <template #item="{element: f}">
+<dnd-list class="folder-list" v-model="children" item-key="id"
+         :accepts="accepts" :drag="drag" :drop="drop"
+         :mimic-height="true">
+  <template #item="{item: f}">
     <Folder :folder="f" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
             :metadata="model().bookmark_metadata.get(f.id)"
             ref="folders" />
   </template>
-</Draggable>
+</dnd-list>
 </template>
 
 <script lang="ts">
-import {browser} from 'webextension-polyfill-ts';
 import {PropType, defineComponent} from 'vue';
-import {ChangeEvent} from 'vuedraggable';
 
 import {required} from '../util';
 
 import {Model} from '../model';
 import {Bookmark} from '../model/bookmarks';
+import {DragAction, DropAction} from '../components/dnd-list';
+
+const DROP_FORMAT = 'application/x-tab-stash-folder-id';
 
 export default defineComponent({
     components: {
-        Draggable: require('vuedraggable'),
+        DndList: require('../components/dnd-list.vue').default,
         Folder: require('./folder.vue').default,
     },
 
@@ -36,40 +38,24 @@ export default defineComponent({
         hideIfEmpty: Boolean,
     },
 
-    data() { return {
-        /** If a drag-and-drop operation has just completed, but the actual
-         * model hasn't been updated yet, we temporarily show the user the model
-         * "as if" the operation was already done, so it doesn't look like the
-         * dragged item snaps back to its original location temporarily. */
-        dirtyChildren: undefined as Bookmark[] | undefined,
-    }},
-
     computed: {
-        children: {
-            get(): readonly Bookmark[] {
-                if (this.dirtyChildren) return this.dirtyChildren;
-
-                return this.parentFolder.children ?? [];
-            },
-            set(children: Bookmark[]) {
-                // Triggered only by drag and drop
-                this.dirtyChildren = children;
-            },
+        accepts() { return DROP_FORMAT; },
+        children(): readonly Bookmark[] {
+            return this.parentFolder.children ?? [];
         },
     },
 
     methods: {
         model(): Model { return (<any>this).$model as Model; },
 
-        move(ev: ChangeEvent<Bookmark>) {
-            if (! ev.moved) return;
-            browser.bookmarks.move(ev.moved.element.id, {
-                index: ev.moved.newIndex,
-            })
-                .catch(console.log)
-                .finally(() => {
-                    this.dirtyChildren = undefined;
-                });
+        drag(ev: DragAction<Bookmark>) {
+            ev.dataTransfer.setData(DROP_FORMAT, ev.value.id);
+        },
+
+        async drop(ev: DropAction) {
+            const id = ev.dataTransfer.getData(DROP_FORMAT)
+            await this.model().bookmarks.move(
+                id, this.parentFolder.id, ev.toIndex);
         },
         setCollapsed(c: boolean) {
             for (const f of (<any>this.$refs.folders)) f.collapsed = c;

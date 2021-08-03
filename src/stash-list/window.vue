@@ -29,14 +29,15 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                     :value="title" :defaultValue="title" />
   </header>
   <div class="contents">
-    <Draggable group="tab" class="tabs" @change="move"
-               v-model="children" item-key="id">
-      <template #item="{element: item}">
+    <dnd-list class="tabs" v-model="tabs" item-key="id"
+              :accepts="accepts" :drag="drag" :drop="drop"
+              :mimic-height="true">
+      <template #item="{item}">
         <tab :tab="item"
              :class="{hidden: (! filter(item)) || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />
       </template>
-    </Draggable>
+    </dnd-list>
     <div class="folder-item disabled" v-if="filterCount > 0">
       <span class="icon" /> <!-- spacer -->
       <span class="text status-text hidden-count">
@@ -53,17 +54,23 @@ import {PropType, defineComponent} from 'vue';
 
 import {altKeyName, filterMap, logErrors, required} from '../util';
 
+import {DragAction, DropAction} from '../components/dnd-list';
+
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {Bookmark, genDefaultFolderName} from '../model/bookmarks';
+import {genDefaultFolderName} from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
-import { ChangeEvent } from 'vuedraggable';
+
+const DROP_FORMATS = [
+    'application/x-tab-stash-bookmark-id',
+    'application/x-tab-stash-tab-id',
+];
 
 export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
-        Draggable: require('vuedraggable'),
+        DndList: require('../components/dnd-list.vue').default,
         EditableLabel: require('../components/editable-label.vue').default,
         Tab: require('./tab.vue').default,
         Bookmark: require('./bookmark.vue').default,
@@ -82,32 +89,14 @@ export default defineComponent({
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
-    data() { return {
-        /** If a drag-and-drop operation has just completed, but the actual
-         * model hasn't been updated yet, we temporarily show the user the model
-         * "as if" the operation was already done, so it doesn't look like the
-         * dragged item snaps back to its original location temporarily. */
-        dirtyChildren: undefined as Tab[] | undefined,
-    }; },
-
     computed: {
         altkey: altKeyName,
+
+        accepts() { return DROP_FORMATS; },
 
         title(): string {
             if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
             return "Unstashed Tabs";
-        },
-
-        children: {
-            get(): readonly Tab[] {
-                if (this.dirtyChildren) return this.dirtyChildren;
-                return this.tabs;
-            },
-            set(children: Tab[]) {
-                console.log("set dirty = ", children.map(c => c.title));
-                // Triggered only by drag-and-drop
-                // this.dirtyChildren = children;
-            },
         },
 
         collapsed: {
@@ -119,7 +108,7 @@ export default defineComponent({
         },
 
         filteredChildren(): Tab[] {
-            return this.children.filter(c => this.filter(c));
+            return this.tabs.filter(c => this.filter(c));
         },
         visibleChildren(): Tab[] {
             if (this.userFilter) {
@@ -175,7 +164,7 @@ export default defineComponent({
             if (! this.isItemStashed) throw new Error(
                 "isItemStashed not provided to tab folder");
 
-            await this.model().hideOrCloseStashedTabs(this.children
+            await this.model().hideOrCloseStashedTabs(this.tabs
                 .filter(t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t))
                 .map(t => t.id));
         })},
@@ -186,7 +175,7 @@ export default defineComponent({
 
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
-                const tabs = this.children.filter(
+                const tabs = this.tabs.filter(
                     t => t && t.hidden && this.isItemStashed(t));
                 await this.model().tabs.closeTabs(filterMap(tabs, t => t?.id));
             } else {
@@ -194,10 +183,10 @@ export default defineComponent({
                 //
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
-                const hide_tabs = this.children
+                const hide_tabs = this.tabs
                     .filter(t => ! t.hidden && ! t.pinned && this.isItemStashed(t))
                     .map(t => t.id);
-                const close_tabs = this.children
+                const close_tabs = this.tabs
                     .filter(t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t))
                     .map(t => t.id);
 
@@ -209,46 +198,44 @@ export default defineComponent({
             }
         })},
 
-        move(ev: ChangeEvent<Bookmark | Tab>) {
-            // NOTE: This is for dragging INTO the window (either from within
-            // the window itself or from a folder).
-            const what = ev.moved || ev.added;
-            if (! what) return false;
-
-            // Disallow(maybe?) dragging of windows/bookmarks without URLs...
-            if (! what.element?.url) return false;
-
-            this.moveInternal(what)
-                .catch(console.log)
-                .finally(() => { this.dirtyChildren = undefined; });
+        drag(ev: DragAction<Tab>) {
+            ev.dataTransfer.setData('application/x-tab-stash-tab-id',
+                `${ev.value.id}`);
         },
 
-        async moveInternal(moved: {newIndex: number, element: Bookmark | Tab}) {
-            const item = moved.element;
-            if (! item.url) return false; // just to avoid casting
+        async drop(ev: DropAction) {
+            const bmId = ev.dataTransfer.getData('application/x-tab-stash-bookmark-id');
+            const tabId = ev.dataTransfer.getData('application/x-tab-stash-tab-id');
 
             let tid;
-            if ('windowId' in item) {
+            let bm;
+
+            if (tabId) {
                 // Item being dragged is a Tab, so we are just moving it from
                 // one place in the window to another.
-                tid = item.id;
+                tid = Number.parseInt(tabId);
 
-            } else {
+            } else if (bmId) {
                 // Item being dragged is a Bookmark--that is, we're restoring a
                 // tab to a particular location in the window.  If there's
                 // already an open tab for this bookmark in the same window,
                 // we will just move it to the right place.
+                bm = this.model().bookmarks.by_id.get(bmId);
+                if (! bm) return;
+
+                // We can't restore a bookmark without a URL...
+                if (! bm.url) return;
 
                 const cur_win = this.model().tabs.current_window;
 
                 // First see if we have an open tab in this window already.  If
                 // so, we need only move it into position.
-                const already_open = this.model().tabs.by_url.get(item.url);
+                const already_open = this.model().tabs.by_url.get(bm.url);
                 tid = already_open.filter(t => t.windowId === cur_win)[0]?.id;
                 if (tid === undefined) {
                     // There is no open tab, so we must restore one.
                     tid = (await this.model().restoreTabs(
-                        [item.url], {background: true}))[0];
+                        [bm.url], {background: true}))[0];
                 }
             }
 
@@ -257,11 +244,11 @@ export default defineComponent({
 
             // Move the (possibly-restored) tab to the right place in the
             // browser window.
-            await browser.tabs.move(tid, {index: moved.newIndex});
+            await browser.tabs.move(tid, {index: ev.toIndex});
             if (browser.tabs.show) await browser.tabs.show(tid);
 
             // Remove the previously-stashed tab (if there was one).
-            if (! ('windowId' in item)) await this.model().deleteBookmark(item);
+            if (bm) await this.model().deleteBookmark(bm);
         },
     },
 });

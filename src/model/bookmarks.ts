@@ -181,6 +181,29 @@ export class Model {
     // Mutators
     //
 
+    /** Moves a bookmark such that its index in the destination folder is
+     * `toIndex`.
+     *
+     * Use this instead of `browser.bookmarks.move()`, which behaves differently
+     * in Chrome and Firefox... */
+    async move(id: string, toParent: string, toIndex: number): Promise<void> {
+        // Firefox's `index` parameter behaves like the bookmark is first
+        // removed, then re-added.  Chrome's/Edge's behaves like the bookmark is
+        // first added, then removed from its old location, so the index of the
+        // item after the move will sometimes be toIndex-1 instead of toIndex;
+        // we account for this below.
+        const bm = this.by_id.get(id);
+        if (! bm) throw new Error(`No such bookmark: ${id}`);
+
+        if (! browser.runtime.getBrowserInfo) {
+            // We're using Chrome
+            if (bm.parentId === toParent && toIndex > bm.index!) {
+                toIndex++;
+            }
+        }
+        await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
+    }
+
     /** Removes the folder `folder_id` if it is empty and unnamed.
      * `last_child_id` is the ID of some child that was just removed from the
      * folder; if the child still appears to be present in the model, we will

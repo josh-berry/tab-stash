@@ -5,7 +5,7 @@
             'open': hasOpenTab,
             'active': hasActiveTab}"
    target="_blank" :href="bookmark.url" :title="bookmark.title"
-   :data-id="bookmark.id"
+   draggable="false" :data-id="bookmark.id"
    @click.prevent.stop="open">
   <ItemIcon v-if="favicon?.value?.favIconUrl" :src="favicon?.value?.favIconUrl" />
   <span v-else class="icon" />

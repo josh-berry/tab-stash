@@ -8,6 +8,8 @@
     margin: var(--page-pw) var(--page-pw);
     row-gap: var(--page-pw);
     column-gap: var(--page-pw);
+
+    & > li { flex: 1 1 25rem; }
 }
 .one-column .folder {
     flex: 1 1 auto;
@@ -15,7 +17,7 @@
 }
 
 .folder {
-    flex: 1 1 25rem;
+    flex: 1 1 auto;
     background-color: var(--group-bg);
     border: var(--group-border);
     box-shadow: var(--shadow);

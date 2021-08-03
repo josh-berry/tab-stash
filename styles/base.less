@@ -108,3 +108,11 @@ option {
 }
 
 .disabled, [disabled] { color: var(--disabled-fg); }
+
+// Drag and drop ghost elements
+[data-dnd-ghost] {
+    box-sizing: border-box;
+    border: dashed var(--disabled-fg);
+    min-height: var(--item-h);
+    min-width: var(--icon-btn-size);
+}

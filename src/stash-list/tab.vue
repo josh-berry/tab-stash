@@ -4,7 +4,8 @@
             'saved': !!bm,
             'open': ! tab.hidden,
             'active': !!tab.active}"
-   target="_blank" :href="tab.url" :title="tab.title" :data-id="tab.id"
+   target="_blank" :href="tab.url" :title="tab.title"
+   draggable="false" :data-id="tab.id"
    @click.prevent.stop="open">
   <ItemIcon v-if="tab.favIconUrl" :src="tab.favIconUrl" />
   <span v-else class="icon" />
