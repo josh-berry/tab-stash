@@ -206,8 +206,12 @@ const Main = defineComponent({
 
         collapseAll() {
             this.collapsed = ! this.collapsed;
-            (<any>this.$refs.unstashed).collapsed = this.collapsed;
-            (<any>this.$refs.stashed).setCollapsed(this.collapsed);
+            const metadata = this.model().bookmark_metadata;
+            metadata.setCollapsed('', this.collapsed);
+            for (const f of this.stash_root?.children || []) {
+                if (! f.children) continue;
+                metadata.setCollapsed(f.id, this.collapsed);
+            }
         },
 
         search_filter(i: Bookmark | Tab) {
