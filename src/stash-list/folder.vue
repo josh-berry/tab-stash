@@ -37,7 +37,7 @@
     <dnd-list class="tabs" v-model="allChildren" item-key="id"
               :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
-        <bookmark :bookmark="item"
+        <bookmark v-if="! item.children" :bookmark="item"
              :class="{hidden: (filter && ! filter(item))
                         || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />

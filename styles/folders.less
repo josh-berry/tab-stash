@@ -11,6 +11,7 @@
         flex: 1 1 auto;
         width: 100%;
         list-style: none;
+        &:empty:not([data-dnd-ghost]) { display: none; }
     }
 }
 
@@ -88,7 +89,10 @@
             margin: 0;
             padding: 0;
 
-            & > li { list-style: none; }
+            & > li {
+                list-style: none;
+                &:empty:not([data-dnd-ghost]) { display: none; }
+            }
         }
     }
 

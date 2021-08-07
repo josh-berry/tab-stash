@@ -3,7 +3,8 @@
          :accepts="accepts" :drag="drag" :drop="drop"
          :mimic-height="true">
   <template #item="{item: f}">
-    <Folder :folder="f" :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
+    <Folder v-if="f.children" :folder="f"
+            :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
             :metadata="model().bookmark_metadata.get(f.id)"
             ref="folders" />
   </template>
