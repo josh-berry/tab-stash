@@ -3,7 +3,7 @@
   <header class="page action-container">
     <a class="action back" title="Back to Tab Stash"
        :href="pageref('stash-list.html')"></a>
-    <h1 class="title">What's New in Tab Stash</h1>
+    <h1 class="title group-title">What's New in Tab Stash</h1>
   </header>
 
   <div class="folder-list one-column">

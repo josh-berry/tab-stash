@@ -17,10 +17,44 @@
     background-color: var(--group-bg);
     border: var(--group-border);
     box-shadow: var(--shadow);
-    padding: var(--dialog-ph) var(--dialog-pw);
-    display: grid;
+    overflow: hidden;
 
-    &, * {
+    display: flex;
+    flex-direction: column;
+
+    & > .dialog-title {
+        flex: none;
+        padding: var(--dialog-ph) var(--dialog-pw);
+        border-bottom: var(--group-border);
+
+        display: grid;
+        grid-template-columns: 1fr 0fr;
+        align-items: center;
+
+        & > .dialog-close {
+            grid-row: 1;
+            grid-column: 2;
+            .action();
+            background-image: var(--icon-cancel);
+        }
+    }
+    & > .dialog-content {
+        flex: 1 1 auto;
+        padding: var(--dialog-ph) var(--dialog-pw);
+
+        display: grid;
+        overflow: auto;
+    }
+    & > .dialog-buttons {
+        flex: none;
+        padding: var(--dialog-ph) var(--dialog-pw);
+        border-top: var(--group-border);
+
+        display: grid;
+        align-items: center;
+    }
+
+    * {
         row-gap: var(--ctrl-mh);
         column-gap: var(--ctrl-mw);
     }

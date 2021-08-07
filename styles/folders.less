@@ -110,11 +110,14 @@
     }
 }
 
-.folder-name {
+.folder-name, .group-title {
     display: block;
     font-weight: bold;
     font-size: 13pt;
     .text-overflow-ellipsis();
+
+    // So that descenders and ascenders don't get clipped (much... :/)
+    padding: var(--input-text-ph) var(--input-text-pw);
 
     &.disabled { color: var(--disabled-fg); }
 }

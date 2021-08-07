@@ -1,6 +1,7 @@
 <template>
     <Dialog :class="{[$style.dlg]: true, 'export-dialog': true}"
             @close="$emit('close')">
+        <template #title><span class="group-title">Export</span></template>
         <form :id="$style.dlg" @submit.prevent.stop="">
             <label :for="$style.format" :class="$style.format">Format:</label>
             <select :id="$style.format" v-model="format">
@@ -137,35 +138,37 @@ export default defineComponent({
 
 <style module>
 .dlg {
-    overflow: hidden;
-    grid-template-columns: 1fr;
-    grid-template-rows: 0fr 1fr;
     width: 60rem;
-    min-height: 15rem;
+    min-height: 20rem;
     height: 67%;
 }
 
-.dlg > form {
+.dlg :global(.dialog-content) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 0fr 1fr;
+}
+
+.dlg form {
     display: flex;
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.dlg > form > nav {
+.dlg form > nav {
     display: flex;
     flex-direction: row;
     row-gap: inherit;
     column-gap: inherit;
 }
-.dlg > form > select, .dlg > form > nav { min-width: max-content; }
-.dlg > form > .help { flex-grow: 1; text-align: right; }
+.dlg form > select, .dlg > form > nav { min-width: max-content; }
+.dlg form > .help { flex-grow: 1; text-align: right; }
 
 @media all and (max-width: 20rem) {
     .dlg > form > label.format { display: none; }
 }
 
-.dlg > output {
+.dlg output {
     display: block;
     overflow-y: auto;
     overflow-wrap: anywhere;

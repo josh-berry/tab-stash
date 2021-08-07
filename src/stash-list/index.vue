@@ -170,10 +170,11 @@ const Main = defineComponent({
         // dialogs (since they only appear for a limited time when things are
         // happening):
         /*
+        const self = this;
         this.dialog = {
             class: 'ProgressDialog',
             props: {
-                cancel() {},
+                cancel() { self.dialog = undefined; },
                 progress: {
                     status: 'Top',
                     max: 100,

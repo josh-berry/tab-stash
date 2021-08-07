@@ -1,12 +1,14 @@
 <template>
 <Dialog :class="{progress: true, cancellable: cancel}"
-        :backdropClass="{progress: true, cancellable: cancel}"
-        @close.capture.prevent.stop="">
+        :backdrop-class="{progress: true, cancellable: cancel}"
+        prevent-closing="true">
     <ProgressItem class="toplevel" :progress="progress" />
-    <button v-if="cancel" :disabled="cancelled" :class="{'disabled': cancelled}"
-            @click.prevent.stop="doCancel">
-        Cancel
-    </button>
+    <template #buttons v-if="cancel">
+        <button :disabled="cancelled"
+                :class="{'disabled': cancelled}" @click.prevent.stop="doCancel">
+            Cancel
+        </button>
+    </template>
 </Dialog>
 </template>
 

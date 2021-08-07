@@ -1,12 +1,14 @@
 <template>
   <ProgressDialog v-if="progress" :progress="progress" :cancel="cancel"/>
-  <Dialog v-else :class="{[$style.input]: true, 'import-dialog': true}"
+  <Dialog v-else :class="{[$style.dlg]: true, 'import-dialog': true}"
           @close="$emit('close')">
+    <template #title><span class="group-title">Import</span></template>
     <label for="data">
       Paste anything containing links or URLs here.  Links and URLs will be
       extracted and converted into bookmarks in your stash.
     </label>
-    <div ref="data" contenteditable="true" id="data" class="input"></div>
+    <div ref="data" contenteditable="true" id="data"
+        :class="{'input': true, [$style.input]: true}" />
     <form :class="$style.split_mode">
       <label for="splitOn">Split tabs into different groups on:</label>
       <select id="splitOn" v-model="splitOn">
@@ -15,7 +17,9 @@
         <option value="">Nothing [all in one group]</option>
       </select>
     </form>
-    <button class="clickme" @click="start">Import</button>
+    <template #buttons>
+        <button class="clickme" @click="start">Import</button>
+    </template>
   </Dialog>
 </template>
 
@@ -62,15 +66,18 @@ export default defineComponent({
 </script>
 
 <style module>
-.input {
-    grid-template-columns: 1fr;
-    grid-template-rows: 0fr 1fr;
+.dlg {
     width: 60rem;
-    min-height: 15rem;
+    min-height: 20rem;
     height: 67%;
 }
 
-.input > :global(.input) {
+.dlg :global(.dialog-content) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 0fr 1fr;
+}
+
+.dlg .input {
     display: block;
     overflow-y: auto;
     overflow-wrap: anywhere;
