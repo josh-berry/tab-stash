@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="svg10"
+   version="1.1"
+   viewBox="0 0 96 96"
+   height="96"
+   width="96"
+   sodipodi:docname="tab-selected.svg"
+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   inkscape:export-filename="/Users/des/src/tab-stash/dist/icons/logo-64.png"
+   inkscape:export-xdpi="64"
+   inkscape:export-ydpi="64"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="3747"
+     inkscape:window-height="2126"
+     id="namedview9"
+     showgrid="true"
+     inkscape:zoom="19.114583"
+     inkscape:cx="47.973842"
+     inkscape:cy="48"
+     inkscape:window-x="82"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg10"
+     inkscape:pagecheckerboard="0"
+     inkscape:snap-grids="true"
+     inkscape:snap-to-guides="false">
+    <inkscape:grid
+       type="xygrid"
+       id="grid817"
+       empspacing="2"
+       spacingx="3"
+       spacingy="3" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata16">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs14" />
+  <path
+     id="rect836"
+     style="color:#000000;opacity:0.994;fill:#000000;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     d="M 12 0 C 6 0 0 6 0 12 L 0 84 C 0 90 6 96 12 96 L 84 96 C 90 96 96 90 96 84 L 96 12 C 96 6 90 0 84 0 L 12 0 z M 24 27 L 72 27 C 78 27 84 33 84 39 L 84 57 C 84 60 87 63 90 63 C 96 63 96 69 90 69 L 6 69 C 0 69 0 63 6 63 C 9 63 12 60 12 57 L 12 39 C 12 33 18 27 24 27 z " />
+</svg>

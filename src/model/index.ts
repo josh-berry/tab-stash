@@ -32,6 +32,8 @@
 
 import browser from 'webextension-polyfill';
 
+import {filterMap, TaskMonitor, urlToOpen} from '../util';
+
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
 
@@ -41,7 +43,7 @@ import * as DeletedItems from './deleted-items';
 
 import * as Favicons from './favicons';
 import * as BookmarkMetadata from './bookmark-metadata';
-import {filterMap, TaskMonitor, urlToOpen} from '../util';
+import * as Selection from './selection';
 
 export {
     BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons,
@@ -84,6 +86,7 @@ export class Model {
 
     readonly favicons: Favicons.Model;
     readonly bookmark_metadata: BookmarkMetadata.Model;
+    readonly selection: Selection.Model;
 
     constructor(src: Source) {
         this.browser_settings = src.browser_settings;
@@ -95,6 +98,7 @@ export class Model {
 
         this.favicons = src.favicons;
         this.bookmark_metadata = src.bookmark_metadata;
+        this.selection = new Selection.Model([this.bookmarks]);
     }
 
     //

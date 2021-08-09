@@ -135,12 +135,9 @@
     height: var(--item-h);
 
     &:not(.disabled) {
-        &:hover, &:focus-within {
-            background-color: var(--userlink-hover-bg);
-        }
-        &:active {
-            background-color: var(--userlink-active-bg);
-            color: var(--userlink-active-fg);
+        &.selected { font-weight: bold; }
+        &:hover, &:focus-within, &.selected {
+            background-color: var(--item-hover-bg);
         }
     }
 
@@ -152,7 +149,7 @@
         grid-column: 1;
     }
 
-    & > .icon {
+    & > .item-icon {
         grid-row: 1;
         grid-column: 2;
     }

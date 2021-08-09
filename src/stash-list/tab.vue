@@ -7,8 +7,7 @@
    target="_blank" :href="tab.url" :title="tab.title"
    draggable="false" :data-id="tab.id"
    @click.prevent.stop="open">
-  <ItemIcon v-if="tab.favIconUrl" :src="tab.favIconUrl" />
-  <span v-else class="icon" />
+  <ItemIcon class="icon" :src="tab.favIconUrl" :default-class="{'icon-tab': true}"/>
   <span class="text">{{tab.title}}</span>
   <ButtonBox>
     <Button class="stash one" @action="stash"

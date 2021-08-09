@@ -10,7 +10,13 @@ export type Bookmark = NodeBase & {url: string};
 export type Separator = NodeBase & {type: 'separator'};
 export type Folder = NodeBase & {children: NodeID[]};
 
-type NodeBase = {parentId: NodeID, id: NodeID, dateAdded?: number, title: string};
+type NodeBase = {
+    parentId: NodeID,
+    id: NodeID,
+    dateAdded?: number,
+    title: string,
+    $selected?: boolean,
+};
 
 export type NodeID = string & {readonly __node_id: unique symbol};
 
@@ -495,6 +501,56 @@ export class Model {
         // candidates are available (since there may be ways of resolving
         // conflicts we can't do here).
         return candidates;
+    }
+
+    //
+    // Handling selection/deselection of bookmarks in the UI
+    //
+
+    isSelected(item: Node): boolean { return !!item.$selected; }
+
+    async setSelected(items: Iterable<Node>, isSelected: boolean) {
+        for (const item of items) item.$selected = isSelected;
+    }
+
+    *selectedItems(): Generator<Node> {
+        const self = this;
+        function* walk(bm: Node): Generator<Node> {
+            if (bm.$selected) {
+                yield bm;
+                // If a parent is selected, we don't want to return every single
+                // node in the subtree because this breaks drag-and-drop--we
+                // would want to move a folder as a single unit, rather than
+                // moving the folder, then all its children, then all their
+                // children, and so on (effectively flattening the tree).
+                return;
+            }
+            if ('children' in bm) {
+                for (const c of bm.children) yield* walk(self.node(c));
+            }
+        }
+
+        // We only consider items inside the stash root, since those are the
+        // only items that show up in the UI.
+        // istanbul ignore else -- when testing we should always have a root
+        if (this.stash_root.value) yield* walk(this.stash_root.value);
+    }
+
+    itemsInRange(start: Node, end: Node): Node[] | null {
+        let startPos = this.positionOf(start);
+        let endPos = this.positionOf(end);
+
+        if (startPos.parent !== endPos.parent) return null;
+
+        if (endPos.index < startPos.index) {
+            const tmp = endPos;
+            endPos = startPos;
+            startPos = tmp;
+        }
+
+        return startPos.parent.children
+            .slice(startPos.index, endPos.index + 1)
+            .map(id => this.node(id));
     }
 
     private _add_url(bm: Bookmark) {

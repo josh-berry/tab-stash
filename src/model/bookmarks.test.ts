@@ -347,4 +347,62 @@ describe('model/bookmarks', () => {
             expect(model.stash_root.value).to.equal(root1);
         });
     });
+
+    describe('selection model', () => {
+        it('tracks selected items', async () => {
+            model.setSelected([
+                model.node(bms.undyne.id),
+                model.node(bms.nate.id),
+                model.node(bms.helen.id),
+            ], true);
+
+            expect(Array.from(model.selectedItems())).to.deep.equal([
+                model.node(bms.helen.id),
+                model.node(bms.nate.id),
+                model.node(bms.undyne.id),
+            ]);
+
+            expect(model.isSelected(model.node(bms.helen.id))).to.be.true;
+            expect(model.isSelected(model.node(bms.nate.id))).to.be.true;
+            expect(model.isSelected(model.node(bms.undyne.id))).to.be.true;
+
+            expect(model.isSelected(model.node(bms.patricia.id))).to.be.false;
+            expect(model.isSelected(model.node(bms.unnamed.id))).to.be.false;
+        });
+
+        it('identifies items in a range within a folder', async () => {
+            const range = model.itemsInRange(
+                model.node(bms.doug_2.id), model.node(bms.patricia.id));
+            expect(range).to.deep.equal([
+                model.node(bms.doug_2.id),
+                model.node(bms.helen.id),
+                model.node(bms.patricia.id),
+            ]);
+        });
+
+        it('identifies items in a range within a folder (backwards)', async () => {
+            const range = model.itemsInRange(
+                model.node(bms.patricia.id), model.node(bms.doug_2.id));
+            expect(range).to.deep.equal([
+                model.node(bms.doug_2.id),
+                model.node(bms.helen.id),
+                model.node(bms.patricia.id),
+            ]);
+        });
+
+        it('identifies a single-item range', async () => {
+            const range = model.itemsInRange(
+                model.node(bms.helen.id), model.node(bms.helen.id));
+            expect(range).to.deep.equal([
+                model.node(bms.helen.id),
+            ]);
+        });
+
+        it('refuses to identify ranges across folders', async () => {
+            // for now, anyway...
+            expect(model.itemsInRange(
+                    model.node(bms.doug_2.id), model.node(bms.undyne.id)))
+                .to.be.null;
+        });
+    });
 });

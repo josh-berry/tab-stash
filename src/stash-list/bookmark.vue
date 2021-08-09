@@ -3,12 +3,16 @@
             'tab': true, // TODO fix the CSS classes...
             'saved': true,
             'open': hasOpenTab,
-            'active': hasActiveTab}"
+            'active': hasActiveTab,
+            'selected': bookmark.$selected}"
    target="_blank" :href="bookmark.url" :title="bookmark.title"
    draggable="false" :data-id="bookmark.id"
    @click.prevent.stop="open">
-  <ItemIcon v-if="favicon?.value?.favIconUrl" :src="favicon?.value?.favIconUrl" />
-  <span v-else class="icon" />
+  <item-icon class="action"
+             :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
+             :default-class="{'icon-tab': ! bookmark.$selected,
+                              'icon-tab-selected': bookmark.$selected}"
+             @click.prevent.stop="select" />
   <span class="text">{{bookmark.title}}</span>
   <ButtonBox>
     <Button class="restore-remove" @action="openRemove"
@@ -75,6 +79,11 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+
+        select(ev: MouseEvent) { logErrors(async () => {
+            await this.model().selection.toggleSelectFromEvent(
+                ev, this.model().bookmarks, this.bookmark);
+        })},
 
         open(ev: MouseEvent) { logErrors(async () => {
             if (! this.bookmark.url) return;
