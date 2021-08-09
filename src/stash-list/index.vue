@@ -1,5 +1,5 @@
 <template>
-<main>
+<main @click="deselectAll">
   <teleport to="body">
     <transition appear name="dialog">
       <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
@@ -215,6 +215,10 @@ const Main = defineComponent({
                 if (! ('children' in f)) continue;
                 metadata.setCollapsed(f.id, this.collapsed);
             }
+        },
+
+        deselectAll() {
+            this.model().selection.clearSelection().catch(console.error);
         },
 
         search_filter(i: Bookmark | Tab) {
