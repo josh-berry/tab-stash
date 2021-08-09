@@ -244,7 +244,39 @@ class MockWindows implements W.Static {
 
     // istanbul ignore next
     async update(windowId: number, updateInfo: W.UpdateUpdateInfoType): Promise<W.Window> {
-        throw new Error('Method not implemented.');
+        const win = this._state.win(windowId);
+
+        const notImplemented = (name: keyof W.UpdateUpdateInfoType) => {
+            // istanbul ignore if
+            if (name in updateInfo) {
+                throw new Error(`Parameter ${name} is not implemented`);
+            }
+        };
+        notImplemented('left');
+        notImplemented('top');
+        notImplemented('width');
+        notImplemented('height');
+        notImplemented('drawAttention');
+        notImplemented('state');
+        notImplemented('titlePreface');
+
+        if (updateInfo.focused !== undefined) {
+            // istanbul ignore else
+            if (updateInfo.focused) {
+                this._state.focus_window(win);
+            } else {
+                // Not quite Z-order, but close enough...
+                const w = this._state.windows.find(w => w);
+                // istanbul ignore else
+                if (w) {
+                    this._state.focus_window(w);
+                } else {
+                    win.focused = false;
+                }
+            }
+        }
+
+        return only_win(win);
     }
 
     async remove(windowId: number): Promise<void> {

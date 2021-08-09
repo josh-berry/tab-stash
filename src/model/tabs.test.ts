@@ -392,4 +392,77 @@ describe('model/tabs', () => {
         expect(model.tab(tabs.left_alice.id)!.active).to.equal(false);
         expect(model.tab(tabs.left_charlotte.id)!.active).to.equal(true);
     });
+
+    describe('selection model', () => {
+        beforeEach(async () => {
+            await browser.windows.update(windows.real.id, {focused: true});
+            await events.next(browser.windows.onFocusChanged);
+        });
+
+        it('tracks selected items', async () => {
+            model.setSelected([
+                model.tab(tabs.real_bob.id),
+                model.tab(tabs.real_estelle.id),
+                model.tab(tabs.real_doug.id),
+            ], true);
+
+            expect(Array.from(model.selectedItems())).to.deep.equal([
+                model.tab(tabs.real_bob.id),
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_estelle.id),
+            ]);
+
+            expect(model.isSelected(model.tab(tabs.real_bob.id))).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_doug.id))).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_estelle.id))).to.be.true;
+
+            expect(model.isSelected(model.tab(tabs.left_betty.id))).to.be.false;
+            expect(model.isSelected(model.tab(tabs.right_adam.id))).to.be.false;
+        });
+
+        it('identifies items in a range within a window', async () => {
+            const range = model.itemsInRange(
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_francis.id));
+            expect(range).to.deep.equal([
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_doug_2.id),
+                model.tab(tabs.real_estelle.id),
+                model.tab(tabs.real_francis.id),
+            ]);
+        });
+
+        it('identifies items in a range within a window (backwards)', async () => {
+            const range = model.itemsInRange(
+                model.tab(tabs.real_francis.id),
+                model.tab(tabs.real_doug.id));
+            expect(range).to.deep.equal([
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_doug_2.id),
+                model.tab(tabs.real_estelle.id),
+                model.tab(tabs.real_francis.id),
+            ]);
+        });
+
+        it('identifies a single-item range', async () => {
+            const range = model.itemsInRange(
+                model.tab(tabs.real_blank.id),
+                model.tab(tabs.real_blank.id));
+            expect(range).to.deep.equal([
+                model.tab(tabs.real_blank.id),
+            ]);
+        });
+
+        it('refuses to identify ranges across windows', async () => {
+            expect(model.itemsInRange(
+                    model.tab(tabs.right_adam.id),
+                    model.tab(tabs.real_bob.id)))
+                .to.be.null;
+
+            expect(model.itemsInRange(
+                    model.tab(tabs.real_bob.id),
+                    model.tab(tabs.right_adam.id)))
+                .to.be.null;
+        });
+    });
 });

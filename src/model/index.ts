@@ -98,7 +98,7 @@ export class Model {
 
         this.favicons = src.favicons;
         this.bookmark_metadata = src.bookmark_metadata;
-        this.selection = new Selection.Model([this.bookmarks]);
+        this.selection = new Selection.Model([this.tabs, this.bookmarks]);
     }
 
     //

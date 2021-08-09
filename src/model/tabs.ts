@@ -17,6 +17,8 @@ export type Tab = {
     hidden: boolean,
     active: boolean,
     highlighted: boolean,
+
+    $selected?: boolean,
 };
 
 export type WindowID = number & {readonly __window_id: unique symbol};
@@ -356,5 +358,46 @@ export class Model {
         // istanbul ignore if -- internal consistency
         if (! index) return;
         index.delete(t);
+    }
+
+    //
+    // Handling selection/deselection of tabs in the UI
+    //
+
+    isSelected(item: Tab): boolean { return !!item.$selected; }
+
+    async setSelected(items: Iterable<Tab>, isSelected: boolean) {
+        for (const item of items) item.$selected = isSelected;
+    }
+
+    *selectedItems(): Generator<Tab> {
+        // We only allow tabs in the current window to be selected
+        // istanbul ignore if -- shouldn't occur in tests
+        if (this.current_window === undefined) return;
+        const tabs = this.window(this.current_window).tabs;
+        for (const tid of tabs) {
+            const t = this.tab(tid);
+            if (t.$selected) yield t;
+        }
+    }
+
+    itemsInRange(start: Tab, end: Tab): Tab[] | null {
+        // istanbul ignore if -- shouldn't occur in tests
+        if (this.current_window === undefined) return null;
+        if (start.windowId !== this.current_window) return null;
+        if (end.windowId !== this.current_window) return null;
+
+        let startPos = this.positionOf(start);
+        let endPos = this.positionOf(end);
+
+        if (endPos.index < startPos.index) {
+            const tmp = endPos;
+            endPos = startPos;
+            startPos = tmp;
+        }
+
+        return this.window(this.current_window).tabs
+            .slice(startPos.index, endPos.index + 1)
+            .map(tid => this.tab(tid));
     }
 };

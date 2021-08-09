@@ -1,13 +1,17 @@
 <template>
 <a :class="{'action-container': true,
             'tab': true,
-            'saved': !!bm,
             'open': ! tab.hidden,
-            'active': !!tab.active}"
+            'active': !!tab.active,
+            'selected': tab.$selected}"
    target="_blank" :href="tab.url" :title="tab.title"
    draggable="false" :data-id="tab.id"
    @click.prevent.stop="open">
-  <ItemIcon class="icon" :src="tab.favIconUrl" :default-class="{'icon-tab': true}"/>
+  <item-icon class="action"
+             :src="! tab.$selected ? tab.favIconUrl : ''"
+             :default-class="{'icon-tab': ! tab.$selected,
+                              'icon-tab-selected': tab.$selected}"
+             @click.prevent.stop="select" />
   <span class="text">{{tab.title}}</span>
   <ButtonBox>
     <Button class="stash one" @action="stash"
@@ -51,6 +55,11 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+
+        select(ev: MouseEvent) { logErrors(async () => {
+            await this.model().selection.toggleSelectFromEvent(
+                ev, this.model().tabs, this.tab);
+        })},
 
         stash(ev: MouseEvent) { logErrors(async () => {
             await this.model().stashTabs([this.tab], {
