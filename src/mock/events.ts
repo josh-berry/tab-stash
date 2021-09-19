@@ -46,6 +46,7 @@ export class MockEventDispatcher<L extends Function> implements Events.Event<L> 
     hasListeners() { return this._listeners.size > 0; }
 
     send(...args: Args<L>) {
+        // istanbul ignore if
         if (verbose) {
             try {
                 throw new Error("Stack trace");
@@ -79,6 +80,8 @@ export function drain(count: number): Promise<void> {
         requested_count = count;
         resolve = res;
         reject = rej;
+
+        // istanbul ignore else
         if (queue.length > 0) setImmediate(deliver);
     });
 }
@@ -120,7 +123,9 @@ export function trace(t: boolean) {
 }
 
 function deliver() {
+    // istanbul ignore if
     if (verbose) console.log(`Swapping queue`);
+
     const q = queue;
     queue = [];
 
