@@ -37,7 +37,6 @@ export class Model {
             toDelete.push(ent.key);
         }
 
-        console.log(`GC: Removing metadata for deleted bookmarks:`, toDelete);
         await this._kvc.kvs.delete(toDelete);
     }
 }
