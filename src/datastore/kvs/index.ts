@@ -54,7 +54,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     private _needs_flush = new Map<K, Entry<K, V>>();
     private _needs_fetch = new Map<K, Entry<K, V | null>>();
 
-    private _pending_io: NodeJS.Timeout | null = null;
+    private _pending_io: Promise<void> | null = null;
 
     constructor(kvs: KeyValueStore<K, V>) {
         this.kvs = kvs;
@@ -118,6 +118,13 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         return ent;
     }
 
+    /** Returns a promise that resolves once the cache has flushed all pending
+     * writes to its underlying KVS. */
+    flush(): Promise<void> {
+        if (this._pending_io) return this._pending_io;
+        return Promise.resolve();
+    }
+
     /** Apply an update to an entry that was received from the service (which
      * always overrides any pending flush for that entry). */
     private _update(key: K, value: V | null) {
@@ -134,13 +141,17 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 
     private _io() {
         if (this._pending_io) return;
-        this._pending_io = setTimeout(() => logErrors(async () => {
-            while (this._needs_fetch.size > 0 || this._needs_flush.size > 0) {
-                await this._fetch();
-                await this._flush();
-            }
-            this._pending_io = null;
-        }));
+        this._pending_io = new Promise(resolve => setTimeout(() =>
+            logErrors(async () => {
+                while (this._needs_fetch.size > 0 || this._needs_flush.size > 0) {
+                    await this._fetch();
+                    await this._flush();
+                }
+            }).finally(() => {
+                this._pending_io = null;
+                resolve();
+            })
+        ));
     }
 
     private async _fetch() {

@@ -258,7 +258,7 @@ describe('datastore/kvs', () => {
             cache.set('a', 'b');
             expect(kvs.data.get('key')).to.be.undefined;
             expect(kvs.data.get('a')).to.be.undefined;
-            await nextTick();
+            await cache.flush();
             expect(kvs.data.get('key')).to.deep.equal('value');
             expect(kvs.data.get('a')).to.deep.equal('b');
         });
@@ -271,7 +271,7 @@ describe('datastore/kvs', () => {
             expect(a.value).to.be.null;
             expect(b.value).to.be.null;
 
-            await nextTick();
+            await cache.flush();
             expect(a.value).to.deep.equal('b');
             expect(b.value).to.deep.equal('c');
         });
@@ -281,7 +281,7 @@ describe('datastore/kvs', () => {
             const a = cache.get('a');
             expect(a.value).to.be.null;
 
-            await nextTick();
+            await cache.flush();
             expect(a.value).to.deep.equal('b');
             expect(a).to.equal(cache.get('a'));
         });
@@ -300,7 +300,7 @@ describe('datastore/kvs', () => {
             kvs.data.set('a', 'b');
             const a = cache.get('a');
             expect(a.value).to.be.null;
-            await nextTick();
+            await cache.flush();
             expect(a.value).to.deep.equal('b');
         });
 
@@ -309,7 +309,7 @@ describe('datastore/kvs', () => {
             expect(a.value).to.be.null;
 
             await kvs.set([{key: 'a', value: 'b'}]);
-            await nextTick();
+            await cache.flush();
             expect(a.value).to.deep.equal('b');
         });
 
@@ -318,7 +318,7 @@ describe('datastore/kvs', () => {
             cache.set('a', 'b');
             expect(a.value).to.deep.equal('b');
 
-            await nextTick();
+            await cache.flush();
             expect(kvs.data.get('a')).to.deep.equal('b');
 
             await kvs.delete(['a']);
@@ -332,22 +332,26 @@ describe('datastore/kvs', () => {
 
         it('maybe inserts entries that do not exist yet', async () => {
             cache.maybeInsert('a', 'b');
-            await nextTick();
+            await cache.flush();
             expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
         });
 
         it('maybe inserts entries that already exist in the KVS', async () => {
             await kvs.set([{key: 'a', value: 'b'}]);
             cache.maybeInsert('a', 'c');
-            await nextTick();
+            await cache.flush();
             expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
         });
 
         it('maybe inserts entries that already exist in the cache', async () => {
             cache.set('a', 'b');
             cache.maybeInsert('a', 'c');
-            await nextTick();
+            await cache.flush();
             expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
+        });
+
+        it('returns from flush() immediately if no entries are dirty', async() => {
+            await cache.flush();
         });
     });
 });
