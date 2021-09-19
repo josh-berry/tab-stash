@@ -6,7 +6,8 @@ import storage_mock from '../mock/browser-storage';
 
 import {nextTick} from '../util';
 import StoredObject, {
-    aBoolean, anEnum, aNumber, aString, maybeNull, maybeUndef, StorableDef
+    StorableDef, StorableType, StorableValue,
+    aBoolean, anEnum, aNumber, aString, maybeNull, maybeUndef,
 } from './stored-object';
 
 const SO = StoredObject;
@@ -129,9 +130,9 @@ describe('stored-object', function() {
 
         it('retrieves the same object when asked multiple times',
            async function() {
-               const o = await StoredObject.local('foo', DEF);
-               const o2 = await StoredObject.local('foo', DEF);
-               expect(o).to.equal(o2);
+               const o = StoredObject.local('foo', DEF);
+               const o2 = StoredObject.local('foo', DEF);
+               expect(await o).to.equal(await o2);
            });
 
         it('distinguishes between different objects',
@@ -366,29 +367,6 @@ describe('stored-object', function() {
             expect(o.state).to.deep.include(defaults(DEF));
         });
 
-        it('forgets never-created objects', async function() {
-            const o = await StoredObject.sync('foo', DEF);
-
-            await o.delete();
-            await events.drain(1);
-
-            const o2 = await StoredObject.sync('foo', DEF);
-
-            expect(o).to.not.equal(o2);
-        });
-
-        it('forgets deleted objects', async function() {
-            const o = await StoredObject.sync('foo', DEF);
-
-            await o.set({a: 5});
-            await o.delete();
-            await events.drain(2);
-
-            const o2 = await StoredObject.sync('foo', DEF);
-
-            expect(o).to.not.equal(o2);
-        });
-
         it('resurrects deleted objects when modified', async function() {
             const o = await StoredObject.sync('foo', DEF);
 
@@ -434,6 +412,108 @@ describe('stored-object', function() {
             test('enums', {enum: 'whatever'}, 'enum');
             test('maybe-null booleans', {tristate: 'string'}, 'bool');
             test('maybe-undefined numbers', {undef: 'three'}, 'undef');
+        });
+    });
+
+    describe('data definitions', () => {
+        const fallback = Symbol('fallback');
+        function check<V extends StorableValue>(
+            fn: StorableType<V>, value: any, expected: V | typeof fallback
+        ) {
+            it(`${JSON.stringify(value)} is ${
+                expected !== fallback ? expected : 'the fallback value'}`,
+            () => expect(fn(value, fallback as any)).to.equal(expected));
+        }
+
+        describe('aBoolean', () => {
+            check(aBoolean, undefined, fallback);
+            check(aBoolean, null, false);
+            check(aBoolean, true, true);
+            check(aBoolean, 1, true);
+            check(aBoolean, "true", true);
+            check(aBoolean, "TRUE", true);
+            check(aBoolean, "yes", true);
+            check(aBoolean, "YES", true);
+            check(aBoolean, false, false);
+            check(aBoolean, 0, false);
+            check(aBoolean, "false", false);
+            check(aBoolean, "FALSE", false);
+            check(aBoolean, "no", false);
+            check(aBoolean, "NO", false);
+            check(aBoolean, 42, true);
+            check(aBoolean, "kumquat", fallback);
+            check(aBoolean, [], fallback);
+            check(aBoolean, {}, fallback);
+            check(aBoolean, Symbol(), fallback);
+        });
+
+        describe('aNumber', () => {
+            check(aNumber, undefined, fallback);
+            check(aNumber, null, fallback);
+            check(aNumber, true, 1);
+            check(aNumber, false, 0);
+            check(aNumber, NaN, fallback);
+            check(aNumber, Infinity, Infinity);
+            check(aNumber, -Infinity, -Infinity);
+            check(aNumber, 0, 0);
+            check(aNumber, 42, 42);
+            check(aNumber, 3.1416, 3.1416);
+            check(aNumber, "42", 42);
+            check(aNumber, "42.64", 42.64);
+            check(aNumber, "-42.64", -42.64);
+            check(aNumber, "seven", fallback);
+            check(aNumber, "7afe", fallback);
+            check(aNumber, [], fallback);
+            check(aNumber, {}, fallback);
+            check(aNumber, Symbol(), fallback);
+        });
+
+        describe('aString', () => {
+            check(aString, undefined, fallback);
+            check(aString, null, fallback);
+            check(aString, '', '');
+            check(aString, 'foo', 'foo');
+            check(aString, 5, '5');
+            check(aString, true, 'true');
+            check(aString, false, 'false');
+            check(aString, [], fallback);
+            check(aString, {}, fallback);
+            check(aString, Symbol(), fallback);
+        });
+
+        describe('maybeUndef', () => {
+            const dt = maybeUndef(aString);
+            check(dt, undefined, undefined);
+            check(dt, null, undefined);
+            check(dt, '', '');
+            check(dt, 'foo', 'foo');
+            check(dt, 42, '42');
+            check(dt, true, 'true');
+            check(dt, [], fallback);
+        });
+
+        describe('maybeNull', () => {
+            const dt = maybeNull(aString);
+            check(dt, undefined, null);
+            check(dt, null, null);
+            check(dt, '', '');
+            check(dt, 'foo', 'foo');
+            check(dt, 42, '42');
+            check(dt, true, 'true');
+            check(dt, [], fallback);
+        });
+
+        describe('anEnum', () => {
+            const dt = anEnum('foo', 'bar');
+            check(dt, undefined, fallback);
+            check(dt, null, fallback);
+            check(dt, '', fallback);
+            check(dt, 'foo', 'foo');
+            check(dt, 'bar', 'bar');
+            check(dt, 'other', fallback);
+            check(dt, true, fallback);
+            check(dt, 42, fallback);
+            check(dt, [], fallback);
         });
     });
 });

@@ -46,66 +46,86 @@ export type StorableDefEntry<T extends StorableValue> = {
 
 // Allowed types (for each "is" property in the map above) are based on MDN's
 // documentation (and experimentation with Firefox).
-type StorableValue = undefined | null | boolean | number | string | StorableValue[];
+export type StorableValue = undefined | null | boolean | number | string | StorableValue[];
 
 // Storable types are set in the "is" property of a StorableDef, and are
 // expressed as functions which convert from arbitrary/undefined values the
 // desired type.
-type StorableType<T extends StorableValue> = (value: any, fallback: T) => T;
+export type StorableType<T extends StorableValue> = (value: any, fallback: T) => T;
 
 // Here are the basic types (boolean, string, etc.).  We don't define types for
 // undefined/null right now because they're not very useful on their own.
-export const aBoolean =
-    (value: any, fallback: boolean): boolean => {
-        switch (value) {
-            case 1: case true: return true;
-            case 0: case false: return false;
-        }
-        switch (value.toString().toLowerCase()) {
-            case 'false': case 'no': return false;
-            case 'true': case 'yes': return true;
-            default:
-                return fallback;
-        }
-    };
-export const aNumber =
-    (value: any, fallback: number): number => {
-        let res;
-        try {
-            res = Number(value);
-        } catch (e) {
-            return fallback;
-        }
-        if (Number.isNaN(res)) return fallback;
-        return res;
-    };
+export function aBoolean(value: any, fallback: boolean): boolean {
+    switch (typeof value) {
+        case 'undefined': return fallback;
+        case 'boolean': return value;
+        case 'number':
+            if (value === 0) return false;
+            return true;
+        case 'string':
+            switch (value.toLowerCase()) {
+                case 'false': case 'no': return false;
+                case 'true': case 'yes': return true;
+                default: return fallback;
+            }
+        default:
+            switch (value) {
+                case null: return false;
+                default: return fallback;
+            }
+    }
+}
 
-export const aString =
-    (value: any, _fallback: string): string => value.toString();
+export function aNumber(value: any, fallback: number): number {
+    switch (typeof value) {
+        case 'boolean': case 'number': case 'string':
+            const res = Number(value);
+            if (Number.isNaN(res)) return fallback;
+            return res;
+        default:
+            return fallback;
+    }
+}
+
+export function aString(value: any, fallback: string): string {
+    switch (typeof value) {
+        case 'undefined':
+            return fallback;
+        case 'boolean':
+        case 'number':
+            return value.toString();
+        case 'string':
+            return value;
+        default:
+            return fallback;
+    }
+}
 
 // However, it IS possible to have "some other type OR undefined/null".  For
 // example: maybeUndef(aNumber) is equivalent to number | undefined.
-export const maybeUndef = <V extends StorableValue>(converter: (v: any, fallback: V) => V) =>
-    (value: any, fallback: V): V | undefined => {
+export function maybeUndef<V extends StorableValue>(converter: (v: any, fallback: V) => V) {
+    return (value: any, fallback: V | undefined): V | undefined => {
         switch (value) {
-            case undefined: case null: case '': return undefined;
-            default: return converter(value, fallback);
+            case undefined: case null: return undefined;
+            default: return converter(value, fallback as any);
         }
     };
+}
 
-export const maybeNull = <V extends StorableValue>(converter: (v: any, fallback: V) => V) =>
-    (value: any, fallback: V): V | null => {
+export function maybeNull<V extends StorableValue>(converter: (v: any, fallback: V) => V) {
+    return (value: any, fallback: V | null): V | null => {
         switch (value) {
-            case undefined: case null: case '': return null;
-            default: return converter(value, fallback);
+            case undefined: case null: return null;
+            default: return converter(value, fallback as any);
         }
     };
+}
 
 // Enum values are also supported, for example anEnum('a', 'b') is the same type
 // as 'a' | 'b'.
-export const anEnum = <V extends string | number>(...cases: V[]) =>
+export const anEnum = <V extends string>(...cases: V[]) =>
     (value: any, fallback: V): V => {
-        if (cases.includes(value.toString())) return value;
+        if (cases.includes(value)) return value;
         return fallback;
     };
 
@@ -143,9 +163,6 @@ export default class StoredObject<D extends StorableDef> {
     }
 
     async set(values: Partial<StorableData<D>>): Promise<void> {
-        // Make sure we have an updated set of stuff first.
-        await this._animate();
-
         // The object we will save to the store.  Values which are the default
         // should be omitted to save space (and allow defaults to
         // programmatically change later).
@@ -176,9 +193,8 @@ export default class StoredObject<D extends StorableDef> {
 
     async delete(): Promise<void> {
         // The following may or may not trigger a browser.storage.onChanged
-        // event.  if it doesn't (e.g. because the object never existed), we
-        // have to forget about the object manually.
-        StoredObject._LIVE[this._store].delete(this._key);
+        // event.  If it doesn't, we need to clear the object manually.
+        this._changed({});
         return browser.storage[this._store].remove(this._key);
     }
 
@@ -188,27 +204,26 @@ export default class StoredObject<D extends StorableDef> {
 
     // The set of objects we are currently trying to load.  We keep track of
     // this set because objects can be loaded in one of two ways--either through
-    // _animate(), which queries browser.storage explicitly, or by receiving an
+    // _factory(), which queries browser.storage explicitly, or by receiving an
     // event saying the object has been changed or deleted.
     //
     // In the latter case, the event has more up-to-date information than
-    // browser.storage, so we populate the object from the event and remove it
-    // from /_LOADING/.  Then, when browser.storage.*.get() returns, we check to
-    // see if the object has already been loaded by an event, by looking to see
-    // if it's still in this set.
-    //
-    // The value of the map is a Promise which resolves once the object is
-    // loaded.
-    static readonly _LOADING = new WeakMap<StoredObject<any>, Promise<void>>();
+    // _factory() will, so we populate the object from the event and remove it
+    // from /_LOADING/.  Then, when browser.storage.*.get() returns inside
+    // _factory(), we check to see if the object has already been loaded by an
+    // event, by looking to see if it's still in this set.
+    private static readonly _LOADING = new Set<StoredObject<any>>();
 
     // _LIVE is a simple set of maps as defined at the end of this expression,
     // which holds StoredObjects and keeps them up to date.  This magic is
     // accomplished by an immediately-invoked initializing lambda expression
     // (IIILE, thank you C++) since it cannot be otherwise accessed by a handler
     // defined outside of the class.
-    static readonly _LIVE = (() => {
+    private static readonly _LIVE = (() => {
         browser.storage.onChanged.addListener((changes, area) => {
+            // istanbul ignore if -- browser sanity
             if (area !== 'sync' && area !== 'local') return;
+
             const areaobjs = StoredObject._LIVE[area as 'sync' | 'local'];
 
             for (const key in changes) {
@@ -220,10 +235,8 @@ export default class StoredObject<D extends StorableDef> {
 
                 } else {
                     // Key was removed from the store entirely.  Reset it to
-                    // defaults, and drop it from LIVE_OBJECTS on the assumption
-                    // the callers don't want it, either.
+                    // defaults.
                     obj._changed({});
-                    areaobjs.delete(key);
                 }
 
                 // If anyone was waiting on this object, it's now loaded.  (A
@@ -256,6 +269,7 @@ export default class StoredObject<D extends StorableDef> {
     ): Promise<StoredObject<D>> {
         let object = StoredObject._LIVE[store].get(key);
         if (object) {
+            // istanbul ignore if -- basic caller validation
             if (object._def !== def) {
                 throw new TypeError(`Tried to load '${key}' with a conflicting def`);
             }
@@ -263,7 +277,20 @@ export default class StoredObject<D extends StorableDef> {
         }
 
         object = new StoredObject<D>(store, key, def);
-        await object._animate();
+
+        StoredObject._LOADING.add(object);
+        const data = await browser.storage[store].get(key);
+
+        // Object could have already been loaded due to an onChanged event that
+        // fired between when we asked browser.storage for the object and when
+        // browser.storage actually returned.  Prioritize the event over what
+        // browser.storage gave us because it's most likely to be up to date.
+        //
+        // istanbul ignore else -- not testable due to being v.hard to mock
+        if (StoredObject._LOADING.has(object)) {
+            object._load(data[key]);
+            StoredObject._LOADING.delete(object);
+        }
         return object;
     }
 
@@ -280,35 +307,12 @@ export default class StoredObject<D extends StorableDef> {
         this._store = store;
         this._key = key;
         this._def = def;
-    }
 
-    _animate(): Promise<void> {
-        const liveobj = StoredObject._LIVE[this._store].get(this._key);
-        if (liveobj) {
-            if (liveobj !== this) {
-                throw `Multiple objects exist for key: ${this._key}`;
-            }
-
-            const loading = StoredObject._LOADING.get(this);
-            return loading ? loading : Promise.resolve();
+        // istanbul ignore if -- internal sanity check
+        if (StoredObject._LIVE[this._store].has(this._key)) {
+            throw new Error(`Created multiple StoredObjects for key ${key}`);
         }
-
         StoredObject._LIVE[this._store].set(this._key, this);
-
-        const p = browser.storage[this._store].get(this._key)
-            .then(data => {
-                // Object could have already been loaded due to an onChanged
-                // event that fired between when we asked browser.storage for
-                // the object and when browser.storage actually returned.
-                // Prioritize the event over what browser.storage gave us
-                // because it's most likely to be up to date.
-                if (StoredObject._LOADING.has(this)) {
-                    this._load(data[this._key]);
-                    StoredObject._LOADING.delete(this);
-                }
-            });
-        StoredObject._LOADING.set(this, p);
-        return p;
     }
 
     private _changed(values: any) {
