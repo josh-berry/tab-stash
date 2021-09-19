@@ -1,9 +1,5 @@
 import {expect} from 'chai';
 
-// Needed for deleted-items (which indirectly imports stash.ts)
-// TODO remove me when stash.ts is properly modelized
-import '../mock/browser-browsersettings';
-
 import MemoryKVS from '../datastore/kvs/memory';
 import {nextTick} from '../util';
 
