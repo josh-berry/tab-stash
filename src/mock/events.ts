@@ -46,9 +46,18 @@ export class MockEventDispatcher<L extends Function> implements Events.Event<L> 
     hasListeners() { return this._listeners.size > 0; }
 
     send(...args: Args<L>) {
+        if (verbose) {
+            try {
+                throw new Error("Stack trace");
+            } catch (e) {
+                console.log(`[send ${this.name}]`, ...args);
+                console.log((e as Error).stack);
+            }
+        }
+
         queue.push(() => {
             // istanbul ignore next
-            if (verbose) console.log(`[${this.name}] `, ...args);
+            if (verbose) console.log(`[deliver ${this.name}] `, ...args);
             for (const fn of this._listeners) fn(...args);
         });
         if (resolve) setImmediate(deliver);
@@ -111,6 +120,7 @@ export function trace(t: boolean) {
 }
 
 function deliver() {
+    if (verbose) console.log(`Swapping queue`);
     const q = queue;
     queue = [];
 

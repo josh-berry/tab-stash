@@ -216,13 +216,13 @@ export default class StoredObject<D extends StorableDef> {
                 if (! obj) continue;
 
                 if ('newValue' in changes[key]) {
-                    obj._load(changes[key].newValue);
+                    obj._changed(changes[key].newValue);
 
                 } else {
                     // Key was removed from the store entirely.  Reset it to
                     // defaults, and drop it from LIVE_OBJECTS on the assumption
                     // the callers don't want it, either.
-                    obj._load({});
+                    obj._changed({});
                     areaobjs.delete(key);
                 }
 
@@ -311,7 +311,12 @@ export default class StoredObject<D extends StorableDef> {
         return p;
     }
 
-    _load(values: any) {
+    private _changed(values: any) {
+        this._load(values);
+        this.onChanged.send(this);
+    }
+
+    private _load(values: any) {
         // We assign both defaults and the new values here so that if any
         // properties were reset to the default (and removed from storage),
         // Vue will notice those as well.
@@ -328,8 +333,6 @@ export default class StoredObject<D extends StorableDef> {
                 // Otherwise keys not present in defaults are dropped/ignored.
             }
         }
-
-        this.onChanged.send(this);
     }
 };
 

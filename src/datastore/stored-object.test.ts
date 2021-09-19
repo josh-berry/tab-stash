@@ -50,20 +50,20 @@ describe('stored-object', function() {
         });
 
         it('delivers events on object creation', async function() {
-            let fired = false;
+            let fired = 0;
             browser.storage.onChanged.addListener((changes, area) => {
                 expect('oldValue' in changes.foo).to.equal(false);
                 expect(changes.foo.newValue).to.equal(5);
                 expect(area).to.equal('local');
-                fired = true;
+                fired++;
             });
             await browser.storage.local.set({foo: 5});
             await events.drain(1);
-            expect(fired).to.equal(true);
+            expect(fired).to.equal(1);
         });
 
         it('delivers events on object update', async function() {
-            let fired = false;
+            let fired = 0;
             await browser.storage.local.set({foo: 5});
             await events.drain(1);
 
@@ -71,15 +71,15 @@ describe('stored-object', function() {
                 expect(changes.foo.oldValue).to.equal(5);
                 expect(changes.foo.newValue).to.equal(10);
                 expect(area).to.equal('local');
-                fired = true;
+                fired++;
             });
             await browser.storage.local.set({foo: 10});
             await events.drain(1);
-            expect(fired).to.equal(true);
+            expect(fired).to.equal(1);
         });
 
         it('delivers events on object deletion', async function() {
-            let fired = false;
+            let fired = 0;
             await browser.storage.local.set({foo: 5});
             await events.drain(1);
 
@@ -87,11 +87,11 @@ describe('stored-object', function() {
                 expect(changes.foo.oldValue).to.equal(5);
                 expect('newValue' in changes.foo).to.equal(false);
                 expect(area).to.equal('local');
-                fired = true;
+                fired++;
             });
             await browser.storage.local.remove('foo');
             await events.drain(1);
-            expect(fired).to.equal(true);
+            expect(fired).to.equal(1);
         });
     });
 
@@ -207,9 +207,9 @@ describe('stored-object', function() {
         it('fires events for objects which have been created out-of-band',
             async function() {
                 const o = await StoredObject.local('foo', DEF);
-                let fired = false;
+                let fired = 0;
                 o.onChanged.addListener(obj => {
-                    fired = true;
+                    fired++;
                     expect(obj.state).to.deep.include(
                         Object.assign({}, defaults(DEF), {a: 42}));
                 });
@@ -217,7 +217,7 @@ describe('stored-object', function() {
                 await browser.storage.local.set({foo: {a: 42}});
                 await events.drain(1);
                 await nextTick();
-                expect(fired).to.be.true;
+                expect(fired).to.equal(1);
             });
 
         it('fires events for objects which have been updated out-of-band',
@@ -226,9 +226,9 @@ describe('stored-object', function() {
                 await events.drain(1);
 
                 const o = await StoredObject.local('foo', DEF);
-                let fired = false;
+                let fired = 0;
                 o.onChanged.addListener(obj => {
-                    fired = true;
+                    fired++;
                     expect(obj.state).to.deep.include(
                         Object.assign({}, defaults(DEF), {a: 17}));
                 });
@@ -236,7 +236,7 @@ describe('stored-object', function() {
                 await browser.storage.local.set({foo: {a: 17}});
                 await events.drain(1);
                 await nextTick();
-                expect(fired).to.be.true;
+                expect(fired).to.equal(1);
             });
 
         it('fires events for objects which have been deleted out-of-band',
@@ -245,9 +245,9 @@ describe('stored-object', function() {
                 await events.drain(1);
 
                 const o = await StoredObject.local('foo', DEF);
-                let fired = false;
+                let fired = 0;
                 o.onChanged.addListener(obj => {
-                    fired = true;
+                    fired++;
                     expect(o.state).to.deep.include(
                             Object.assign({}, defaults(DEF)));
                 });
@@ -255,7 +255,7 @@ describe('stored-object', function() {
                 await browser.storage.local.remove('foo');
                 await events.drain(1);
                 await nextTick();
-                expect(fired).to.be.true;
+                expect(fired).to.equal(1);
             });
 
         it('sets values which are not the default', async function() {
