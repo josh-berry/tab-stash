@@ -54,6 +54,31 @@ describe('model/util', () => {
             expect(fired).to.be.true;
         });
 
+        it('reports if keys are present in the map', () => {
+            const obj = reactive({k: 'k', v: 'qwer', i: 0});
+            map.insert('k', obj);
+            expect(map.has('k')).to.be.true;
+            expect(map.has('f')).to.be.false;
+        });
+
+        it('iterates over the keys in the map', () => {
+            map.insert('a', reactive({k: 'a', v: 'asdf', i: 0}));
+            map.insert('b', reactive({k: 'b', v: 'asdf', i: 1}));
+            expect(Array.from(map.keys())).to.deep.equal(['a', 'b']);
+        });
+
+        it('iterates over the values in the map', () => {
+            const a = reactive({k: 'a', v: 'asdf', i: 1})
+            const b = reactive({k: 'b', v: 'asdf', i: 1})
+            map.insert('a', a);
+            map.insert('b', b);
+
+            const values = Array.from(map.values());
+            expect(values[0]).to.equal(a);
+            expect(values[1]).to.equal(b);
+            expect(values.length).to.equal(2);
+        });
+
         it('gracefully ignores move()s for invalid keys', () => {
             expect(map.move('nowhere', 'nowhere else')).to.be.undefined;
         });
@@ -74,6 +99,17 @@ describe('model/util', () => {
             await nextTick();
             expect(idx.get('g')).to.deep.equal([o]);
             expect(idx.get('f')).to.deep.equal([]);
+        });
+
+        it('reports if entries are present in the index', async () => {
+            const o1 = reactive({k: 'f', v: 'v', i: 0});
+            map.insert('f', o1);
+
+            const idx = new M.Index(map, {
+                keyFor(v) { return v.i; }
+            });
+            expect(idx.has(0)).to.be.true;
+            expect(idx.has(1)).to.be.false;
         });
 
         it('throws if something non-reactive is inserted', () => {
