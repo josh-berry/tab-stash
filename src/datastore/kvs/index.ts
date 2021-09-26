@@ -1,4 +1,4 @@
-import {Events} from 'webextension-polyfill-ts';
+import {Events} from 'webextension-polyfill';
 import {reactive} from 'vue';
 
 import {logErrors} from '../../util';

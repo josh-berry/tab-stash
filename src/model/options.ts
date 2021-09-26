@@ -6,7 +6,7 @@
 // to change where an option is stored.  For another, options.vue expects this
 // and will break if it's not true.)
 
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 
 import {resolveNamed} from '../util';
 import StoredObject, {

@@ -1,5 +1,5 @@
 import {reactive} from "vue";
-import {browser, Tabs, Windows} from "webextension-polyfill-ts";
+import browser, {Tabs, Windows} from "webextension-polyfill";
 import {EventWiring, filterMap} from "../util";
 import {EventfulMap, Index} from "./util";
 

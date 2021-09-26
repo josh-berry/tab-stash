@@ -1,5 +1,5 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 import * as Vue from 'vue';
 
 export {

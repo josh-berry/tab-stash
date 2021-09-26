@@ -1,4 +1,4 @@
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 
 import { TaskMonitor } from '../util';
 import {Model, Bookmarks} from '../model';

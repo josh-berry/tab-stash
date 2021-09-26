@@ -1,5 +1,5 @@
 import {reactive, Ref, ref} from "vue";
-import {Bookmarks, browser} from "webextension-polyfill-ts";
+import browser, {Bookmarks} from "webextension-polyfill";
 
 import {EventWiring, filterMap, nextTick} from "../util";
 import {EventfulMap, Index} from "./util";

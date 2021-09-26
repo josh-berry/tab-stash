@@ -1,6 +1,6 @@
 // istanbul ignore file
 
-import {browser, Tabs, Menus} from 'webextension-polyfill-ts';
+import browser, {Tabs, Menus} from 'webextension-polyfill';
 
 import {
     asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,

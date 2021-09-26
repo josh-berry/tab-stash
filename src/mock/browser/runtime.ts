@@ -1,4 +1,5 @@
-import {browser, Manifest, Runtime} from 'webextension-polyfill-ts';
+import './loader';
+import browser, {Manifest, Runtime} from 'webextension-polyfill';
 import {beforeEach} from 'mocha';
 
 import * as events from './events';
@@ -65,13 +66,11 @@ export default (() => {
 
             verbose = false;
 
-            if (! (<any>globalThis).browser) (<any>globalThis).browser = {};
-
             exports.onConnect = new events.MockEventDispatcher('rt.onConnect');
             exports.client_ports = [];
             exports.server_ports = [];
 
-            browser.runtime = {
+            (<any>browser).runtime = {
                 getPlatformInfo() {
                     return new Promise((resolve, reject) => {
                         resolve({os: 'linux', arch: 'x86-64'});

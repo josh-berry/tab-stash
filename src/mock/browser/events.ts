@@ -1,8 +1,8 @@
-import {Events} from 'webextension-polyfill-ts';
+import {Events} from 'webextension-polyfill';
 
 import {expect} from 'chai';
 import {beforeEach, afterEach} from 'mocha';
-import {Args} from '../util';
+import {Args} from '../../util';
 
 let verbose = false;
 
@@ -21,7 +21,9 @@ beforeEach(() => {
 });
 afterEach(expect_empty);
 
-export class MockEventDispatcher<L extends Function> implements Events.Event<L> {
+export class MockEventDispatcher<L extends (...args: any[]) => any>
+    implements Events.Event<L>
+{
     name: string;
     _listeners: Set<L> = new Set();
 

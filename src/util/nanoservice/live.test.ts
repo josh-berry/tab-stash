@@ -1,8 +1,8 @@
 import {expect} from 'chai';
-import {browser, Runtime} from 'webextension-polyfill-ts';
+import browser, {Runtime} from 'webextension-polyfill';
 
-import * as events from '../../mock/events';
-import '../../mock/browser-runtime';
+import * as events from '../../mock/browser/events';
+import '../../mock/browser/runtime';
 
 import * as M from '.';
 import * as Live from './live';

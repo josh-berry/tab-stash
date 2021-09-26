@@ -1,8 +1,10 @@
-import {Events} from 'webextension-polyfill-ts';
+import {Events} from 'webextension-polyfill';
 
 import {Args} from '.';
 
-export default class Listener<L extends Function> implements Events.Event<L> {
+export default class Listener<L extends (...args: any[]) => any>
+    implements Events.Event<L>
+{
     private _listeners: Set<L> = new Set();
 
     addListener(l: L) { this._listeners.add(l); }

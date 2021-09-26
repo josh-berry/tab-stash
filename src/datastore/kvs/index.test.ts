@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 
 // Needed because the 'util' import below tries to poke at browser.runtime
-import '../../mock/browser-runtime';
+import '../../mock/browser/runtime';
 
 import {nextTick} from '../../util';
 

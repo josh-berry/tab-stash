@@ -54,7 +54,7 @@
 </template>
 
 <script lang="ts">
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
 import {

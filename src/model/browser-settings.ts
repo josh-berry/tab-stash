@@ -1,5 +1,5 @@
 import {reactive} from "vue";
-import {browser} from "webextension-polyfill-ts";
+import browser from "webextension-polyfill";
 
 import {EventWiring, resolveNamed} from "../util";
 

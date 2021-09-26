@@ -49,7 +49,7 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 </template>
 
 <script lang="ts">
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
 import {altKeyName, filterMap, logErrors, required} from '../util';

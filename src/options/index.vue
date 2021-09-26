@@ -216,7 +216,7 @@
 </template>
 
 <script lang="ts">
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 import {PropType, defineComponent, reactive} from 'vue';
 
 import launch from '../launch-vue';

@@ -1,8 +1,8 @@
 import {expect} from 'chai';
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 
-import * as events from '../mock/events';
-import storage_mock from '../mock/browser-storage';
+import * as events from '../mock/browser/events';
+import storage_mock from '../mock/browser/storage';
 
 import {nextTick} from '../util';
 import StoredObject, {

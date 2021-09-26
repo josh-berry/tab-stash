@@ -1,4 +1,5 @@
-import {browser} from 'webextension-polyfill-ts';
+import './loader';
+import browser from 'webextension-polyfill';
 import {beforeEach} from 'mocha';
 
 import * as events from './events';
@@ -77,7 +78,7 @@ class MockStorageArea {
 }
 
 class SyncStorageArea extends MockStorageArea {
-    // Ugh, these values are hard-coded into webextension-polyfill-ts, no other
+    // Ugh, these values are hard-coded into webextension-polyfill, no other
     // values will work...
     QUOTA_BYTES = 102400 as const;
     QUOTA_BYTES_PER_ITEM = 8192 as const;
@@ -121,7 +122,7 @@ export default (() => {
             exports.events = new events.MockEventDispatcher<StorageChangedFn>(
                 'storage.onChanged');
 
-            browser.storage = {
+            (<any>browser).storage = {
                 local: new LocalStorageArea(exports.events),
                 sync: new SyncStorageArea(exports.events),
                 managed: new ManagedStorageArea(exports.events),

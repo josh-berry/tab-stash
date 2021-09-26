@@ -27,7 +27,7 @@
 //
 //     await obj.delete();
 
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 import {reactive} from 'vue';
 
 import Listener from '../util/listener';

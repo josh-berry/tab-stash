@@ -1,4 +1,4 @@
-import {browser, Runtime} from 'webextension-polyfill-ts';
+import browser, {Runtime} from 'webextension-polyfill';
 
 import {logErrors} from '..';
 import {NanoPort, NanoService, NanoTimeoutError, RemoteNanoError} from '.';

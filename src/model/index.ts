@@ -30,7 +30,7 @@
 //   mutating and accessing the state in various ways that a user might want to
 //   perform.  All the business logic resides here.
 
-import {browser} from 'webextension-polyfill-ts';
+import browser from 'webextension-polyfill';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
