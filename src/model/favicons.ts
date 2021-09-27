@@ -48,7 +48,6 @@ export class Model {
             toDelete.push(entry.key);
         }
 
-        console.log(`GC: Removing favicons for unneeded URLs:`, toDelete);
         await this._kvc.kvs.delete(toDelete);
     }
 

@@ -108,6 +108,15 @@ export class Model {
         return node;
     }
 
+    /** Retrieves the bookmark with the specified ID, or throws an exception if
+     * the ID does not exist or is not a bookmark (e.g. it's a separator or
+     * folder). */
+    bookmark(id: NodeID): Bookmark {
+        const node = this.node(id);
+        if ('url' in node) return node;
+        throw new Error(`Bookmark node is not a bookmark: ${id}`);
+    }
+
     /** Retrieves the folder with the specified ID, or throws an exception if
      * the ID does not exist or is not a folder. */
     folder(id: NodeID): Folder {
