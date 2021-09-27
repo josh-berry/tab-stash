@@ -23,8 +23,9 @@
 
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
+import browser from 'webextension-polyfill';
 
-import {altKeyName, bgKeyName, bgKeyPressed, required, logErrors} from '../util';
+import {altKeyName, bgKeyName, required, logErrors} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 
@@ -69,9 +70,7 @@ export default defineComponent({
         })},
 
         open(ev: MouseEvent) { logErrors(async () => {
-            if (! this.tab.url) return;
-            const bg = bgKeyPressed(ev);
-            await this.model().restoreTabs([this.tab.url], {background: bg});
+            await browser.tabs.update(this.tab.id, {active: true});
         })},
 
         remove() { logErrors(async () => {
