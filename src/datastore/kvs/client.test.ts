@@ -18,6 +18,8 @@ describe('datastore/kvs/client', function() {
 // messages.  Or to put it another way, split kvs/service.ts into the IndexedDB
 // KVS and the thing that forwards messages/events to/from IndexedDB KVS.
 class MockServicePort implements Proto.ServicePort<string, string> {
+    readonly name: string = '';
+
     // istanbul ignore next
     onNotify = (_: Proto.ServiceMsg<string, string>) => undefined;
 
@@ -62,7 +64,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
                     $type: 'set',
                     entries: copy(msg.entries),
                 } as const;
-                this.onNotify(res);
+                if (res.entries.length > 0) this.onNotify(res);
                 return null;
 
             case 'delete':
@@ -70,16 +72,19 @@ class MockServicePort implements Proto.ServicePort<string, string> {
                 for (const k of msg.keys) {
                     if (this.entries.delete(k)) deleted.push(k);
                 }
-                this.onNotify({$type: 'delete', keys: deleted});
+                if (deleted.length > 0) {
+                    this.onNotify({$type: 'delete', keys: deleted});
+                }
                 return null;
 
             case 'deleteAll':
                 const all_deleted = [];
                 for (const k of this.entries.keys()) {
-                    this.entries.delete(k);
-                    all_deleted.push(k);
+                    if (this.entries.delete(k)) all_deleted.push(k);
                 }
-                this.onNotify({$type: 'delete', keys: all_deleted});
+                if (all_deleted.length > 0) {
+                    this.onNotify({$type: 'delete', keys: all_deleted});
+                }
                 return null;
         }
     }

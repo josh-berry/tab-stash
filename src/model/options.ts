@@ -9,8 +9,8 @@
 import browser from 'webextension-polyfill';
 
 import {resolveNamed} from '../util';
-import StoredObject, {
-    aBoolean, anEnum, aNumber, aString, maybeUndef
+import stored_object, {
+    StoredObject, aBoolean, anEnum, aNumber, aString, maybeUndef
 } from '../datastore/stored-object';
 
 export const SHOW_WHAT_OPT = anEnum('sidebar', 'tab', 'popup', 'none');
@@ -116,8 +116,8 @@ export class Model {
 
     static async live(): Promise<Model> {
         return new Model(await resolveNamed({
-            sync: StoredObject.sync('options', SYNC_DEF),
-            local: StoredObject.local('options', LOCAL_DEF),
+            sync: stored_object('sync', 'options', SYNC_DEF),
+            local: stored_object('local', 'options', LOCAL_DEF),
         }));
     }
 

@@ -3,13 +3,12 @@ import {openDB} from 'idb';
 
 import * as NS from '../../util/nanoservice';
 import Service from './service';
-import mock_indexeddb from '../../mock/indexeddb';
+import * as events from '../../mock/events';
 
 import {tests} from './index.test';
 import * as P from './proto';
 
 async function kvs_factory(): Promise<Service<string, string>> {
-    mock_indexeddb.reset();
     NS.registry.reset_testonly();
     const db = await openDB('test', 1, {
         upgrade(db, oldVersion, newVersion, txn) {
@@ -34,6 +33,8 @@ describe('datastore/kvs/service', function() {
 
         it('sends updates for new objects', async() => {
             await svc.set([{key: 'a', value: 'b'}]);
+            await events.next(svc.onSet);
+
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [{key: 'a', value: 'b'}]}
             ]);
@@ -41,6 +42,8 @@ describe('datastore/kvs/service', function() {
 
         it('sends updates for multiple new objects at once', async() => {
             await svc.set([{key: 'a', value: 'b'}, {key: 'b', value: 'c'}]);
+            await events.next(svc.onSet);
+
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [
                     {key: 'a', value: 'b'}, {key: 'b', value: 'c'}]}]);
@@ -49,6 +52,8 @@ describe('datastore/kvs/service', function() {
         it('sends updates for changed objects', async() => {
             await svc.set([{key: 'a', value: 'a'}]);
             await svc.set([{key: 'a', value: 'alison'}]);
+            await events.nextN(svc.onSet, 2);
+
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [{key: 'a', value: 'a'}]},
                 {$type: 'set', entries: [{key: 'a', value: 'alison'}]}
@@ -57,7 +62,11 @@ describe('datastore/kvs/service', function() {
 
         it('sends updates for deleted objects', async() => {
             await svc.set([{key: 'a', value: 'a'}]);
+            await events.next(svc.onSet);
+
             await svc.delete(['a']);
+            await events.next(svc.onDelete);
+
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [{key: 'a', value: 'a'}]},
                 {$type: 'delete', keys: ['a']},
@@ -67,7 +76,11 @@ describe('datastore/kvs/service', function() {
         it('sends updates for each object when deleting everything', async() => {
             await svc.set([{key: 'a', value: 'a'}]);
             await svc.set([{key: 'b', value: 'b'}]);
+            await events.nextN(svc.onSet, 2);
+
             await svc.deleteAll();
+            await events.next(svc.onDelete);
+
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [{key: 'a', value: 'a'}]},
                 {$type: 'set', entries: [{key: 'b', value: 'b'}]},
@@ -79,6 +92,8 @@ describe('datastore/kvs/service', function() {
 
 // Consider using a mocking library if this gets to be too much
 class MockPort implements P.ClientPort<string, string> {
+    readonly name: string = '';
+
     received: P.ClientMsg<string, string>[] = [];
 
     // istanbul ignore next

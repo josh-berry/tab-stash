@@ -1,8 +1,6 @@
-import './loader';
-import browser from 'webextension-polyfill';
-import {beforeEach} from 'mocha';
+import type {Storage} from 'webextension-polyfill';
 
-import * as events from './events';
+import * as events from '../events';
 
 type StorageAreaName = 'sync' | 'local' | 'managed';
 type StorageObject = {[s: string]: any};
@@ -11,10 +9,10 @@ type ChangeDict = StorageObject;
 class MockStorageArea {
     _area: StorageAreaName;
     _storage: {[k: string]: string} = {};
-    _events: events.MockEventDispatcher<StorageChangedFn>;
+    _events: events.MockEvent<StorageChangedFn>;
 
     constructor(area: StorageAreaName,
-                events: events.MockEventDispatcher<StorageChangedFn>)
+                events: events.MockEvent<StorageChangedFn>)
     {
         this._area = area;
         this._events = events;
@@ -86,7 +84,7 @@ class SyncStorageArea extends MockStorageArea {
     MAX_WRITE_OPERATIONS_PER_HOUR = 1800 as const;
     MAX_WRITE_OPERATIONS_PER_MINUTE = 120 as const;
 
-    constructor(events: events.MockEventDispatcher<StorageChangedFn>) {
+    constructor(events: events.MockEvent<StorageChangedFn>) {
         super('sync', events);
     }
 }
@@ -95,7 +93,7 @@ class LocalStorageArea extends MockStorageArea {
     // Ugh, same as above...
     QUOTA_BYTES = 5242880 as const;
 
-    constructor(events: events.MockEventDispatcher<StorageChangedFn>) {
+    constructor(events: events.MockEvent<StorageChangedFn>) {
         super('local', events);
     }
 }
@@ -104,7 +102,7 @@ class ManagedStorageArea extends MockStorageArea {
     // Ugh, same as above...
     QUOTA_BYTES = 5242880 as const;
 
-    constructor(events: events.MockEventDispatcher<StorageChangedFn>) {
+    constructor(events: events.MockEvent<StorageChangedFn>) {
         super('managed', events);
     }
 }
@@ -113,25 +111,21 @@ type StorageChangedFn = (changes: ChangeDict, area: StorageAreaName) => void;
 
 export default (() => {
     let exports = {
-        events: new events.MockEventDispatcher<StorageChangedFn>(''),
+        events: new events.MockEvent<StorageChangedFn>(''),
 
         reset() {
-            events.expect_empty();
-            events.trace(false);
+            exports.events = new events.MockEvent<StorageChangedFn>(
+                'browser.storage.onChanged');
 
-            exports.events = new events.MockEventDispatcher<StorageChangedFn>(
-                'storage.onChanged');
-
-            (<any>browser).storage = {
+            (<any>globalThis).browser.storage = {
                 local: new LocalStorageArea(exports.events),
                 sync: new SyncStorageArea(exports.events),
                 managed: new ManagedStorageArea(exports.events),
                 onChanged: exports.events,
-            };
+            } as Storage.Static;
         }
     };
 
-    beforeEach(exports.reset);
     exports.reset();
 
     return exports;

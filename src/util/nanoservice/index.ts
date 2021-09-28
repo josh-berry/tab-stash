@@ -27,6 +27,8 @@ export interface NanoService<C extends Send, S extends Send> {
 }
 
 export interface NanoPort<S extends Send, R extends Send> {
+    readonly name: string;
+
     defaultTimeoutMS?: number;
 
     onDisconnect?: (port: NanoPort<S, R>) => void;

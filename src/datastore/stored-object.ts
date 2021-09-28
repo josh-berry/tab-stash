@@ -30,7 +30,7 @@
 import browser from 'webextension-polyfill';
 import {reactive} from 'vue';
 
-import Listener from '../util/listener';
+import event, {Event} from '../util/event';
 
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {
@@ -130,36 +130,175 @@ export const anEnum = <V extends string>(...cases: V[]) =>
     };
 
 
+/** An object which is stored persistently in `browser.storage`, and which
+ * conforms to a particular schema definition `D`. */
+export interface StoredObject<D extends StorableDef> {
+    /** Read-only data properties as defined in your schema. */
+    readonly state: StorableData<D>;
+
+    /** An onChanged event is fired whenever the StoredObject changes or is
+     * deleted.  Its sole parameter is the StoredObject itself. */
+    readonly onChanged: Event<(self: StoredObject<D>) => void>;
+
+    /** Update one or more properties of the StoredObject.  If the StoredObject
+     * does not exist, it will be created. */
+    set(values: Partial<StorableData<D>>): Promise<void>;
+
+    /** Delete the stored object.  All its values will be reset to their
+     * defaults. */
+    delete(): Promise<void>;
+}
+
+export type StorableData<D extends StorableDef> = {
+    readonly [k in keyof D]: ReturnType<D[k]['is']>;
+};
+
+/** Load and return a StoredObject from `browser.storage`, using the provided
+ * definition.  Note that loading the same object with different definitions is
+ * not allowed.
+ *
+ * If the object does not exist in persistent storage (or is later deleted), the
+ * same returned StoredObject can still be used to re-create it (or be notified
+ * when it is re-created). */
+ export default function get<D extends StorableDef>(
+    store: 'sync' | 'local', key: string, def: D
+): Promise<StoredObject<D>> {
+    return _FACTORY.get(store, key, def);
+}
+
+
 
 //
-// The StoredObject itself.
+// Internal implementation
 //
 
-// You can create or load StoredObjects by calling one of the factory functions
-// and passing it the key of the specific object you're interested in, along
-// with a structure defining the type of the StoredObject (described below).
-//
-// NOTE: Take care that you do not try to load the same key with different
-// schemas in your program.  This is not allowed.
-export default class StoredObject<D extends StorableDef> {
+
+
+/** A factory for StoredObjects; generally you don't want to mess with this.
+ * It's only exported so it can be (re)created for testing purposes. */
+export class _StoredObjectFactory {
+    /** A simple set of maps which hold StoredObjects so we can keep them up to
+     * date. */
+    private readonly _live: {
+        sync: Map<string, StoredObjectImpl<any>>,
+        local: Map<string, StoredObjectImpl<any>>,
+    } = {sync: new Map(), local: new Map()};
+
+    /** The set of objects we are currently trying to load.  We keep track of
+     * this set because objects can be loaded in one of two ways--either through
+     * _factory(), which queries browser.storage explicitly, or by receiving an
+     * event saying the object has been changed or deleted.
+     *
+     * In the latter case, the event has more up-to-date information than
+     * _factory() will, so we populate the object from the event and remove it
+     * from `_loading`.  Then, when browser.storage.*.get() returns inside
+     * _factory(), we check to see if the object has already been loaded by an
+     * event, by looking to see if it's still in this set. */
+    private readonly _loading: Set<StoredObjectImpl<any>> = new Set();
+
+    constructor() {
+        browser.storage.onChanged.addListener((changes, area) => {
+            // istanbul ignore if -- browser sanity
+            if (area !== 'sync' && area !== 'local') return;
+
+            const area_live = this._live[area as 'sync' | 'local'];
+
+            for (const key in changes) {
+                const obj = area_live.get(key);
+                if (! obj) continue;
+
+                if ('newValue' in changes[key]) {
+                    obj._changed(changes[key].newValue);
+
+                } else {
+                    // Key was removed from the store entirely.  Reset it to
+                    // defaults.
+                    obj._changed({});
+                }
+
+                // If anyone was waiting on this object, it's now loaded.  (A
+                // browser.storage event will fire for this eventually, which
+                // will actually complete the loading, but the data will already
+                // be there, so we can just drop it.)
+                this._loading.delete(obj);
+            }
+        });
+    }
+
+    async get<D extends StorableDef>(
+        store: 'sync' | 'local',
+        key: string,
+        def: D
+    ): Promise<StoredObject<D>> {
+        let object = this._live[store].get(key);
+        if (object) {
+            // istanbul ignore if -- basic caller validation
+            if (object._def !== def) {
+                throw new TypeError(`Tried to load '${key}' with a conflicting def`);
+            }
+            return object;
+        }
+
+        object = new StoredObjectImpl<D>(this, store, key, def);
+
+        this._loading.add(object);
+        const data = await browser.storage[store].get(key);
+
+        // Object could have already been loaded due to an onChanged event that
+        // fired between when we asked browser.storage for the object and when
+        // browser.storage actually returned.  Prioritize the event over what
+        // browser.storage gave us because it's most likely to be up to date.
+        //
+        // istanbul ignore else -- not testable due to being v.hard to mock
+        if (this._loading.has(object)) {
+            object._load(data[key]);
+            this._loading.delete(object);
+        }
+        return object;
+    }
+
+    add(o: StoredObjectImpl<any>) {
+        // istanbul ignore if -- internal sanity check
+        if (this._live[o._store].has(o._key)) {
+            throw new Error(`Created multiple StoredObjects for key ${o._key}`);
+        }
+        this._live[o._store].set(o._key, o);
+    }
+}
+
+/** The global factory (and the ONLY factory, when not under test). */
+const _FACTORY = new _StoredObjectFactory();
+
+
+
+class StoredObjectImpl<D extends StorableDef> implements StoredObject<D> {
     // Read-only data properties as defined in your schema (named `state` to
     // follow Vue model conventions).
     readonly state: StorableData<D>;
 
     // Event listener which is notified whenever the StoredObject changes or
     // is deleted.
-    readonly onChanged = new Listener<(self: StoredObject<D>) => void>();
+    readonly onChanged: Event<(self: StoredObject<D>) => void>;
 
-    // sync is for browser-synced storage.  This is generally very small but is
-    // persisted across all of a user's computers.  `def` is the schema to use
-    // for this object.
-    static sync<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
-        return StoredObject._factory('sync', key, def);
-    }
+    readonly _factory: _StoredObjectFactory;
+    readonly _store: 'sync' | 'local';
+    readonly _key: string;
+    readonly _def: D;
 
-    // local is for browser-local storage.  It's much larger, but not synced.
-    static local<D extends StorableDef>(key: string, def: D): Promise<StoredObject<D>> {
-        return StoredObject._factory('local', key, def);
+    constructor(factory: _StoredObjectFactory, store: 'sync' | 'local', key: string, def: D) {
+        // state must be pre-populated so Vue can observe it.
+        const state: any = {};
+        for (const k in def) state[k] = def[k].default;
+
+        this.state = reactive(state);
+        this.onChanged = event('StoredObject.onChanged', `${store}/${key}`);
+
+        this._factory = factory;
+        this._store = store;
+        this._key = key;
+        this._def = def;
+
+        this._factory.add(this);
     }
 
     async set(values: Partial<StorableData<D>>): Promise<void> {
@@ -198,129 +337,12 @@ export default class StoredObject<D extends StorableDef> {
         return browser.storage[this._store].remove(this._key);
     }
 
-    //
-    // Private implementation details
-    //
-
-    // The set of objects we are currently trying to load.  We keep track of
-    // this set because objects can be loaded in one of two ways--either through
-    // _factory(), which queries browser.storage explicitly, or by receiving an
-    // event saying the object has been changed or deleted.
-    //
-    // In the latter case, the event has more up-to-date information than
-    // _factory() will, so we populate the object from the event and remove it
-    // from /_LOADING/.  Then, when browser.storage.*.get() returns inside
-    // _factory(), we check to see if the object has already been loaded by an
-    // event, by looking to see if it's still in this set.
-    private static readonly _LOADING = new Set<StoredObject<any>>();
-
-    // _LIVE is a simple set of maps as defined at the end of this expression,
-    // which holds StoredObjects and keeps them up to date.  This magic is
-    // accomplished by an immediately-invoked initializing lambda expression
-    // (IIILE, thank you C++) since it cannot be otherwise accessed by a handler
-    // defined outside of the class.
-    private static readonly _LIVE = (() => {
-        browser.storage.onChanged.addListener((changes, area) => {
-            // istanbul ignore if -- browser sanity
-            if (area !== 'sync' && area !== 'local') return;
-
-            const areaobjs = StoredObject._LIVE[area as 'sync' | 'local'];
-
-            for (const key in changes) {
-                const obj = areaobjs.get(key);
-                if (! obj) continue;
-
-                if ('newValue' in changes[key]) {
-                    obj._changed(changes[key].newValue);
-
-                } else {
-                    // Key was removed from the store entirely.  Reset it to
-                    // defaults.
-                    obj._changed({});
-                }
-
-                // If anyone was waiting on this object, it's now loaded.  (A
-                // browser.storage event will fire for this eventually, which
-                // will actually complete the loading, but the data will already
-                // be there, so we can just drop it.)
-                StoredObject._LOADING.delete(obj);
-            }
-        });
-
-        return {
-            sync: new Map<string, StoredObject<any>>(),
-            local: new Map<string, StoredObject<any>>(),
-
-            // Ugh, we never drop StoredObjects from here unless they are
-            // deleted.  This is gross from a memory-use perspective, but
-            // there's not much we can do here because the alternative is to
-            // register one browser.storage.onChanged listener per StoredObject,
-            // which is O(N^2).
-            //
-            // Have I mentioned recently how much I hate JavaScript's lack of
-            // memory-management facilities? :/
-        };
-    })();
-
-    private static async _factory<D extends StorableDef>(
-        store: 'sync' | 'local',
-        key: string,
-        def: D
-    ): Promise<StoredObject<D>> {
-        let object = StoredObject._LIVE[store].get(key);
-        if (object) {
-            // istanbul ignore if -- basic caller validation
-            if (object._def !== def) {
-                throw new TypeError(`Tried to load '${key}' with a conflicting def`);
-            }
-            return object;
-        }
-
-        object = new StoredObject<D>(store, key, def);
-
-        StoredObject._LOADING.add(object);
-        const data = await browser.storage[store].get(key);
-
-        // Object could have already been loaded due to an onChanged event that
-        // fired between when we asked browser.storage for the object and when
-        // browser.storage actually returned.  Prioritize the event over what
-        // browser.storage gave us because it's most likely to be up to date.
-        //
-        // istanbul ignore else -- not testable due to being v.hard to mock
-        if (StoredObject._LOADING.has(object)) {
-            object._load(data[key]);
-            StoredObject._LOADING.delete(object);
-        }
-        return object;
-    }
-
-    private readonly _store: 'sync' | 'local';
-    private readonly _key: string;
-    private readonly _def: D;
-
-    private constructor(store: 'sync' | 'local', key: string, def: D) {
-        // state must be pre-populated so Vue can observe it.
-        const state: any = {};
-        for (const k in def) state[k] = def[k].default;
-
-        this.state = reactive(state);
-        this._store = store;
-        this._key = key;
-        this._def = def;
-
-        // istanbul ignore if -- internal sanity check
-        if (StoredObject._LIVE[this._store].has(this._key)) {
-            throw new Error(`Created multiple StoredObjects for key ${key}`);
-        }
-        StoredObject._LIVE[this._store].set(this._key, this);
-    }
-
-    private _changed(values: any) {
+    _changed(values: any) {
         this._load(values);
         this.onChanged.send(this);
     }
 
-    private _load(values: any) {
+    _load(values: any) {
         // We assign both defaults and the new values here so that if any
         // properties were reset to the default (and removed from storage),
         // Vue will notice those as well.
@@ -338,8 +360,4 @@ export default class StoredObject<D extends StorableDef> {
             }
         }
     }
-};
-
-export type StorableData<D extends StorableDef> = {
-    readonly [k in keyof D]: ReturnType<D[k]['is']>;
 };

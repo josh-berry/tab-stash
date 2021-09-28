@@ -1,8 +1,9 @@
 import {expect} from 'chai';
 
-import MemoryKVS from '../datastore/kvs/memory';
-import {nextTick} from '../util';
+import '../mock/browser';
+import * as events from '../mock/events';
 
+import MemoryKVS from '../datastore/kvs/memory';
 import * as M from './deleted-items';
 
 const DATASET_SIZE = 50;
@@ -12,7 +13,7 @@ describe('model/deleted-items', () => {
     let model: M.Model;
 
     beforeEach(async() => {
-        source = new MemoryKVS();
+        source = new MemoryKVS('deleted_items');
         model = new M.Model(source);
     });
 
@@ -22,7 +23,7 @@ describe('model/deleted-items', () => {
         // We first prepopulate the KVS using the model's test-only code, and
         // then we reset the model to an empty/new state.
         await model.makeFakeData_testonly(DATASET_SIZE);
-        await nextTick();
+        await events.nextN(source.onSet, DATASET_SIZE);
         model = new M.Model(source);
 
         expect(model.state.entries).to.be.empty;
@@ -44,7 +45,7 @@ describe('model/deleted-items', () => {
 
     it('loads items newest-first', async() => {
         await model.makeFakeData_testonly(DATASET_SIZE);
-        await nextTick();
+        await events.nextN(source.onSet, DATASET_SIZE);
         model = new M.Model(source);
 
         while (! model.state.fullyLoaded) await model.loadMore();
@@ -57,14 +58,14 @@ describe('model/deleted-items', () => {
 
     it('observes newly-added items', async() => {
         await model.makeFakeData_testonly(DATASET_SIZE);
-        await nextTick();
+        await events.nextN(source.onSet, DATASET_SIZE);
         model = new M.Model(source);
         await model.loadMore();
         expect(model.state.entries.length).to.equal(10);
 
         const m2 = new M.Model(source);
         await m2.add({title: 'Foo', url: 'http://foo'});
-        await nextTick();
+        await events.next(source.onSet);
 
         expect(model.state.entries.length).to.equal(11);
         expect(model.state.entries[0]).to.deep.include({
@@ -76,14 +77,14 @@ describe('model/deleted-items', () => {
         const m2 = new M.Model(source);
 
         const item = await m2.add({title: 'Foo', url: 'http://foo'});
-        await nextTick();
+        await events.next(source.onSet);
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({
             item: {title: "Foo", url: 'http://foo'}
         });
 
         await m2.drop(item.key);
-        await nextTick();
+        await events.next(source.onDelete);
         expect(model.state.entries).to.deep.equal([]);
     });
 
@@ -95,7 +96,7 @@ describe('model/deleted-items', () => {
             {title: "Second", url: "second"},
             {title: "Third", url: "third"},
         ]});
-        await nextTick();
+        await events.next(source.onSet);
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({item: {
             title: "Folder", children: [
@@ -106,7 +107,7 @@ describe('model/deleted-items', () => {
         }});
 
         await m2.dropChildItem(item.key, 1);
-        await nextTick();
+        await events.next(source.onSet);
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({item: {
             title: "Folder", children: [
@@ -119,7 +120,7 @@ describe('model/deleted-items', () => {
     describe('filtering', () => {
         it('resets the model when a filter is applied', async() => {
             await model.makeFakeData_testonly(50);
-            await nextTick();
+            await events.nextN(source.onSet, 50);
             expect(model.state.entries.length).to.equal(50);
 
             model.filter(/* istanbul ignore next */ item => false);
@@ -128,7 +129,7 @@ describe('model/deleted-items', () => {
 
         it('stops an in-progress load when a filter is applied', async() => {
             await model.makeFakeData_testonly(50);
-            await nextTick();
+            await events.nextN(source.onSet, 50);
             expect(model.state.entries.length).to.equal(50);
             model = new M.Model(source);
 
@@ -145,7 +146,7 @@ describe('model/deleted-items', () => {
 
         it('loads only items which match the applied filter', async() => {
             await model.makeFakeData_testonly(50);
-            await nextTick();
+            await events.nextN(source.onSet, 50);
             expect(model.state.entries.length).to.equal(50);
 
             model.filter(item => item.title.includes('cat'));
@@ -160,7 +161,7 @@ describe('model/deleted-items', () => {
 
         it('properly handles filters which exclude all items', async() => {
             await model.makeFakeData_testonly(50);
-            await nextTick();
+            await events.nextN(source.onSet, 50);
 
             model.filter(item => false);
             while (! model.state.fullyLoaded) await model.loadMore();
@@ -172,7 +173,7 @@ describe('model/deleted-items', () => {
             model.filter(item => item.title.includes('cat'));
             const m2 = new M.Model(source);
             await m2.makeFakeData_testonly(50);
-            await nextTick();
+            await events.nextN(source.onSet, 50);
 
             expect(model.state.entries.length).to.be.greaterThan(0);
             for (const c of model.state.entries) {
@@ -184,7 +185,7 @@ describe('model/deleted-items', () => {
     it('drops items older than a certain timestamp', async() => {
         const dropTime = new Date(Date.now() - 3*24*60*60*1000);
         await model.makeFakeData_testonly(100);
-        await nextTick();
+        await events.nextN(source.onSet, 100);
 
         // Check that our test data has sufficiently-old entries.
         expect(model.state.entries[model.state.entries.length - 1].deleted_at)
@@ -193,6 +194,8 @@ describe('model/deleted-items', () => {
         // dropOlderThan() should work even if the model has nothing loaded.
         model = new M.Model(source);
         await model.dropOlderThan(dropTime.valueOf());
+        expect((await events.watch(source.onDelete).untilNextTick()).length)
+            .to.be.greaterThan(0);
         expect(model.state.entries.length).to.equal(0);
 
         while (! model.state.fullyLoaded) await model.loadMore();

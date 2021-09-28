@@ -1,5 +1,7 @@
 import {expect} from 'chai';
 
+import * as events from '../mock/events';
+
 import {KVSCache} from '../datastore/kvs';
 import MemoryKVS from '../datastore/kvs/memory';
 import {Model, BookmarkMetadata} from './bookmark-metadata';
@@ -9,8 +11,12 @@ describe('model/bookmark-metadata', () => {
     let model: Model;
 
     beforeEach(() => {
-        kvc = new KVSCache(new MemoryKVS());
+        kvc = new KVSCache(new MemoryKVS('bookmark_metadata'));
         model = new Model(kvc);
+        events.ignore([
+            kvc.kvs.onSet,
+            kvc.kvs.onDelete,
+        ]);
     });
 
     it('collapses bookmarks', () => {
@@ -31,7 +37,7 @@ describe('model/bookmark-metadata', () => {
         expect(kvc.get('foo').value).to.deep.equal({collapsed: true});
         expect(kvc.get('bar').value).to.deep.equal({collapsed: false});
 
-        await kvc.flush();
+        await kvc.sync();
         expect(await kvc.kvs.get(['foo', 'bar'])).to.deep.equal([
             {key: 'foo', value: {collapsed: true}},
             {key: 'bar', value: {collapsed: false}},

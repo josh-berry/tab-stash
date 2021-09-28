@@ -1,4 +1,4 @@
-import './loader';
-export * as storage from './storage';
-export * as runtime from './runtime';
-export * as events from './events';
+import storage from './storage';
+import runtime from './runtime';
+
+export {storage, runtime};

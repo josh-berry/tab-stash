@@ -1,7 +1,7 @@
 import {IDBPDatabase, openDB} from 'idb';
 
 import {KeyValueStore, genericList} from '.';
-import Listener from '../../util/listener';
+import event, {Event} from '../../util/event';
 import {NanoService} from '../../util/nanoservice';
 import * as Proto from './proto';
 
@@ -29,14 +29,16 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
 
     readonly name: string;
 
-    readonly onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();
-    readonly onDelete = new Listener<(keys: K[]) => void>();
+    readonly onSet: Event<(entries: Proto.Entry<K, V>[]) => void>;
+    readonly onDelete: Event<(keys: K[]) => void>;
 
     private _db: IDBPDatabase;
     private _clients = new Set<Proto.ClientPort<K, V>>();
 
     constructor(db: IDBPDatabase, store_name: string) {
         this.name = store_name;
+        this.onSet = event('KVS.Service.onSet', this.name);
+        this.onDelete = event('KVS.Service.onDelete', this.name);
         this._db = db;
     }
 
@@ -117,14 +119,18 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     }
 
     async delete(keys: K[]): Promise<void> {
+        const deleted: K[] = [];
         const txn = this._db.transaction(this.name, 'readwrite');
-        for (const k of keys) await txn.store.delete(k);
+        for (const k of keys) {
+            if (await txn.store.get(k)) deleted.push(k);
+            await txn.store.delete(k);
+        }
         await txn.done;
 
         // istanbul ignore else
-        if (keys.length > 0) {
-            this._broadcast({$type: 'delete', keys});
-            this.onDelete.send(keys);
+        if (deleted.length > 0) {
+            this._broadcast({$type: 'delete', keys: deleted});
+            this.onDelete.send(deleted);
         }
     }
 

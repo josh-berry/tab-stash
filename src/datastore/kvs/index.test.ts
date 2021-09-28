@@ -3,10 +3,10 @@ import {expect} from 'chai';
 // Needed because the 'util' import below tries to poke at browser.runtime
 import '../../mock/browser/runtime';
 
-import {nextTick} from '../../util';
-
-import {Entry, KeyValueStore, KVSCache} from '.';
+import {KeyValueStore, KVSCache} from '.';
 import MemoryKVS from './memory';
+
+import * as events from '../../mock/events';
 
 /** Behavioral tests which are common to both client and service.
  *
@@ -28,7 +28,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             {key: 'b', value: 'bob'},
             {key: 'd', value: 'derek'},
         ]);
-        await nextTick();
+        await events.next(kvs.onSet);
     }
 
     describe('stores and updates entries', () => {
@@ -36,17 +36,24 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             await kvs.set([]);
         });
 
-        it('single entries', async() => {
-            await kvs.set([{key: 'a', value: 'alice'}]);
-            expect(await kvs.get(['a']))
-                .to.deep.equal([{key: 'a', value: 'alice'}]);
+        it('creates single entries', async() => {
+            const values = [{key: 'a', value: 'alice'}];
+
+            await kvs.set(JSON.parse(JSON.stringify(values)));
+            expect(await events.next(kvs.onSet)).to.deep.equal([values]);
+            expect(await kvs.get(['a'])).to.deep.equal(values);
         });
 
         it('updates single entries', async() => {
-            await kvs.set([{key: 'a', value: 'alice'}]);
-            expect(await kvs.get(['a']))
-                .to.deep.equal([{key: 'a', value: 'alice'}]);
+            const values = [{key: 'a', value: 'alice'}];
+
+            await kvs.set(JSON.parse(JSON.stringify(values)));
+            expect(await events.next(kvs.onSet)).to.deep.equal([values]);
+            expect(await kvs.get(['a'])).to.deep.equal(values);
+
             await kvs.set([{key: 'a', value: 'alison'}]);
+            expect(await events.next(kvs.onSet))
+                .to.deep.equal([[{key: 'a', value: 'alison'}]]);
             expect(await kvs.get(['a']))
                 .to.deep.equal([{key: 'a', value: 'alison'}]);
         });
@@ -57,6 +64,10 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
                 {key: 'a', value: 'alison'},
                 {key: 'e', value: 'ethel'},
             ]);
+            expect(await events.next(kvs.onSet)).to.deep.equal([[
+                {key: 'a', value: 'alison'},
+                {key: 'e', value: 'ethel'},
+            ]]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'a', value: 'alison'},
                 {key: 'b', value: 'bob'},
@@ -156,11 +167,11 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
                 {key: 'c', value: 'christine'},
                 {key: 'd', value: 'derek'},
             ]);
-
         });
 
         it('...single entries', async() => {
             await kvs.delete(['a']);
+            expect(await events.next(kvs.onDelete)).to.deep.equal([['a']]);
             expect(await kvs.get(['a'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'b', value: 'bob'},
@@ -188,6 +199,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
 
         it('...multiple entries', async() => {
             await kvs.delete(['a', 'b']);
+            expect(await events.next(kvs.onDelete)).to.deep.equal([['a', 'b']]);
             expect(await kvs.get(['a', 'b'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'c', value: 'christine'},
@@ -197,48 +209,27 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
 
         it('...all entries', async() => {
             await kvs.deleteAll();
+            const deleted = (await events.next(kvs.onDelete))[0];
+            expect(new Set(deleted)).to.deep.equal(new Set(['a', 'b', 'c', 'd']));
             expect(await kvs.get(['a'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([]);
         });
 
         it('...all entries in a very large database', async() => {
-            const items = new Set<string>();
+            const items = new Set<string>(['a', 'b', 'c', 'd']);
             for (let k = 0; k < 1000; ++k) {
                 await kvs.set([{key: `${k}`, value: `${k}`}]);
+                await events.next(kvs.onSet);
                 items.add(`${k}`);
             }
-            kvs.onDelete.addListener(ks => {
-                for (const k of ks) items.delete(k);
-            });
             await kvs.deleteAll();
-            await new Promise(res => setTimeout(res));
-            expect(items.size).to.equal(0);
-        });
-    });
-
-    describe('delivers events when...', () => {
-        beforeEach(setDefaults);
-
-        it('...entries are updated', async() => {
-            const {fn: listener, calls} = mock<[Entry<string, string>[]]>();
-            const entries: Entry<string, string>[] = [{key: 'a', value: 'f'}];
-
-            kvs.onSet.addListener(listener);
-            await kvs.set(entries);
-
-            await nextTick();
-            expect(calls).to.deep.equal([[entries]]);
-        });
-
-        it('...entries are deleted', async() => {
-            const {fn: listener, calls} = mock<[string[]]>();
-            const entries = ['a'];
-
-            kvs.onDelete.addListener(listener);
-            await kvs.delete(entries);
-
-            await nextTick();
-            expect(calls).to.deep.equal([[entries]]);
+            while (items.size > 0) {
+                const deleted = await events.next(kvs.onDelete);
+                for (const k of deleted[0]) {
+                    expect(items.has(k)).to.be.true;
+                    items.delete(k);
+                }
+            }
         });
     });
 }
@@ -249,7 +240,7 @@ describe('datastore/kvs', () => {
         let cache: KVSCache<string, string>;
 
         beforeEach(() => {
-            kvs = new MemoryKVS();
+            kvs = new MemoryKVS('test');
             cache = new KVSCache(kvs);
         });
 
@@ -258,7 +249,8 @@ describe('datastore/kvs', () => {
             cache.set('a', 'b');
             expect(kvs.data.get('key')).to.be.undefined;
             expect(kvs.data.get('a')).to.be.undefined;
-            await cache.flush();
+            await cache.sync();
+            await events.next(kvs.onSet);
             expect(kvs.data.get('key')).to.deep.equal('value');
             expect(kvs.data.get('a')).to.deep.equal('b');
         });
@@ -271,7 +263,7 @@ describe('datastore/kvs', () => {
             expect(a.value).to.be.null;
             expect(b.value).to.be.null;
 
-            await cache.flush();
+            await cache.sync();
             expect(a.value).to.deep.equal('b');
             expect(b.value).to.deep.equal('c');
         });
@@ -281,7 +273,7 @@ describe('datastore/kvs', () => {
             const a = cache.get('a');
             expect(a.value).to.be.null;
 
-            await cache.flush();
+            await cache.sync();
             expect(a.value).to.deep.equal('b');
             expect(a).to.equal(cache.get('a'));
         });
@@ -292,6 +284,7 @@ describe('datastore/kvs', () => {
 
             cache.set('a', 'b');
             expect(a.value).to.equal('b');
+            await events.next(kvs.onSet);
         });
 
         it("loads content it doesn't know about from the KVS", async () => {
@@ -300,7 +293,7 @@ describe('datastore/kvs', () => {
             kvs.data.set('a', 'b');
             const a = cache.get('a');
             expect(a.value).to.be.null;
-            await cache.flush();
+            await cache.sync();
             expect(a.value).to.deep.equal('b');
         });
 
@@ -309,8 +302,8 @@ describe('datastore/kvs', () => {
             expect(a.value).to.be.null;
 
             await kvs.set([{key: 'a', value: 'b'}]);
-            await cache.flush();
-            expect(a.value).to.deep.equal('b');
+            await events.next(kvs.onSet);
+            expect(a.value).to.equal('b');
         });
 
         it('deletes and resurrects objects in the cache', async () => {
@@ -318,40 +311,44 @@ describe('datastore/kvs', () => {
             cache.set('a', 'b');
             expect(a.value).to.deep.equal('b');
 
-            await cache.flush();
-            expect(kvs.data.get('a')).to.deep.equal('b');
+            await cache.sync();
+            await events.next(kvs.onSet);
+            expect(kvs.data.get('a')).to.equal('b');
 
             await kvs.delete(['a']);
-            await nextTick();
+            await events.next(kvs.onDelete);
             expect(a.value).to.be.null;
 
             await kvs.set([{key: 'a', value: 'c'}]);
-            await nextTick();
-            expect(a.value).to.deep.equal('c');
+            await events.next(kvs.onSet);
+            expect(a.value).to.equal('c');
         });
 
         it('maybe inserts entries that do not exist yet', async () => {
             cache.maybeInsert('a', 'b');
-            await cache.flush();
+            await cache.sync();
+            await events.next(kvs.onSet);
             expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
         });
 
         it('maybe inserts entries that already exist in the KVS', async () => {
             await kvs.set([{key: 'a', value: 'b'}]);
             cache.maybeInsert('a', 'c');
-            await cache.flush();
+            await cache.sync();
+            await events.next(kvs.onSet);
             expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
         });
 
         it('maybe inserts entries that already exist in the cache', async () => {
             cache.set('a', 'b');
             cache.maybeInsert('a', 'c');
-            await cache.flush();
+            await cache.sync();
+            await events.next(kvs.onSet);
             expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
         });
 
         it('returns from flush() immediately if no entries are dirty', async() => {
-            await cache.flush();
+            await cache.sync();
         });
     });
 });
@@ -361,10 +358,4 @@ async function collect<I>(iter: AsyncIterable<I>): Promise<I[]> {
     const res = [];
     for await (const i of iter) res.push(i);
     return res;
-}
-
-function mock<A extends any[]>(): {fn: (...args: A) => void, calls: A[]} {
-    const calls: A[] = [];
-    const fn = (...args: A): void => { calls.push(args); };
-    return {fn, calls};
 }

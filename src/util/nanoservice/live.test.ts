@@ -1,89 +1,91 @@
 import {expect} from 'chai';
 import browser, {Runtime} from 'webextension-polyfill';
 
-import * as events from '../../mock/browser/events';
-import '../../mock/browser/runtime';
+import * as events from '../../mock/events';
 
 import * as M from '.';
 import * as Live from './live';
+import {Send} from './proto';
 
 type Port = Runtime.Port;
 
 describe('util/nanoservice', function() {
     describe('NanoPort', function() {
-        async function portpair<S extends M.Send, R extends M.Send>(
+        async function port_pair<S extends M.Send, R extends M.Send>(
             name: string
         ): Promise<[M.NanoPort<S, R>, Port]> {
-            const [port, [svcport]] = await events.waitOne(
-                async (): Promise<M.NanoPort<S, R>> => M.connect('test'),
-                browser.runtime.onConnect);
+            const port = M.connect<S, R>('test');
+            const [svc_port] = await events.next(browser.runtime.onConnect);
 
-            expect(port).to.not.be.undefined;
-            expect(svcport.name).to.equal('test');
-            return [port, svcport];
+            expect(port).not.to.be.undefined;
+            expect(svc_port.name).to.equal('test');
+            return [port, svc_port];
         }
 
         it('connects and disconnects', async function() {
-            const [port, svcport] = await portpair('test');
-            await events.waitOne(
-                async() => port.disconnect(),
-                svcport.onDisconnect);
+            const [port, svc_port] = await port_pair('test');
+            await port.disconnect();
+            await events.next(svc_port.onDisconnect);
         });
 
         it('raises disconnection events', async function() {
-            const [client, svc] = await portpair('test');
-            let died = false;
-            client.onDisconnect = () => {died = true};
+            const [client, svc] = await port_pair('test');
+            let calls = 0;
+            client.onDisconnect = (c: M.NanoPort<Send, Send>) => {
+                expect(c).to.equal(client);
+                ++calls;
+            };
             svc.disconnect();
-            await events.drain(1);
-            expect(died).to.be.true;
+            await events.next('browser.runtime.onDisconnect');
+            expect(calls).to.equal(1);
         });
 
         it('sends notifications', async function() {
-            const [client, svc] = await portpair('test');
-
-            const [, [val]] = await events.waitOne(
-                async() => client.notify(42),
-                svc.onMessage);
-
-            expect(val).to.deep.equal({notify: 42});
+            const [client, svc] = await port_pair('test');
+            client.notify(42);
+            expect((await events.next(svc.onMessage))[0])
+                .to.deep.equal({notify: 42});
         });
 
         it('receives notifications', async function() {
-            const [client, svc] = await portpair('test');
-            let res = undefined;
-
-            client.onNotify = v => {res = v};
+            const [client, svc] = await port_pair('test');
+            let calls = 0;
+            client.onNotify = (msg: Send) => {
+                expect(msg).to.deep.equal(37);
+                ++calls;
+            };
             svc.postMessage({notify: 37});
-            await events.drain(1);
-            expect(res).to.equal(37);
+            await events.next('browser.runtime.onMessage');
+            expect(calls).to.deep.equal(1);
         });
 
         it('handles notifications as requests if no onNotify is set', async function() {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
             let res = undefined;
 
             client.onRequest = async(v) => { res = v; return null; };
             svc.postMessage({notify: 26});
-            await events.drain(1);
+            await events.next('browser.runtime.onMessage');
             expect(res).to.equal(26);
         });
 
         it('sends requests and receives responses', async function() {
-            const [client, svc] = await portpair('test');
-            const [res, [req]] = await events.waitOne(
-                async() => client.request("meow?"),
-                svc.onMessage,
-                (req: any) => svc.postMessage({tag: req.tag, response: 'meow!'}),
-                2);
+            const messages = events.watch('browser.runtime.onMessage');
+            const [client, svc] = await port_pair('test');
+            svc.onMessage.addListener(req => svc.postMessage({tag: req.tag, response: 'meow!'}));
 
-            expect(req.tag).to.be.a('string');
-            expect(req.request).to.equal('meow?');
-            expect(res).to.equal('meow!');
+            const req_p = client.request('meow?');
+            const [req_msg] = await messages.next();
+            expect(req_msg).to.deep.include({request: 'meow?'});
+
+            const [resp_msg] = await messages.next();
+            expect(resp_msg).to.deep.include({tag: req_msg.tag, response: 'meow!'});
+
+            expect(await req_p).to.equal('meow!');
         });
 
         it('receives requests and sends responses', async function() {
-            const [client, svc] = await portpair<number, number>('test');
+            const [client, svc] = await port_pair<number, number>('test');
             let received = false;
 
             client.onRequest = async(v) => {
@@ -92,38 +94,42 @@ describe('util/nanoservice', function() {
             };
 
             svc.postMessage({tag: 'hi', request: 8});
-            await events.drain(1);
-            expect(received).to.be.true;
+            await events.next('browser.runtime.onMessage');
+            expect(received).to.equal(true);
 
-            await events.waitOne(async() => undefined, svc.onMessage,
-                res => expect(res).to.deep.equal({tag: 'hi', response: 32}));
+            expect((await events.next(svc.onMessage))[0])
+                .to.deep.equal({tag: 'hi', response: 32});
         });
 
         it('sends requests and throws errors', async function () {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
+            svc.onMessage.addListener((req: any) => svc.postMessage({
+                tag: req.tag,
+                error: {
+                    name: 'Oops',
+                    message: 'oops',
+                    data: {
+                        value: 42,
+                        fn: /* istanbul ignore next */ () => {},
+                    },
+                }
+            }));
 
             try {
-                await events.waitOne(
-                    async() => client.request(42),
-                    svc.onMessage,
-                    (req: any) => svc.postMessage({tag: req.tag, error: {
-                        name: 'Oops',
-                        message: 'oops',
-                        data: {
-                            value: 42,
-                            fn: /* istanbul ignore next */ () => {},
-                        },
-                    }}), 2);
+                const req_p = client.request(42);
+                await events.next(svc.onMessage);
+                await events.next('browser.runtime.onMessage');
+                await req_p;
 
                 // istanbul ignore next
                 expect(true).to.be.false;
 
-            } catch (e) {
+            } catch (e: any) {
                 expect(e).to.be.instanceOf(M.RemoteNanoError);
                 expect(e.name).to.equal('Oops');
                 expect(e.message).to.equal('oops');
                 expect(e.data).to.deep.equal({value: 42});
-                expect(e.stack).to.be.a('string');
+                expect(typeof e.stack).to.equal('string');
                 expect(e.remote).to.deep.include({
                     name: 'Oops',
                     message: 'oops',
@@ -133,7 +139,7 @@ describe('util/nanoservice', function() {
         });
 
         it('receives requests and returns errors', async function() {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
             let received = false;
 
             client.onRequest = async(v) => {
@@ -142,35 +148,27 @@ describe('util/nanoservice', function() {
             };
 
             svc.postMessage({tag: 'what', request: 0});
-            await events.drain(1);
-            expect(received).to.be.true;
+            await events.next('browser.runtime.onMessage');
+            expect(received).to.equal(true);
 
-            await events.waitOne(async() => undefined, svc.onMessage,
-                (res: any) => {
-                    expect(res.tag).to.equal('what');
-                    expect(res.error).to.deep.include({
-                        name: 'Error',
-                        message: 'oops',
-                        data: {},
-                    });
-                    expect(res.error.stack).to.not.be.undefined;
-                });
+            const err_msg = (await events.next(svc.onMessage))[0];
+            expect(err_msg).to.be.an('object');
+            expect(err_msg.tag).to.equal('what');
+            expect(err_msg.error).to.be.an('object');
+            expect(err_msg.error).to.deep.include({name: 'Error', message: 'oops'});
         });
 
         describe('correctly throws weird values', () => {
             const check = (throws: any, returns: any) => async() => {
-                const [client, svc] = await portpair('test');
+                const [client, svc] = await port_pair('test');
                 client.onRequest = async(v) => { throw throws; };
 
                 svc.postMessage({tag: 'what', request: 0});
-                await events.drain(1);
+                await events.next('browser.runtime.onMessage');
 
-                await events.waitOne(async() => undefined, svc.onMessage,
-                    (res: any) => {
-                        expect(res).to.deep.include({tag: 'what'});
-                        expect(res.error).to.deep.include(returns);
-                    },
-                );
+                const err_msg = (await events.next(svc.onMessage))[0];
+                expect(err_msg.tag).to.equal('what');
+                expect(err_msg.error).to.deep.include(returns);
             };
 
             it('...numbers', check(42, {name: '', data: 42}));
@@ -185,12 +183,12 @@ describe('util/nanoservice', function() {
             ));
             it('...objects with functions', check(
                 {oops: 'o', fn: /* istanbul ignore next */ () => {}},
-                {name: 'Object'},
+                {name: 'Object', data: {oops: 'o'}},
             ));
         });
 
         it('sends multiple requests at once', async function() {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
 
             const seenTags = new Set();
             svc.onMessage.addListener((ev: any) => {
@@ -201,13 +199,13 @@ describe('util/nanoservice', function() {
             });
             const a = client.request(1);
             const b = client.request(2);
-            await events.drain(4);
+            await events.nextN('browser.runtime.onMessage', 4);
             expect(await a).to.equal(1);
             expect(await b).to.equal(2);
         });
 
         it('receives multiple requests at once', async function() {
-            const [client, svc] = await portpair<number, number>('test');
+            const [client, svc] = await port_pair<number, number>('test');
 
             let count = 0;
             client.onRequest = async(req) => req + 4;
@@ -228,17 +226,17 @@ describe('util/nanoservice', function() {
                 }
                 ++count;
             });
-            await events.drain(4);
+            await events.nextN('browser.runtime.onMessage', 4);
             expect(count).to.equal(2);
         });
 
         it('times out if no response is received to a request', async function() {
-            const [client, ] = await portpair('test');
+            const [client, ] = await port_pair('test');
             const p = client.request('void', {timeout_ms: 20});
-            await events.drain(1);
+            await events.next('browser.runtime.onMessage');
             try {
                 await p;
-            } catch (e) {
+            } catch (e: any) {
                 expect(e).to.be.instanceOf(M.NanoTimeoutError);
                 expect(e.name).to.equal('NanoTimeoutError');
                 expect(e.request).to.equal('void');
@@ -246,16 +244,16 @@ describe('util/nanoservice', function() {
         });
 
         it('drops notifications to disconnected ports', async function() {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
             svc.disconnect();
-            await events.drain(1);
+            await events.next('browser.runtime.onDisconnect');
             client.notify(42);
         });
 
         it('throws when requesting from a disconnected port', async function() {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
             svc.disconnect();
-            await events.drain(1);
+            await events.next('browser.runtime.onDisconnect');
             try {
                 client.notify(42);
                 // istanbul ignore next
@@ -267,7 +265,7 @@ describe('util/nanoservice', function() {
         });
 
         it('drops malformed messages', async function() {
-            const [client, svc] = await portpair('test');
+            const [client, svc] = await port_pair('test');
             let called = false;
             client.onRequest = /* istanbul ignore next */ async() => {
                 called = true;
@@ -280,12 +278,12 @@ describe('util/nanoservice', function() {
             svc.postMessage({status: 'online'});
             svc.postMessage({tag: '42', status: 'online'});
 
-            await events.drain(5);
+            await events.nextN('browser.runtime.onMessage', 5);
             expect(called).to.be.false;
         });
 
-        it('drops responses to requessts it didn\'t send', async() => {
-            const [client, svc] = await portpair('test');
+        it('drops responses to requests it didn\'t send', async() => {
+            const [client, svc] = await port_pair('test');
             let called = false;
             client.onRequest = /* istanbul ignore next */ async() => {
                 called = true;
@@ -295,16 +293,17 @@ describe('util/nanoservice', function() {
             svc.postMessage({tag: '42', response: 'online'});
             svc.postMessage({tag: '42', error: 'failed'});
 
-            await events.drain(2);
+            await events.nextN('browser.runtime.onMessage', 2);
             expect(called).to.be.false;
         });
 
         it('drops replies to disconnected ports', async function() {
-            const [client, svc] = await portpair('test');
-            const dest = new Live.Port('testport', svc);
+            const [client, svc] = await port_pair('test');
+            const dest = new Live.Port('test_port', svc);
             const p = client.request(42);
             dest.disconnect();
-            await events.drain(2);
+            await events.next('browser.runtime.onMessage');
+            await events.next('browser.runtime.onDisconnect');
             try {
                 await p;
                 // istanbul ignore next
@@ -316,7 +315,7 @@ describe('util/nanoservice', function() {
         });
 
         it('rejects pending requests when disconnected', async function() {
-            const [client, ] = await portpair('test');
+            const [client, ] = await port_pair('test');
             const p = client.request(42)
                 .then(/* istanbul ignore next */ () => {
                     throw new Error("Unreachable code");
@@ -325,7 +324,8 @@ describe('util/nanoservice', function() {
                     expect(e).to.not.be.instanceOf(M.RemoteNanoError);
                 });
             client.disconnect(); // <== key difference from the above test
-            await events.drain(2);
+            await events.next('browser.runtime.onMessage');
+            await events.next('browser.runtime.onDisconnect');
             await p;
         });
     });
@@ -338,7 +338,7 @@ describe('util/nanoservice', function() {
             M.listen('test', {/* istanbul ignore next */ onConnect() { ++count; }});
 
             M.connect('other');
-            await events.drain(1);
+            await events.next('browser.runtime.onConnect');
             expect(count).to.equal(0);
         });
 
@@ -347,7 +347,7 @@ describe('util/nanoservice', function() {
             M.listen('test', {onConnect() { ++count; }});
 
             M.connect('test');
-            await events.drain(1);
+            await events.next('browser.runtime.onConnect');
             expect(count).to.equal(1);
         });
 
@@ -356,7 +356,8 @@ describe('util/nanoservice', function() {
             M.listen('test', {onDisconnect() {++count}});
 
             M.connect('test').disconnect();
-            await events.drain(2);
+            await events.next('browser.runtime.onConnect');
+            await events.next('browser.runtime.onDisconnect');
             expect(count).to.equal(1);
         });
 
@@ -369,19 +370,21 @@ describe('util/nanoservice', function() {
             }});
 
             M.connect('test').notify(42);
-            await events.drain(2);
+            await events.next('browser.runtime.onConnect');
+            await events.next('browser.runtime.onMessage');
             expect(notified).to.be.true;
         });
 
         it('responds to requests with failure if onRequest() is not defined', async() => {
             M.listen('test', {});
             const p = M.connect('test').request(42);
-            await events.drain(3);
+            await events.next('browser.runtime.onConnect');
+            await events.nextN('browser.runtime.onMessage', 2);
             try {
                 await p;
                 // istanbul ignore next
                 expect(false).to.be.true;
-            } catch (e) {
+            } catch (e: any) {
                 expect(e).to.be.instanceOf(M.RemoteNanoError);
                 expect(e.name).to.equal('NotImplemented');
             }
@@ -397,7 +400,8 @@ describe('util/nanoservice', function() {
 
             const port = M.connect('test');
             const p = port.request(17);
-            await events.drain(3);
+            await events.next('browser.runtime.onConnect');
+            await events.nextN('browser.runtime.onMessage', 2);
             expect(await p).to.equal(19);
         });
 
@@ -410,11 +414,12 @@ describe('util/nanoservice', function() {
 
             try {
                 const p = M.connect('test').request(17);
-                await events.drain(3);
+                await events.next('browser.runtime.onConnect');
+                await events.nextN('browser.runtime.onMessage', 2);
                 await p;
                 // istanbul ignore next
                 expect(false).to.be.true;
-            } catch (e) {
+            } catch (e: any) {
                 expect(e).to.be.instanceOf(M.RemoteNanoError);
                 expect(e.name).to.equal('ReferenceError');
                 expect(e.message).to.equal('oops');
@@ -430,9 +435,11 @@ describe('util/nanoservice', function() {
 
             const port1 = M.connect('test');
             const port2 = M.connect('test');
+            await events.nextN('browser.runtime.onConnect', 2);
+
             const p1 = port1.request(4);
             const p2 = port2.request(8);
-            await events.drain(6);
+            await events.nextN('browser.runtime.onMessage', 4);
             expect(await p1).to.equal(8);
             expect(await p2).to.equal(12);
         });
@@ -448,7 +455,8 @@ describe('util/nanoservice', function() {
 
             let received = true;
             M.connect('test').notify(89);
-            await events.drain(2);
+            await events.next('browser.runtime.onConnect');
+            await events.next('browser.runtime.onMessage');
             expect(received).to.be.true;
         });
     });

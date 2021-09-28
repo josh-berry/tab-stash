@@ -1,7 +1,7 @@
 import {isProxy, reactive, shallowReadonly, watch} from 'vue';
 
 import {Atom} from '../util';
-import Listener from '../util/listener';
+import event, {Event} from '../util/event';
 
 /** A map which triggers events when its contents change.
  *
@@ -10,15 +10,20 @@ import Listener from '../util/listener';
  * onUpdate events).
  */
 export class EventfulMap<K extends Atom, V extends object> {
-    readonly onInsert = new Listener<(key: K, value: V) => void>();
-    readonly onUpdate = new Listener<(key: K, value: V) => void>();
-    readonly onMove = new Listener<(oldKey: K, newKey: K, value: V) => void>();
-    readonly onDelete = new Listener<(key: K, value: V) => void>();
+    readonly onInsert: Event<(key: K, value: V) => void>;
+    readonly onUpdate: Event<(key: K, value: V) => void>;
+    readonly onMove: Event<(oldKey: K, newKey: K, value: V) => void>;
+    readonly onDelete: Event<(key: K, value: V) => void>;
 
     private readonly _map = new Map<K, V>();
     private readonly _deleters = new WeakMap<V, () => void>();
 
-    constructor() {}
+    constructor(name?: string) {
+        this.onInsert = event('EventfulMap.onInsert', name);
+        this.onUpdate = event('EventfulMap.onUpdate', name);
+        this.onMove = event('EventfulMap.onMove', name);
+        this.onDelete = event('EventfulMap.onDelete', name);
+    }
 
     [Symbol.iterator](): IterableIterator<[K, V]> { return this._map.entries(); }
     keys(): IterableIterator<K> { return this._map.keys(); }
@@ -34,9 +39,9 @@ export class EventfulMap<K extends Atom, V extends object> {
 
         this._map.set(key, value);
         this._deleters.set(value, watch(value, () => {
-            this.onUpdate.sendSync(key, value);
+            this.onUpdate.send(key, value);
         }, {deep: true}));
-        this.onInsert.sendSync(key, value);
+        this.onInsert.send(key, value);
         return this;
     }
 
@@ -46,7 +51,7 @@ export class EventfulMap<K extends Atom, V extends object> {
         this._map.delete(oldKey);
         this.delete(newKey);
         this._map.set(newKey, value);
-        this.onMove.sendSync(oldKey, newKey, value);
+        this.onMove.send(oldKey, newKey, value);
         return value;
     }
 
@@ -55,7 +60,7 @@ export class EventfulMap<K extends Atom, V extends object> {
         if (v) {
             this._map.delete(key);
             this._deleters.get(v)!();
-            this.onDelete.sendSync(key, v);
+            this.onDelete.send(key, v);
         }
         return v;
     }

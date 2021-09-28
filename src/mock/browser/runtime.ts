@@ -1,8 +1,6 @@
-import './loader';
-import browser, {Manifest, Runtime} from 'webextension-polyfill';
-import {beforeEach} from 'mocha';
+import {Manifest, Runtime} from 'webextension-polyfill';
 
-import * as events from './events';
+import * as events from '../events';
 
 let verbose = false;
 
@@ -10,8 +8,8 @@ class MockPort implements Runtime.Port {
     id: string;
     name: string;
     error?: object;
-    onDisconnect: events.MockEventDispatcher<(p: Runtime.Port) => void>;
-    onMessage: events.MockEventDispatcher<(msg: any, p: Runtime.Port) => void>;
+    onDisconnect: events.MockEvent<(p: Runtime.Port) => void>;
+    onMessage: events.MockEvent<(msg: any, p: Runtime.Port) => void>;
 
     private _peer: MockPort;
 
@@ -27,10 +25,10 @@ class MockPort implements Runtime.Port {
         this._peer = undefined!; // set later in make_pair()
         this.id = id;
         this.name = name;
-        this.onDisconnect = new events.MockEventDispatcher(
-            `${this.id}.onDisconnect`);
-        this.onMessage = new events.MockEventDispatcher(
-            `${this.id}.onMessage`);
+        this.onDisconnect = new events.MockEvent(
+            'browser.runtime.onDisconnect', this.id);
+        this.onMessage = new events.MockEvent(
+            'browser.runtime.onMessage', this.id);
     }
 
     disconnect() {
@@ -52,7 +50,7 @@ class MockPort implements Runtime.Port {
 
 export default (() => {
     const exports = {
-        onConnect: new events.MockEventDispatcher<(p: MockPort) => void>(''),
+        onConnect: new events.MockEvent<(p: MockPort) => void>('browser.runtime.onConnect'),
 
         client_ports: [] as MockPort[],
         server_ports: [] as MockPort[],
@@ -61,16 +59,13 @@ export default (() => {
         trace(t: boolean) { verbose = t; },
 
         reset() {
-            events.expect_empty();
-            events.trace(false);
-
             verbose = false;
 
-            exports.onConnect = new events.MockEventDispatcher('rt.onConnect');
+            exports.onConnect = new events.MockEvent('browser.runtime.onConnect');
             exports.client_ports = [];
             exports.server_ports = [];
 
-            (<any>browser).runtime = {
+            const runtime: Runtime.Static = {
                 getPlatformInfo() {
                     return new Promise((resolve, reject) => {
                         resolve({os: 'linux', arch: 'x86-64'});
@@ -83,7 +78,12 @@ export default (() => {
 
                 onConnect: exports.onConnect,
 
-                connect(extn_id?: string, info?: {name?: string}): MockPort {
+                connect(
+                    extn_id_or_info?: string | Runtime.ConnectConnectInfoType,
+                    info?: {name?: string}
+                ): MockPort {
+                    if (typeof extn_id_or_info === 'object') info = extn_id_or_info;
+
                     const id = exports.client_ports.length;
                     // istanbul ignore next
                     const name = info?.name ? info.name : '<unnamed>';
@@ -119,20 +119,27 @@ export default (() => {
                 async sendNativeMessage() { throw "unimplemented"; },
                 // istanbul ignore next
                 async getBrowserInfo() { throw "unimplemented"; },
+                // istanbul ignore next
+                async requestUpdateCheck(): Promise<[
+                    Runtime.RequestUpdateCheckStatus,
+                    Runtime.RequestUpdateCheckCallbackDetailsType
+                ]> {
+                    throw new Error('Function not implemented.');
+                },
 
-                onStartup: new events.MockEventDispatcher("onStartup"),
-                onInstalled: new events.MockEventDispatcher("onInstalled"),
-                onUpdateAvailable: new events.MockEventDispatcher("onUpdateAvailable"),
-                onConnectExternal: new events.MockEventDispatcher("onConnectExternal"),
-                onMessage: new events.MockEventDispatcher("onMessage"),
-                onMessageExternal: new events.MockEventDispatcher("onMessageExternal"),
+                onStartup: new events.MockEvent("browser.runtime.onStartup"),
+                onInstalled: new events.MockEvent("browser.runtime.onInstalled"),
+                onUpdateAvailable: new events.MockEvent("browser.runtime.onUpdateAvailable"),
+                onConnectExternal: new events.MockEvent("browser.runtime.onConnectExternal"),
+                onMessage: new events.MockEvent("browser.runtime.onMessage"),
+                onMessageExternal: new events.MockEvent("browser.runtime.onMessageExternal"),
 
                 id: 'testing',
             };
+            (<any>globalThis).browser.runtime = runtime;
         },
     };
 
-    beforeEach(exports.reset);
     exports.reset();
 
     return exports;

@@ -1,21 +1,32 @@
 import {KeyValueStore, genericList} from '.';
 import * as Proto from './proto';
 import {connect} from '../../util/nanoservice';
-import Listener from '../../util/listener';
+import event, {Event} from '../../util/event';
 
 export default class Client<K extends Proto.Key, V extends Proto.Value>
     implements KeyValueStore<K, V>
 {
-    readonly onSet = new Listener<(entries: Proto.Entry<K, V>[]) => void>();
-    readonly onDelete = new Listener<(keys: K[]) => void>();
+    readonly onSet: Event<(entries: Proto.Entry<K, V>[]) => void>;
+    readonly onDelete: Event<(keys: K[]) => void>;
 
     private _port: Proto.ServicePort<K, V>;
 
     constructor(name_or_port: string | Proto.ServicePort<K, V>) {
+        let name;
+        let port: Proto.ServicePort<K, V>;
         // istanbul ignore next
-        if (typeof name_or_port === 'string') name_or_port = connect(name_or_port);
+        if (typeof name_or_port === 'string') {
+            name = name_or_port;
+            port = connect(name_or_port);
+        } else {
+            name = name_or_port.name;
+            port = name_or_port;
+        }
 
-        this._port = name_or_port;
+        this.onSet = event('KVS.Client.onSet', name);
+        this.onDelete = event('KVS.Client.onDelete', name);
+
+        this._port = port;
         this._port.onNotify = msg => {
             /* istanbul ignore next */ if (! msg) return;
             switch (msg.$type) {

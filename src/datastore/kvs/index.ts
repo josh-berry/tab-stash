@@ -118,9 +118,9 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         return ent;
     }
 
-    /** Returns a promise that resolves once the cache has flushed all pending
-     * writes to its underlying KVS. */
-    flush(): Promise<void> {
+    /** Returns a promise that resolves once the cache has performed all pending
+     * I/O to/from its underlying KVS. */
+    sync(): Promise<void> {
         if (this._pending_io) return this._pending_io;
         return Promise.resolve();
     }

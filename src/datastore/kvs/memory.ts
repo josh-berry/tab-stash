@@ -1,6 +1,6 @@
 import {KeyValueStore, Entry, Key, Value} from ".";
 
-import Listener from '../../util/listener';
+import event, {Event} from '../../util/event';
 
 const copy = (x: any) => JSON.parse(JSON.stringify(x));
 
@@ -12,8 +12,13 @@ const byKey = ([k1, v1]: [any, any], [k2, v2]: [any, any]) =>
 export default class MemoryKVS<K extends Key, V extends Value>
     implements KeyValueStore<K, V>
 {
-    readonly onSet: Listener<(entries: Entry<K, V>[]) => void> = new Listener();
-    readonly onDelete: Listener<(keys: K[]) => void> = new Listener();
+    readonly onSet: Event<(entries: Entry<K, V>[]) => void>;
+    readonly onDelete: Event<(keys: K[]) => void>;
+
+    constructor(name: string) {
+        this.onSet = event('KVS.Memory.onSet', name);
+        this.onDelete = event('KVS.Memory.onDelete', name);
+    }
 
     /** The in-memory KVS data, exposed here for readers to be able to inspect
      * the KVS directly without having to go thru async methods.
@@ -53,16 +58,22 @@ export default class MemoryKVS<K extends Key, V extends Value>
     }
 
     async set(entries: Entry<K, V>[]): Promise<void> {
-        this.onSet.send(entries
-            .map(({key, value}) => {
-                this.data.set(key, copy(value));
-                return {key, value: copy(value)};
-            }));
+        const ev = entries.map(({key, value}) => {
+            this.data.set(key, copy(value));
+            return {key, value: copy(value)};
+        });
+        if (ev.length > 0) this.onSet.send(ev);
     }
 
     async delete(keys: K[]): Promise<void> {
-        for (const k of keys) this.data.delete(k);
-        this.onDelete.send(JSON.parse(JSON.stringify(keys)));
+        const deleted: K[] = [];
+        for (const k of keys) {
+            if (this.data.has(k)) {
+                this.data.delete(k);
+                deleted.push(k);
+            }
+        }
+        if (deleted.length > 0) this.onDelete.send(deleted);
     }
 
     async deleteAll(): Promise<void> {
