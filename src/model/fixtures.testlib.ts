@@ -1,10 +1,14 @@
+import browser from 'webextension-polyfill';
+
+import * as events from '../mock/events';
+
 import type {Bookmark} from './bookmarks';
 import type {Tab} from './tabs';
 
-export function bookmarks(): {root: Bookmark, [k: string]: Bookmark} {
-    const root: Bookmark = {id: 'root', title: 'Root', index: 0, children: [
+export async function make_bookmarks(): Promise<{[k: string]: Bookmark}> {
+    const forest: Bookmark[] = [
         {id: 'tools', title: 'Toolbar', children: [
-            {id: 'likes', title: 'Likes', type: 'folder', children: [
+            {id: 'likes', title: 'Likes', children: [
                 {id: 'foo', title: 'Foo', url: '/foo'},
                 {id: 'bar', title: 'Bar', url: '/bar'},
             ]},
@@ -21,26 +25,28 @@ export function bookmarks(): {root: Bookmark, [k: string]: Bookmark} {
                 {id: 'd', title: 'd', url: '/d'},
             ]},
         ]},
-    ]};
+    ];
 
     const res: {[k: string]: Bookmark} = {};
 
-    function gen(bm: Bookmark) {
+    async function gen(bm: Bookmark, parentId: string | undefined) {
         // istanbul ignore if
         if (bm.id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
-        res[bm.id] = bm;
+        res[bm.id] = await browser.bookmarks.create({...bm, parentId});
         if (! bm.children) return;
+
         let i = 0;
         for (const c of bm.children) {
-            c.parentId = bm.id;
+            c.parentId = res[bm.id].id;
             c.index = i;
-            gen(c);
+            await gen(c, res[bm.id].id);
             ++i;
         }
     }
 
-    gen(root);
-    return res as typeof res & {root: Bookmark};
+    for (const root of forest) await gen(root, undefined);
+    await events.watch(browser.bookmarks.onCreated).untilNextTick();
+    return res;
 }
 
 export function tabs(): Tab[] {

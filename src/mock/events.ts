@@ -240,6 +240,15 @@ export function ignore(q: EventQuery<any>): {cancel(): void} {
     };
 }
 
+/** Helper to artificially inject an event in a particular MockEvent.  Checks at
+ * runtime that the passed-in event is actually a MockEvent and throws if not.
+ *
+ * Note that you must still wait for the event to be delivered like normal.
+ */
+export function send<L extends AnyListener>(ev: EventSource<L>, ...args: Args<L>) {
+    if (! (ev instanceof MockEvent)) throw new Error(`This event is not mocked`);
+    ev.send(...args);
+}
 
 
 //

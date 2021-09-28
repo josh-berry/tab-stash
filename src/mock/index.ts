@@ -28,6 +28,7 @@ export const mochaHooks: RootHookObject = {
         events.beforeTest();
         mock_browser.runtime.reset();
         mock_browser.storage.reset();
+        mock_browser.bookmarks.reset();
     },
     async afterEach() {
         await events.afterTest();

@@ -1,162 +1,177 @@
 import {expect} from 'chai';
+import browser from 'webextension-polyfill';
 
-import '../mock/browser';
 import * as events from '../mock/events';
 
 import * as M from './bookmarks';
 
-import {bookmarks} from './fixtures.testlib';
-
-const BMS = bookmarks();
+import {make_bookmarks} from './fixtures.testlib';
 
 describe('model/bookmarks', () => {
-    // Massage our input slightly for testing against, to handle the Chrome
-    // empty folder special case (since the model ensures that folders always
-    // have a 'children' property, but Chrome doesn't necessarily do this).
-    const bms = JSON.parse(JSON.stringify(BMS));
-    bms.empty.children = [];
-    bms.menu.children[1] = bms.empty;
-    bms.root.children[1] = bms.menu;
-
+    let bms: {[k: string]: M.Bookmark};
     let model: M.Model;
 
     beforeEach(async () => {
         // Typically bookmarks are loaded as a whole tree, so that's what we do
         // here.
-        model = M.Model.for_test(JSON.parse(JSON.stringify(BMS.root)));
+        bms = await make_bookmarks();
+        model = await M.Model.from_browser();
         await events.watch([model.by_id.onInsert, model.by_id.onUpdate])
             .untilNextTick();
     });
 
-    describe('creates bookmarks from a tree', () => {
+    describe('loads bookmarks from the browser', () => {
         it('creates the right bookmark objects', () => {
             for (const l in bms) {
-                expect(model.by_id.get(l), l).to.deep.equal(bms[l]);
+                const template = bms[l];
+                const bm = model.by_id.get(template.id);
+                expect(bm).to.deep.include(template);
+                if (template.parentId) {
+                    const parent = model.by_id.get(template.parentId!);
+                    expect(parent?.children).not.to.be.undefined;
+                    expect(parent!.children![template.index!]).to.equal(bm);
+                }
             }
         });
 
-        it('creates leaf folders correctly', () => {
+        it('creates folders correctly', () => {
             for (const l in bms) {
-                const bm = bms[l];
-                if (! bm.children) continue;
-                expect(model.by_parent.get(l), l).to.deep.equal(bm.children);
+                const template = bms[l];
+                if (! template.children) continue;
+
+                const bm = model.by_id.get(bms[l].id);
+                const p = model.by_parent.get(bms[l].id);
+                expect(bm).not.to.be.undefined;
+                expect(p).not.to.be.undefined;
+                expect(p).to.equal(bm!.children);
             }
         });
 
         it('indexes URLs correctly', () => {
-            expect(model.by_url.get('/foo')).to.deep.equal([BMS.foo, BMS.foo2]);
-            expect(model.by_url.get('/a')).to.deep.equal([BMS.a]);
+            expect(model.by_url.get('/foo')).to.deep.equal([bms.foo, bms.foo2]);
+            expect(model.by_url.get('/a')).to.deep.equal([bms.a]);
         });
     });
 
     it('inserts bookmarks into the tree', async () => {
-        const bm = {id: 'new', title: 'New', url: '/new', parentId: 'tools', index: 2};
-        model.whenBookmarkCreated(bm.id, JSON.parse(JSON.stringify(bm)));
+        const bm = await browser.bookmarks.create({
+            title: 'New', url: '/new',
+            parentId: bms.tools.id, index: 2
+        });
+        await events.next(browser.bookmarks.onCreated);
         await events.next(model.by_id.onInsert);
         await events.nextN(model.by_id.onUpdate, 2); // parents are updated
 
-        expect(model.by_id.get('new'), 'by_id').to.deep.equal(bm);
-        expect(model.by_url.get('/new'), 'by_url').to.deep.equal([bm]);
-        expect(model.by_parent.get('tools'), 'by_parent').to.deep.equal([
-            BMS.likes,
-            BMS.ok,
-            bm
+        expect(model.by_id.get(bm.id)).to.deep.equal(bm);
+        expect(model.by_url.get('/new')).to.deep.equal([bm]);
+        expect(model.by_parent.get(bms.tools.id)).to.deep.equal([
+            model.by_id.get(bms.likes.id),
+            model.by_id.get(bms.ok.id),
+            model.by_id.get(bm.id),
         ]);
     });
 
     it('inserts duplicate bookmarks gracefully', async () => {
-        const new_b = {...BMS.b, title: 'The New A', url: '/new_a'};
-        model.whenBookmarkCreated(new_b.id, JSON.parse(JSON.stringify(new_b)));
+        const new_b = {id: bms.b.id, title: 'The New A', url: '/new_a'};
+        events.send(browser.bookmarks.onCreated, new_b.id, new_b);
+        await events.next(browser.bookmarks.onCreated);
 
         // all nodes along the path receive update events
         await events.nextN(model.by_id.onUpdate, 4);
 
-        expect(model.by_id.get('b')).to.deep.equal(new_b);
+        expect(model.by_id.get(bms.b.id)).to.deep.include(new_b);
         expect(model.by_url.get('/b')).to.deep.equal([]);
-        expect(model.by_url.get('/new_a')).to.deep.equal([new_b]);
-        expect(model.by_parent.get('subfolder')).to.deep.equal([
-            new_b,
-            BMS.c,
-            BMS.d,
+        expect(model.by_url.get('/new_a')).to.deep.equal([model.by_id.get(bms.b.id)]);
+        expect(model.by_parent.get(bms.subfolder.id)).to.deep.equal([
+            model.by_id.get(bms.b.id),
+            model.by_id.get(bms.c.id),
+            model.by_id.get(bms.d.id),
         ]);
     });
 
     it('updates bookmarks', async () => {
-        const new_b = {...BMS.b, title: 'The New A', url: '/new_a'};
-        model.whenBookmarkChanged('b', {title: new_b.title, url: new_b.url});
+        await browser.bookmarks.update(bms.b.id, {title: 'The New A', url: '/new_a'});
+        await events.next(browser.bookmarks.onChanged);
         await events.nextN(model.by_id.onUpdate, 4); // all nodes on path
 
-        expect(model.by_id.get('b')).to.deep.equal(new_b);
+        expect(model.by_id.get(bms.b.id))
+            .to.deep.include({title: 'The New A', url: '/new_a'});
         expect(model.by_url.get('/b')).to.deep.equal([]);
-        expect(model.by_url.get('/new_a')).to.deep.equal([new_b]);
-        expect(model.by_parent.get('subfolder')).to.deep.equal([
-            new_b,
-            BMS.c,
-            BMS.d,
+        expect(model.by_url.get('/new_a')).to.deep.equal([model.by_id.get(bms.b.id)]);
+        expect(model.by_parent.get(bms.subfolder.id)).to.deep.equal([
+            model.by_id.get(bms.b.id),
+            model.by_id.get(bms.c.id),
+            model.by_id.get(bms.d.id),
         ]);
     });
 
     it('updates folder titles', async () => {
-        const sub = {...BMS.subfolder, title: 'Secret'};
-        model.whenBookmarkChanged('subfolder', {title: 'Secret'});
+        await browser.bookmarks.update(bms.subfolder.id, {title: 'Secret'});
+        await events.next(browser.bookmarks.onChanged);
         await events.nextN(model.by_id.onUpdate, 3); // all nodes on path
-        expect(model.by_id.get('subfolder')).to.deep.equal(sub);
+        expect(model.by_id.get(bms.subfolder.id)!.title).to.equal('Secret');
     });
 
     it('removes bookmarks idempotently', async () => {
-        model.whenBookmarkRemoved('b');
+        await browser.bookmarks.remove(bms.b.id);
+        const ev = await events.next(browser.bookmarks.onRemoved);
         await events.next(model.by_id.onDelete);
         await events.nextN(model.by_id.onUpdate, 3); // all nodes on path
         await events.nextN(model.by_id.onUpdate, 2); // shuffling siblings
 
-        model.whenBookmarkRemoved('b');
+        events.send(browser.bookmarks.onRemoved, ...ev);
+        await events.next(browser.bookmarks.onRemoved);
 
-        expect(model.by_id.get('b')).to.be.undefined;
+        expect(model.by_id.get(bms.b.id)).to.be.undefined;
         expect(model.by_url.get('/b')).to.deep.equal([]);
-        expect(model.by_parent.get('subfolder')).to.deep.equal([
-            {...BMS.c, index: 0},
-            {...BMS.d, index: 1},
+        expect(model.by_parent.get(bms.subfolder.id)).to.deep.equal([
+            {...bms.c, parentId: bms.subfolder.id, index: 0},
+            {...bms.d, parentId: bms.subfolder.id, index: 1},
         ]);
     });
 
     it('removes folders idempotently', async () => {
-        model.whenBookmarkRemoved('menu');
+        await browser.bookmarks.removeTree(bms.menu.id);
+        const ev = await events.next(browser.bookmarks.onRemoved);
         await events.nextN(model.by_id.onDelete, 9); // self and subtree
         await events.nextN(model.by_id.onUpdate, 1); // all nodes on path
 
-        model.whenBookmarkRemoved('menu');
+        events.send(browser.bookmarks.onRemoved, ...ev);
+        await events.next(browser.bookmarks.onRemoved);
 
-        expect(model.by_id.get('menu')).to.be.undefined;
-        expect(model.by_id.get('a')).to.be.undefined;
-        expect(model.by_id.get('subfolder')).to.be.undefined;
+        expect(model.by_id.get(bms.menu.id)).to.be.undefined;
+        expect(model.by_id.get(bms.a.id)).to.be.undefined;
+        expect(model.by_id.get(bms.subfolder.id)).to.be.undefined;
+
         expect(model.by_url.get('/a')).to.deep.equal([]);
         expect(model.by_url.get('/b')).to.deep.equal([]);
-        expect(model.by_parent.get('subfolder')).to.deep.equal([]);
-        expect(model.by_parent.get('menu')).to.deep.equal([]);
-        expect(model.by_parent.get('root')).to.deep.equal([BMS.tools]);
+
+        expect(model.by_parent.get(bms.subfolder.id)).to.deep.equal([]);
+        expect(model.by_parent.get(bms.menu.id)).to.deep.equal([]);
+        expect(model.by_parent.get(model.root.id)).to.deep.equal([
+            model.by_id.get(bms.tools.id),
+        ]);
     });
 
     it('moves bookmarks', async () => {
-        const loc = {parentId: 'root', index: 1};
-        const new_a = {...bms.a, ...loc};
-        const new_menu = {...bms.menu, index: 2, children: [
-            {...bms.foo2, index: 0},
-            {...bms.empty, index: 1},
-            {...bms.sep, index: 2},
-            {...bms.subfolder, index: 3},
-        ]};
-
-        model.whenBookmarkMoved('a', loc);
+        await model.move(bms.a.id, model.root.id, 1);
+        await events.next(browser.bookmarks.onMoved);
         await events.nextN(model.by_id.onUpdate, 3); // all nodes on both paths
         await events.nextN(model.by_id.onUpdate, 2); // shuffling siblings (remove)
         await events.nextN(model.by_id.onUpdate, 1); // shuffling siblings (add)
 
-        expect(model.by_id.get('a')).to.deep.include(loc);
-        expect(model.by_parent.get('root')).to.deep.equal([
-            bms.tools,
-            new_a,
-            new_menu,
+        expect(model.by_id.get(bms.a.id))
+            .to.deep.include({parentId: model.root.id, index: 1});
+        expect(model.by_parent.get(model.root.id)).to.deep.equal([
+            model.by_id.get(bms.tools.id),
+            model.by_id.get(bms.a.id),
+            model.by_id.get(bms.menu.id),
         ]);
-        expect(model.by_parent.get('menu')).to.deep.equal(new_menu.children);
+        expect(model.by_parent.get(bms.menu.id)).to.deep.equal([
+            model.by_id.get(bms.foo2.id),
+            model.by_id.get(bms.empty.id),
+            model.by_id.get(bms.sep.id),
+            model.by_id.get(bms.subfolder.id),
+        ]);
     });
 });

@@ -55,14 +55,6 @@ export class Model {
     // Loading data and wiring up events
     //
 
-    /** Construct a model for testing use.  It will not listen to any browser
-     * events and will not update itself--you must use the `when*()` methods to
-     * update it manually. */
-    static for_test(root: Bookmark): Model {
-        return new Model(root);
-    }
-
-    // istanbul ignore next
     /** Construct a model by loading bookmarks from the browser bookmark store.
      * It will listen for bookmark events to keep itself updated. */
     static async from_browser(): Promise<Model> {
@@ -74,18 +66,6 @@ export class Model {
         return model;
     }
 
-    // istanbul ignore next
-    /** Construct a model by loading it from an in-memory cache of the browser
-     * bookmark store.  It will listen for bookmark events to keep itself
-     * updated. */
-    static from_cache(root: Bookmark): Model {
-        const wiring = Model._wiring();
-        const model = new Model(root);
-        wiring.wire(model);
-        return model;
-    }
-
-    // istanbul ignore next
     /** Wire up browser events so that we update the state when the browser
      * tells us something has changed.  We use EventWiring to get around the
      * chicken-and-egg problem that we want to start listening for events before
