@@ -5,62 +5,9 @@ import * as events from '../mock/events';
 
 import * as M from './bookmarks';
 
-function setIndexes(bm: M.Bookmark) {
-    if (! bm.children) return;
-    let i = 0;
-    for (const c of bm.children) {
-        c.parentId = bm.id;
-        c.index = i;
-        setIndexes(c);
-        ++i;
-    }
-}
+import {bookmarks} from './fixtures.testlib';
 
-const BMS: {[k: string]: M.Bookmark} = {
-    foo: {id: 'foo', title: 'Foo', url: '/foo'},
-    foo2: {id: 'foo2', title: 'Foo', url: '/foo'}, // a duplicate
-    bar: {id: 'bar', title: 'Bar', url: '/bar'},
-    ok: {id: 'ok', title: 'Okay', url: '/ok'},
-    a: {id: 'a', title: 'a', url: '/a'},
-    b: {id: 'b', title: 'b', url: '/b'},
-    c: {id: 'c', title: 'c', url: '/c'},
-    d: {id: 'd', title: 'd', url: '/d'},
-    sep: {id: 'sep', title: '', type: 'separator'}, // for Firefox
-};
-
-// a Chrome-style empty folder (other folders are also chrome-style)
-BMS.empty = {id: 'empty', title: 'Empty Folder'};
-
-// a Firefox-style folder
-BMS.likes = {id: 'likes', title: 'Likes', type: 'folder', children: [
-    BMS.foo,
-    BMS.bar,
-]};
-
-BMS.tools = {id: 'tools', title: 'Toolbar', children: [BMS.likes, BMS.ok]};
-
-BMS.subfolder = {id: 'subfolder', title: 'Subfolder', children: [
-    BMS.b,
-    BMS.c,
-    BMS.d,
-]};
-
-BMS.menu = {id: 'menu', title: 'Menu', children: [
-    BMS.foo2,
-    BMS.empty,
-    BMS.sep,
-    BMS.a,
-    BMS.subfolder,
-]};
-
-// index needs to be set here because the parentId is undefined, which is still
-// technically a value and still gets indexed...
-BMS.root = {id: 'root', title: 'Root', index: 0, children: [
-    BMS.tools,
-    BMS.menu,
-]};
-
-setIndexes(BMS.root);
+const BMS = bookmarks();
 
 describe('model/bookmarks', () => {
     // Massage our input slightly for testing against, to handle the Chrome
