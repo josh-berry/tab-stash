@@ -153,6 +153,7 @@ export type StorableData<D extends StorableDef> = {
     readonly [k in keyof D]: ReturnType<D[k]['is']>;
 };
 
+// istanbul ignore next -- tests create their own factories
 /** Load and return a StoredObject from `browser.storage`, using the provided
  * definition.  Note that loading the same object with different definitions is
  * not allowed.

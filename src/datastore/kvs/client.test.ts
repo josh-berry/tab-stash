@@ -80,11 +80,10 @@ class MockServicePort implements Proto.ServicePort<string, string> {
             case 'deleteAll':
                 const all_deleted = [];
                 for (const k of this.entries.keys()) {
-                    if (this.entries.delete(k)) all_deleted.push(k);
+                    this.entries.delete(k);
+                    all_deleted.push(k);
                 }
-                if (all_deleted.length > 0) {
-                    this.onNotify({$type: 'delete', keys: all_deleted});
-                }
+                this.onNotify({$type: 'delete', keys: all_deleted});
                 return null;
         }
     }

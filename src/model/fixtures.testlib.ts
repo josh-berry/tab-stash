@@ -26,6 +26,7 @@ export function bookmarks(): {root: Bookmark, [k: string]: Bookmark} {
     const res: {[k: string]: Bookmark} = {};
 
     function gen(bm: Bookmark) {
+        // istanbul ignore if
         if (bm.id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
         res[bm.id] = bm;
         if (! bm.children) return;

@@ -63,6 +63,7 @@ export function beforeTest() {
 }
 
 export async function afterTest() {
+    // istanbul ignore if
     if (the_state.waiters.size > 0 || the_state.awaited_messages.size > 0) {
         const i = (val: any) => inspect(val, {depth: 5});
 
@@ -99,10 +100,10 @@ export class MockEvent<L extends AnyListener> implements Event<L> {
     addListener(l: L) { this._listeners.add(l); }
     removeListener(l: L) { this._listeners.delete(l); }
 
-    // istanbul ignore next - implemented only for interface conformance
+    // istanbul ignore next
     hasListener(l: L) { return this._listeners.has(l); }
 
-    // istanbul ignore next - implemented only for interface conformance
+    // istanbul ignore next
     hasListeners() { return this._listeners.size > 0; }
 
     send(...args: Args<L>) {
@@ -120,6 +121,7 @@ export class MockEvent<L extends AnyListener> implements Event<L> {
         };
 
         for (const ignore of this.state.ignores) {
+            // istanbul ignore else
             if (ignore(msg)) {
                 this.state.ignored_messages.add(msg);
                 run(this.state);
@@ -158,6 +160,7 @@ export class EventWatcher<L extends AnyListener = AnyListener> {
      * been fired or queued yet, waits for such an event to arrive. */
     next(): Promise<Args<L>> {
         return new Promise(resolve => {
+            // istanbul ignore if
             if (the_state !== this.state) {
                 throw new Error(`Can't watch for events after the test has finished`);
             }
@@ -179,6 +182,7 @@ export class EventWatcher<L extends AnyListener = AnyListener> {
     untilNextTick(): Promise<Args<L>[]> {
         return new Promise(resolve => {
             setTimeout(() => {
+                // istanbul ignore if
                 if (the_state !== this.state) {
                     throw new Error(`Can't watch for events after the test has finished`);
                 }
@@ -231,6 +235,7 @@ export function ignore(q: EventQuery<any>): {cancel(): void} {
     the_state.ignores.add(filter);
 
     return {
+        // istanbul ignore next
         cancel() { the_state.ignores.delete(filter); }
     };
 }
@@ -266,6 +271,7 @@ async function runner(state: EventSystemState): Promise<void> {
     }
 }
 
+// istanbul ignore next
 function filter_for(q: EventQuery<any>): (ev: EvMessage) => boolean {
     if (q instanceof Array) {
         const filters = q.map(filter_for);
@@ -285,10 +291,12 @@ function filter_for(q: EventQuery<any>): (ev: EvMessage) => boolean {
     }
 }
 
+// istanbul ignore next
 function format_waiters(state: EventSystemState): any {
     return Array.from(state.waiters).map(w => format_query(w.query));
 }
 
+// istanbul ignore next
 function format_awaited_messages(state: EventSystemState): any {
     return Array.from(state.awaited_messages)
         .map(msg => ({
@@ -297,6 +305,7 @@ function format_awaited_messages(state: EventSystemState): any {
         }));
 }
 
+// istanbul ignore next
 function format_query(q: EventQuery<any>): any {
     if (q instanceof Array) return q.map(q => format_query(q));
     if (q instanceof MockEvent) return {event: `${q.name}/${q.instance}`};
