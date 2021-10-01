@@ -7,8 +7,10 @@
   "license": "MPL-2.0",
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
+    "@sinonjs/fake-timers": "^8.0.1",
     "@types/chai": "^4.2",
     "@types/mocha": "^8.2",
+    "@types/sinonjs__fake-timers": "^6.0.4",
     "@types/sortablejs": "^1.10",
     "@types/webextension-polyfill": "^0.8.0",
     "@vue/compiler-sfc": "^3.0.6",

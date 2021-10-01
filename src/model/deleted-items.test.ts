@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import FakeTimers from '@sinonjs/fake-timers';
 
 import '../mock/browser';
 import * as events from '../mock/events';
@@ -9,12 +10,19 @@ import * as M from './deleted-items';
 const DATASET_SIZE = 50;
 
 describe('model/deleted-items', () => {
+    let clock: FakeTimers.InstalledClock | undefined;
     let source: M.Source;
     let model: M.Model;
 
     beforeEach(async() => {
         source = new MemoryKVS('deleted_items');
         model = new M.Model(source);
+    });
+
+    // Some of these tests use fake timers
+    afterEach(() => {
+        if (clock) clock.uninstall();
+        clock = undefined;
     });
 
     // NOT TESTED: src2state(), because it's trivial
@@ -115,6 +123,21 @@ describe('model/deleted-items', () => {
                 {title: "Third", url: "third"},
             ]
         }});
+    });
+
+    it('tracks recently-deleted items for a short time', async() => {
+        clock = FakeTimers.install();
+        await model.add({title: 'Recent', url: 'recent'});
+        await events.next(source.onSet);
+        expect(model.state.recentlyDeleted.length).to.equal(1);
+        expect(model.state.recentlyDeleted[0]).to.deep.include({
+            item: {
+                title: 'Recent',
+                url: 'recent',
+            },
+        });
+        clock.runToLast();
+        expect(model.state.recentlyDeleted).to.deep.equal([]);
     });
 
     describe('filtering', () => {
