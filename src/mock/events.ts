@@ -15,6 +15,7 @@
  * both when they are sent and when they are delivered.
  */
 
+// istanbul ignore next
 const inspect = require('util').inspect
     ?? ((v: any) => JSON.stringify(v, undefined, 4));
 
@@ -74,6 +75,7 @@ export async function afterTest() {
     }
 }
 
+// istanbul ignore next
 /** Enable or disable logging of events to the console (including stack traces
  * of where events were sent).  This can get very slow and verbose, so it's wise
  * to use it only where needed.
@@ -246,6 +248,7 @@ export function ignore(q: EventQuery<any>): {cancel(): void} {
  * Note that you must still wait for the event to be delivered like normal.
  */
 export function send<L extends AnyListener>(ev: EventSource<L>, ...args: Args<L>) {
+    // istanbul ignore if
     if (! (ev instanceof MockEvent)) throw new Error(`This event is not mocked`);
     ev.send(...args);
 }

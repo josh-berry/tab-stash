@@ -31,18 +31,17 @@ class MockBookmarks implements BM.Static {
         fixup_child_ordering(this.root);
     }
 
+    // istanbul ignore next
     async get(idOrIdList: string | string[]): Promise<BM.BookmarkTreeNode[]> {
-        if (idOrIdList instanceof Array) {
-            return idOrIdList.map(id => node_only(this._get(id)));
-        }
-        return [node_only(this._get(idOrIdList))];
+        throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async getChildren(id: string): Promise<BM.BookmarkTreeNode[]> {
-        const folder = this._getFolder(id);
-        return JSON.parse(JSON.stringify(folder.children));
+        throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async getRecent(numberOfItems: number): Promise<BM.BookmarkTreeNode[]> {
         throw new Error('Method not implemented.');
     }
@@ -51,17 +50,18 @@ class MockBookmarks implements BM.Static {
         return [JSON.parse(JSON.stringify(this.root))];
     }
 
+    // istanbul ignore next
     async getSubTree(id: string): Promise<BM.BookmarkTreeNode[]> {
-        const bm = this.by_id.get(id);
-        if (! bm) throw new Error(`Invalid bookmark ID: ${id}`);
-        return [JSON.parse(JSON.stringify(bm))];
+        throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async search(query: string | BM.SearchQueryC2Type): Promise<BM.BookmarkTreeNode[]> {
         throw new Error('Method not implemented.');
     }
 
     async create(bookmark: BM.CreateDetails): Promise<BM.BookmarkTreeNode> {
+        // istanbul ignore if
         if (bookmark.type && bookmark.type !== 'separator') {
             throw new Error(`Bookmark type is not supported on Chrome`);
         }
@@ -70,28 +70,48 @@ class MockBookmarks implements BM.Static {
         const parent = this._getFolder(parentId);
 
         const index = bookmark.index ?? parent.children.length;
+        // istanbul ignore if
         if (index < 0 || index > parent.children.length) {
             console.error('Bookmark tree:', this.root);
             console.error('create() called with:', bookmark);
             throw new Error(`Invalid index specified: ${index}`);
         }
 
-        const bm: Node = bookmark.url
-            ? {id: this._freeID(), title: bookmark.title ?? '', url: bookmark.url,
-               parentId, index}
-            : {id: this._freeID(), title: bookmark.title ?? '', children: [],
-               parentId, index};
+        let bm: Node;
+        if (bookmark.url !== undefined) {
+            // istanbul ignore if
+            if (bookmark.type === 'separator') {
+                throw new Error(`Can't create separator with a URL`);
+            }
+            bm = {
+                id: this._freeID(), title: bookmark.title ?? '',
+                url: bookmark.url, parentId, index,
+            };
+            if (Math.random() < 0.5) bm.type = 'bookmark';
 
-        // Just to make sure nobody relies on Chrome vs. Firefox behavior...
-        if (Math.random() < 0.5) bm.type = bookmark.url ? 'bookmark' : 'folder';
+        } else if (bookmark.type === 'separator') {
+            // istanbul ignore if
+            if (bookmark.title) {
+                throw new Error(`Can't create separator with a title`);
+            }
+            bm = {
+                id: this._freeID(), title: '', url: '',
+                type: 'separator', parentId, index,
+            };
 
-        if (bookmark.type === 'separator') bm.type = 'separator';
+        } else {
+            bm = {
+                id: this._freeID(), title: bookmark.title ?? '', children: [],
+                parentId, index,
+            };
+            if (Math.random() < 0.5) bm.type = 'folder';
+        }
 
         this.by_id.set(bm.id, bm);
         parent.children.splice(index, 0, bm);
         fixup_child_ordering(parent);
 
-        this.onCreated.send(bm.id, JSON.parse(JSON.stringify(bm)));
+        this.onCreated.send(bm.id, node_only(bm));
         return node_only(bm);
     }
 
@@ -126,9 +146,11 @@ class MockBookmarks implements BM.Static {
         const node = this._get(id);
 
         if (changes.url !== undefined) {
+            // istanbul ignore if
             if ('children' in node) throw new Error(`Cannot update a folder's URL`);
             node.url = changes.url;
         }
+        // istanbul ignore if
         if (changes.title !== undefined) node.title = changes.title;
 
         const ev: BM.OnChangedChangeInfoType = {title: node.title};
@@ -140,6 +162,7 @@ class MockBookmarks implements BM.Static {
 
     async remove(id: string): Promise<void> {
         const node = this._get(id);
+        // istanbul ignore if
         if ('children' in node) throw new Error(`Cannot delete a folder with remove()`);
 
         const parent = this._getFolder(node.parentId!);
@@ -169,6 +192,7 @@ class MockBookmarks implements BM.Static {
 
     private _getFolder(id: string): Folder {
         const node = this._get(id);
+        // istanbul ignore if
         if (! ('children' in node)) {
             console.error(`Bookmark tree:`, this.root);
             throw new Error(`${id} is not a folder`);
@@ -178,6 +202,7 @@ class MockBookmarks implements BM.Static {
 
     private _get(id: string): Node {
         const node = this.by_id.get(id);
+        // istanbul ignore if
         if (! node) {
             console.error(`Bookmark tree:`, this.root);
             throw new Error(`No such bookmark: ${id}`);

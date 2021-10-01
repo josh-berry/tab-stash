@@ -26,11 +26,10 @@ describe('model/bookmarks', () => {
                 const template = bms[l];
                 const bm = model.by_id.get(template.id);
                 expect(bm).to.deep.include(template);
-                if (template.parentId) {
-                    const parent = model.by_id.get(template.parentId!);
-                    expect(parent?.children).not.to.be.undefined;
-                    expect(parent!.children![template.index!]).to.equal(bm);
-                }
+
+                const parent = model.by_id.get(template.parentId!);
+                expect(parent!.children).not.to.be.undefined;
+                expect(parent!.children![template.index!]).to.equal(bm);
             }
         });
 
@@ -43,7 +42,11 @@ describe('model/bookmarks', () => {
                 const p = model.by_parent.get(bms[l].id);
                 expect(bm).not.to.be.undefined;
                 expect(p).not.to.be.undefined;
-                expect(p).to.equal(bm!.children);
+                // The following is not actually true because the index wraps
+                // its return value in a readonly wrapper...
+                //
+                //expect(p).to.equal(bm!.children);
+                expect(p).to.deep.equal(bm!.children);
             }
         });
 

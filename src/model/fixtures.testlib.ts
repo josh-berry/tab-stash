@@ -21,7 +21,7 @@ export async function make_bookmarks(): Promise<{[k: string]: Bookmark}> {
         ]},
         {id: 'menu', title: 'Menu', children: [
             {id: 'foo2', title: 'Foo', url: '/foo'},
-            {id: 'empty', title: 'Empty Folder'},
+            {id: 'empty', title: 'Empty Folder', children: []},
             {id: 'sep', title: '', type: 'separator'}, // For Firefox
             {id: 'a', title: 'a', url: '/a'},
             {id: 'subfolder', title: 'Subfolder', children: [
@@ -34,19 +34,23 @@ export async function make_bookmarks(): Promise<{[k: string]: Bookmark}> {
 
     const res: {[k: string]: Bookmark} = {};
 
-    async function gen(bm: Bookmark, parentId: string | undefined) {
+    async function gen(bm: Bookmark, parentId: string | undefined): Promise<Bookmark> {
         // istanbul ignore if
         if (bm.id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
         res[bm.id] = await browser.bookmarks.create({...bm, parentId});
-        if (! bm.children) return;
+        if (! bm.children) return res[bm.id];
 
         let i = 0;
+        const new_kids: Bookmark[] = [];
+        res[bm.id].children = new_kids;
         for (const c of bm.children) {
             c.parentId = res[bm.id].id;
             c.index = i;
-            await gen(c, res[bm.id].id);
+            new_kids.push(await gen(c, res[bm.id].id));
             ++i;
         }
+
+        return res[bm.id];
     }
 
     for (const root of forest) await gen(root, undefined);

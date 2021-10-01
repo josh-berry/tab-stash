@@ -52,7 +52,7 @@ class State {
     tab(id: number): Tab {
         for (const w of this.windows) {
             if (! w) continue;
-            const tab = w?.tabs.find(t => t.id === id);
+            const tab = w.tabs.find(t => t.id === id);
             if (tab) return tab;
         }
         // istanbul ignore next
@@ -152,37 +152,38 @@ class MockWindows implements W.Static {
         this._state = state;
     }
 
+    // istanbul ignore next
     async get(windowId: number, getInfo?: W.GetInfo): Promise<W.Window> {
-        const win = this._state.win(windowId);
-        if (getInfo?.populate) {
-            return JSON.parse(JSON.stringify(win));
-        } else {
-            return only_win(win);
-        }
+        throw new Error('Method not implemented.');
     }
 
     async getCurrent(getInfo?: W.GetInfo): Promise<W.Window> {
         // This is an over-simplification; generally the "current" window is the
         // one where the tab/UI is
         const win = this._state.windows.find(w => w?.focused === true);
+        // istanbul ignore if
         if (! win) throw new Error(`There is no focused window`);
 
         if (getInfo?.populate) return JSON.parse(JSON.stringify(win));
         return only_win(win);
     }
 
+    // istanbul ignore next
     async getLastFocused(getInfo?: W.GetInfo): Promise<W.Window> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async getAll(getInfo?: W.GetAllGetInfoType): Promise<W.Window[]> {
         throw new Error('Method not implemented.');
     }
 
     async create(createData?: W.CreateCreateDataType): Promise<W.Window> {
         const notImplemented = (name: keyof W.CreateCreateDataType) => {
-            if (! createData || createData[name] === undefined) return;
-            throw new Error(`Property ${name} not implemented for window.create()`);
+            // istanbul ignore if
+            if (createData && createData[name] !== undefined) {
+                throw new Error(`Property ${name} not implemented for window.create()`);
+            }
         };
         notImplemented('tabId');
         notImplemented('left');
@@ -236,6 +237,7 @@ class MockWindows implements W.Static {
         return JSON.parse(JSON.stringify(win));
     }
 
+    // istanbul ignore next
     async update(windowId: number, updateInfo: W.UpdateUpdateInfoType): Promise<W.Window> {
         throw new Error('Method not implemented.');
     }
@@ -291,18 +293,22 @@ class MockTabs implements T.Static {
         this._state = state;
     }
 
+    // istanbul ignore next
     async get(tabId: number): Promise<T.Tab> {
-        return JSON.parse(JSON.stringify(this._state.tab(tabId)));
+        throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async getCurrent(): Promise<T.Tab> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     connect(tabId: number, connectInfo?: T.ConnectConnectInfoType): Runtime.Port {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async sendMessage(tabId: number, message: any, options?: T.SendMessageOptionsType): Promise<any> {
         throw new Error('Method not implemented.');
     }
@@ -342,6 +348,7 @@ class MockTabs implements T.Static {
         return JSON.parse(JSON.stringify(tab));
     }
 
+    // istanbul ignore next
     async duplicate(tabId: number, duplicateProperties?: T.DuplicateDuplicatePropertiesType): Promise<T.Tab> {
         throw new Error('Method not implemented.');
     }
@@ -386,6 +393,7 @@ class MockTabs implements T.Static {
         return JSON.parse(JSON.stringify(res));
     }
 
+    // istanbul ignore next
     async highlight(highlightInfo: T.HighlightHighlightInfoType): Promise<W.Window> {
         throw new Error('Method not implemented.');
     }
@@ -404,9 +412,10 @@ class MockTabs implements T.Static {
         }
 
         const notImplemented = (name: keyof T.UpdateUpdatePropertiesType) => {
-            // istanbul ignore else
-            if (options[name] === undefined) return;
-            throw new Error(`Passing ${name} to tabs.update() is not implemented`);
+            // istanbul ignore if
+            if (options[name] !== undefined) {
+                throw new Error(`Passing ${name} to tabs.update() is not implemented`);
+            }
         };
 
         const tab = this._state.tab(tabId);
@@ -491,10 +500,12 @@ class MockTabs implements T.Static {
         return JSON.parse(JSON.stringify(ret[0]));
     }
 
+    // istanbul ignore next
     async reload(tabId?: number, reloadProperties?: T.ReloadReloadPropertiesType): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     warmup(tabId: number): void {
         throw new Error('Method not implemented.');
     }
@@ -505,6 +516,7 @@ class MockTabs implements T.Static {
             const tab = this._state.tab(tid);
             const win = this._state.win(tab.windowId);
 
+            // istanbul ignore if
             if (tab !== win.tabs[tab.index]) {
                 throw new Error(`BUG: Tab ${tid} is not at the right index in window ${win.id}`);
             }
@@ -528,78 +540,112 @@ class MockTabs implements T.Static {
         this._state.validate();
     }
 
+    // istanbul ignore next
     async discard(tabIds: number | number[]): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async detectLanguage(tabId?: number): Promise<string> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async toggleReaderMode(tabId?: number): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async captureTab(tabId?: number, options?: ExtensionTypes.ImageDetails): Promise<string> {
         throw new Error('Method not implemented.');
     }
 
+    // istanbul ignore next
     async captureVisibleTab(windowId?: number, options?: ExtensionTypes.ImageDetails): Promise<string> {
         throw new Error('Method not implemented.');
     }
 
     async executeScript(tabId: number | undefined, details: ExtensionTypes.InjectDetails): Promise<any[]>;
     async executeScript(details: ExtensionTypes.InjectDetails): Promise<any[]>;
+    // istanbul ignore next
     async executeScript(tabId: any, details?: any): Promise<any[]> {
         throw new Error('Method not implemented.');
     }
+
     async insertCSS(tabId: number | undefined, details: ExtensionTypes.InjectDetails): Promise<void>;
     async insertCSS(details: ExtensionTypes.InjectDetails): Promise<void>;
+    // istanbul ignore next
     async insertCSS(tabId: any, details?: any): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
     async removeCSS(tabId: number | undefined, details: ExtensionTypes.InjectDetails): Promise<void>;
     async removeCSS(details: ExtensionTypes.InjectDetails): Promise<void>;
+    // istanbul ignore next
     async removeCSS(tabId: any, details?: any): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
     async setZoom(tabId: number | undefined, zoomFactor: number): Promise<void>;
     async setZoom(zoomFactor: number): Promise<void>;
+    // istanbul ignore next
     async setZoom(tabId: any, zoomFactor?: any): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async getZoom(tabId?: number): Promise<number> {
         throw new Error('Method not implemented.');
     }
+
     async setZoomSettings(tabId: number | undefined, zoomSettings: T.ZoomSettings): Promise<void>;
     async setZoomSettings(zoomSettings: T.ZoomSettings): Promise<void>;
+    // istanbul ignore next
     async setZoomSettings(tabId: any, zoomSettings?: any): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async getZoomSettings(tabId?: number): Promise<T.ZoomSettings> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     print(): void {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async printPreview(): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async saveAsPDF(pageSettings: T.PageSettings): Promise<string> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async show(tabIds: number | number[]): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async hide(tabIds: number | number[]): Promise<number[]> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     moveInSuccession(tabIds: number[], tabId?: number, options?: T.MoveInSuccessionOptionsType): void {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async goForward(tabId?: number): Promise<void> {
         throw new Error('Method not implemented.');
     }
+
+    // istanbul ignore next
     async goBack(tabId?: number): Promise<void> {
         throw new Error('Method not implemented.');
     }

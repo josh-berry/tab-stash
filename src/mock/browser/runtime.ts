@@ -82,6 +82,7 @@ export default (() => {
                     extn_id_or_info?: string | Runtime.ConnectConnectInfoType,
                     info?: {name?: string}
                 ): MockPort {
+                    // istanbul ignore next
                     if (typeof extn_id_or_info === 'object') info = extn_id_or_info;
 
                     const id = exports.client_ports.length;
