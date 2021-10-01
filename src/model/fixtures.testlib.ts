@@ -5,6 +5,11 @@ import * as events from '../mock/events';
 import type {Bookmark} from './bookmarks';
 import type {Tab} from './tabs';
 
+export type TabSetup = {
+    windows: {[k: string]: {id: number, tabs: Tab[]}},
+    tabs: {[k: string]: Tab},
+};
+
 export async function make_bookmarks(): Promise<{[k: string]: Bookmark}> {
     const forest: Bookmark[] = [
         {id: 'tools', title: 'Toolbar', children: [
@@ -49,45 +54,49 @@ export async function make_bookmarks(): Promise<{[k: string]: Bookmark}> {
     return res;
 }
 
-export function tabs(): Tab[] {
-    const windows: Partial<Tab>[][] = [
-        [
-            {url: 'foo'},
-            {url: 'bar'},
-            {url: 'fred'},
+export async function make_tabs(): Promise<TabSetup> {
+    const wins = {
+        one: [
+            {id: 'foo', url: 'foo', active: true},
+            {id: 'bar', url: 'bar'},
+            {id: 'fred', url: 'fred'},
         ],
-        [
-            {url: 'robert'},
-            {url: 'robert'},
-            {url: 'foo'},
+        two: [
+            {id: 'robert1', url: 'robert', active: true},
+            {id: 'robert2', url: 'robert'},
+            {id: 'foo2', url: 'foo'},
         ]
-    ];
+    };
 
-    const tabs: Tab[] = [];
-    let windowId = 0;
-    let id = 0;
-    for (const w of windows) {
-        let index = 0;
-        for (const t of w) {
-            tabs.push(make_tab({...t, id, windowId, index}))
-            ++id;
-            ++index;
+    const windows: TabSetup['windows'] = {};
+    const tabs: TabSetup['tabs'] = {};
+    for (const w in wins) {
+        const win = await browser.windows.create();
+        await events.next(browser.windows.onCreated);
+        await events.next(browser.tabs.onCreated);
+        await events.next(browser.windows.onFocusChanged);
+        await events.next(browser.tabs.onActivated);
+
+        const win_tabs = [];
+        let i = 0;
+        for (const t of wins[w as keyof typeof wins]) {
+            const tab = await browser.tabs.create({
+                windowId: win.id, url: t.url,
+                active: !!t.active
+            });
+            await events.next(browser.tabs.onCreated);
+            if (t.active) await events.next(browser.tabs.onActivated);
+
+            tab.windowId = win.id;
+            tab.index = i;
+            tabs[t.id] = tab as Tab;
+            win_tabs.push(tab as Tab);
+            ++i;
         }
-        ++windowId;
+        await browser.tabs.remove(win.tabs![0].id!);
+        await events.next(browser.tabs.onRemoved);
+        windows[w] = {id: win.id!, tabs: win_tabs};
     }
 
-    return tabs;
-}
-
-export function make_tab(
-    t: Partial<Tab> & {id: number, windowId: number, index: number}
-): Tab {
-    return {
-        incognito: false,
-        hidden: false,
-        pinned: false,
-        active: false,
-        highlighted: false,
-        ...t
-    };
+    return {windows, tabs};
 }

@@ -16,7 +16,7 @@ export type Tab = Tabs.Tab & {id: number, windowId: number};
  * JSON-serializable (for transmission between contexts).
  */
 export class Model {
-    readonly by_id = new EventfulMap<number, Tab>();
+    readonly by_id = new EventfulMap<number, Tab>("tabs");
 
     readonly by_window = new Index(this.by_id, {
         keyFor: tab => tab.windowId,
@@ -34,14 +34,6 @@ export class Model {
     // Loading data and wiring up events
     //
 
-    /** Construct a model for testing use.  It will not listen to any browser
-     * events and will not update itself--you must use the `when*()` methods to
-     * update it manually. */
-    static for_test(tabs: Tab[]): Model {
-        return new Model(tabs, undefined);
-    }
-
-    // istanbul ignore next
     /** Construct a model by loading tabs from the browser.  The model will keep
      * itself updated by listening to browser events. */
     static async from_browser(): Promise<Model> {
@@ -54,7 +46,6 @@ export class Model {
         return model;
     }
 
-    // istanbul ignore next
     /** Wire up browser events so that we update the state when the browser
      * tells us something has changed.  We use EventWiring to get around the
      * chicken-and-egg problem that we want to start listening for events before
