@@ -13,11 +13,11 @@ class MockBookmarks implements BM.Static {
     readonly onCreated: events.MockEvent<(id: string, bookmark: BM.BookmarkTreeNode) => void> =
         new events.MockEvent('browser.bookmarks.onCreated');
     readonly onRemoved: events.MockEvent<(id: string, removeInfo: BM.OnRemovedRemoveInfoType) => void> =
-        new events.MockEvent('browser.bookmarks.onCreated');
+        new events.MockEvent('browser.bookmarks.onRemoved');
     readonly onChanged: events.MockEvent<(id: string, changeInfo: BM.OnChangedChangeInfoType) => void> =
-        new events.MockEvent('browser.bookmarks.onCreated');
+        new events.MockEvent('browser.bookmarks.onChanged');
     readonly onMoved: events.MockEvent<(id: string, moveInfo: BM.OnMovedMoveInfoType) => void> =
-        new events.MockEvent('browser.bookmarks.onCreated');
+        new events.MockEvent('browser.bookmarks.onMoved');
 
     private readonly root: Folder;
     private readonly by_id = new Map<string, Node>();
@@ -124,10 +124,10 @@ class MockBookmarks implements BM.Static {
 
         // Chrome has add-then-remove behavior, while Firefox has
         // remove-then-add behavior.  We have to pick one consistently (so
-        // bookmarks land in predictable places), so we just go with Chrome's
+        // bookmarks land in predictable places), so we just go with Firefox's
         // behavior.
-        newParent.children.splice(newIndex, 0, node);
         oldParent.children.splice(oldIndex, 1);
+        newParent.children.splice(newIndex, 0, node);
 
         fixup_child_ordering(oldParent);
         if (oldParent !== newParent) fixup_child_ordering(newParent);

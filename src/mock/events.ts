@@ -75,6 +75,11 @@ export async function afterTest() {
     }
 }
 
+/** Returns a count of pending/undelivered events (excluding ignored events). */
+export function pendingCount(): number {
+    return the_state.awaited_messages.size;
+}
+
 // istanbul ignore next
 /** Enable or disable logging of events to the console (including stack traces
  * of where events were sent).  This can get very slow and verbose, so it's wise

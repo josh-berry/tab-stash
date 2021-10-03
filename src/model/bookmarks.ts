@@ -22,7 +22,7 @@ const ROOT_FOLDER_HELP = 'https://github.com/josh-berry/tab-stash/wiki/Problems-
  * ensure the state is JSON-serializable.
  */
 export class Model {
-    readonly by_id = new EventfulMap<string, Bookmark>();
+    readonly by_id = new EventfulMap<string, Bookmark>("bookmarks");
 
     readonly by_parent = new Index(this.by_id, {
         keyFor: bm => bm.parentId ?? null,

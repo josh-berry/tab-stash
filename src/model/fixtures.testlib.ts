@@ -1,89 +1,146 @@
-import browser from 'webextension-polyfill';
+/**
+ * Fake data/setup for tests of Tab Stash models.  The data here is intended to
+ * be used both in unit/mock tests and in tests run against a real browser.
+ */
+
+import {expect} from 'chai';
+import browser, {Bookmarks, Windows, Tabs} from 'webextension-polyfill';
 
 import * as events from '../mock/events';
 
 import type {Bookmark} from './bookmarks';
 import type {Tab} from './tabs';
 
-export type TabSetup = {
-    windows: {[k: string]: {id: number, tabs: Tab[]}},
-    tabs: {[k: string]: Tab},
+export const B = 'about:blank';
+
+export const TEST_TAG = `Tab Stash Automated Test`;
+export const TEST_ROOT_NAME = `${TEST_TAG} - OK to delete`;
+export const STASH_ROOT_NAME = `${TEST_TAG} - Stash Root`;
+
+/** Test browser windows.  We should try to keep the number of windows to a
+ * minimum since in real-world tests, all of these windows will be created for
+ * each test (where windows are used). */
+const WINDOWS = {
+    left: [
+        {id: 'left_alice', url: `${B}#alice`, active: true},
+        {id: 'left_betty', url: `${B}#betty`},
+        {id: 'left_charlotte', url: `${B}#charlotte`},
+    ],
+    right: [
+        {id: 'right_blank', url: `${B}`, active: true},
+        {id: 'right_adam', url: `${B}#adam`},
+        {id: 'right_doug', url: `${B}#doug`},
+    ],
+    real: [
+        {id: 'real_patricia', url: `${B}#patricia`, pinned: true},
+        {id: 'real_paul', url: `${B}#paul`, pinned: true},
+        {id: 'real_blank', url: `${B}`, active: true},
+        {id: 'real_bob', url: `${B}#bob`},
+        {id: 'real_doug', url: `${B}#doug`},
+        {id: 'real_doug_2', url: `${B}#doug`, hidden: true},
+        {id: 'real_estelle', url: `${B}#estelle`},
+        {id: 'real_francis', url: `${B}#francis`},
+        {id: 'real_harry', url: `${B}#harry`, hidden: true},
+        {id: 'real_helen', url: `${B}#helen`, hidden: true},
+    ],
+} as const;
+
+export type TabFixture = {
+    windows: {[k in WindowName]: Windows.Window & {id: string}},
+    tabs: {[k in TabName]: Tabs.Tab & {id: string}},
 };
+type WindowName = keyof typeof WINDOWS;
+type TabName = (typeof WINDOWS)[WindowName][any]['id'];
 
-export async function make_bookmarks(): Promise<{[k: string]: Bookmark}> {
-    const forest: Bookmark[] = [
-        {id: 'tools', title: 'Toolbar', children: [
-            {id: 'likes', title: 'Likes', children: [
-                {id: 'foo', title: 'Foo', url: '/foo'},
-                {id: 'bar', title: 'Bar', url: '/bar'},
-            ]},
-            {id: 'ok', title: 'Okay', url: '/ok'},
-        ]},
-        {id: 'menu', title: 'Menu', children: [
-            {id: 'foo2', title: 'Foo', url: '/foo'},
+
+
+const BOOKMARKS = {
+    id: 'root', title: TEST_ROOT_NAME, children: [
+        {id: 'doug_1', title: 'Doug Duplicate', url: `${B}#doug`},
+        {id: 'francis', title: 'Francis Favorite', url: `${B}#francis`},
+        {id: 'outside', title: 'Outside - A/B Names', children: [
+            {id: 'alice', title: 'Alice', url: `${B}#alice`},
+            {id: 'separator', title: '', type: 'separator'},
+            {id: 'bob', title: 'Bob', url: `${B}#bob`},
             {id: 'empty', title: 'Empty Folder', children: []},
-            {id: 'sep', title: '', type: 'separator'}, // For Firefox
-            {id: 'a', title: 'a', url: '/a'},
-            {id: 'subfolder', title: 'Subfolder', children: [
-                {id: 'b', title: 'b', url: '/b'},
-                {id: 'c', title: 'c', url: '/c'},
-                {id: 'd', title: 'd', url: '/d'},
+        ]},
+        {id: 'stash_root', title: STASH_ROOT_NAME, children: [
+            {id: 'names', title: 'Names', children: [
+                {id: 'doug_2', title: 'Doug Duplicate', url: `${B}#doug`},
+                {id: 'helen', title: 'Helen Hidden', url: `${B}#helen`},
+                {id: 'patricia', title: 'Patricia Pinned', url: `${B}#patricia`},
+                {id: 'nate', title: 'Nate NotOpen', url: `${B}#nate`},
+            ]},
+            {id: 'unnamed', title: 'saved-1970-01-01T00:00:00.000Z', children: [
+                {id: 'undyne', title: 'Undyne Unnamed', url: `${B}#undyne`},
             ]},
         ]},
-    ];
+    ],
+} as const;
 
-    const res: {[k: string]: Bookmark} = {};
+export type BookmarkFixture = {[k in BookmarkName]: Bookmarks.BookmarkTreeNode};
+type BookmarkName = BookmarkNamesHere<typeof BOOKMARKS>;
+type BookmarkNamesHere<B extends NamedBookmark> = B['id']
+    | (B extends NamedBookmarkFolder ? BookmarkNamesHere<B['children'][any]> : never);
 
-    async function gen(bm: Bookmark, parentId: string | undefined): Promise<Bookmark> {
+interface NamedBookmark {
+    readonly id: string,
+    readonly children?: readonly NamedBookmark[],
+}
+interface NamedBookmarkFolder {
+    readonly id: string,
+    readonly children: readonly NamedBookmark[],
+}
+
+
+
+export async function make_bookmarks(): Promise<BookmarkFixture> {
+    // TODO: Cleanup from any prior failed runs (if we're in a real browser)
+    const res: Partial<BookmarkFixture> = {};
+
+    async function gen(id: BookmarkName, bm: Bookmark, parentId: string | undefined): Promise<Bookmarks.BookmarkTreeNode> {
         // istanbul ignore if
-        if (bm.id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
-        res[bm.id] = await browser.bookmarks.create({...bm, parentId});
-        if (! bm.children) return res[bm.id];
+        if (id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
+        res[id] = await browser.bookmarks.create({...bm, parentId});
+        await events.next(browser.bookmarks.onCreated);
+        if (! bm.children) return res[id]!;
 
         let i = 0;
-        const new_kids: Bookmark[] = [];
-        res[bm.id].children = new_kids;
+        const new_kids: Bookmarks.BookmarkTreeNode[] = [];
+        res[id]!.children = new_kids;
         for (const c of bm.children) {
-            c.parentId = res[bm.id].id;
+            c.parentId = res[id]!.id;
             c.index = i;
-            new_kids.push(await gen(c, res[bm.id].id));
+            new_kids.push(await gen(c.id as BookmarkName, c, res[id]!.id));
             ++i;
         }
 
-        return res[bm.id];
+        return res[id]!;
     }
 
-    for (const root of forest) await gen(root, undefined);
-    await events.watch(browser.bookmarks.onCreated).untilNextTick();
-    return res;
+    await gen(BOOKMARKS.id, BOOKMARKS, undefined);
+    expect(events.pendingCount()).to.equal(0);
+    return res as BookmarkFixture;
 }
 
-export async function make_tabs(): Promise<TabSetup> {
-    const wins = {
-        one: [
-            {id: 'foo', url: 'foo', active: true},
-            {id: 'bar', url: 'bar'},
-            {id: 'fred', url: 'fred'},
-        ],
-        two: [
-            {id: 'robert1', url: 'robert', active: true},
-            {id: 'robert2', url: 'robert'},
-            {id: 'foo2', url: 'foo'},
-        ]
-    };
 
-    const windows: TabSetup['windows'] = {};
-    const tabs: TabSetup['tabs'] = {};
-    for (const w in wins) {
+
+export async function make_tabs(): Promise<TabFixture> {
+    // TODO: Cleanup from any prior failed runs (if we're in a real browser)
+    const windows: Partial<TabFixture['windows']> = {};
+    const tabs: Partial<TabFixture['tabs']> = {};
+    for (const w in WINDOWS) {
         const win = await browser.windows.create();
         await events.next(browser.windows.onCreated);
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
 
-        const win_tabs = [];
+        // istanbul ignore if -- browser compatibility and type safety
+        if (! win.tabs) win.tabs = [];
         let i = 0;
-        for (const t of wins[w as keyof typeof wins]) {
+        for (const tab_def of WINDOWS[w as keyof typeof WINDOWS]) {
+            const t = tab_def as unknown as Tab;
             const tab = await browser.tabs.create({
                 windowId: win.id, url: t.url,
                 active: !!t.active
@@ -93,14 +150,22 @@ export async function make_tabs(): Promise<TabSetup> {
 
             tab.windowId = win.id;
             tab.index = i;
-            tabs[t.id] = tab as Tab;
-            win_tabs.push(tab as Tab);
+            tabs[tab_def.id] = tab as Tab & {id: string};
+            win.tabs.push(tab);
             ++i;
         }
+
+        // Remove the "default" tab opened with the new window
         await browser.tabs.remove(win.tabs![0].id!);
+        win.tabs!.shift();
         await events.next(browser.tabs.onRemoved);
-        windows[w] = {id: win.id!, tabs: win_tabs};
+
+        windows[w as keyof typeof WINDOWS] = win as Windows.Window & {id: string};
     }
 
-    return {windows, tabs};
+    expect(events.pendingCount()).to.equal(0);
+    return {
+        windows: windows as TabFixture['windows'],
+        tabs: tabs as TabFixture['tabs'],
+    };
 }
