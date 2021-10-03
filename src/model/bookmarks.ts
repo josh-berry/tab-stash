@@ -11,7 +11,7 @@ export type Bookmark = Omit<Bookmarks.BookmarkTreeNode, 'children'>
 
 /** The name of the stash root folder.  This name must match exactly (including
  * in capitalization). */
-export const STASH_ROOT = 'Tab Stash';
+const STASH_ROOT = 'Tab Stash';
 
 const ROOT_FOLDER_HELP = 'https://github.com/josh-berry/tab-stash/wiki/Problems-Locating-the-Tab-Stash-Bookmark-Folder';
 
@@ -38,6 +38,9 @@ export class Model {
      * otherwise).  You probably want `stash_root` instead. */
     readonly root: Bookmark;
 
+    /** The title to look for to locate the stash root. */
+    readonly stash_root_name: string;
+
     /** A Vue ref to the root folder for Tab Stash's saved tabs. */
     readonly stash_root: Ref<Bookmark | undefined> = ref();
 
@@ -57,11 +60,14 @@ export class Model {
 
     /** Construct a model by loading bookmarks from the browser bookmark store.
      * It will listen for bookmark events to keep itself updated. */
-    static async from_browser(): Promise<Model> {
+    static async from_browser(stash_root_name_test_only?: string): Promise<Model> {
         const wiring = Model._wiring();
         const tree = await browser.bookmarks.getTree();
 
-        const model = new Model(tree[0]!);
+        // istanbul ignore if
+        if (! stash_root_name_test_only) stash_root_name_test_only = STASH_ROOT;
+
+        const model = new Model(tree[0]!, stash_root_name_test_only);
         wiring.wire(model);
         return model;
     }
@@ -80,7 +86,8 @@ export class Model {
         return wiring;
     }
 
-    private constructor(root: Bookmark) {
+    private constructor(root: Bookmark, stash_root_name: string) {
+        this.stash_root_name = stash_root_name;
         this.whenBookmarkCreated(root.id, root); // will set the stash root
         this.root = this.by_id.get(root.id)!;
     }
@@ -95,7 +102,7 @@ export class Model {
         let item: Bookmark | undefined = bm;
         while (item) {
             if (item.id === folder_id) return true;
-            if (! item.parentId) return false;
+            if (! item.parentId) break;
             item = this.by_id.get(item.parentId);
         }
         return false;
@@ -109,6 +116,7 @@ export class Model {
         const path = [bm];
         while (bm.parentId) {
             const parent = this.by_id.get(bm.parentId);
+            // istanbul ignore if -- internal consistency
             if (! parent) return undefined;
             path.push(parent);
             bm = parent;
@@ -121,35 +129,36 @@ export class Model {
     async ensureStashRoot(): Promise<Bookmark> {
         if (this.stash_root.value) return this.stash_root.value;
 
-        await browser.bookmarks.create({title: STASH_ROOT});
+        await browser.bookmarks.create({title: this.stash_root_name});
 
-        // Wait for the model to get updated
+        // Wait for a few ms so that if there are multiple calls happening in
+        // different contexts (e.g. background, UIs etc.), we have a chance to
+        // catch it and clean up duplicates.
+        await new Promise(resolve => setTimeout(resolve, 4));
+
         let candidates = this._maybeUpdateStashRoot();
-        for (let timeout = 10; timeout > 0; --timeout) {
-            if (this.stash_root.value) break;
-            await nextTick();
-            candidates = this._maybeUpdateStashRoot();
-        }
 
+        // istanbul ignore if -- internal consistency
         if (! this.stash_root.value) {
             throw new Error(`Unable to locate newly-created stash root`);
         }
 
         // GROSS HACK to avoid creating duplicate roots follows.
-        while (candidates.length > 1) {
+        let retries = candidates.length;
+        while (candidates.length > 1 && retries > 0) {
             // If we find MULTIPLE candidates so soon after finding NONE, there
             // must be multiple threads trying to create the root folder.  Let's
             // delete all but the first one.  We are guaranteed that all threads
             // see the same ordering of candidate folders (and thus will all
             // choose the same folder to save) because the sort is
             // deterministic.
-            console.log("Oops! Removing duplicate root:", candidates[1]);
             await browser.bookmarks.remove(candidates[1].id).catch(console.warn);
             candidates = this._maybeUpdateStashRoot();
+            --retries;
         }
-        console.log("Remaining root:", candidates[0]);
         // END GROSS HACK
 
+        // istanbul ignore if -- internal consistency
         if (this.stash_root.value !== candidates[0]) {
             throw new Error("BUG: stash_root doesn't match candidate[0]");
         }
@@ -173,8 +182,10 @@ export class Model {
         // item after the move will sometimes be toIndex-1 instead of toIndex;
         // we account for this below.
         const bm = this.by_id.get(id);
+        // istanbul ignore if -- caller consistency
         if (! bm) throw new Error(`No such bookmark: ${id}`);
 
+        // istanbul ignore if
         if (! browser.runtime.getBrowserInfo) {
             // We're using Chrome
             if (bm.parentId === toParent && toIndex > bm.index!) {
@@ -255,7 +266,7 @@ export class Model {
             if (children) for (const c of children) this.whenBookmarkCreated(c.id, c);
 
             // Finally, see if this folder is a candidate for being a stash root.
-            if (bm.title === STASH_ROOT) {
+            if (bm.title === this.stash_root_name) {
                 this._stash_root_watch.add(bm);
                 this._maybeUpdateStashRoot();
             }
@@ -269,12 +280,14 @@ export class Model {
 
         if ('title' in info) {
             bm.title = info.title;
-            if (bm.children && bm.title === STASH_ROOT) this._stash_root_watch.add(bm);
+            if (bm.children && bm.title === this.stash_root_name) {
+                this._stash_root_watch.add(bm);
+            }
         }
 
         if ('url' in info && ! bm.children) bm.url = info.url;
 
-        // If this bookmark has been renamed to != STASH_ROOT,
+        // If this bookmark has been renamed to != this.stash_root_name,
         // _maybeUpdateStashRoot() will remove it from the watch set
         // automatically.
         if (bm.children && this._stash_root_watch.has(bm)) this._maybeUpdateStashRoot();
@@ -320,7 +333,7 @@ export class Model {
         // Collect the current candidate set from the watch, limiting ourselves
         // only to actual candidates (folders with the right name).
         let candidates = Array.from(this._stash_root_watch)
-            .filter(bm => bm.children && bm.title === STASH_ROOT);
+            .filter(bm => bm.children && bm.title === this.stash_root_name);
 
         // Find the path from each candidate to the root, and make sure we're
         // watching the whole path (so if a parent gets moved, we get called
@@ -353,10 +366,11 @@ export class Model {
         // there is an ambiguity the user should resolve.
         if (candidates.length > 1) {
             this.stash_root_warning.value = {
-                text: `You have multiple "${STASH_ROOT}" bookmark folders, and `
-                    + `Tab Stash isn't sure which one to use.  Click here to `
-                    + `find out how to resolve the issue.`,
-                help: () => browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
+                text: `You have multiple "${this.stash_root_name}" bookmark `
+                    + `folders, and Tab Stash isn't sure which one to use.  `
+                    + `Click here to find out how to resolve the issue.`,
+                help: /* istanbul ignore next */
+                    () => browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
             };
         } else {
             this.stash_root_warning.value = undefined;

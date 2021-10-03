@@ -5,7 +5,7 @@ import * as events from '../mock/events';
 
 import * as M from './bookmarks';
 
-import {B, BookmarkFixture, make_bookmarks} from './fixtures.testlib';
+import {B, BookmarkFixture, make_bookmarks, STASH_ROOT_NAME} from './fixtures.testlib';
 
 describe('model/bookmarks', () => {
     let bms: BookmarkFixture;
@@ -15,7 +15,7 @@ describe('model/bookmarks', () => {
         // Typically bookmarks are loaded as a whole tree, so that's what we do
         // here.
         bms = await make_bookmarks();
-        model = await M.Model.from_browser();
+        model = await M.Model.from_browser(STASH_ROOT_NAME);
         await events.watch([model.by_id.onInsert, model.by_id.onUpdate])
             .untilNextTick();
     });
@@ -246,5 +246,151 @@ describe('model/bookmarks', () => {
         expect(model.by_id.get(bms.bob.id)).to.deep.include({index: 2});
         expect(model.by_id.get(bms.patricia.id)).to.deep.include({index: 3});
         expect(model.by_id.get(bms.nate.id)).to.deep.include({index: 4});
+    });
+
+    describe('reports info about bookmarks', () => {
+        it('bookmark is in a folder', () => {
+            const undyne = model.by_id.get(bms.undyne.id)!;
+            expect(model.isBookmarkInFolder(undyne, bms.stash_root.id))
+                .to.be.true;
+        });
+
+        it('bookmark is NOT in a folder', () => {
+            const alice = model.by_id.get(bms.alice.id)!;
+            expect(model.isBookmarkInFolder(alice, bms.stash_root.id))
+                .to.be.false;
+        });
+
+        it('path to a bookmark', async () => {
+            const helen = model.by_id.get(bms.helen.id)!;
+            expect(model.pathTo(helen)).to.deep.equal([
+                model.root,
+                model.by_id.get(bms.root.id),
+                model.by_id.get(bms.stash_root.id),
+                model.by_id.get(bms.names.id),
+                model.by_id.get(bms.helen.id),
+            ]);
+        });
+    });
+
+    describe('tracks the stash root', () => {
+        it('finds the stash root during construction', async () => {
+            expect(model.stash_root.value).to.equal(model.by_id.get(bms.stash_root.id));
+            expect(model.stash_root_warning.value).to.be.undefined;
+        });
+
+        it('loses the stash root when it is renamed', async () => {
+            await browser.bookmarks.update(bms.stash_root.id, {title: 'Old Root'});
+            await events.next(browser.bookmarks.onChanged);
+            await events.nextN(model.by_id.onUpdate, 3); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+
+            expect(model.stash_root.value).to.be.undefined;
+            expect(model.stash_root_warning.value).to.be.undefined;
+        });
+
+        it('finds multiple stash roots at the same level', async () => {
+            const new_root = await browser.bookmarks.create(
+                {parentId: bms.root.id, title: STASH_ROOT_NAME});
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(model.by_id.onInsert);
+            await events.nextN(model.by_id.onUpdate, 3); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+
+            expect(model.stash_root.value).to.satisfy((m: M.Bookmark) =>
+                m.id === new_root.id
+                || m.id === bms.stash_root.id);
+            expect(model.stash_root_warning.value).not.to.be.undefined;
+        });
+
+        it('finds the topmost stash root', async () => {
+            await browser.bookmarks.create(
+                {parentId: bms.outside.id, title: STASH_ROOT_NAME});
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(model.by_id.onInsert);
+            await events.nextN(model.by_id.onUpdate, 4); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+
+            expect(model.stash_root.value).to.equal(model.by_id.get(bms.stash_root.id));
+            expect(model.stash_root_warning.value).to.be.undefined;
+        });
+
+        it('follows the topmost stash root', async () => {
+            await browser.bookmarks.move(bms.stash_root.id, {
+                parentId: bms.outside.id,
+            });
+            await events.next(browser.bookmarks.onMoved);
+            await events.nextN(model.by_id.onUpdate, 6); // all nodes in path (twice?)
+            expect(events.pendingCount()).to.equal(0);
+
+            expect(model.stash_root.value).to.equal(model.by_id.get(bms.stash_root.id));
+            expect(model.stash_root_warning.value).to.be.undefined;
+
+            const bm = await browser.bookmarks.create(
+                {parentId: bms.root.id, title: STASH_ROOT_NAME});
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(model.by_id.onInsert);
+            await events.nextN(model.by_id.onUpdate, 3); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+
+            expect(model.stash_root.value).to.deep.include({id: bm.id});
+            expect(model.stash_root_warning.value).to.be.undefined;
+        });
+    });
+
+    describe('ensureStashRoot()', () => {
+        it('when it already exists', async () => {
+            const root = await model.ensureStashRoot();
+            expect(model.stash_root.value).to.equal(root);
+            expect(model.stash_root.value).to.equal(model.by_id.get(bms.stash_root.id));
+            expect(model.stash_root_warning.value).to.be.undefined;
+        });
+
+        it('when it does not exist', async () => {
+            await browser.bookmarks.update(bms.stash_root.id, {title: 'Old Root'});
+            await events.next(browser.bookmarks.onChanged);
+            await events.nextN(model.by_id.onUpdate, 3); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+            expect(model.stash_root.value).to.be.undefined;
+
+            const p = model.ensureStashRoot();
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(model.by_id.onInsert);
+            await events.nextN(model.by_id.onUpdate, 2); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+
+            const root = await p;
+            expect(root).not.to.be.undefined;
+            expect(model.stash_root.value).to.equal(root);
+        });
+
+        it('reentrantly', async () => {
+            // Testing the case where two different bookmark instances on two
+            // different computers (or maybe just in two different windows on
+            // the same computer) create two different stash roots.
+            await browser.bookmarks.update(bms.stash_root.id, {title: 'Old Root'});
+            await events.next(browser.bookmarks.onChanged);
+            await events.nextN(model.by_id.onUpdate, 3); // all nodes in path
+            expect(events.pendingCount()).to.equal(0);
+            expect(model.stash_root.value).to.be.undefined;
+
+            const p1 = model.ensureStashRoot();
+            const p2 = model.ensureStashRoot();
+            await events.nextN(browser.bookmarks.onCreated, 2);
+            await events.nextN(model.by_id.onInsert, 2);
+            await events.nextN(model.by_id.onUpdate, 4); // all nodes in path
+            await events.nextN(browser.bookmarks.onRemoved, 1);
+            await events.nextN(model.by_id.onDelete, 1);
+            // there can be one or two updates depending on Vue...
+            await events.watch(model.by_id.onUpdate).untilNextTick();
+            expect(events.pendingCount()).to.equal(0);
+
+            const root1 = await p1;
+            const root2 = await p2;
+            expect(root1).not.to.be.undefined;
+            expect(root2).not.to.be.undefined;
+            expect(root1).to.equal(root2);
+            expect(model.stash_root.value).to.equal(root1);
+        });
     });
 });

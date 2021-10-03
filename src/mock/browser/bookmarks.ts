@@ -163,7 +163,9 @@ class MockBookmarks implements BM.Static {
     async remove(id: string): Promise<void> {
         const node = this._get(id);
         // istanbul ignore if
-        if ('children' in node) throw new Error(`Cannot delete a folder with remove()`);
+        if ('children' in node && node.children.length > 0) {
+            throw new Error(`Cannot delete a non-empty folder with remove()`);
+        }
 
         const parent = this._getFolder(node.parentId!);
         parent.children.splice(node.index, 1);
