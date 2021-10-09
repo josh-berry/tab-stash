@@ -297,9 +297,10 @@ describe('model/bookmarks', () => {
             await events.nextN(model.by_id.onUpdate, 3); // all nodes in path
             expect(events.pendingCount()).to.equal(0);
 
+            // Either the stash root is the new root OR the old root, but it can
+            // never be both.
             expect(model.stash_root.value).to.satisfy((m: M.Bookmark) =>
-                m.id === new_root.id
-                || m.id === bms.stash_root.id);
+                (m.id === new_root.id) !== (m.id === bms.stash_root.id));
             expect(model.stash_root_warning.value).not.to.be.undefined;
         });
 

@@ -51,6 +51,7 @@ class State {
 
     tab(id: number): Tab {
         for (const w of this.windows) {
+            // istanbul ignore if
             if (! w) continue;
             const tab = w.tabs.find(t => t.id === id);
             if (tab) return tab;
@@ -160,10 +161,12 @@ class MockWindows implements W.Static {
     async getCurrent(getInfo?: W.GetInfo): Promise<W.Window> {
         // This is an over-simplification; generally the "current" window is the
         // one where the tab/UI is
+        // istanbul ignore next
         const win = this._state.windows.find(w => w?.focused === true);
         // istanbul ignore if
         if (! win) throw new Error(`There is no focused window`);
 
+        // istanbul ignore next
         if (getInfo?.populate) return JSON.parse(JSON.stringify(win));
         return only_win(win);
     }
@@ -208,10 +211,12 @@ class MockWindows implements W.Static {
         };
         this._state.windows.push(win);
         this.onCreated.send(only_win(win));
+        // istanbul ignore next
         if (this._state.windows.length === 0 || createData?.focused !== false) {
             this._state.focus_window(win);
         }
 
+        // istanbul ignore next
         const urls = createData?.url
             ? (createData.url instanceof Array ? createData.url : [createData.url])
             : ['about:blank'];
@@ -250,6 +255,7 @@ class MockWindows implements W.Static {
         if (win.focused) {
             // This is an oversimplification, but it works
             const w = this._state.windows.find(w => w);
+            // istanbul ignore else
             if (w) this._state.focus_window(w);
         }
 
@@ -321,6 +327,7 @@ class MockTabs implements T.Static {
 
         const win = this._state.win(options.windowId);
         const id = this._state.next_tab_id++;
+        // istanbul ignore next
         const tab: Tab = {
             id,
             windowId: options.windowId,
@@ -333,6 +340,7 @@ class MockTabs implements T.Static {
         };
 
         // If the tab is pinned, it must have an index before all unpinned tabs
+        // istanbul ignore if
         if (tab.pinned) {
             let first_unpinned = win.tabs.find(t => ! t.pinned);
             tab.index = Math.min(tab.index, first_unpinned?.index ?? win.tabs.length);
@@ -342,6 +350,7 @@ class MockTabs implements T.Static {
         this._state.fixup_tab_indices(win);
 
         this.onCreated.send(JSON.parse(JSON.stringify(tab)));
+        // istanbul ignore next
         if (options.active ?? true) this._state.activate_tab(tab);
 
         this._state.validate();
@@ -356,9 +365,11 @@ class MockTabs implements T.Static {
     async query(queryInfo: T.QueryQueryInfoType): Promise<T.Tab[]> {
         let res: Tab[] = [];
         for (const w of this._state.windows) {
-            if (w) for (const t of w?.tabs) if (t) res.push(t);
+            // istanbul ignore else
+            if (w) for (const t of w.tabs) res.push(t);
         }
 
+        // istanbul ignore next
         const filterBool = (name: keyof T.QueryQueryInfoType & keyof T.Tab) => {
             if (name in queryInfo) res = res.filter(t => t[name] === queryInfo[name]);
         };
@@ -451,11 +462,14 @@ class MockTabs implements T.Static {
 
     async move(tabIds: number | number[], moveProperties: T.MoveMovePropertiesType): Promise<T.Tab | T.Tab[]> {
 
+        // istanbul ignore next
         const tab_ids = tabIds instanceof Array ? tabIds : [tabIds];
         const ret: T.Tab[] = [];
 
+        // istanbul ignore if
         if (tab_ids.length === 0) return [];
 
+        // istanbul ignore next
         const to_win_id = moveProperties.windowId
             ?? this._state.tab(tab_ids[0]).windowId;
         const to_win = this._state.win(to_win_id);
@@ -496,6 +510,7 @@ class MockTabs implements T.Static {
         // console.log(`After window fixup`);
         // for (const w of windows_to_fixup) console.log(w);
 
+        // istanbul ignore next
         if (tabIds instanceof Array) return JSON.parse(JSON.stringify(ret));
         return JSON.parse(JSON.stringify(ret[0]));
     }
@@ -511,6 +526,7 @@ class MockTabs implements T.Static {
     }
 
     async remove(tabIds: number | number[]): Promise<void> {
+        // istanbul ignore next
         if (typeof tabIds === 'number') tabIds = [tabIds];
         for (const tid of tabIds) {
             const tab = this._state.tab(tid);
@@ -529,6 +545,7 @@ class MockTabs implements T.Static {
                 isWindowClosing: (win.tabs.length === 0)
             });
 
+            // istanbul ignore next
             if (win.tabs.length === 0) {
                 this._state.onWindowRemoved.send(win.id);
                 this._state.windows[win.id] = undefined;

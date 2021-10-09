@@ -83,9 +83,12 @@ class MockBookmarks implements BM.Static {
             if (bookmark.type === 'separator') {
                 throw new Error(`Can't create separator with a URL`);
             }
+            // istanbul ignore next -- for `?? ''`
             bm = {
-                id: this._freeID(), title: bookmark.title ?? '',
-                url: bookmark.url, parentId, index,
+                id: this._freeID(),
+                title: bookmark.title ?? '',
+                url: bookmark.url,
+                parentId, index,
             };
             if (Math.random() < 0.5) bm.type = 'bookmark';
 
@@ -100,8 +103,11 @@ class MockBookmarks implements BM.Static {
             };
 
         } else {
+            // istanbul ignore next -- for `?? ''`
             bm = {
-                id: this._freeID(), title: bookmark.title ?? '', children: [],
+                id: this._freeID(),
+                title: bookmark.title ?? '',
+                children: [],
                 parentId, index,
             };
             if (Math.random() < 0.5) bm.type = 'folder';
@@ -118,6 +124,7 @@ class MockBookmarks implements BM.Static {
     async move(id: string, destination: BM.MoveDestinationType): Promise<BM.BookmarkTreeNode> {
         const node = this._get(id);
         const oldParent = this._getFolder(node.parentId!);
+        // istanbul ignore next
         const newParent = this._getFolder(destination.parentId ?? node.parentId!);
         const oldIndex = node.index;
         const newIndex = destination.index ?? newParent.children.length;
@@ -150,7 +157,7 @@ class MockBookmarks implements BM.Static {
             if ('children' in node) throw new Error(`Cannot update a folder's URL`);
             node.url = changes.url;
         }
-        // istanbul ignore if
+        // istanbul ignore else
         if (changes.title !== undefined) node.title = changes.title;
 
         const ev: BM.OnChangedChangeInfoType = {title: node.title};
@@ -214,6 +221,7 @@ class MockBookmarks implements BM.Static {
 
     private _freeID(): string {
         let id = makeRandomString(8);
+        // istanbul ignore next
         while (this.by_id.has(id)) id = makeRandomString(8);
         return id;
     }
