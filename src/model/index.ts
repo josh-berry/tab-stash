@@ -220,7 +220,12 @@ export class Model {
             .filter(t => ! t.hidden);
 
         let selected = tabs.filter(t => t.highlighted);
-        if (selected.length <= 1) selected = tabs;
+        if (selected.length <= 1) {
+            // If the user didn't specifically select a set of tabs to be
+            // stashed, we ignore tabs which should not be included in the stash
+            // for whatever reason (e.g. the new tab page).
+            selected = tabs.filter(t => this.isURLStashable(t.url));
+        }
 
         // We filter out pinned tabs AFTER checking how many tabs are selected
         // because otherwise the user might have a pinned tab focused, and highlight
@@ -469,19 +474,22 @@ export class Model {
         toIndex?: number,
         task?: TaskMonitor,
     }): Promise<Bookmarks.NodeID[]> {
-        // First we try to find or create the folder we're moving to.
+        // First we try to find the folder we're moving to.
         const to_folder = this.bookmarks.folder(options.toFolderId);
 
         // Then we adjust our items depending on whether we're moving or
-        // copying, and avoid saving unstashable items.
+        // copying.
         let items = options.items;
-        items = items.filter(i => this.isURLStashable(i.url));
         if (! options.move) {
             // NIFTY HACK: If we remove all the item IDs, putItemsInFolder()
             // will effectively just copy, because it looks like we're "moving"
             // items not in the stash already.
             items = items.map(({title, url}) => ({title, url}));
         }
+
+        // Note: We explicitly DON'T check stashability here because the caller
+        // has presumably done this for us--and has explicitly chosen what to
+        // put in the folder.
 
         if (options.task) options.task.max = options.items.length;
 
@@ -503,14 +511,16 @@ export class Model {
             // If it's a bookmark, just move it directly.
             if (isBookmark(model_item)) {
                 const pos = this.bookmarks.positionOf(model_item);
-                if (pos.parent === to_folder && pos.index < to_index) {
-                    // This is a rotation in the same folder; since move() first
-                    // removes and then adds the bookmark, we need to decrement
-                    // toIndex so the moved bookmark ends up in the right place.
-                    --to_index;
-                }
                 await this.bookmarks.move(model_item.id, to_folder.id, to_index);
                 moved_item_ids.push(model_item.id);
+                if (pos.parent === to_folder && pos.index < to_index) {
+                    // Because we are moving items which appear in the list
+                    // before the insertion point, the insertion point shouldn't
+                    // move--the index of the moved item is actually to_index -
+                    // 1, so the location of the next item should still be
+                    // to_index.
+                    --to_index;
+                }
                 continue;
             }
 
@@ -598,16 +608,17 @@ export class Model {
             // If the item we're moving is a tab, just move it into place.
             if (isTab(model_item)) {
                 const pos = this.tabs.positionOf(model_item);
+                await browser.tabs.move(model_item.id,
+                    {windowId: to_win_id, index: to_index});
+                moved_item_ids.push(model_item.id);
+                dont_steal_tabs.add(model_item.id);
+
                 if (pos.window === win && pos.index < to_index) {
                     // This is a rotation in the same window; since move() first
                     // removes and then adds the tab, we need to decrement
                     // toIndex so the moved tab ends up in the right place.
                     --to_index;
                 }
-                await browser.tabs.move(model_item.id,
-                    {windowId: to_win_id, index: to_index});
-                moved_item_ids.push(model_item.id);
-                dont_steal_tabs.add(model_item.id);
                 continue;
             }
 

@@ -59,13 +59,15 @@ describe('model/bookmarks', () => {
     });
 
     it('finds all URLs in the stash root', async () => {
-        expect(model.urlsInStash()).to.deep.equal(new Set([
+        expect(Array.from(model.urlsInStash()).sort()).to.deep.equal([
+            `${B}#1`, `${B}#2`, `${B}#3`, `${B}#4`,
+            `${B}#5`, `${B}#6`, `${B}#7`, `${B}#8`,
             `${B}#doug`,
             `${B}#helen`,
-            `${B}#patricia`,
             `${B}#nate`,
+            `${B}#patricia`,
             `${B}#undyne`,
-        ]));
+        ]);
     });
 
     it('inserts bookmarks into the tree', async () => {
@@ -174,11 +176,12 @@ describe('model/bookmarks', () => {
         expect(() => model.node(bms.names.id)).to.throw(Error);
         expect(model.folder(bms.stash_root.id).children).to.deep.equal([
             bms.unnamed.id,
+            bms.big_stash.id,
         ]);
     });
 
     it('reorders bookmarks (forward)', async () => {
-        await model.move(bms.alice.id, bms.outside.id, 3);
+        await model.move(bms.alice.id, bms.outside.id, 4);
         await events.next(browser.bookmarks.onMoved);
 
         expect(model.folder(bms.outside.id).children).to.deep.equal([

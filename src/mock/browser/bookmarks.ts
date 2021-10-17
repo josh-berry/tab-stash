@@ -38,7 +38,7 @@ class MockBookmarks implements BM.Static {
 
     // istanbul ignore next
     async getChildren(id: string): Promise<BM.BookmarkTreeNode[]> {
-        throw new Error('Method not implemented.');
+        return this._getFolder(id).children.map(node => node_only(node));
     }
 
     // istanbul ignore next

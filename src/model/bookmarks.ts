@@ -235,8 +235,9 @@ export class Model {
     // Mutators
     //
 
-    /** Moves a bookmark such that its index in the destination folder is
-     * `toIndex`.
+    /** Moves a bookmark such that it precedes the item with index `toIndex` in
+     * the destination folder.  (You can pass an index `>=` the length of the
+     * bookmark folder's children to move the item to the end of the folder.)
      *
      * Use this instead of `browser.bookmarks.move()`, which behaves differently
      * in Chrome and Firefox... */
@@ -246,16 +247,14 @@ export class Model {
         // first added, then removed from its old location, so the index of the
         // item after the move will sometimes be toIndex-1 instead of toIndex;
         // we account for this below.
-        const node = this.by_id.get(id);
-        // istanbul ignore if -- caller consistency
-        if (! node) throw new Error(`No such bookmark: ${id}`);
+        const node = this.node(id);
 
-        // istanbul ignore if
-        if (! browser.runtime.getBrowserInfo) {
-            // We're using Chrome
+        // istanbul ignore else
+        if (!! browser.runtime.getBrowserInfo) {
+            // We're using Firefox
             if (node.parentId === toParent) {
                 const position = this.positionOf(node);
-                if (toIndex > position.index) toIndex++;
+                if (toIndex > position.index) toIndex--;
             }
         }
         await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});

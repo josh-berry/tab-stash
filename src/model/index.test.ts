@@ -68,7 +68,7 @@ describe('model', () => {
         expect(tab_model.window(windows.left.id).tabs.length).to.equal(3);
         expect(tab_model.window(windows.right.id).tabs.length).to.equal(3);
         expect(tab_model.window(windows.real.id).tabs.length).to.equal(10);
-        expect(bm_model.stash_root.value?.id).to.equal(bookmarks.stash_root.id);
+        expect(bm_model.stash_root.value!.id).to.equal(bookmarks.stash_root.id);
     });
 
     describe('garbage collection', () => {
@@ -223,6 +223,7 @@ describe('model', () => {
                 await events.next(browser.tabs.onRemoved);
 
                 await browser.tabs.get(tabs.right_doug.id).then(
+                    // istanbul ignore next
                     () => expect.fail('browser.tabs.get did not throw'),
                     () => {},
                 );
@@ -295,12 +296,270 @@ describe('model', () => {
     });
 
     describe('puts items in bookmark folders', () => {
-        it('moves bookmarks in the same folder to a new position');
-        it('moves bookmarks from different folders into the target folder');
-        it('moves a combination of bookmarks from the same/different folders');
-        it('copies external items into the folder');
-        it('moves tabs into the folder');
-        it('moves tabs and bookmarks into the folder');
+        async function check_folder(
+            folderName: keyof typeof bookmarks,
+            children: (keyof typeof bookmarks)[]
+        ) {
+            const real_folder = await browser.bookmarks.getChildren(bookmarks[folderName].id);
+            expect(real_folder.map(c => c.title), "Browser bookmark titles")
+                .to.deep.equal(children.map(c => bookmarks[c].title));
+            expect(real_folder.map(c => c.id), "Browser bookmark IDs")
+                .to.deep.equal(children.map(c => bookmarks[c].id));
+
+            const folder = model.bookmarks.folder(bookmarks[folderName].id);
+            expect(folder.children.map(c => model.bookmarks.node(c).title),
+                    "Model bookmark titles")
+                .to.deep.equal(children.map(c => bookmarks[c].title));
+            expect(folder.children, "Model bookmark IDs")
+                .to.deep.equal(children.map(c => bookmarks[c].id));
+        }
+
+        const testMove = (options: {
+            items: (keyof typeof bookmarks)[],
+            toFolder: keyof typeof bookmarks,
+            toIndex: number,
+            finalState: (keyof typeof bookmarks)[],
+        }) => async () => {
+            const p = model.putItemsInFolder({
+                move: true,
+                items: options.items.map(i => ({id: bookmarks[i].id})),
+                toFolderId: bookmarks[options.toFolder].id,
+                toIndex: options.toIndex,
+            });
+            await events.nextN(browser.bookmarks.onMoved, options.items.length);
+            await p;
+            await check_folder(options.toFolder, options.finalState);
+        };
+
+        beforeEach(async () => {
+            await check_folder('big_stash',
+                ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight']);
+        });
+
+        describe('moves bookmarks in the same folder to a new position', () => {
+            it('to the beginning', testMove({
+                items: ['three', 'five'],
+                toFolder: 'big_stash',
+                toIndex: 0,
+                finalState: ['three', 'five', 'one', 'two', 'four', 'six', 'seven', 'eight'],
+            }));
+
+            it('to almost the end', testMove({
+                items: ['three', 'five'],
+                toFolder: 'big_stash',
+                toIndex: 7,
+                finalState: ['one', 'two', 'four', 'six', 'seven', 'three', 'five', 'eight'],
+            }));
+
+            it('to the end', testMove({
+                items: ['three', 'five'],
+                toFolder: 'big_stash',
+                toIndex: 8,
+                finalState: ['one', 'two', 'four', 'six', 'seven', 'eight', 'three', 'five'],
+            }));
+
+            it('forward single', testMove({
+                items: ['two'],
+                toFolder: 'big_stash',
+                toIndex: 4,
+                finalState: ['one', 'three', 'four', 'two', 'five', 'six', 'seven', 'eight'],
+            }));
+
+            it('backward single', testMove({
+                items: ['six'],
+                toFolder: 'big_stash',
+                toIndex: 2,
+                finalState: ['one', 'two', 'six', 'three', 'four', 'five', 'seven', 'eight'],
+            }));
+
+            it('forward multiple', testMove({
+                items: ['one', 'two', 'four'],
+                toFolder: 'big_stash',
+                toIndex: 5,
+                finalState: ['three', 'five', 'one', 'two', 'four', 'six', 'seven', 'eight'],
+            }));
+
+            it('backward multiple', testMove({
+                items: ['five', 'six', 'eight'],
+                toFolder: 'big_stash',
+                toIndex: 1,
+                finalState: ['one', 'five', 'six', 'eight', 'two', 'three', 'four', 'seven'],
+            }));
+
+            it('to the middle', testMove({
+                items: ['two', 'three', 'six', 'eight'],
+                toFolder: 'big_stash',
+                toIndex: 4,
+                finalState: ['one', 'four', 'two', 'three', 'six', 'eight', 'five', 'seven'],
+            }));
+
+            it('to the middle (moving the insertion point)', testMove({
+                items: ['two', 'three', 'five', 'eight'],
+                toFolder: 'big_stash',
+                toIndex: 4,
+                finalState: ['one', 'four', 'two', 'three', 'five', 'eight', 'six', 'seven'],
+            }));
+
+            it('leaves everything where it is', testMove({
+                items: ['three', 'four', 'five'],
+                toFolder: 'big_stash',
+                toIndex: 3,
+                finalState: ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'],
+            }));
+        });
+
+        it('moves bookmarks from different folders into the target folder', testMove({
+            items: ['helen', 'patricia'],
+            toFolder: 'big_stash',
+            toIndex: 3,
+            finalState: [
+                'one', 'two', 'three',
+                'helen', 'patricia',
+                'four', 'five', 'six', 'seven', 'eight',
+            ],
+        }));
+
+        it('moves a combination of bookmarks from the same/different folders', testMove({
+            items: ['one', 'three', 'seven', 'helen', 'nate'],
+            toFolder: 'big_stash',
+            toIndex: 3,
+            finalState: [
+                'two',
+                'one', 'three', 'seven', 'helen', 'nate',
+                'four', 'five', 'six', 'eight',
+            ],
+        }));
+
+        it('copies external items into the folder', async () => {
+            const p = model.putItemsInFolder({
+                move: true,
+                items: [{url: 'foo', title: 'Foo'}, {url: 'bar', title: 'Bar'}],
+                toFolderId: bookmarks.names.id,
+                toIndex: 2,
+            });
+            await events.nextN(browser.bookmarks.onCreated, 2);
+            await p;
+
+            const titles = [
+                'Doug Duplicate', 'Helen Hidden', 'Foo', 'Bar',
+                'Patricia Pinned', 'Nate NotOpen'
+            ];
+            const urls = [
+                `${B}#doug`, `${B}#helen`, `foo`, `bar`,
+                `${B}#patricia`, `${B}#nate`
+            ];
+
+            const real_folder = await browser.bookmarks.getChildren(bookmarks.names.id);
+            expect(real_folder.map(c => c.title), "Browser bookmark titles")
+                .to.deep.equal(titles);
+            expect(real_folder.map(c => c.url), "Browser bookmark URLs")
+                .to.deep.equal(urls);
+
+            const folder = model.bookmarks.folder(bookmarks.names.id);
+            expect(folder.children.map(c => model.bookmarks.node(c).title),
+                    "Model bookmark titles")
+                .to.deep.equal(titles);
+            expect(folder.children.map(c => model.bookmarks.bookmark(c).url),
+                    "Model bookmark URLs")
+                .to.deep.equal(urls);
+        });
+
+        it('moves tabs into the folder', async () => {
+            const p = model.putItemsInFolder({
+                move: true,
+                items: [
+                    model.tabs.tab(tabs.real_bob.id),
+                    model.tabs.tab(tabs.real_estelle.id)
+                ],
+                toFolderId: bookmarks.names.id,
+                toIndex: 2,
+            });
+            await events.nextN(browser.bookmarks.onCreated, 2);
+            await events.nextN(browser.tabs.onUpdated, 2);
+            await p;
+
+            const titles = [
+                'Doug Duplicate', 'Helen Hidden', `${B}#bob`, `${B}#estelle`,
+                'Patricia Pinned', 'Nate NotOpen'
+            ];
+            const urls = [
+                `${B}#doug`, `${B}#helen`, `${B}#bob`, `${B}#estelle`,
+                `${B}#patricia`, `${B}#nate`
+            ];
+
+            expect(model.tabs.tab(tabs.real_bob.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.real_estelle.id).hidden).to.be.true;
+
+            const real_folder = await browser.bookmarks.getChildren(bookmarks.names.id);
+            expect(real_folder.map(c => c.title), "Browser bookmark titles")
+                .to.deep.equal(titles);
+            expect(real_folder.map(c => c.url), "Browser bookmark URLs")
+                .to.deep.equal(urls);
+
+            const folder = model.bookmarks.folder(bookmarks.names.id);
+            expect(folder.children.map(c => model.bookmarks.node(c).title),
+                    "Model bookmark titles")
+                .to.deep.equal(titles);
+            expect(folder.children.map(c => model.bookmarks.bookmark(c).url),
+                    "Model bookmark URLs")
+                .to.deep.equal(urls);
+        });
+
+        it('moves tabs and bookmarks into the folder', async () => {
+            const p = model.putItemsInFolder({
+                move: true,
+                items: [
+                    model.tabs.tab(tabs.real_bob.id),
+                    model.tabs.tab(tabs.real_estelle.id),
+                    model.bookmarks.bookmark(bookmarks.two.id),
+                    model.bookmarks.bookmark(bookmarks.four.id),
+                ],
+                toFolderId: bookmarks.names.id,
+                toIndex: 2,
+            });
+            await events.nextN(browser.tabs.onUpdated, 2);
+            await events.nextN(browser.bookmarks.onCreated, 2);
+            await events.nextN(browser.bookmarks.onMoved, 2);
+            await p;
+
+            const titles = [
+                'Doug Duplicate', 'Helen Hidden',
+                `${B}#bob`, `${B}#estelle`, `Two`, `Four`,
+                'Patricia Pinned', 'Nate NotOpen'
+            ];
+            const urls = [
+                `${B}#doug`, `${B}#helen`,
+                `${B}#bob`, `${B}#estelle`, `${B}#2`, `${B}#4`,
+                `${B}#patricia`, `${B}#nate`
+            ];
+
+            expect(model.tabs.tab(tabs.real_bob.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.real_estelle.id).hidden).to.be.true;
+            expect(model.bookmarks.bookmark(bookmarks.two.id).parentId)
+                .to.equal(bookmarks.names.id);
+            expect(model.bookmarks.bookmark(bookmarks.four.id).parentId)
+                .to.equal(bookmarks.names.id);
+
+            const real_folder = await browser.bookmarks.getChildren(bookmarks.names.id);
+            expect(real_folder.map(c => c.title), "Browser bookmark titles")
+                .to.deep.equal(titles);
+            expect(real_folder.map(c => c.url), "Browser bookmark URLs")
+                .to.deep.equal(urls);
+
+            const folder = model.bookmarks.folder(bookmarks.names.id);
+            expect(folder.children.map(c => model.bookmarks.node(c).title),
+                    "Model bookmark titles")
+                .to.deep.equal(titles);
+            expect(folder.children.map(c => model.bookmarks.bookmark(c).url),
+                    "Model bookmark URLs")
+                .to.deep.equal(urls);
+
+            expect(model.bookmarks.folder(bookmarks.big_stash.id).children)
+                .to.deep.equal([
+                    bookmarks.one.id, bookmarks.three.id, bookmarks.five.id,
+                    bookmarks.six.id, bookmarks.seven.id, bookmarks.eight.id,
+                ]);
+        });
     });
 
     describe('puts items in windows', () => {
