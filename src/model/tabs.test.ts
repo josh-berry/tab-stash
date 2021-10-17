@@ -34,6 +34,7 @@ describe('model/tabs', () => {
                 hidden: !!tab.hidden,
                 active: !!tab.active,
                 highlighted: !!tab.highlighted,
+                discarded: !!tab.discarded
             });
         }
     });
@@ -63,6 +64,7 @@ describe('model/tabs', () => {
             active: false,
             pinned: false,
             highlighted: false,
+            discarded: false,
         });
 
         expect(model.window(windows.left.id).tabs).to.deep.equal([
@@ -113,6 +115,7 @@ describe('model/tabs', () => {
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         const tid = win.tabs![0].id as M.TabID;
 
@@ -155,6 +158,7 @@ describe('model/tabs', () => {
             hidden: false,
             active: false,
             highlighted: false,
+            discarded: false,
         });
         expect(Array.from(model.tabsWithURL("hi")))
             .to.deep.equal([model.tab(16384 as M.TabID)]);
@@ -169,6 +173,7 @@ describe('model/tabs', () => {
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         events.send(browser.tabs.onCreated, {
             id: tab.id!,
@@ -194,6 +199,7 @@ describe('model/tabs', () => {
             hidden: !!tab.hidden,
             active: !!tab.active,
             highlighted: !!tab.highlighted,
+            discarded: !!tab.discarded,
         });
         expect(model.tabsWithURL("cats")).to.deep.equal(new Set([
             model.tab(tid),
@@ -365,6 +371,7 @@ describe('model/tabs', () => {
         const t = {
             id: 16384, windowId: 16590, title: '', url: '',
             active: false, pinned: false, highlighted: false, hidden: false,
+            discarded: false,
         } as M.Tab;
         events.send(browser.tabs.onCreated, JSON.parse(JSON.stringify(t)));
         await events.next(browser.tabs.onCreated);
@@ -388,6 +395,7 @@ describe('model/tabs', () => {
 
         await browser.tabs.update(tabs.left_charlotte.id, {active: true});
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         expect(model.tab(tabs.left_alice.id)!.active).to.equal(false);
         expect(model.tab(tabs.left_charlotte.id)!.active).to.equal(true);

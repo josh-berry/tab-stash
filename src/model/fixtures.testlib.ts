@@ -218,6 +218,7 @@ export async function make_tabs(): Promise<TabFixture> {
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         // istanbul ignore if -- browser compatibility and type safety
         if (! win.tabs) win.tabs = [];
@@ -229,7 +230,10 @@ export async function make_tabs(): Promise<TabFixture> {
                 active: !!t.active
             });
             await events.next(browser.tabs.onCreated);
-            if (t.active) await events.next(browser.tabs.onActivated);
+            if (t.active) {
+                await events.next(browser.tabs.onActivated);
+                await events.next(browser.tabs.onHighlighted);
+            }
 
             tab.windowId = win.id;
             tab.index = i;
@@ -261,6 +265,7 @@ export async function make_bookmark_metadata(
         key: bms[k as BookmarkName]?.id ?? k,
         value: BOOKMARK_METADATA[k]!,
     })));
+    await events.next(kvs.onSet);
 }
 
 export async function make_favicons(
@@ -270,6 +275,7 @@ export async function make_favicons(
         key: url,
         value: {favIconUrl: `${url}.favicon`},
     })));
+    await events.next(kvs.onSet);
 }
 
 export async function make_deleted_items(
@@ -289,4 +295,5 @@ export async function make_deleted_items(
             },
         };
     }));
+    await events.next(kvs.onSet);
 }

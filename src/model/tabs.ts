@@ -17,6 +17,7 @@ export type Tab = {
     hidden: boolean,
     active: boolean,
     highlighted: boolean,
+    discarded: boolean,
 
     $selected?: boolean,
 };
@@ -245,6 +246,7 @@ export class Model {
                 hidden: tab.hidden ?? false,
                 active: tab.active,
                 highlighted: tab.highlighted,
+                discarded: tab.discarded ?? false,
             });
             this.tabs.set(tab.id as TabID, t);
         } else {
@@ -264,6 +266,7 @@ export class Model {
             t.hidden = tab.hidden ?? false;
             t.active = tab.active;
             t.highlighted = tab.highlighted;
+            t.discarded = tab.discarded ?? false;
         }
 
         // Insert the tab in its new position in the window
@@ -291,6 +294,7 @@ export class Model {
         if (info.favIconUrl !== undefined) t.favIconUrl = info.favIconUrl;
         if (info.pinned !== undefined) t.pinned = info.pinned;
         if (info.hidden !== undefined) t.hidden = info.hidden;
+        if (info.discarded !== undefined) t.discarded = info.discarded;
     }
 
     whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {

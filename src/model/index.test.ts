@@ -2,16 +2,26 @@
 // activities.
 
 import {expect} from 'chai';
+import browser from 'webextension-polyfill';
 
 import * as events from '../mock/events';
+import storage_mock from '../mock/browser/storage';
+import {
+    BookmarkFixture, TabFixture, B, STASH_ROOT_NAME,
+    make_tabs, make_bookmarks, make_bookmark_metadata, make_deleted_items,
+    make_favicons,
+} from './fixtures.testlib';
 
 import * as M from '.';
 import {KeyValueStore, KVSCache} from '../datastore/kvs';
 import MemoryKVS from '../datastore/kvs/memory';
-import {B, BookmarkFixture, make_bookmarks, make_bookmark_metadata, make_deleted_items, make_favicons, make_tabs} from './fixtures.testlib';
+import {_StoredObjectFactory} from '../datastore/stored-object';
+import {LOCAL_DEF, SYNC_DEF} from './options';
+import {TabID} from './tabs';
 
 describe('model', () => {
-    // let tabs: TabFixture;
+    let tabs: TabFixture["tabs"];
+    let windows: TabFixture["windows"];
     let bookmarks: BookmarkFixture;
 
     let bookmark_metadata: KeyValueStore<string, M.BookmarkMetadata.BookmarkMetadata>;
@@ -21,7 +31,12 @@ describe('model', () => {
     let model: M.Model;
 
     beforeEach(async () => {
-        /*tabs =*/ await make_tabs();
+        storage_mock.reset();
+        const stored_object_factory = new _StoredObjectFactory();
+
+        const tw = await make_tabs();
+        tabs = tw.tabs;
+        windows = tw.windows;
         bookmarks = await make_bookmarks();
 
         bookmark_metadata = new MemoryKVS("bookmark_metadata");
@@ -34,16 +49,26 @@ describe('model', () => {
         await make_deleted_items(deleted_items);
 
         const tab_model = await M.Tabs.Model.from_browser();
-        const bm_model = await M.Bookmarks.Model.from_browser();
+        const bm_model = await M.Bookmarks.Model.from_browser(STASH_ROOT_NAME);
         model = new M.Model({
             browser_settings: await M.BrowserSettings.Model.live(),
-            options: await M.Options.Model.live(),
+            options: new M.Options.Model({
+                sync: await stored_object_factory.get('sync', 'test_options', SYNC_DEF),
+                local: await stored_object_factory.get('local', 'test_options', LOCAL_DEF),
+            }),
             tabs: tab_model,
             bookmarks: bm_model,
             deleted_items: new M.DeletedItems.Model(deleted_items),
             favicons: new M.Favicons.Model(new KVSCache(favicons)),
             bookmark_metadata: new M.BookmarkMetadata.Model(new KVSCache(bookmark_metadata)),
         });
+
+        // We need the indexes in the models to be populated
+        await events.watch(['EventfulMap.onInsert', 'EventfulMap.onUpdate']).untilNextTick();
+        expect(tab_model.window(windows.left.id).tabs.length).to.equal(3);
+        expect(tab_model.window(windows.right.id).tabs.length).to.equal(3);
+        expect(tab_model.window(windows.real.id).tabs.length).to.equal(10);
+        expect(bm_model.stash_root.value?.id).to.equal(bookmarks.stash_root.id);
     });
 
     describe('garbage collection', () => {
@@ -52,10 +77,7 @@ describe('model', () => {
               * 24 * 60 * 60 * 1000;
 
         beforeEach(() => {
-            events.ignore('KVS.Memory.onSet');
-            events.ignore('KVS.Memory.onDelete');
-            events.ignore('EventfulMap.onInsert');
-            events.ignore('EventfulMap.onUpdate');
+            events.ignore(undefined);
         });
 
         it('deletes bookmark metadata for deleted bookmarks', async () => {
@@ -145,13 +167,131 @@ describe('model', () => {
 
     describe('hides or closes stashed tabs', () => {
         describe('according to user settings', () => {
-            it('hides tabs but keeps them loaded');
-            it('hides and unloads tabs');
-            it('closes tabs');
+            it('hides tabs but keeps them loaded', async () => {
+                await model.options.local.set({after_stashing_tab: 'hide'});
+                await events.next(browser.storage.onChanged);
+                await events.next(model.options.local.onChanged);
+                expect(model.options.local.state.after_stashing_tab)
+                    .to.equal('hide');
+
+                await model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+                await events.next(browser.tabs.onUpdated); // hidden
+
+                const t = await browser.tabs.get(tabs.right_doug.id);
+                expect(t).to.deep.include({
+                    url: tabs.right_doug.url,
+                    hidden: true,
+                });
+                expect(model.tabs.tab(tabs.right_doug.id)).to.deep.include({
+                    url: tabs.right_doug.url,
+                    hidden: true,
+                });
+                expect(model.tabs.tab(tabs.right_doug.id).discarded).not.to.be.ok;
+            });
+
+            it('hides and unloads tabs', async () => {
+                await model.options.local.set({after_stashing_tab: 'hide_discard'});
+                await events.next(browser.storage.onChanged);
+                await events.next(model.options.local.onChanged);
+                expect(model.options.local.state.after_stashing_tab)
+                    .to.equal('hide_discard');
+
+                await model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+                await events.next(browser.tabs.onUpdated); // hidden
+                await events.next(browser.tabs.onUpdated); // discarded
+
+                expect(await browser.tabs.get(tabs.right_doug.id)).to.deep.include({
+                    url: tabs.right_doug.url,
+                    hidden: true,
+                    discarded: true,
+                });
+                expect(model.tabs.tab(tabs.right_doug.id)).to.deep.include({
+                    url: tabs.right_doug.url,
+                    hidden: true,
+                    discarded: true,
+                });
+            });
+
+            it('closes tabs', async () => {
+                await model.options.local.set({after_stashing_tab: 'close'});
+                await events.next(browser.storage.onChanged);
+                await events.next(model.options.local.onChanged);
+                expect(model.options.local.state.after_stashing_tab)
+                    .to.equal('close');
+
+                await model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+                await events.next(browser.tabs.onRemoved);
+
+                await browser.tabs.get(tabs.right_doug.id).then(
+                    () => expect.fail('browser.tabs.get did not throw'),
+                    () => {},
+                );
+                expect(() => model.tabs.tab(tabs.right_doug.id)).to.throw(Error);
+            });
         });
 
-        it('opens a new empty tab if needed to keep the window open');
-        it('refocuses away from an active tab that is about to be closed');
+        it('opens a new empty tab if needed to keep the window open', async () => {
+            await model.options.local.set({after_stashing_tab: 'hide'});
+            await events.next(browser.storage.onChanged);
+            await events.next(model.options.local.onChanged);
+            expect(model.options.local.state.after_stashing_tab)
+                .to.equal('hide');
+
+            await model.hideOrCloseStashedTabs([
+                tabs.left_alice.id,
+                tabs.left_betty.id,
+                tabs.left_charlotte.id,
+            ]);
+            await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onActivated);
+            await events.next(browser.tabs.onHighlighted);
+            await events.nextN(browser.tabs.onUpdated, 3);
+
+            const win = await browser.tabs.query({windowId: windows.left.id});
+            expect(win.map(({id, url, active, hidden}) => ({id, url, active, hidden})))
+                .to.deep.equal([
+                    {id: tabs.left_alice.id, url: `${B}#alice`,
+                        active: false, hidden: true},
+                    {id: tabs.left_betty.id, url: `${B}#betty`,
+                        active: false, hidden: true},
+                    {id: tabs.left_charlotte.id, url: `${B}#charlotte`,
+                        active: false, hidden: true},
+                    {id: win[3].id, url: B, active: true, hidden: undefined},
+                ]);
+
+            expect(model.tabs.window(windows.left.id).tabs).to.deep.equal([
+                tabs.left_alice.id,
+                tabs.left_betty.id,
+                tabs.left_charlotte.id,
+                win[3].id!,
+            ]);
+            expect(model.tabs.tab(tabs.left_alice.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.left_betty.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.left_charlotte.id).hidden).to.be.true;
+            expect(model.tabs.tab(win[3].id as TabID)).to.deep.include({
+                active: true,
+            });
+        });
+
+        it('refocuses away from an active tab that is to be closed', async () => {
+            await model.hideOrCloseStashedTabs([
+                tabs.left_alice.id,
+            ]);
+            await events.next(browser.tabs.onActivated);
+            await events.next(browser.tabs.onHighlighted);
+            await events.next(browser.tabs.onUpdated); // hidden
+
+            const win = await browser.tabs.query({windowId: windows.left.id});
+            expect(win.map(({id, url, active, hidden}) => ({id, url, active, hidden})))
+                .to.deep.equal([
+                    {id: tabs.left_alice.id, url: `${B}#alice`,
+                        active: false, hidden: true},
+                    {id: tabs.left_betty.id, url: `${B}#betty`,
+                        active: true, hidden: undefined},
+                    {id: tabs.left_charlotte.id, url: `${B}#charlotte`,
+                        active: false, hidden: undefined},
+                ]);
+        });
     });
 
     describe('puts items in bookmark folders', () => {
