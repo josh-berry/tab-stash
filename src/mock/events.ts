@@ -28,7 +28,6 @@ type EventSystemState = {
     waiters: Set<Waiter>,
     ignores: Set<(msg: EvMessage) => boolean>,
     awaited_messages: Set<EvMessage>,
-    ignored_messages: Set<EvMessage>,
     runner: Promise<void> | null,
 };
 
@@ -58,12 +57,23 @@ export function beforeTest() {
         waiters: new Set(),
         ignores: new Set(),
         awaited_messages: new Set(),
-        ignored_messages: new Set(),
         runner: null,
     };
 }
 
 export async function afterTest() {
+    // Drain ignored messages so we don't complain about them
+    // istanbul ignore next
+    for (const msg of the_state.awaited_messages) {
+        for (const ignore of the_state.ignores) {
+            if (ignore(msg)) {
+                the_state.awaited_messages.delete(msg);
+                msg.fire(true);
+                break;
+            }
+        }
+    }
+
     // istanbul ignore if
     if (the_state.waiters.size > 0 || the_state.awaited_messages.size > 0) {
         const i = (val: any) => inspect(val, {depth: 5});
@@ -127,15 +137,6 @@ export class MockEvent<L extends AnyListener> implements Event<L> {
             }
         };
 
-        for (const ignore of this.state.ignores) {
-            // istanbul ignore else
-            if (ignore(msg)) {
-                this.state.ignored_messages.add(msg);
-                run(this.state);
-                return;
-            }
-        }
-
         this.state.awaited_messages.add(msg);
         run(this.state);
 
@@ -188,20 +189,21 @@ export class EventWatcher<L extends AnyListener = AnyListener> {
      * has completed at least one full cycle. */
     untilNextTick(): Promise<Args<L>[]> {
         return new Promise(resolve => {
+            // istanbul ignore if
+            if (the_state !== this.state) {
+                throw new Error(`Can't watch for events after the test has finished`);
+            }
+            const events: Args<L>[] = [];
+            const waiter: Waiter = {
+                query: this.query,
+                filter: this.filter,
+                callback: msg => {
+                    events.push(msg.args as Args<L>)
+                },
+            };
+            this.state.waiters.add(waiter);
+
             setTimeout(() => {
-                // istanbul ignore if
-                if (the_state !== this.state) {
-                    throw new Error(`Can't watch for events after the test has finished`);
-                }
-                const events: Args<L>[] = [];
-                const waiter: Waiter = {
-                    query: this.query,
-                    filter: this.filter,
-                    callback: msg => {
-                        events.push(msg.args as Args<L>)
-                    },
-                };
-                this.state.waiters.add(waiter);
                 run(this.state);
                 setTimeout(() => {
                     this.state.waiters.delete(waiter);
@@ -240,6 +242,7 @@ export async function nextN<L extends AnyListener>(
 export function ignore(q: EventQuery<any>): {cancel(): void} {
     const filter = filter_for(q);
     the_state.ignores.add(filter);
+    run(the_state);
 
     return {
         // istanbul ignore next
@@ -270,19 +273,22 @@ function run(state: EventSystemState) {
     }).catch(console.error);
 }
 
-async function runner(state: EventSystemState): Promise<void> {
-    for (const msg of state.ignored_messages) {
-        state.ignored_messages.delete(msg);
-        msg.fire(true);
-    }
-
-    next_msg: for (const msg of state.awaited_messages) {
+function runner(state: EventSystemState) {
+    for (const msg of state.awaited_messages) {
+        for (const ignore of state.ignores) {
+            // istanbul ignore next
+            if (ignore(msg)) {
+                state.awaited_messages.delete(msg);
+                msg.fire(true);
+                break;
+            }
+        }
         for (const waiter of state.waiters) {
             if (waiter.filter(msg)) {
                 state.awaited_messages.delete(msg);
                 msg.fire();
                 waiter.callback(msg);
-                continue next_msg;
+                break;
             }
         }
     }
