@@ -3,7 +3,7 @@
 import browser, {Tabs, Menus} from 'webextension-polyfill';
 
 import {
-    asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
+    asyncEvent, urlToOpen, nonReentrant, logErrors,
 } from './util';
 import service_model from './service-model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
@@ -310,12 +310,12 @@ model.options.sync.onChanged.addListener(asyncEvent(async opts => {
 //
 
 logErrors(async () => {
-    let managed_urls = new Set(urlsInTree(model.bookmarks.stash_root.value));
+    let managed_urls = model.bookmarks.urlsInStash();
 
     const close_removed_bookmarks = nonReentrant(async function() {
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
-        let new_urls = new Set(urlsInTree(model.bookmarks.stash_root.value));
+        const new_urls = model.bookmarks.urlsInStash();
         let windows = await browser.windows.getAll(
             {windowTypes: ['normal'], populate: true});
 
@@ -342,9 +342,9 @@ logErrors(async () => {
         managed_urls = new_urls;
     });
 
-    model.bookmarks.by_id.onUpdate.addListener(close_removed_bookmarks);
-    model.bookmarks.by_id.onMove.addListener(close_removed_bookmarks);
-    model.bookmarks.by_id.onDelete.addListener(close_removed_bookmarks);
+    browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
+    browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
+    browser.bookmarks.onRemoved.addListener(close_removed_bookmarks);
 });
 
 

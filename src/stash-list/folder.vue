@@ -37,7 +37,7 @@
     <dnd-list class="tabs" v-model="allChildren" item-key="id"
               :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
-        <bookmark v-if="! item.children" :bookmark="item"
+        <bookmark v-if="! ('children' in item)" :bookmark="item"
              :class="{hidden: (filter && ! filter(item))
                         || (userFilter && ! userFilter(item)),
                       'folder-item': true}" />
@@ -58,13 +58,13 @@ import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
 import {
-    altKeyName, bgKeyName, bgKeyPressed, filterMap, logErrors, required
+    altKeyName, bgKeyName, bgKeyPressed, logErrors, required
 } from '../util';
 import {DragAction, DropAction} from '../components/dnd-list';
 
 import {Model} from '../model';
 import {
-    Bookmark, genDefaultFolderName, getDefaultFolderNameISODate
+    Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, NodeID
 } from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
@@ -90,7 +90,7 @@ export default defineComponent({
         hideIfEmpty: Boolean,
 
         // Bookmark folder
-        folder: required(Object as PropType<Bookmark>),
+        folder: required(Object as PropType<Folder>),
 
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
@@ -101,8 +101,8 @@ export default defineComponent({
 
         accepts() { return DROP_FORMATS; },
 
-        allChildren(): readonly Bookmark[] {
-            return this.folder.children || [];
+        allChildren(): readonly Node[] {
+            return this.folder.children.map(cid => this.model().bookmarks.node(cid));
         },
 
         collapsed: {
@@ -122,7 +122,7 @@ export default defineComponent({
         },
 
         filteredChildren(): Bookmark[] {
-            return this.allChildren.filter(c => c && c.url);
+            return this.allChildren.filter(c => 'url' in c) as Bookmark[];
         },
         visibleChildren(): Bookmark[] {
             if (this.userFilter) {
@@ -157,7 +157,7 @@ export default defineComponent({
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
             await this.model().restoreTabs(
-                filterMap(this.allChildren, item => item.url),
+                this.filteredChildren.map(c => c.url),
                 {background: bgKeyPressed(ev)});
         })},
 
@@ -169,7 +169,7 @@ export default defineComponent({
             const bg = bgKeyPressed(ev);
 
             await this.model().restoreTabs(
-                filterMap(this.allChildren, item => item.url),
+                this.filteredChildren.map(c => c.url),
                 {background: bg});
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
@@ -208,8 +208,7 @@ export default defineComponent({
             } else if (bmId) {
                 // We are dragging only bookmarks around.  Just move the
                 // bookmark.
-                const bm = this.model().bookmarks.by_id.get(bmId);
-                if (! bm) return;
+                const bm = this.model().bookmarks.node(bmId as NodeID);
 
                 const fromFolder = bm.parentId;
                 await this.model().bookmarks.move(

@@ -111,23 +111,6 @@ export function cmpVersions(a: string, b: string): number {
     return va.length - vb.length;
 }
 
-type BMTree = {
-    readonly children?: readonly BMTree[],
-    readonly url?: string,
-};
-export function urlsInTree(bm_tree?: BMTree): OpenableURL[] {
-    let urls: OpenableURL[] = [];
-    function collect(bm: BMTree) {
-        if (bm.children) {
-            for (let c of bm.children) collect(c);
-        } else /* istanbul ignore else */ if (bm.url) {
-            urls.push(urlToOpen(bm.url));
-        }
-    }
-    if (bm_tree) collect(bm_tree);
-    return urls;
-}
-
 // Given a URL to stash, return the URL that is actually openable by an
 // extension.  This is needed because sometimes the saved URL is a "privileged"
 // URL (e.g. a tab which is open in Reader Mode), which we won't be able to open

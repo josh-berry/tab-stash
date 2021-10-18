@@ -77,13 +77,13 @@ import {defineComponent} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
-    urlsInTree, TaskMonitor, resolveNamed, logErrors, textMatcher,
+    TaskMonitor, resolveNamed, logErrors, textMatcher,
     parseVersion, required,
 } from '../util';
 import ui_model from '../ui-model';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab} from '../model/tabs';
-import {Bookmark} from '../model/bookmarks';
+import {Bookmark, Folder} from '../model/bookmarks';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
 const Main = defineComponent({
@@ -118,7 +118,7 @@ const Main = defineComponent({
         tabs(): readonly Tab[] {
             return this.model().tabs.by_window.get(this.window_id) ?? [];
         },
-        stash_root(): Bookmark | undefined {
+        stash_root(): Folder | undefined {
             return this.model().bookmarks.stash_root.value;
         },
 
@@ -140,8 +140,9 @@ const Main = defineComponent({
         counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
             if (this.stash_root?.children) {
-                for (const f of this.stash_root.children!) {
-                    if (! f?.children) continue;
+                for (const fid of this.stash_root.children) {
+                    const f = this.model().bookmarks.node(fid);
+                    if (! ('children' in f)) continue;
                     tabs += f.children.length;
                     groups++;
                 }
@@ -208,8 +209,9 @@ const Main = defineComponent({
             this.collapsed = ! this.collapsed;
             const metadata = this.model().bookmark_metadata;
             metadata.setCollapsed('', this.collapsed);
-            for (const f of this.stash_root?.children || []) {
-                if (! f.children) continue;
+            for (const fid of this.stash_root?.children || []) {
+                const f = this.model().bookmarks.node(fid);
+                if (! ('children' in f)) continue;
                 metadata.setCollapsed(f.id, this.collapsed);
             }
         },
@@ -240,8 +242,7 @@ const Main = defineComponent({
 
         async fetchMissingFavicons() { logErrors(async() => {
             const favicons = this.model().favicons;
-            const stash_root = this.model().bookmarks.stash_root.value;
-            const urls = new Set(urlsInTree(stash_root));
+            const urls = this.model().bookmarks.urlsInStash();
 
             // This is just an async filter :/
             for (const url of urls) {
