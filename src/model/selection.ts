@@ -70,8 +70,8 @@ export class Model {
 
     async toggleSelectFromEvent(ev: MouseEvent, model: SelectableModel, item: any) {
         if (ev.shiftKey) return this.toggleSelectRange(model, item);
-        if (ev.ctrlKey || ev.metaKey) return this.toggleSelectScattered(model, item);
-        return this.toggleSelectOne(model, item);
+        if (ev.ctrlKey || ev.metaKey) return this.toggleSelectOne(model, item);
+        return this.toggleSelectScattered(model, item);
     }
 
     /** Analogous to a regular click--select a single item.  If any other items
