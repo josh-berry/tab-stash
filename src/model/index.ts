@@ -655,15 +655,16 @@ export class Model {
             // possible, but we also try to move other tabs from the current
             // window so that we don't end up creating duplicates for the user.
             const already_open = Array.from(this.tabs.tabsWithURL(url))
-                .filter(t => ! dont_steal_tabs.has(t.id));
+                .filter(t => ! dont_steal_tabs.has(t.id) && ! t.pinned)
+                .sort((a, b) => (-a.hidden) - (-b.hidden)); // prefer hidden tabs
             if (already_open.length > 0) {
                 const t = already_open[0];
                 const pos = this.tabs.positionOf(t);
 
                 if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
 
-                if (pos.window === win && pos.index < to_index) --to_index;
                 await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
+                if (pos.window === win && pos.index < to_index) --to_index;
                 moved_item_ids.push(t.id);
                 dont_steal_tabs.add(t.id);
                 continue;

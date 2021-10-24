@@ -915,7 +915,6 @@ describe('model', () => {
         });
 
         it('ignores pinned, hidden and/or blank tabs in a window', async () => {
-            events.trace(true);
             const p = model.stashTabsInWindow(windows.real.id, {close: true});
             await events.nextN(browser.bookmarks.onCreated, 5);
             await events.nextN(browser.tabs.onUpdated, 4);
@@ -944,11 +943,105 @@ describe('model', () => {
     });
 
     describe('restores tabs', () => {
-        it('restores a single hidden tab');
-        it('restores a single already-open tab by switching to it');
-        it('restores multiple tabs');
-        it('skips duplicate URLs when restoring tabs');
-        it('activates the last tab when restoring in the foreground');
+        beforeEach(() => {
+            expect(model.tabs.current_window).to.equal(windows.real.id);
+        });
+
+        it('restores a single hidden tab', async () => {
+            await model.restoreTabs([`${B}#harry`], {});
+            await events.next(browser.tabs.onUpdated);
+            await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onActivated);
+            await events.next(browser.tabs.onHighlighted);
+
+            const restored = model.tabs.tab(tabs.real_harry.id);
+            expect(restored.hidden).to.be.false;
+            expect(restored.active).to.be.true;
+            expect(restored.windowId).to.equal(windows.real.id);
+
+            const win = model.tabs.window(windows.real.id);
+            expect(win.tabs[win.tabs.length - 1]).to.equal(tabs.real_harry.id);
+        });
+
+        it('restores a single already-open tab by switching to it', async () => {
+            await model.restoreTabs([`${B}#estelle`], {});
+            await events.next(browser.tabs.onActivated);
+            await events.next(browser.tabs.onHighlighted);
+
+            const restored = model.tabs.tab(tabs.real_estelle.id);
+            expect(restored.hidden).to.be.false;
+            expect(restored.active).to.be.true;
+            expect(restored.windowId).to.equal(windows.real.id);
+
+            // Nothing should have moved
+            const win = model.tabs.window(windows.real.id);
+            expect(win.tabs).to.deep.equal(windows.real.tabs!.map(t => t.id));
+        });
+
+        it('restores multiple tabs', async () => {
+            const tids = await model.restoreTabs([`${B}#harry`, `${B}#new-restored`], {});
+            await events.next(browser.tabs.onUpdated);
+            await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onActivated);
+            await events.next(browser.tabs.onHighlighted);
+
+            const restored = tids.map(tid => model.tabs.tab(tid));
+            expect(restored[0].hidden).to.be.false;
+            expect(restored[0].active).to.be.false;
+            expect(restored[1].hidden).to.be.false;
+            expect(restored[1].active).to.be.true;
+
+            const win = model.tabs.window(windows.real.id);
+            expect(win.tabs).to.deep.equal([
+                tabs.real_patricia.id,
+                tabs.real_paul.id,
+                tabs.real_blank.id,
+                tabs.real_bob.id,
+                tabs.real_doug.id,
+                tabs.real_doug_2.id,
+                tabs.real_estelle.id,
+                tabs.real_francis.id,
+                tabs.real_helen.id,
+                tabs.real_harry.id,
+                tids[1],
+            ]);
+        });
+
+        it('skips or steals duplicates when restoring tabs', async () => {
+            const tids = await model.restoreTabs(
+                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#betty`, `${B}#paul`], {});
+            await events.nextN(browser.tabs.onUpdated, 2);
+            await events.nextN<any>([browser.tabs.onMoved, browser.tabs.onAttached], 3);
+            await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onActivated);
+            await events.next(browser.tabs.onHighlighted);
+
+            expect(tids.slice(0, 3)).to.deep.equal([
+                tabs.real_harry.id, tabs.real_doug_2.id, tabs.left_betty.id]);
+
+            const restored = tids.map(tid => model.tabs.tab(tid));
+            expect(restored.map(t => t.hidden))
+                .to.deep.equal([false, false, false, false]);
+            expect(restored.map(t => t.active))
+                .to.deep.equal([false, false, false, true]);
+
+            const win = model.tabs.window(windows.real.id);
+            expect(win.tabs).to.deep.equal([
+                tabs.real_patricia.id,
+                tabs.real_paul.id,
+                tabs.real_blank.id,
+                tabs.real_bob.id,
+                tabs.real_doug.id,
+                tabs.real_estelle.id,
+                tabs.real_francis.id,
+                tabs.real_helen.id,
+                tabs.real_harry.id,
+                tabs.real_doug_2.id,
+                tabs.left_betty.id,
+                tids[3],
+            ]);
+        });
     });
 
     describe('deletes and un-deletes bookmarks', () => {
