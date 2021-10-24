@@ -62,16 +62,14 @@ import {
 } from '../util';
 import {DragAction, DropAction} from '../components/dnd-list';
 
-import {Model} from '../model';
+import {Model, StashItem} from '../model';
 import {
-    Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, NodeID
+    Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate,
 } from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
-import {TabID} from '../model/tabs';
 
 const DROP_FORMATS = [
-    'application/x-tab-stash-bookmark-id',
-    'application/x-tab-stash-tab-id',
+    'application/x-tab-stash-items',
 ];
 
 export default defineComponent({
@@ -185,38 +183,23 @@ export default defineComponent({
         },
 
         drag(ev: DragAction<Bookmark>) {
-            ev.dataTransfer.setData('application/x-tab-stash-bookmark-id', ev.value.id);
+            const items = ev.value.$selected
+                ? Array.from(this.model().selectedItems())
+                : [ev.value];
+            ev.dataTransfer.setData('application/x-tab-stash-items',
+                JSON.stringify(items));
         },
 
         async drop(ev: DropAction) {
-            const bmId = ev.dataTransfer.getData('application/x-tab-stash-bookmark-id');
-            const tabId = ev.dataTransfer.getData('application/x-tab-stash-tab-id');
+            const data = ev.dataTransfer.getData('application/x-tab-stash-items');
+            const items = JSON.parse(data) as StashItem[];
 
-            if (tabId) {
-                // We are dragging a tab into this bookmark folder.  Create a
-                // new bookmark and close the tab.
-                const tab = this.model().tabs.tab(Number.parseInt(tabId) as TabID);
-
-                await browser.bookmarks.create({
-                    parentId: this.folder.id,
-                    title: tab.title,
-                    url: tab.url,
-                    index: ev.toIndex,
-                });
-                await this.model().hideOrCloseStashedTabs([tab.id]);
-
-            } else if (bmId) {
-                // We are dragging only bookmarks around.  Just move the
-                // bookmark.
-                const bm = this.model().bookmarks.node(bmId as NodeID);
-
-                const fromFolder = bm.parentId;
-                await this.model().bookmarks.move(
-                    bm.id, this.folder.id, ev.toIndex);
-
-                if (fromFolder === undefined) return;
-                await this.model().bookmarks.removeFolderIfEmptyAndUnnamed(fromFolder);
-            }
+            await this.model().putItemsInFolder({
+                items,
+                toFolderId: this.folder.id,
+                toIndex: ev.toIndex,
+                move: true,
+            });
         },
     },
 });

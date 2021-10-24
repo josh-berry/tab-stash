@@ -264,7 +264,7 @@ export default defineComponent({
 
             const offset = DND.dragging?.parent === DND.dropping.parent
                     && (DND.dragging?.index || 0) < DND.dropping.index
-                ? 1 : 0;
+                ? 0 : 0;
 
             // Here we start the (async) drop task, and freeze the model in both
             // the source and destination lists until the drop task completes.

@@ -56,14 +56,13 @@ import {altKeyName, filterMap, logErrors, required} from '../util';
 
 import {DragAction, DropAction} from '../components/dnd-list';
 
-import {Model} from '../model';
+import {Model, StashItem} from '../model';
 import {Tab} from '../model/tabs';
-import {genDefaultFolderName, NodeID} from '../model/bookmarks';
+import {genDefaultFolderName} from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
 const DROP_FORMATS = [
-    'application/x-tab-stash-bookmark-id',
-    'application/x-tab-stash-tab-id',
+    'application/x-tab-stash-items',
 ];
 
 export default defineComponent({
@@ -199,55 +198,23 @@ export default defineComponent({
         })},
 
         drag(ev: DragAction<Tab>) {
-            ev.dataTransfer.setData('application/x-tab-stash-tab-id',
-                `${ev.value.id}`);
+            const items = ev.value.$selected
+                ? Array.from(this.model().selectedItems())
+                : [ev.value];
+            ev.dataTransfer.setData('application/x-tab-stash-items',
+                JSON.stringify(items));
         },
 
         async drop(ev: DropAction) {
-            const bmId = ev.dataTransfer.getData('application/x-tab-stash-bookmark-id');
-            const tabId = ev.dataTransfer.getData('application/x-tab-stash-tab-id');
+            const data = ev.dataTransfer.getData('application/x-tab-stash-items');
+            const items = JSON.parse(data) as StashItem[];
 
-            let tid;
-            let bm;
-
-            if (tabId) {
-                // Item being dragged is a Tab, so we are just moving it from
-                // one place in the window to another.
-                tid = Number.parseInt(tabId);
-
-            } else if (bmId) {
-                // Item being dragged is a Bookmark--that is, we're restoring a
-                // tab to a particular location in the window.  If there's
-                // already an open tab for this bookmark in the same window,
-                // we will just move it to the right place.
-                bm = this.model().bookmarks.node(bmId as NodeID);
-
-                // We can't restore a bookmark without a URL...
-                if (! ('url' in bm)) return;
-
-                const cur_win = this.model().tabs.current_window;
-
-                // First see if we have an open tab in this window already.  If
-                // so, we need only move it into position.
-                const already_open = Array.from(this.model().tabs.tabsWithURL(bm.url));
-                tid = already_open.filter(t => t.windowId === cur_win)[0]?.id;
-                if (tid === undefined) {
-                    // There is no open tab, so we must restore one.
-                    tid = (await this.model().restoreTabs(
-                        [bm.url], {background: true}))[0];
-                }
-            }
-
-            // For sanity; we should always restore a tab or have one open.
-            if (tid === undefined) return;
-
-            // Move the (possibly-restored) tab to the right place in the
-            // browser window.
-            await browser.tabs.move(tid, {index: ev.toIndex});
-            if (browser.tabs.show) await browser.tabs.show(tid);
-
-            // Remove the previously-stashed tab (if there was one).
-            if (bm) await this.model().deleteBookmark(bm);
+            await this.model().putItemsInWindow({
+                items,
+                toWindowId: this.model().tabs.current_window!,
+                toIndex: ev.toIndex,
+                move: true,
+            });
         },
     },
 });
