@@ -579,7 +579,11 @@ export class Model {
 
         // We want to know what tabs were recently closed, so we can
         // restore/un-hide tabs as appropriate.
-        const closed_tabs = await browser.sessions.getRecentlyClosed();
+        //
+        // TODO Unit tests don't support sessions yet
+        const closed_tabs = !! browser.sessions?.getRecentlyClosed
+            ? await browser.sessions.getRecentlyClosed()
+            : [];
 
         if (options.task) options.task.max = items.length + 1;
 
@@ -608,8 +612,7 @@ export class Model {
             // If the item we're moving is a tab, just move it into place.
             if (isTab(model_item)) {
                 const pos = this.tabs.positionOf(model_item);
-                await browser.tabs.move(model_item.id,
-                    {windowId: to_win_id, index: to_index});
+                await this.tabs.move(model_item.id, to_win_id, to_index);
                 moved_item_ids.push(model_item.id);
                 dont_steal_tabs.add(model_item.id);
 

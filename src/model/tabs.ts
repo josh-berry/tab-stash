@@ -137,6 +137,24 @@ export class Model {
     // User-level operations on tabs
     //
 
+    /** Moves a tab such that it precedes the item with index `toIndex` in
+     * the destination window.  (You can pass an index `>=` the length of the
+     * windows's tab list to move the item to the end of the window.) */
+    async move(id: TabID, toWindow: WindowID, toIndex: number): Promise<void> {
+        // This method mainly exists to provide consistent behavior between
+        // bookmarks.move() and tabs.move().
+        const tab = this.tab(id);
+
+        // Unlike browser.bookmarks.move(), browser.tabs.move() behaves the same
+        // on both Firefox and Chrome.
+        if (tab.windowId === toWindow) {
+            const position = this.positionOf(tab);
+            if (toIndex > position.index) toIndex--;
+        }
+
+        await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
+    }
+
     /** Close the specified tabs, but leave the browser window open (and create
      * a new tab if necessary to keep it open). */
     async closeTabs(tabIds: TabID[]): Promise<void> {

@@ -563,12 +563,284 @@ describe('model', () => {
     });
 
     describe('puts items in windows', () => {
-        it('moves tabs in the same window to a new position');
-        it('moves tabs from different windows into the target window');
-        it('moves a combination of tabs from the same/different windows');
-        it('copies external items into the window');
-        it('moves tabs into the window');
-        it('moves tabs and bookmarks into the window');
+        async function check_window(
+            windowName: keyof typeof windows,
+            children: (keyof typeof tabs)[]
+        ) {
+            const real_tabs = await browser.tabs.query({windowId: windows[windowName].id});
+            expect(real_tabs.map(c => c.url), "Browser tab URLs")
+                .to.deep.equal(children.map(c => tabs[c].url));
+            expect(real_tabs.map(c => c.id), "Browser tab IDs")
+                .to.deep.equal(children.map(c => tabs[c].id));
+
+            const win = model.tabs.window(windows[windowName].id);
+            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+                .to.deep.equal(children.map(c => tabs[c].url));
+            expect(win.tabs, "Model tab IDs")
+                .to.deep.equal(children.map(c => tabs[c].id));
+        }
+
+        const testMove = (options: {
+            items: (keyof typeof tabs)[],
+            toWindow: keyof typeof windows,
+            toIndex: number,
+            finalState: (keyof typeof tabs)[],
+        }) => async () => {
+            const p = model.putItemsInWindow({
+                move: true,
+                items: options.items.map(i => ({id: tabs[i].id})),
+                toWindowId: windows[options.toWindow].id,
+                toIndex: options.toIndex,
+            });
+            await events.nextN<any>([browser.tabs.onMoved, browser.tabs.onAttached],
+                options.items.length);
+            await p;
+            await check_window(options.toWindow, options.finalState);
+        };
+
+        beforeEach(async () => {
+            await check_window('real', [
+                'real_patricia', 'real_paul', 'real_blank', 'real_bob',
+                'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
+                'real_harry', 'real_helen',
+            ]);
+        });
+
+        describe('moves tabs in the same window to a new position', () => {
+            it('to the beginning', testMove({
+                items: ['real_bob'],
+                toWindow: 'real',
+                toIndex: 0,
+                finalState: [
+                    'real_bob',
+                    'real_patricia', 'real_paul', 'real_blank',
+                    'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
+                    'real_harry', 'real_helen',
+                ],
+            }));
+
+            it('to almost the end', testMove({
+                items: ['real_bob'],
+                toWindow: 'real',
+                toIndex: 9,
+                finalState: [
+                    'real_patricia', 'real_paul', 'real_blank',
+                    'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
+                    'real_harry',
+                    'real_bob',
+                    'real_helen',
+                ],
+            }));
+
+            it('to the end', testMove({
+                items: ['real_bob'],
+                toWindow: 'real',
+                toIndex: 10,
+                finalState: [
+                    'real_patricia', 'real_paul', 'real_blank',
+                    'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
+                    'real_harry',
+                    'real_helen',
+                    'real_bob',
+                ],
+            }));
+
+            it('forward single', testMove({
+                items: ['real_bob'],
+                toWindow: 'real',
+                toIndex: 7,
+                finalState: [
+                    'real_patricia', 'real_paul', 'real_blank',
+                    'real_doug', 'real_doug_2', 'real_estelle',
+                    'real_bob',
+                    'real_francis', 'real_harry', 'real_helen',
+                ],
+            }));
+
+            it('backward single', testMove({
+                items: ['real_francis'],
+                toWindow: 'real',
+                toIndex: 2,
+                finalState: [
+                    'real_patricia', 'real_paul',
+                    'real_francis',
+                    'real_blank', 'real_bob', 'real_doug', 'real_doug_2',
+                    'real_estelle', 'real_harry', 'real_helen',
+                ],
+            }));
+
+            it('forward multiple', testMove({
+                items: ['real_bob', 'real_doug_2'],
+                toWindow: 'real',
+                toIndex: 7,
+                finalState: [
+                    'real_patricia', 'real_paul', 'real_blank',
+                    'real_doug', 'real_estelle',
+                    'real_bob', 'real_doug_2',
+                    'real_francis', 'real_harry', 'real_helen',
+                ],
+            }));
+
+            it('backward multiple', testMove({
+                items: ['real_estelle', 'real_harry'],
+                toWindow: 'real',
+                toIndex: 2,
+                finalState: [
+                    'real_patricia', 'real_paul',
+                    'real_estelle', 'real_harry',
+                    'real_blank', 'real_bob', 'real_doug', 'real_doug_2',
+                    'real_francis', 'real_helen',
+                ],
+            }));
+
+            it('to the middle', testMove({
+                items: ['real_paul', 'real_bob', 'real_francis', 'real_harry'],
+                toWindow: 'real',
+                toIndex: 5,
+                finalState: [
+                    'real_patricia', 'real_blank', 'real_doug',
+                    'real_paul', 'real_bob', 'real_francis', 'real_harry',
+                    'real_doug_2', 'real_estelle', 'real_helen',
+                ],
+            }));
+
+            it('to the middle (moving the insertion point)', testMove({
+                items: ['real_paul', 'real_doug', 'real_doug_2', 'real_harry'],
+                toWindow: 'real',
+                toIndex: 5,
+                finalState: [
+                    'real_patricia', 'real_blank', 'real_bob',
+                    'real_paul', 'real_doug', 'real_doug_2', 'real_harry',
+                    'real_estelle', 'real_francis', 'real_helen',
+                ],
+            }));
+
+            it('leaves everything where it is', testMove({
+                items: ['real_bob', 'real_doug', 'real_doug_2', 'real_estelle'],
+                toWindow: 'real',
+                toIndex: 5,
+                finalState: [
+                    'real_patricia', 'real_paul', 'real_blank', 'real_bob',
+                    'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
+                    'real_harry', 'real_helen',
+                ],
+            }));
+        });
+
+        // Probably works, but not a thing we care about right now, since the
+        // Tab Stash UI only supports one window at a time...
+        //
+        // it('moves tabs from different windows into the target window');
+        // it('moves a combination of tabs from the same/different windows');
+
+        it('copies external items into the window', async() => {
+            const p = model.putItemsInWindow({
+                move: true,
+                items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
+                toWindowId: windows.right.id,
+                toIndex: 2,
+            });
+            await events.nextN(browser.tabs.onCreated, 2);
+            await p;
+
+            const urls = [
+                `${B}`, `${B}#adam`,
+                `${B}#new1`, `${B}#new2`,
+                `${B}#doug`,
+            ];
+
+            const real_tabs = await browser.tabs.query({windowId: windows.right.id});
+            expect(real_tabs.map(c => c.url), "Browser tab URLs").to.deep.equal(urls);
+
+            const win = model.tabs.window(windows.right.id);
+            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+                .to.deep.equal(urls);
+        });
+
+        it('moves bookmarks into the window', async() => {
+            expect(model.tabs.tab(tabs.real_helen.id)).to.deep.include({
+                windowId: windows.real.id,
+                hidden: true,
+            });
+
+            const p = model.putItemsInWindow({
+                move: true,
+                items: [
+                    model.bookmarks.bookmark(bookmarks.helen.id), // hidden tab
+                    model.bookmarks.bookmark(bookmarks.nate.id), // not open
+                ],
+                toWindowId: windows.right.id,
+                toIndex: 2,
+            });
+            await events.nextN<any>([browser.tabs.onAttached, browser.tabs.onMoved], 1);
+            await events.nextN(browser.tabs.onUpdated, 1);
+            await events.nextN(browser.tabs.onCreated, 1); // nate created
+            await events.nextN(browser.bookmarks.onRemoved, 2);
+            const res = await p;
+
+            const urls = [
+                `${B}`, `${B}#adam`,
+                `${B}#helen`, `${B}#nate`,
+                `${B}#doug`,
+            ];
+
+            const ids = [
+                tabs.right_blank.id, tabs.right_adam.id,
+                tabs.real_helen.id, res[1],
+                tabs.right_doug.id,
+            ];
+
+            const real_tabs = await browser.tabs.query({windowId: windows.right.id});
+            expect(real_tabs.map(c => c.url), "Browser tab URLs").to.deep.equal(urls);
+            expect(real_tabs.map(c => c.id), "Browser tab IDs").to.deep.equal(ids);
+
+            const win = model.tabs.window(windows.right.id);
+            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+                .to.deep.equal(urls);
+            expect(win.tabs, "Model tab IDs").to.deep.equal(ids);
+
+            expect(model.bookmarks.folder(bookmarks.names.id).children)
+                .to.deep.equal([bookmarks.doug_2.id, bookmarks.patricia.id]);
+
+            expect(model.tabs.tab(tabs.real_helen.id)).to.deep.include({
+                windowId: windows.right.id,
+                hidden: false,
+            });
+        });
+
+        it('moves tabs and bookmarks into the window', async() => {
+            const p = model.putItemsInWindow({
+                move: true,
+                items: [
+                    model.tabs.tab(tabs.right_doug.id),
+                    model.bookmarks.bookmark(bookmarks.nate.id),
+                ],
+                toWindowId: windows.right.id,
+                toIndex: 1,
+            });
+            await events.nextN(browser.tabs.onMoved, 1);
+            await events.nextN(browser.tabs.onCreated, 1);
+            await events.nextN(browser.bookmarks.onRemoved, 1);
+            await p;
+
+            const urls = [
+                `${B}`,
+                `${B}#doug`, `${B}#nate`,
+                `${B}#adam`,
+            ];
+
+            const real_tabs = await browser.tabs.query({windowId: windows.right.id});
+            expect(real_tabs.map(c => c.url), "Browser tab URLs").to.deep.equal(urls);
+
+            const win = model.tabs.window(windows.right.id);
+            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+                .to.deep.equal(urls);
+
+            expect(model.bookmarks.folder(bookmarks.names.id).children)
+                .to.deep.equal([
+                    bookmarks.doug_2.id, bookmarks.helen.id, bookmarks.patricia.id,
+                ]);
+        });
     });
 
     describe('stashes tabs to bookmarks', () => {

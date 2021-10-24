@@ -245,6 +245,12 @@ export async function make_tabs(): Promise<TabFixture> {
                 await events.next(browser.tabs.onHighlighted);
             }
 
+            if (t.hidden) {
+                await browser.tabs.hide([tab.id!]);
+                await events.next(browser.tabs.onUpdated);
+                tab.hidden = true;
+            }
+
             tab.windowId = win.id;
             tab.index = i;
             tabs[tab_def.id] = tab as Tabs.Tab & {id: TabID};
