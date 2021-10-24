@@ -49,7 +49,7 @@ export {
 };
 
 export type PartialTabInfo = {
-    id?: number,
+    id?: Tabs.TabID | number,
     title?: string,
     url?: string,
 };
@@ -152,7 +152,8 @@ export class Model {
 
         await this.deleted_items.dropOlderThan(deleted_exp);
         await this.favicons.gc(url =>
-            this.bookmarks.bookmarksWithURL(url).size > 0 || this.tabs.by_url.has(url));
+            this.bookmarks.bookmarksWithURL(url).size > 0
+            || this.tabs.tabsWithURL(url).size > 0);
         await this.bookmark_metadata.gc(id => {
             try {
                 this.bookmarks.node(id as Bookmarks.NodeID);
@@ -169,15 +170,15 @@ export class Model {
      * If `close` is true, closes/hides the stashed tabs according to the user's
      * preferences. */
     async stashTabsInWindow(
-        windowId: number,
+        windowId: Tabs.WindowID,
         options: {
             folderId?: Bookmarks.NodeID,
             close?: boolean
         }
     ): Promise<void> {
-        const tabs = this.tabs.by_window.get(windowId)
-            .filter(t => ! t.hidden)
-            .sort((a, b) => a.index - b.index);
+        const tabs = this.tabs.window(windowId).tabs
+            .map(tid => this.tabs.tab(tid))
+            .filter(t => ! t.hidden);
 
         let selected = tabs.filter(t => t.highlighted);
         if (selected.length <= 1) selected = tabs;
@@ -207,7 +208,8 @@ export class Model {
         const saved_tabs = (await this.bookmarkTabs(options.folderId, tabs)).tabs;
 
         if (options.close) {
-            await this.hideOrCloseStashedTabs(filterMap(saved_tabs, t => t.id));
+            await this.hideOrCloseStashedTabs(
+                filterMap(saved_tabs, t => t.id as Tabs.TabID));
         }
     }
 
@@ -360,7 +362,7 @@ export class Model {
     /** Hide/discard/close the specified tabs, according to the user's settings
      * for what to do with stashed tabs.  Creates a new tab if necessary to keep
      * the browser window(s) open. */
-    async hideOrCloseStashedTabs(tabIds: number[]): Promise<void> {
+    async hideOrCloseStashedTabs(tabIds: Tabs.TabID[]): Promise<void> {
         await this.tabs.refocusAwayFromTabs(tabIds);
 
         // Clear any highlights/selections on tabs we are stashing
@@ -415,7 +417,8 @@ export class Model {
         // We want to know what tabs are currently open in the window, so we can
         // avoid opening duplicates.
         const win_id = this.tabs.current_window;
-        const win_tabs = this.tabs.by_window.get(win_id);
+        const win_tabs = this.tabs.window(win_id).tabs
+            .map(tid => this.tabs.tab(tid));
 
         // We want to know which tab the user is currently looking at so we can
         // close it if it's just the new-tab page, and because if we restore any

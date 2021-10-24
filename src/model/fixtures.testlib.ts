@@ -9,7 +9,7 @@ import browser, {Bookmarks, Windows, Tabs} from 'webextension-polyfill';
 import * as events from '../mock/events';
 
 import type {NodeID} from './bookmarks';
-import type {Tab} from './tabs';
+import type {Tab, TabID, WindowID} from './tabs';
 
 export const B = 'about:blank';
 
@@ -46,8 +46,8 @@ const WINDOWS = {
 } as const;
 
 export type TabFixture = {
-    windows: {[k in WindowName]: Windows.Window & {id: string}},
-    tabs: {[k in TabName]: Tabs.Tab & {id: string}},
+    windows: {[k in WindowName]: Windows.Window & {id: WindowID}},
+    tabs: {[k in TabName]: Tabs.Tab & {id: TabID}},
 };
 type WindowName = keyof typeof WINDOWS;
 type TabName = (typeof WINDOWS)[WindowName][any]['id'];
@@ -152,7 +152,7 @@ export async function make_tabs(): Promise<TabFixture> {
 
             tab.windowId = win.id;
             tab.index = i;
-            tabs[tab_def.id] = tab as Tab & {id: string};
+            tabs[tab_def.id] = tab as Tabs.Tab & {id: TabID};
             win.tabs.push(tab);
             ++i;
         }

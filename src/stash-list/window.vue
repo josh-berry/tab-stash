@@ -229,7 +229,7 @@ export default defineComponent({
 
                 // First see if we have an open tab in this window already.  If
                 // so, we need only move it into position.
-                const already_open = this.model().tabs.by_url.get(bm.url);
+                const already_open = Array.from(this.model().tabs.tabsWithURL(bm.url));
                 tid = already_open.filter(t => t.windowId === cur_win)[0]?.id;
                 if (tid === undefined) {
                     // There is no open tab, so we must restore one.

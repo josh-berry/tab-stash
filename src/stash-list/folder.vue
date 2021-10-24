@@ -67,6 +67,7 @@ import {
     Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, NodeID
 } from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
+import {TabID} from '../model/tabs';
 
 const DROP_FORMATS = [
     'application/x-tab-stash-bookmark-id',
@@ -194,8 +195,7 @@ export default defineComponent({
             if (tabId) {
                 // We are dragging a tab into this bookmark folder.  Create a
                 // new bookmark and close the tab.
-                const tab = this.model().tabs.by_id.get(Number.parseInt(tabId));
-                if (! tab) return;
+                const tab = this.model().tabs.tab(Number.parseInt(tabId) as TabID);
 
                 await browser.bookmarks.create({
                     parentId: this.folder.id,

@@ -1,7 +1,8 @@
-import {urlToOpen} from '../util';
+import browser, {Tabs} from 'webextension-polyfill';
+
+import {logErrors, urlToOpen} from '../util';
 
 import {KVSCache, Entry} from '../datastore/kvs';
-import * as Tabs from './tabs';
 
 /** The persistent cache which holds favicons, keyed by URL. */
 export type FaviconCache = KVSCache<string, Favicon>;
@@ -23,16 +24,19 @@ export type FaviconEntry = Entry<string, Favicon | null>;
  * possible to the user.
  */
 export class Model {
-    private readonly _tabs: Tabs.Model;
     private readonly _kvc: FaviconCache;
 
-    constructor(tabs: Tabs.Model, kvc: FaviconCache) {
-        this._tabs = tabs;
+    constructor(kvc: FaviconCache) {
         this._kvc = kvc;
 
-        this._tabs.by_id.onInsert.addListener((_id, tab) => this._updateFavicon(tab));
-        this._tabs.by_id.onUpdate.addListener((_id, tab) => this._updateFavicon(tab));
-        for (const [_id, tab] of this._tabs.by_id) this._updateFavicon(tab);
+        browser.tabs.onCreated.addListener(tab => this._updateFavicon(tab));
+        browser.tabs.onUpdated.addListener((_id, _info, tab) => this._updateFavicon(tab));
+
+        logErrors(async () => {
+            for (const tab of await browser.tabs.query({})) {
+                this._updateFavicon(tab);
+            }
+        });
     }
 
     /** Removes favicons for whom `keep(url)` returns false. */

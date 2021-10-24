@@ -3,7 +3,7 @@
   <teleport to="body">
     <transition appear name="dialog">
       <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
-                 v-on="dialog.on" @close="dialog = undefined">
+                 @close="dialog = undefined">
       </component>
     </transition>
   </teleport>
@@ -73,7 +73,7 @@
 
 <script lang="ts">
 import browser from 'webextension-polyfill';
-import {defineComponent} from 'vue';
+import {defineComponent, PropType} from 'vue';
 
 import launch, {pageref} from '../launch-vue';
 import {
@@ -82,7 +82,7 @@ import {
 } from '../util';
 import ui_model from '../ui-model';
 import {Model, DeletedItems as DI} from '../model';
-import {Tab} from '../model/tabs';
+import {Tab, WindowID} from '../model/tabs';
 import {Bookmark, Folder} from '../model/bookmarks';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -101,14 +101,14 @@ const Main = defineComponent({
     },
 
     props: {
-        window_id: required(Number),
+        window_id: required(Number as PropType<number> as PropType<WindowID>),
         my_version: required(String),
     },
 
     data: () => ({
         collapsed: false,
         searchtext: '',
-        dialog: undefined as undefined | {class: string, props: any},
+        dialog: undefined as undefined | {class: string, props?: any},
     }),
 
     computed: {
@@ -116,7 +116,8 @@ const Main = defineComponent({
             return this.model().bookmarks.stash_root_warning.value;
         },
         tabs(): readonly Tab[] {
-            return this.model().tabs.by_window.get(this.window_id) ?? [];
+            return this.model().tabs.window(this.window_id).tabs
+                .map(tid => this.model().tabs.tab(tid));
         },
         stash_root(): Folder | undefined {
             return this.model().bookmarks.stash_root.value;

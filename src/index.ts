@@ -7,6 +7,7 @@ import {
 } from './util';
 import service_model from './service-model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
+import {WindowID} from './model/tabs';
 
 logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
@@ -120,7 +121,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     stash_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab || tab.windowId === undefined) return;
-        await model.stashTabsInWindow(tab.windowId, {close: true});
+        await model.stashTabsInWindow(tab.windowId as WindowID, {close: true});
     },
 
     stash_one: async function(tab?: Tabs.Tab) {
@@ -141,7 +142,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     copy_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab || tab.windowId === undefined) return;
-        await model.stashTabsInWindow(tab.windowId, {close: false});
+        await model.stashTabsInWindow(tab.windowId as WindowID, {close: false});
     },
 
     copy_one: async function(tab?: Tabs.Tab) {
@@ -184,7 +185,7 @@ async function stash_something(stash_what: StashWhatOpt, tab: Tabs.Tab) {
     if (tab.windowId === undefined) return;
     switch (stash_what) {
         case 'all':
-            await model.stashTabsInWindow(tab.windowId, {close: true});
+            await model.stashTabsInWindow(tab.windowId as WindowID, {close: true});
             break;
 
         case 'single':

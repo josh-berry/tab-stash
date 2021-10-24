@@ -34,7 +34,7 @@ export default async function(): Promise<M.Model> {
 
     const model = new M.Model({
         ...sources,
-        favicons: new M.Favicons.Model(sources.tabs, new KVSCache(kvs.favicons)),
+        favicons: new M.Favicons.Model(new KVSCache(kvs.favicons)),
         bookmark_metadata: new M.BookmarkMetadata.Model(new KVSCache(kvs.bookmark_metadata)),
     });
     (<any>globalThis).model = model;
