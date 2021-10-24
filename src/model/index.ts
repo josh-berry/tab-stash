@@ -720,14 +720,14 @@ export class Model {
 
         const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
             if ('children' in item) return {
-                title: item.title ?? '',
+                title: item.title,
                 children: filterMap(item.children, i =>
                     i && toDelItem(this.bookmarks.node(i))),
             };
 
             if ('url' in item) return {
-                title: item.title ?? item.url ?? '',
-                url: item.url ?? '',
+                title: item.title,
+                url: item.url,
                 favIconUrl: this.favicons.get(item.url!).value?.favIconUrl
                     || undefined,
             };

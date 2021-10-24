@@ -19,6 +19,7 @@ import {_StoredObjectFactory} from '../datastore/stored-object';
 import {LOCAL_DEF, SYNC_DEF} from './options';
 import {TabID} from './tabs';
 import {getDefaultFolderNameISODate, NodeID} from './bookmarks';
+import {DeletedFolder} from './deleted-items';
 
 describe('model', () => {
     let tabs: TabFixture["tabs"];
@@ -1045,11 +1046,217 @@ describe('model', () => {
     });
 
     describe('deletes and un-deletes bookmarks', () => {
-        it('deletes folders and remembers them as deleted items');
-        it('deletes bookmarks and remembers them as deleted items');
-        it('un-deletes folders');
-        it('un-deletes bookmarks into their old folder');
-        it('un-deletes bookmarks into a new folder if the old one is gone');
-        it('un-deletes individual bookmarks in a deleted folder');
+        async function makeEmptyStashFolder() {
+            await browser.bookmarks.create({
+                parentId: model.bookmarks.stash_root.value!.id,
+                index: 0,
+                title: 'Empty Folder',
+            });
+            await events.nextN(browser.bookmarks.onCreated, 1);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
+        }
+
+        it('deletes folders and remembers them as deleted items', async () => {
+            await model.deleteBookmarkTree(bookmarks.names.id);
+            await events.next(browser.bookmarks.onRemoved);
+            await events.next('KVS.Memory.onSet');
+
+            expect(() => model.bookmarks.node(bookmarks.names.id)).to.throw(Error);
+            expect(model.bookmarks.stash_root.value!.children).to.deep.equal([
+                bookmarks.unnamed.id,
+                bookmarks.big_stash.id,
+            ]);
+
+            expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+            expect(model.deleted_items.state.entries[0].item).to.deep.equal({
+                title: "Names",
+                children: [
+                    {title: "Doug Duplicate", url: `${B}#doug`},
+                    {title: "Helen Hidden", url: `${B}#helen`},
+                    {title: "Patricia Pinned", url: `${B}#patricia`},
+                    {title: "Nate NotOpen", url: `${B}#nate`},
+                ],
+            });
+        });
+
+        it('deletes bookmarks and remembers them as deleted items', async () => {
+            await model.deleteBookmark(model.bookmarks.bookmark(bookmarks.helen.id));
+            await events.next(browser.bookmarks.onRemoved);
+            await events.next('KVS.Memory.onSet');
+
+            expect(() => model.bookmarks.node(bookmarks.helen.id)).to.throw(Error);
+            expect(model.bookmarks.folder(bookmarks.names.id).children).to.deep.equal([
+                bookmarks.doug_2.id,
+                bookmarks.patricia.id,
+                bookmarks.nate.id,
+            ]);
+
+            expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+            expect(model.deleted_items.state.entries[0].item).to.deep.equal({
+                title: "Helen Hidden",
+                url: `${B}#helen`,
+            });
+            expect(model.deleted_items.state.entries[0].deleted_from)
+                .to.deep.equal({folder_id: bookmarks.names.id, title: 'Names'});
+        });
+
+        it('un-deletes folders', async () => {
+            await model.deleteBookmarkTree(bookmarks.names.id);
+            await events.next(browser.bookmarks.onRemoved);
+            await events.next('KVS.Memory.onSet');
+
+            expect(() => model.bookmarks.node(bookmarks.names.id)).to.throw(Error);
+            expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+
+            const p = model.undelete(model.deleted_items.state.entries[0]);
+            await events.nextN(browser.bookmarks.onCreated, 5);
+            await events.next('KVS.Memory.onDelete');
+            await p;
+
+            const restored_id = model.bookmarks.stash_root.value!.children[0];
+            const restored = model.bookmarks.folder(restored_id);
+            expect(restored.title).to.equal(bookmarks.names.title);
+            expect(restored.children.map(id => model.bookmarks.bookmark(id).url))
+                .to.deep.equal(bookmarks.names.children!.map(bm => bm.url));
+        });
+
+        describe('un-deletes bookmarks', () => {
+            beforeEach(async () => {
+                await model.deleteBookmark(model.bookmarks.bookmark(bookmarks.helen.id));
+                await events.next(browser.bookmarks.onRemoved);
+                await events.next('KVS.Memory.onSet');
+
+                // Wait for time to advance so we don't delete two items in the
+                // same millisecond, and we can thus guarantee their sort order.
+                const now = Date.now();
+                while (Date.now() === now) await new Promise(r => setImmediate(r));
+
+                expect(() => model.bookmarks.node(bookmarks.helen.id)).to.throw(Error);
+                expect(model.bookmarks.folder(bookmarks.names.id).children).to.deep.equal([
+                    bookmarks.doug_2.id,
+                    bookmarks.patricia.id,
+                    bookmarks.nate.id,
+                ]);
+                expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+            });
+
+            it('into their old folder', async () => {
+                const p = model.undelete(model.deleted_items.state.entries[0]);
+                await events.nextN(browser.bookmarks.onCreated, 1);
+                await events.next('KVS.Memory.onDelete');
+                await p;
+
+                const ids = model.bookmarks.folder(bookmarks.names.id).children;
+                expect(ids.map(id => model.bookmarks.bookmark(id).url)).to.deep.equal([
+                    `${B}#doug`, `${B}#patricia`, `${B}#nate`, `${B}#helen`]);
+            });
+
+            it('into a recent unnamed folder', async () => {
+                // deleted item #1 is the item deleted in beforeEach() above
+
+                // deleted item #0:
+                await model.deleteBookmarkTree(bookmarks.names.id);
+                await events.next(browser.bookmarks.onRemoved);
+                await events.next('KVS.Memory.onSet');
+
+                expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
+                expect(model.deleted_items.state.entries[1].item.title)
+                    .to.equal('Helen Hidden');
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+
+                const p = model.undelete(model.deleted_items.state.entries[1]);
+                await events.nextN(browser.bookmarks.onCreated, 1);
+                await events.next('KVS.Memory.onDelete');
+                await p;
+
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id);
+                expect(restored_folder.children.map(id => model.bookmarks.bookmark(id).url))
+                    .to.deep.equal([`${B}#undyne`, `${B}#helen`]);
+            });
+
+            it('into a new folder if the old one is gone', async () => {
+                // deleted item #1 is the item deleted in beforeEach() above
+
+                // deleted item #0:
+                await model.deleteBookmarkTree(bookmarks.names.id);
+                await events.next(browser.bookmarks.onRemoved);
+                await events.next('KVS.Memory.onSet');
+
+                expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
+                expect(model.deleted_items.state.entries[1].item.title)
+                    .to.equal('Helen Hidden');
+
+                // We need to create a new folder here since the topmost folder is
+                // now an unnamed folder.
+                await makeEmptyStashFolder();
+
+                const p = model.undelete(model.deleted_items.state.entries[1]);
+                await events.nextN(browser.bookmarks.onCreated, 2);
+                await events.next('KVS.Memory.onDelete');
+                await p;
+
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+                const restored_folder_id = model.bookmarks.stash_root.value!.children[0];
+                const restored_folder = model.bookmarks.folder(restored_folder_id);
+                expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be.null;
+                expect(restored_folder.children.map(id => model.bookmarks.bookmark(id).url))
+                    .to.deep.equal([`${B}#helen`]);
+            });
+        });
+
+        describe('un-deletes individual bookmarks in a deleted folder', () => {
+            beforeEach(async () => {
+                await model.deleteBookmarkTree(bookmarks.names.id);
+                await events.next(browser.bookmarks.onRemoved);
+                await events.next('KVS.Memory.onSet');
+
+                expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+            });
+
+            it('into a recently-created unnamed folder', async () => {
+                const p = model.undeleteChild(model.deleted_items.state.entries[0], 2);
+                await events.nextN(browser.bookmarks.onCreated, 1);
+                await events.next('KVS.Memory.onSet');
+                await p;
+
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id);
+                expect(restored_folder.children.map(id => model.bookmarks.bookmark(id).url))
+                    .to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
+
+                const item = model.deleted_items.state.entries[0].item as DeletedFolder;
+                expect(item.children).to.deep.equal([
+                    {title: 'Doug Duplicate', url: `${B}#doug`},
+                    {title: 'Helen Hidden', url: `${B}#helen`},
+                    {title: 'Nate NotOpen', url: `${B}#nate`},
+                ]);
+            });
+
+            it('into a new folder', async () => {
+                // We need to create a new folder here since the topmost folder is
+                // now an unnamed folder.
+                await makeEmptyStashFolder();
+
+                const p = model.undeleteChild(model.deleted_items.state.entries[0], 2);
+                await events.nextN(browser.bookmarks.onCreated, 2);
+                await events.next('KVS.Memory.onSet');
+                await p;
+
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+                const restored_folder_id = model.bookmarks.stash_root.value!.children[0];
+                const restored_folder = model.bookmarks.folder(restored_folder_id);
+                expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be.null;
+                expect(restored_folder.children.map(id => model.bookmarks.bookmark(id).url))
+                    .to.deep.equal([`${B}#patricia`]);
+
+                const item = model.deleted_items.state.entries[0].item as DeletedFolder;
+                expect(item.children).to.deep.equal([
+                    {title: 'Doug Duplicate', url: `${B}#doug`},
+                    {title: 'Helen Hidden', url: `${B}#helen`},
+                    {title: 'Nate NotOpen', url: `${B}#nate`},
+                ]);
+            });
+        });
     });
 });
