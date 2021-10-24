@@ -49,7 +49,7 @@ export {
 };
 
 export type PartialTabInfo = {
-    id?: number,
+    id?: Tabs.TabID | number,
     title?: string,
     url?: string,
 };
@@ -116,14 +116,15 @@ export class Model {
      * created recently, return its ID.  Otherwise return `undefined`.  Used to
      * determine where to place single bookmarks we are trying to stash, if we
      * don't already know where they should go. */
-    mostRecentUnnamedFolderId(): string | undefined {
+    mostRecentUnnamedFolderId(): Bookmarks.NodeID | undefined {
         const root = this.bookmarks.stash_root.value;
         if (! root) return undefined;
 
-        const topmost = root.children ? root.children[0] : undefined;
+        const topmost = root.children
+            ? this.bookmarks.node(root.children[0]) : undefined;
 
         // Is there a top-most item under the root folder, and is it a folder?
-        if (! topmost?.children) return undefined;
+        if (! topmost || ! ('children' in topmost)) return undefined;
 
         // Does the folder have a name which looks like a default name?
         if (! Bookmarks.getDefaultFolderNameISODate(topmost.title)) return undefined;
@@ -151,8 +152,14 @@ export class Model {
 
         await this.deleted_items.dropOlderThan(deleted_exp);
         await this.favicons.gc(url =>
-            this.bookmarks.by_url.has(url) || this.tabs.by_url.has(url));
-        await this.bookmark_metadata.gc(id => this.bookmarks.by_id.has(id));
+            this.bookmarks.bookmarksWithURL(url).size > 0
+            || this.tabs.tabsWithURL(url).size > 0);
+        await this.bookmark_metadata.gc(id => {
+            try {
+                this.bookmarks.node(id as Bookmarks.NodeID);
+                return true;
+            } catch (e) { return false; }
+        });
     }
 
     /** Stash either all tabs (if none are selected) or the selected tabs in the
@@ -163,15 +170,15 @@ export class Model {
      * If `close` is true, closes/hides the stashed tabs according to the user's
      * preferences. */
     async stashTabsInWindow(
-        windowId: number,
+        windowId: Tabs.WindowID,
         options: {
-            folderId?: string,
+            folderId?: Bookmarks.NodeID,
             close?: boolean
         }
     ): Promise<void> {
-        const tabs = this.tabs.by_window.get(windowId)
-            .filter(t => ! t.hidden)
-            .sort((a, b) => a.index - b.index);
+        const tabs = this.tabs.window(windowId).tabs
+            .map(tid => this.tabs.tab(tid))
+            .filter(t => ! t.hidden);
 
         let selected = tabs.filter(t => t.highlighted);
         if (selected.length <= 1) selected = tabs;
@@ -194,14 +201,15 @@ export class Model {
     async stashTabs(
         tabs: PartialTabInfo[],
         options: {
-            folderId?: string,
+            folderId?: Bookmarks.NodeID,
             close?: boolean
         }
     ): Promise<void> {
         const saved_tabs = (await this.bookmarkTabs(options.folderId, tabs)).tabs;
 
         if (options.close) {
-            await this.hideOrCloseStashedTabs(filterMap(saved_tabs, t => t.id));
+            await this.hideOrCloseStashedTabs(
+                filterMap(saved_tabs, t => t.id as Tabs.TabID));
         }
     }
 
@@ -214,7 +222,7 @@ export class Model {
      * interest of minimizing latency, we don't wait for the model to update
      * itself. */
     async bookmarkTabs(
-        folderId: string | undefined,
+        folderId: Bookmarks.NodeID | undefined,
         all_tabs: PartialTabInfo[],
         options?: {newFolderTitle?: string, taskMonitor?: TaskMonitor},
     ): Promise<BookmarkTabsResult>
@@ -261,7 +269,7 @@ export class Model {
                     ?? Bookmarks.genDefaultFolderName(new Date()),
                 index: 0, // Newest folders should show up on top
             });
-            folderId = folder.id;
+            folderId = folder.id as Bookmarks.NodeID;
             newFolderId = folderId;
 
             // When saving to this folder, we want to save all tabs we
@@ -278,11 +286,12 @@ export class Model {
             // folder.  So it's okay for callers to assume that we saved
             // them--that's why we use a separate /tabs_to_actually_save/ array
             // here.
-            const folder = this.bookmarks.by_id.get(folderId);
-            if (! folder || ! folder.children) {
-                throw new Error(`Bookmark ${folderId} doesn't exist or isn't a folder`);
-            }
-            const existing_bms = folder.children.map(bm => bm.url);
+            const folder = this.bookmarks.folder(folderId);
+            const existing_bms = filterMap(folder.children, id => {
+                const node = this.bookmarks.node(id);
+                if ('url' in node) return node.url;
+                return undefined;
+            });
 
             tabs_to_actually_save = tabs_to_actually_save.filter(
                 tab => ! existing_bms.includes(tab.url));
@@ -299,7 +308,7 @@ export class Model {
         // in a single transaction, so to avoid this being unbearably slow, we
         // do this in two passes--create a bunch of empty bookmarks in parallel,
         // and then fill them in with the right values (again in parallel).
-        let ps = [];
+        let ps: Promise<browser.Bookmarks.BookmarkTreeNode>[] = [];
         const created_bm_ids = new Set();
         for (let _tab of tabs_to_actually_save) {
             ps.push(browser.bookmarks.create({
@@ -341,7 +350,7 @@ export class Model {
             ++tab_index;
         }
 
-        const bookmarks = [];
+        const bookmarks: browser.Bookmarks.BookmarkTreeNode[] = [];
         for (let p of ps) {
             bookmarks.push(await p);
             if (tm) ++tm.value;
@@ -353,7 +362,7 @@ export class Model {
     /** Hide/discard/close the specified tabs, according to the user's settings
      * for what to do with stashed tabs.  Creates a new tab if necessary to keep
      * the browser window(s) open. */
-    async hideOrCloseStashedTabs(tabIds: number[]): Promise<void> {
+    async hideOrCloseStashedTabs(tabIds: Tabs.TabID[]): Promise<void> {
         await this.tabs.refocusAwayFromTabs(tabIds);
 
         // Clear any highlights/selections on tabs we are stashing
@@ -408,7 +417,8 @@ export class Model {
         // We want to know what tabs are currently open in the window, so we can
         // avoid opening duplicates.
         const win_id = this.tabs.current_window;
-        const win_tabs = this.tabs.by_window.get(win_id);
+        const win_tabs = this.tabs.window(win_id).tabs
+            .map(tid => this.tabs.tab(tid));
 
         // We want to know which tab the user is currently looking at so we can
         // close it if it's just the new-tab page, and because if we restore any
@@ -511,21 +521,25 @@ export class Model {
      * should use {@link deleteBookmark()} for individual bookmarks, because it
      * will cleanup the parent folder if the parent folder has a "default" name
      * and would be empty. */
-    async deleteBookmarkTree(id: string) {
-        const bm = this.bookmarks.by_id.get(id);
-        if (! bm) return;
+    async deleteBookmarkTree(id: Bookmarks.NodeID) {
+        const bm = this.bookmarks.node(id);
 
-        const toDelItem = (item: Bookmarks.Bookmark): DeletedItems.DeletedItem =>
-            item.children
-                ? {
-                    title: item.title ?? '',
-                    children: filterMap(item.children, i => i && toDelItem(i)),
-                } : {
-                    title: item.title ?? item.url ?? '',
-                    url: item.url ?? '',
-                    favIconUrl: this.favicons.get(item.url!).value?.favIconUrl
-                        || undefined,
-                };
+        const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
+            if ('children' in item) return {
+                title: item.title ?? '',
+                children: filterMap(item.children, i =>
+                    i && toDelItem(this.bookmarks.node(i))),
+            };
+
+            if ('url' in item) return {
+                title: item.title ?? item.url ?? '',
+                url: item.url ?? '',
+                favIconUrl: this.favicons.get(item.url!).value?.favIconUrl
+                    || undefined,
+            };
+
+            return {title: '', url: ''};
+        };
 
         await this.deleted_items.add(toDelItem(bm));
         await browser.bookmarks.removeTree(bm.id);
@@ -535,7 +549,7 @@ export class Model {
      * the last bookmark in its parent folder, AND the parent folder has a
      * "default" name, removes the parent folder as well. */
     async deleteBookmark(bm: Bookmarks.Bookmark) {
-        const parent = this.bookmarks.by_id.get(bm.parentId!);
+        const parent = this.bookmarks.folder(bm.parentId!);
 
         await this.deleted_items.add({
             title: bm.title ?? '<no title>',
@@ -570,7 +584,8 @@ export class Model {
                 title: deletion.item.title,
                 index: 0,
             });
-            await this.bookmarkTabs(folder.id, deletion.item.children);
+            const fid = folder.id as Bookmarks.NodeID;
+            await this.bookmarkTabs(fid, deletion.item.children);
 
             // Restore their favicons.
             for (const c of deletion.item.children) {
@@ -581,14 +596,14 @@ export class Model {
         } else {
             // We're restoring an individual bookmark.  Try to find where to put
             // it, IF we remember where it came from.
-            let folderId: string | undefined;
+            let folderId: Bookmarks.NodeID | undefined;
 
             if (deletion.deleted_from) {
                 try {
                     await browser.bookmarks.get(deletion.deleted_from.folder_id);
 
                     // The exact bookmark we want still exists, use it
-                    folderId = deletion.deleted_from.folder_id;
+                    folderId = deletion.deleted_from.folder_id as Bookmarks.NodeID;
 
                 } catch (e) {
                     // Search for an existing folder inside the stash root with
@@ -600,7 +615,7 @@ export class Model {
                         if (bm.type !== 'folder') continue;
                         if (bm.parentId !== stash_root?.id) continue;
                         if (bm.title !== deletion.deleted_from.title) continue;
-                        folderId = bm.id;
+                        folderId = bm.id as Bookmarks.NodeID;
                         break;
                     }
                 }
@@ -649,7 +664,7 @@ export class Model {
 
 export type BookmarkTabsResult = {
     tabs: PartialTabInfo[],
-    bookmarks: Bookmarks.Bookmark[],
+    bookmarks: browser.Bookmarks.BookmarkTreeNode[],
     newFolderId?: string,
 };
 

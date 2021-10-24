@@ -72,8 +72,9 @@
 <script lang="ts">
 import {PropType, defineComponent, nextTick} from 'vue';
 
-import {required} from '../util';
-import {Bookmark, friendlyFolderName} from '../model/bookmarks';
+import {filterMap, required} from '../util';
+import {Model} from '../model';
+import {Node, Folder, friendlyFolderName, Bookmark} from '../model/bookmarks';
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
@@ -83,15 +84,17 @@ export default defineComponent({
         Dialog: require('../components/dialog.vue').default,
     },
 
+    inject: ['$model'],
+
     emits: ['close'],
 
     props: {
-        stash: required(Array as PropType<Bookmark[]>),
+        stash: required(Array as PropType<Node[]>),
     },
 
     computed: {
-        folders(): Bookmark[] {
-            return this.stash.filter((t: any) => t && t.children) as Bookmark[];
+        folders(): Folder[] {
+            return this.stash.filter(t => 'children' in t) as Folder[];
         },
     },
 
@@ -106,9 +109,16 @@ export default defineComponent({
     },
 
     methods: {
+        model(): Model { return (<any>this).$model as Model; },
+
         friendlyFolderName,
-        leaves: function(folder: Bookmark) {
-            return (folder.children ?? []).filter(bm => bm && bm.url);
+        leaves(folder: Folder): Bookmark[] {
+            const bookmarks = this.model().bookmarks;
+            return filterMap(folder.children, cid => {
+                const child = bookmarks.node(cid);
+                if ('url' in child) return child;
+                return undefined;
+            });
         },
 
         quote_emphasis_md(text: string): string {

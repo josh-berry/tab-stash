@@ -58,7 +58,7 @@ import {DragAction, DropAction} from '../components/dnd-list';
 
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {genDefaultFolderName} from '../model/bookmarks';
+import {genDefaultFolderName, NodeID} from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
 const DROP_FORMATS = [
@@ -140,8 +140,8 @@ export default defineComponent({
             const stash_root_id = bookmarks.stash_root.value?.id;
             if (stash_root_id === undefined) return false;
 
-            const bms = bookmarks.by_url.get(i.url);
-            return !!bms.find(bm => bookmarks.isBookmarkInFolder(bm, stash_root_id));
+            const bms = Array.from(bookmarks.bookmarksWithURL(i.url));
+            return !!bms.find(bm => bookmarks.isNodeInFolder(bm, stash_root_id));
         },
 
         async newGroup() {logErrors(async() => {
@@ -220,17 +220,16 @@ export default defineComponent({
                 // tab to a particular location in the window.  If there's
                 // already an open tab for this bookmark in the same window,
                 // we will just move it to the right place.
-                bm = this.model().bookmarks.by_id.get(bmId);
-                if (! bm) return;
+                bm = this.model().bookmarks.node(bmId as NodeID);
 
                 // We can't restore a bookmark without a URL...
-                if (! bm.url) return;
+                if (! ('url' in bm)) return;
 
                 const cur_win = this.model().tabs.current_window;
 
                 // First see if we have an open tab in this window already.  If
                 // so, we need only move it into position.
-                const already_open = this.model().tabs.by_url.get(bm.url);
+                const already_open = Array.from(this.model().tabs.tabsWithURL(bm.url));
                 tid = already_open.filter(t => t.windowId === cur_win)[0]?.id;
                 if (tid === undefined) {
                     // There is no open tab, so we must restore one.

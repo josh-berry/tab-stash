@@ -8,8 +8,8 @@ import browser, {Bookmarks, Windows, Tabs} from 'webextension-polyfill';
 
 import * as events from '../mock/events';
 
-import type {Bookmark} from './bookmarks';
-import type {Tab} from './tabs';
+import type {NodeID} from './bookmarks';
+import type {Tab, TabID, WindowID} from './tabs';
 
 export const B = 'about:blank';
 
@@ -46,8 +46,8 @@ const WINDOWS = {
 } as const;
 
 export type TabFixture = {
-    windows: {[k in WindowName]: Windows.Window & {id: string}},
-    tabs: {[k in TabName]: Tabs.Tab & {id: string}},
+    windows: {[k in WindowName]: Windows.Window & {id: WindowID}},
+    tabs: {[k in TabName]: Tabs.Tab & {id: TabID}},
 };
 type WindowName = keyof typeof WINDOWS;
 type TabName = (typeof WINDOWS)[WindowName][any]['id'];
@@ -78,7 +78,9 @@ const BOOKMARKS = {
     ],
 } as const;
 
-export type BookmarkFixture = {[k in BookmarkName]: Bookmarks.BookmarkTreeNode};
+export type BookmarkFixture = {
+    [k in BookmarkName]: Bookmarks.BookmarkTreeNode & {id: NodeID, parentId: NodeID}
+};
 type BookmarkName = BookmarkNamesHere<typeof BOOKMARKS>;
 type BookmarkNamesHere<B extends NamedBookmark> = B['id']
     | (B extends NamedBookmarkFolder ? BookmarkNamesHere<B['children'][any]> : never);
@@ -98,10 +100,10 @@ export async function make_bookmarks(): Promise<BookmarkFixture> {
     // TODO: Cleanup from any prior failed runs (if we're in a real browser)
     const res: Partial<BookmarkFixture> = {};
 
-    async function gen(id: BookmarkName, bm: Bookmark, parentId: string | undefined): Promise<Bookmarks.BookmarkTreeNode> {
+    async function gen(id: BookmarkName, bm: any, parentId: string | undefined): Promise<Bookmarks.BookmarkTreeNode> {
         // istanbul ignore if
         if (id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
-        res[id] = await browser.bookmarks.create({...bm, parentId});
+        res[id] = await browser.bookmarks.create({...bm, parentId}) as any;
         await events.next(browser.bookmarks.onCreated);
         if (! bm.children) return res[id]!;
 
@@ -150,7 +152,7 @@ export async function make_tabs(): Promise<TabFixture> {
 
             tab.windowId = win.id;
             tab.index = i;
-            tabs[tab_def.id] = tab as Tab & {id: string};
+            tabs[tab_def.id] = tab as Tabs.Tab & {id: TabID};
             win.tabs.push(tab);
             ++i;
         }

@@ -3,10 +3,11 @@
 import browser, {Tabs, Menus} from 'webextension-polyfill';
 
 import {
-    asyncEvent, urlsInTree, urlToOpen, nonReentrant, logErrors,
+    asyncEvent, urlToOpen, nonReentrant, logErrors,
 } from './util';
 import service_model from './service-model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
+import {WindowID} from './model/tabs';
 
 logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
@@ -120,7 +121,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     stash_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab || tab.windowId === undefined) return;
-        await model.stashTabsInWindow(tab.windowId, {close: true});
+        await model.stashTabsInWindow(tab.windowId as WindowID, {close: true});
     },
 
     stash_one: async function(tab?: Tabs.Tab) {
@@ -141,7 +142,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     copy_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab || tab.windowId === undefined) return;
-        await model.stashTabsInWindow(tab.windowId, {close: false});
+        await model.stashTabsInWindow(tab.windowId as WindowID, {close: false});
     },
 
     copy_one: async function(tab?: Tabs.Tab) {
@@ -184,7 +185,7 @@ async function stash_something(stash_what: StashWhatOpt, tab: Tabs.Tab) {
     if (tab.windowId === undefined) return;
     switch (stash_what) {
         case 'all':
-            await model.stashTabsInWindow(tab.windowId, {close: true});
+            await model.stashTabsInWindow(tab.windowId as WindowID, {close: true});
             break;
 
         case 'single':
@@ -310,12 +311,12 @@ model.options.sync.onChanged.addListener(asyncEvent(async opts => {
 //
 
 logErrors(async () => {
-    let managed_urls = new Set(urlsInTree(model.bookmarks.stash_root.value));
+    let managed_urls = model.bookmarks.urlsInStash();
 
     const close_removed_bookmarks = nonReentrant(async function() {
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
-        let new_urls = new Set(urlsInTree(model.bookmarks.stash_root.value));
+        const new_urls = model.bookmarks.urlsInStash();
         let windows = await browser.windows.getAll(
             {windowTypes: ['normal'], populate: true});
 
@@ -342,9 +343,9 @@ logErrors(async () => {
         managed_urls = new_urls;
     });
 
-    model.bookmarks.by_id.onUpdate.addListener(close_removed_bookmarks);
-    model.bookmarks.by_id.onMove.addListener(close_removed_bookmarks);
-    model.bookmarks.by_id.onDelete.addListener(close_removed_bookmarks);
+    browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
+    browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
+    browser.bookmarks.onRemoved.addListener(close_removed_bookmarks);
 });
 
 

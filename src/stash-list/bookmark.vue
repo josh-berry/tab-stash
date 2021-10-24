@@ -50,11 +50,10 @@ export default defineComponent({
             return this.model().tabs.current_window;
         },
 
-        related_tabs(): readonly Tab[] {
+        related_tabs(): Tab[] {
             if (! this.bookmark.url) return [];
-            const related = this.model().tabs.by_url.get(this.bookmark.url);
-            if (! related) return [];
-            return related;
+            const related = this.model().tabs.tabsWithURL(this.bookmark.url);
+            return Array.from(related);
         },
 
         hasOpenTab(): boolean {

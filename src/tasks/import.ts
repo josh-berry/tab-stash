@@ -1,7 +1,7 @@
 import browser from 'webextension-polyfill';
 
 import { TaskMonitor } from '../util';
-import {Model, Bookmarks} from '../model';
+import {Model} from '../model';
 import { fetchInfoForSites } from './siteinfo';
 
 // This is based on RFC 3986, but is rather more permissive in some ways,
@@ -204,7 +204,7 @@ export async function importURLs(
         tm.status = "Updating bookmarks...";
 
         const {bookmarks, folderIds} = await create_bms_p;
-        const bms_by_url = new Map<string, Bookmarks.Bookmark[]>();
+        const bms_by_url = new Map<string, browser.Bookmarks.BookmarkTreeNode[]>();
 
         tm.max = bookmarks.length;
         for (const bm of bookmarks) {

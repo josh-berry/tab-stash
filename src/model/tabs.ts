@@ -1,9 +1,28 @@
 import {reactive} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
 import {EventWiring, filterMap} from "../util";
-import {EventfulMap, Index} from "./util";
 
-export type Tab = Tabs.Tab & {id: number, windowId: number};
+export type Window = {
+    readonly id: WindowID,
+    readonly tabs: TabID[],
+};
+export type Tab = {
+    windowId: WindowID,
+    id: TabID,
+    status: Tabs.TabStatus,
+    title: string,
+    url: string,
+    favIconUrl: string,
+    pinned: boolean,
+    hidden: boolean,
+    active: boolean,
+    highlighted: boolean,
+};
+
+export type WindowID = number & {readonly __window_id: unique symbol};
+export type TabID = number & {readonly __tab_id: unique symbol};
+
+export type TabPosition = {window: Window, index: number};
 
 /** A Vue model for the state of all open browser windows and their tabs.
  *
@@ -16,19 +35,11 @@ export type Tab = Tabs.Tab & {id: number, windowId: number};
  * JSON-serializable (for transmission between contexts).
  */
 export class Model {
-    readonly by_id = new EventfulMap<number, Tab>("tabs");
+    private readonly windows = new Map<WindowID, Window>();
+    private readonly tabs = new Map<TabID, Tab>();
+    private readonly tabs_by_url = new Map<string, Set<Tab>>();
 
-    readonly by_window = new Index(this.by_id, {
-        keyFor: tab => tab.windowId,
-        positionOf: tab => tab.index,
-        whenPositionChanged(tab, toIndex) { tab.index = toIndex; },
-    });
-
-    readonly by_url = new Index(this.by_id, {
-        keyFor: tab => tab.url ?? '',
-    });
-
-    current_window: number | undefined;
+    current_window: WindowID | undefined;
 
     //
     // Loading data and wiring up events
@@ -41,7 +52,7 @@ export class Model {
         const tabs = await browser.tabs.query({});
         const win = await browser.windows.getCurrent();
 
-        const model = new Model(tabs, win.id);
+        const model = new Model(tabs, win.id as WindowID);
         wiring.wire(model);
         return model;
     }
@@ -66,7 +77,7 @@ export class Model {
         return wiring;
     }
 
-    private constructor(tabs: Tabs.Tab[], current_window: number | undefined) {
+    private constructor(tabs: Tabs.Tab[], current_window?: WindowID) {
         this.current_window = current_window;
         for (const t of tabs) this.whenTabCreated(t);
     }
@@ -75,16 +86,48 @@ export class Model {
     // Accessors
     //
 
+    window(id: WindowID): Window {
+        const win = this.windows.get(id);
+        if (! win) throw new Error(`No such window: ${id}`);
+        return win;
+    }
+
+    tab(id: TabID): Tab {
+        const tab = this.tabs.get(id);
+        if (! tab) throw new Error(`No such tab: ${id}`);
+        return tab;
+    }
+
+    /** Returns the parent window of the tab, and the index of the tab in that
+     * parent window's .tabs array. */
+    positionOf(tab: Tab): TabPosition {
+        const window = this.window(tab.windowId);
+        const index = window.tabs.findIndex(tid => tid === tab.id);
+
+        // istanbul ignore next -- internal sanity
+        if (index === -1) throw new Error(`Tab not in its parent window: ${tab.id}`);
+        return {window, index};
+    }
+
     /** Returns the active tab in the specified window (or in
      * `this.current_window`, if no window is specified). */
-    activeTab(windowId?: number): Tab | undefined {
+    activeTab(windowId?: WindowID): Tab | undefined {
         if (windowId === undefined) windowId = this.current_window;
         if (windowId === undefined) return undefined;
 
-        const tabs = this.by_window.get(windowId);
-        if (! tabs) return undefined;
+        return this.window(windowId).tabs
+            .map(t => this.tab(t))
+            .filter(t => t.active)[0];
+    }
 
-        return tabs.filter(t => t.active)[0];
+    /** Returns a reactive set of tabs with the specified URL. */
+    tabsWithURL(url: string): Set<Tab> {
+        let index = this.tabs_by_url.get(url);
+        if (! index) {
+            index = reactive(new Set<Tab>());
+            this.tabs_by_url.set(url, index);
+        }
+        return index;
     }
 
     //
@@ -93,7 +136,7 @@ export class Model {
 
     /** Close the specified tabs, but leave the browser window open (and create
      * a new tab if necessary to keep it open). */
-    async closeTabs(tabIds: number[]): Promise<void> {
+    async closeTabs(tabIds: TabID[]): Promise<void> {
         await this.refocusAwayFromTabs(tabIds);
         await browser.tabs.remove(tabIds);
     }
@@ -107,13 +150,14 @@ export class Model {
      * active tabs which we are about to close (so the browser doesn't stop us
      * from closing them).
      */
-    async refocusAwayFromTabs(tabIds: number[]): Promise<void> {
-        const closing_tabs = filterMap(tabIds, id => this.by_id.get(id));
+    async refocusAwayFromTabs(tabIds: TabID[]): Promise<void> {
+        const closing_tabs = filterMap(tabIds, id => this.tabs.get(id));
         const active_tabs = closing_tabs.filter(t => t.active);
 
         // NOTE: We expect there to be at most one active tab per window.
         for (const active_tab of active_tabs) {
-            const tabs_in_window = this.by_window.get(active_tab.windowId)
+            const tabs_in_window = this.window(active_tab.windowId).tabs
+                .map(t => this.tab(t))
                 .filter(t => ! t.hidden && ! t.pinned);
             const closing_tabs_in_window =
                 closing_tabs.filter(t => t.windowId === active_tab.windowId);
@@ -135,7 +179,7 @@ export class Model {
                 // from, to mimic the browser's behavior when closing the front
                 // tab.
 
-                const idx = active_tab.index;
+                const idx = this.positionOf(active_tab).index;
                 let candidates = tabs_in_window.slice(idx + 1);
                 let focus_tab = candidates.find(
                     t => t.id !== undefined && ! tabIds.find(id => t.id === id));
@@ -163,6 +207,12 @@ export class Model {
     //
 
     whenWindowCreated(win: Windows.Window) {
+        const wid = win.id as WindowID;
+        let window = this.windows.get(wid);
+        if (! window) {
+            window = reactive({id: wid, tabs: []});
+            this.windows.set(wid, window);
+        }
         // istanbul ignore else
         if (win.tabs !== undefined) {
             for (const t of win.tabs) this.whenTabCreated(t);
@@ -170,26 +220,75 @@ export class Model {
     }
 
     whenWindowRemoved(winId: number) {
-        const win = Array.from(this.by_window.get(winId));
-        for (const t of win) this.whenTabRemoved(t.id);
+        const win = this.windows.get(winId as WindowID);
+        if (! win) return;
+
+        // We clone the array to avoid disturbances while iterating
+        for (const t of Array.from(win.tabs)) this.whenTabRemoved(t);
+        this.windows.delete(winId as WindowID);
     }
 
     whenTabCreated(tab: Tabs.Tab) {
-        let t = this.by_id.get(tab.id!);
+        let t = this.tabs.get(tab.id as TabID);
         if (! t) {
             // CAST: Tabs.Tab says the id should be optional, but it isn't...
-            t = reactive(tab as Tab);
-            this.by_id.insert(tab.id!, t);
+            t = reactive({
+                windowId: tab.windowId as WindowID,
+                id: tab.id as TabID,
+                status: tab.status as Tabs.TabStatus ?? 'loading',
+                title: tab.title ?? '',
+                url: tab.url ?? '',
+                favIconUrl: tab.favIconUrl ?? '',
+                pinned: tab.pinned,
+                hidden: tab.hidden ?? false,
+                active: tab.active,
+                highlighted: tab.highlighted,
+            });
+            this.tabs.set(tab.id as TabID, t);
         } else {
-            Object.assign(t, tab);
+            // Remove this tab from its prior position
+            if (this.windows.get(tab.windowId as WindowID)) {
+                const pos = this.positionOf(t);
+                pos.window.tabs.splice(pos.index, 1);
+            }
+            this._remove_url(t);
+
+            t.windowId = tab.windowId as WindowID;
+            t.status = tab.status as Tabs.TabStatus ?? 'loading';
+            t.title = tab.title ?? '';
+            t.url = tab.url ?? '';
+            t.favIconUrl = tab.favIconUrl ?? '';
+            t.pinned = tab.pinned;
+            t.hidden = tab.hidden ?? false;
+            t.active = tab.active;
+            t.highlighted = tab.highlighted;
         }
+
+        // Insert the tab in its new position in the window
+        const wid = tab.windowId as WindowID;
+        let win = this.windows.get(wid);
+        if (! win) {
+            win = reactive({id: wid, tabs: []});
+            this.windows.set(wid, win);
+        }
+        win.tabs.splice(tab.index, 0, tab.id as TabID);
+
+        // Insert the tab in its index
+        this._add_url(t);
     }
 
     whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
-        const t = this.by_id.get(id);
-        // istanbul ignore next -- defensive coding for internal inconsistency
-        if (! t) return;
-        Object.assign(t, info);
+        const t = this.tab(id as TabID);
+        if (info.status !== undefined) t.status = info.status as Tabs.TabStatus;
+        if (info.title !== undefined) t.title = info.title;
+        if (info.url !== undefined) {
+            this._remove_url(t);
+            t.url = info.url;
+            this._add_url(t);
+        }
+        if (info.favIconUrl !== undefined) t.favIconUrl = info.favIconUrl;
+        if (info.pinned !== undefined) t.pinned = info.pinned;
+        if (info.hidden !== undefined) t.hidden = info.hidden;
     }
 
     whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {
@@ -198,48 +297,64 @@ export class Model {
     }
 
     whenTabMoved(tabId: number, info: {windowId: number, toIndex: number}) {
-        const t = this.by_id.get(tabId);
-        // istanbul ignore if -- should only happen if events are misdelivered
-        if (! t) return;
-        t.windowId = info.windowId;
-        t.index = info.toIndex;
+        const t = this.tab(tabId as TabID);
+
+        const oldPos = this.positionOf(t);
+        oldPos.window.tabs.splice(oldPos.index, 1);
+
+        const newWindow = this.window(info.windowId as WindowID);
+        t.windowId = info.windowId as WindowID;
+        newWindow.tabs.splice(info.toIndex, 0, t.id);
     }
 
     whenTabReplaced(newId: number, oldId: number) {
-        const t = this.by_id.get(oldId);
-        // istanbul ignore if -- should only happen if events are misdelivered
-        if (! t) return;
+        const t = this.tab(oldId as TabID);
+        const win = this.window(t.windowId);
+        const idx = win.tabs.findIndex(tid => t.id === tid);
 
-        // The following is unnecessary; the map will take care of it for us.
-        // If we ever do anything more complicated than by_id.delete() in here,
-        // we may need to revisit this.
-        //
-        // this.whenTabClosed(newId);
+        t.id = newId as TabID;
+        // istanbul ignore else -- internal sanity
+        if (idx >= 0) win.tabs[idx] = t.id;
 
-        this.by_id.move(oldId, newId);
-        t.id = newId;
+        this.tabs.delete(oldId as TabID);
+        this.tabs.set(t.id, t);
     }
 
     whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
         // Chrome doesn't tell us which tab was deactivated, so we have to
         // find it and mark it deactivated ourselves...
-        const win = this.by_window.get(info.windowId);
-        for (const t of win) t.active = false;
+        const win = this.window(info.windowId as WindowID);
+        for (const tid of win.tabs) this.tab(tid).active = false;
 
-        const tab = this.by_id.get(info.tabId);
-        // istanbul ignore else -- guardrail against misdelivered events
-        if (tab) tab.active = true;
+        const tab = this.tab(info.tabId as TabID);
+        tab.active = true;
     }
 
     whenTabsHighlighted(info: Tabs.OnHighlightedHighlightInfoType) {
-        for (const t of this.by_window.get(info.windowId)) {
+        for (const tid of this.window(info.windowId as WindowID).tabs) {
+            const t = this.tab(tid);
             t.highlighted = info.tabIds.findIndex(id => id === t.id) !== -1;
         }
     }
 
     whenTabRemoved(tabId: number) {
-        const t = this.by_id.get(tabId);
-        if (! t) return;
-        this.by_id.delete(tabId);
+        const t = this.tabs.get(tabId as TabID);
+        if (! t) return; // tab is already removed
+        const pos = this.positionOf(t);
+
+        this.tabs.delete(t.id);
+        pos.window.tabs.splice(pos.index, 1);
+        this._remove_url(t);
+    }
+
+    private _add_url(t: Tab) {
+        this.tabsWithURL(t.url).add(t);
+    }
+
+    private _remove_url(t: Tab) {
+        const index = this.tabs_by_url.get(t.url);
+        // istanbul ignore if -- internal consistency
+        if (! index) return;
+        index.delete(t);
     }
 };
