@@ -581,7 +581,7 @@ export class Model {
 
 /** Given a folder name, check if it's an "default"-shaped folder name (i.e.
  * just a timestamp) and return the timestamp portion of the name if so. */
- export function getDefaultFolderNameISODate(n: string): string | null {
+export function getDefaultFolderNameISODate(n: string): string | null {
     let m = n.match(/saved-([-0-9:.T]+Z)/);
     return m ? m[1] : null;
 }

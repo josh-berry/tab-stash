@@ -237,7 +237,7 @@ export async function make_tabs(): Promise<TabFixture> {
             const t = tab_def as unknown as Tab;
             const tab = await browser.tabs.create({
                 windowId: win.id, url: t.url,
-                active: !!t.active
+                active: !!t.active, pinned: !!t.pinned
             });
             await events.next(browser.tabs.onCreated);
             if (t.active) {

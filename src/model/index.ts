@@ -295,13 +295,17 @@ export class Model {
 
         if (folderId === undefined) {
             // Create a new folder, if it wasn't specified.
-            const folder = await browser.bookmarks.create({
-                parentId: root.id,
-                title: options?.newFolderTitle
-                    ?? Bookmarks.genDefaultFolderName(new Date()),
-                index: 0, // Newest folders should show up on top
-            });
-            folderId = folder.id as Bookmarks.NodeID;
+            if (options?.newFolderTitle) {
+                const folder = await browser.bookmarks.create({
+                    parentId: root.id,
+                    title: options?.newFolderTitle
+                        ?? Bookmarks.genDefaultFolderName(new Date()),
+                    index: 0, // Newest folders should show up on top
+                });
+                folderId = folder.id as Bookmarks.NodeID;
+            } else {
+                folderId = await this.ensureRecentUnnamedFolder();
+            }
             newFolderId = folderId;
 
             // When saving to this folder, we want to save all tabs we
@@ -352,6 +356,7 @@ export class Model {
         await Promise.all(
             tabIds.map(tid => browser.tabs.update(tid, {highlighted: false})));
 
+        // istanbul ignore else -- hide() is always available in tests
         if (browser.tabs.hide) {
             // If the browser supports hiding tabs, then hide or close them
             // according to the user's preference.

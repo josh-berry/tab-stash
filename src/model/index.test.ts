@@ -18,6 +18,7 @@ import MemoryKVS from '../datastore/kvs/memory';
 import {_StoredObjectFactory} from '../datastore/stored-object';
 import {LOCAL_DEF, SYNC_DEF} from './options';
 import {TabID} from './tabs';
+import {getDefaultFolderNameISODate, NodeID} from './bookmarks';
 
 describe('model', () => {
     let tabs: TabFixture["tabs"];
@@ -844,10 +845,102 @@ describe('model', () => {
     });
 
     describe('stashes tabs to bookmarks', () => {
-        it('adds stashed tabs to a new unnamed bookmark folder');
-        it('adds stashed tabs to a recently-created unnamed bookmark folder');
-        it('adds stashed tabs to a named bookmark folder');
-        it('ignores pinned tabs in a window');
+        async function stashLeftWindow(newFolder: boolean, folderId?: NodeID) {
+            const p = model.stashTabsInWindow(windows.left.id, {
+                folderId,
+                close: true
+            });
+            await events.nextN(browser.bookmarks.onCreated, 3 + (newFolder ? 1 : 0));
+            await events.nextN(browser.tabs.onCreated, 1);
+            await events.nextN(browser.tabs.onActivated, 1);
+            await events.nextN(browser.tabs.onHighlighted, 1);
+            await events.nextN(browser.tabs.onUpdated, 3);
+            await p;
+        }
+
+        async function checkLeftWindowTabs() {
+            const model_tabs = model.tabs.window(windows.left.id).tabs
+                .map(tid => model.tabs.tab(tid));
+
+            expect(model_tabs.map(t => t.url)).to.deep.equal([
+                `${B}#alice`, `${B}#betty`, `${B}#charlotte`, `${B}`
+            ]);
+            expect(model_tabs.map(t => t.hidden)).to.deep.equal([
+                true, true, true, false,
+            ]);
+            expect(model_tabs[3].active).to.be.true;
+        }
+
+        async function checkLeftWindowBookmarks(new_stash_id: NodeID) {
+            const new_stash = model.bookmarks.folder(new_stash_id);
+            expect(getDefaultFolderNameISODate(new_stash.title)).not.to.be.null;
+            expect(new_stash.children.map(id => model.bookmarks.bookmark(id).url))
+                .to.deep.equal([`${B}#alice`, `${B}#betty`, `${B}#charlotte`]);
+        }
+
+        it('adds stashed tabs to a new unnamed bookmark folder', async () => {
+            await stashLeftWindow(true);
+
+            await checkLeftWindowTabs();
+            const new_stash_id = model.bookmarks.stash_root.value!.children[0];
+            await checkLeftWindowBookmarks(new_stash_id);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+        });
+
+        it('adds stashed tabs to a recently-created unnamed bookmark folder', async () => {
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
+            await model.ensureRecentUnnamedFolder();
+            await events.next(browser.bookmarks.onCreated);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+
+            await stashLeftWindow(false);
+
+            await checkLeftWindowTabs();
+            const new_stash_id = model.bookmarks.stash_root.value!.children[0];
+            await checkLeftWindowBookmarks(new_stash_id);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+        });
+
+        it('adds stashed tabs to a named bookmark folder', async () => {
+            await stashLeftWindow(false, bookmarks.names.id);
+
+            const stash = model.bookmarks.folder(bookmarks.names.id);
+            await checkLeftWindowTabs();
+            expect(stash.children.map(id => model.bookmarks.bookmark(id).url))
+                .to.deep.equal([
+                    `${B}#doug`, `${B}#helen`, `${B}#patricia`, `${B}#nate`,
+                    `${B}#alice`, `${B}#betty`, `${B}#charlotte`,
+                ]);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
+        });
+
+        it('ignores pinned, hidden and/or blank tabs in a window', async () => {
+            events.trace(true);
+            const p = model.stashTabsInWindow(windows.real.id, {close: true});
+            await events.nextN(browser.bookmarks.onCreated, 5);
+            await events.nextN(browser.tabs.onUpdated, 4);
+            await p;
+
+            const model_tabs = model.tabs.window(windows.real.id).tabs
+                .map(tid => model.tabs.tab(tid));
+
+            expect(model_tabs.map(t => t.url))
+                .to.deep.equal(windows.real.tabs!.map(t => t.url));
+            expect(model_tabs.map(t => t.hidden)).to.deep.equal([
+                false, false, false,
+                true, true, true, true, true, true, true,
+            ]);
+            expect(model_tabs[2].active).to.be.true;
+            expect(model_tabs[2].url).to.equal(`${B}`);
+
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+
+            const new_stash_id = model.bookmarks.stash_root.value!.children[0];
+            const new_stash = model.bookmarks.folder(new_stash_id).children
+                .map(id => model.bookmarks.bookmark(id));
+            expect(new_stash.map(bm => bm.url))
+                .to.deep.equal([`${B}#bob`, `${B}#doug`, `${B}#estelle`, `${B}#francis`]);
+        });
     });
 
     describe('restores tabs', () => {
