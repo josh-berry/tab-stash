@@ -1,7 +1,12 @@
+import {Ref, computed} from "vue";
+
 /** A model which allows for its elements to be selected must implement a few
  * things so that the selection model itself can report selected items in the
  * right order, select ranges of items, etc. */
 export interface SelectableModel<T = any> {
+    /** A Vue ref which reports how many items are selected. */
+    selected_count: Ref<number>;
+
     /** Check the selection state of an item. */
     isSelected(item: T): boolean;
 
@@ -33,6 +38,9 @@ export interface SelectableModel<T = any> {
  */
 export class Model {
     readonly models: readonly SelectableModel[];
+
+    readonly selected_count = computed(() => this.models
+        .reduce((count, m) => count + m.selected_count.value, 0));
 
     /** The last item that was selected. */
     lastSelected?: {

@@ -1,5 +1,5 @@
 <template>
-<main @click="deselectAll">
+<main :class="{'selection-active': selection_active}" @click="deselectAll">
   <teleport to="body">
     <transition appear name="dialog">
       <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
@@ -136,6 +136,10 @@ const Main = defineComponent({
 
         recently_deleted(): DI.Deletion[] {
             return this.model().deleted_items.state.recentlyDeleted;
+        },
+
+        selection_active(): boolean {
+            return this.model().selection.selected_count.value > 0;
         },
 
         counts(): {tabs: number, groups: number} {

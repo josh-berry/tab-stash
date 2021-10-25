@@ -135,9 +135,32 @@
     height: var(--item-h);
 
     &:not(.disabled) {
-        &.selected { font-weight: bold; }
-        &:hover, &:focus-within, &.selected {
+        // If a selection is active and this is a candidate for selection, show
+        // an outline on the select button indicating the item can be selected.
+        .selection-active & .action.select {
+            background-color: var(--button-bg);
+        }
+
+        &.selected {
+            background-color: var(--selected-bg);
+            font-weight: bold;
+
+            & .action.select {
+                background-color: var(--userlink-fg);
+                &:hover { background-color: var(--userlink-hover-fg); }
+                &:active, &:focus-within { background-color: var(--userlink-active-fg); }
+            }
+        }
+
+        &:hover, &:focus-within {
             background-color: var(--item-hover-bg);
+
+            // Special highlighting behavior for using the icon to select the tab.
+            &:not(.selected) .action.select {
+                background-color: var(--button-bg);
+                &:hover { background-color: var(--button-hover-bg); }
+                &:active { background-color: var(--button-active-bg); }
+            }
         }
     }
 

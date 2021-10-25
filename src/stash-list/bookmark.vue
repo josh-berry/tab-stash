@@ -1,19 +1,19 @@
 <template>
-<a :class="{'action-container': true,
-            'tab': true, // TODO fix the CSS classes...
-            'saved': true,
-            'open': hasOpenTab,
-            'active': hasActiveTab,
-            'selected': bookmark.$selected}"
-   target="_blank" :href="bookmark.url" :title="bookmark.title"
-   draggable="false" :data-id="bookmark.id"
-   @click.prevent.stop="open">
-  <item-icon class="action"
+<div :class="{'action-container': true,
+              'tab': true, // TODO fix the CSS classes...
+              'saved': true,
+              'open': hasOpenTab,
+              'active': hasActiveTab,
+              'selected': bookmark.$selected}"
+     :title="bookmark.title" :data-id="bookmark.id"
+     @click.prevent.stop="select">
+  <item-icon class="action select"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
              :default-class="{'icon-tab': ! bookmark.$selected,
-                              'icon-tab-selected': bookmark.$selected}"
+                              'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
-  <span class="text">{{bookmark.title}}</span>
+  <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="a"
+     @click.prevent.stop="open">{{bookmark.title}}</a>
   <ButtonBox>
     <Button class="restore-remove" @action="openRemove"
             :tooltip="`Open this tab and delete it from the group `
@@ -21,7 +21,7 @@
     <Button class="remove" @action="remove"
             tooltip="Delete this tab from the group" />
   </ButtonBox>
-</a>
+</div>
 </template>
 
 <script lang="ts">
@@ -86,6 +86,12 @@ export default defineComponent({
         })},
 
         open(ev: MouseEvent) { logErrors(async () => {
+            (<HTMLElement>this.$refs.a).blur();
+            if (this.model().selection.selected_count.value > 0) {
+                this.select(ev);
+                return;
+            }
+
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
 

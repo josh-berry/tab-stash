@@ -1,4 +1,4 @@
-import {reactive} from "vue";
+import {computed, reactive} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
 import {EventWiring, filterMap} from "../util";
 
@@ -43,6 +43,13 @@ export class Model {
     private readonly tabs_by_url = new Map<string, Set<Tab>>();
 
     current_window: WindowID | undefined;
+
+    /** The number of selected tabs. */
+    readonly selected_count = computed(() => {
+        let count = 0;
+        for (const _ of this.selectedItems()) ++count;
+        return count;
+    });
 
     //
     // Loading data and wiring up events
@@ -364,6 +371,7 @@ export class Model {
     whenTabRemoved(tabId: number) {
         const t = this.tabs.get(tabId as TabID);
         if (! t) return; // tab is already removed
+
         const pos = this.positionOf(t);
 
         this.tabs.delete(t.id);
@@ -399,7 +407,7 @@ export class Model {
         const tabs = this.window(this.current_window).tabs;
         for (const tid of tabs) {
             const t = this.tab(tid);
-            if (t.$selected) yield t;
+            if (! t.hidden && ! t.pinned && t.$selected) yield t;
         }
     }
 

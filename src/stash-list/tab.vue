@@ -1,24 +1,24 @@
 <template>
-<a :class="{'action-container': true,
-            'tab': true,
-            'open': ! tab.hidden,
-            'active': !!tab.active,
-            'selected': tab.$selected}"
-   target="_blank" :href="tab.url" :title="tab.title"
-   draggable="false" :data-id="tab.id"
-   @click.prevent.stop="open">
-  <item-icon class="action"
+<div :class="{'action-container': true,
+              'tab': true,
+              'open': ! tab.hidden,
+              'active': !!tab.active,
+              'selected': tab.$selected}"
+     :title="tab.title" :data-id="tab.id"
+     @click.prevent.stop="select">
+  <item-icon class="action select"
              :src="! tab.$selected ? tab.favIconUrl : ''"
              :default-class="{'icon-tab': ! tab.$selected,
-                              'icon-tab-selected': tab.$selected}"
+                              'icon-tab-selected-inverse': tab.$selected}"
              @click.prevent.stop="select" />
-  <span class="text">{{tab.title}}</span>
+  <a class="text" :href="tab.url" target="_blank" draggable="false" ref="a"
+     @click.prevent.stop="open">{{tab.title}}</a>
   <ButtonBox>
     <Button class="stash one" @action="stash"
             :tooltip="`Stash this tab (hold ${altKey} to keep tab open)`" />
     <Button class="remove" @action="remove" tooltip="Close this tab" />
   </ButtonBox>
-</a>
+</div>
 </template>
 
 <script lang="ts">
@@ -70,6 +70,11 @@ export default defineComponent({
         })},
 
         open(ev: MouseEvent) { logErrors(async () => {
+            (<HTMLElement>this.$refs.a).blur();
+            if (this.model().selection.selected_count.value > 0) {
+                this.select(ev);
+                return
+            }
             await browser.tabs.update(this.tab.id, {active: true});
         })},
 

@@ -58,6 +58,7 @@ export type StashItem = {
     id?: string | number,
     title?: string,
     url?: string,
+    $selected?: boolean,
 };
 
 /** An actual bookmark/tab that is part of the model. */

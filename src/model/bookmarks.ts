@@ -1,4 +1,4 @@
-import {reactive, Ref, ref} from "vue";
+import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {EventWiring, filterMap, nextTick} from "../util";
@@ -52,6 +52,13 @@ export class Model {
      * which one to use.  The contents of the warning are an error to show the
      * user and a function to direct them to more information. */
     readonly stash_root_warning: Ref<{text: string, help: () => void} | undefined> = ref();
+
+    /** The number of selected bookmarks. */
+    readonly selected_count = computed(() => {
+        let count = 0;
+        for (const _ of this.selectedItems()) ++count;
+        return count;
+    });
 
     /** Tracks folders which are candidates to be the stash root, and their
      * parents (up to the root).  Any changes to these folders should recompute
