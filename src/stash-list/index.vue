@@ -51,6 +51,8 @@
     </Menu>
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
            :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
+           @click.stop="; /* Don't propagate clicks so we can search without
+                             losing whatever is currently selected. */"
            v-model="searchtext">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
