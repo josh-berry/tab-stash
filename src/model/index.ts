@@ -544,6 +544,13 @@ export class Model {
                 index: to_index,
             });
             moved_item_ids.push(bm.id as Bookmarks.NodeID);
+
+            // Propagate selection state asynchronously so the model has a
+            // chance to catch up.
+            setTimeout(() => {
+                this.bookmarks.bookmark(bm.id as Bookmarks.NodeID).$selected =
+                    item.$selected;
+            });
         }
 
         // Hide/close any tabs which were moved from, since they are now
@@ -604,7 +611,7 @@ export class Model {
 
         // Now, we move/restore tabs.
         const moved_item_ids: Tabs.TabID[] = [];
-        const delete_bm_ids: Bookmarks.NodeID[] = [];
+        const delete_bm_ids: Bookmarks.Bookmark[] = [];
 
         for (
             let i = 0,
@@ -633,7 +640,7 @@ export class Model {
 
             // If we're "moving" a bookmark into a window, mark the bookmark
             // for deletion later.
-            if (isBookmark(model_item)) delete_bm_ids.push(model_item.id);
+            if (isBookmark(model_item)) delete_bm_ids.push(model_item);
 
             // If the item we're moving is not a tab, we need to create a
             // new tab or restore an old one from somewhere else.
@@ -668,6 +675,7 @@ export class Model {
                 if (pos.window === win && pos.index < to_index) --to_index;
                 moved_item_ids.push(t.id);
                 dont_steal_tabs.add(t.id);
+                this.tabs.tab(t.id).$selected = item.$selected;
                 continue;
             }
 
@@ -693,6 +701,12 @@ export class Model {
 
                 moved_item_ids.push(t.id as Tabs.TabID);
                 dont_steal_tabs.add(t.id as Tabs.TabID);
+
+                // Propagate the item's selection state to the restored tab.  Do
+                // this asynchronously so the model has a chance to update.
+                setTimeout(() => {
+                    this.tabs.tab(t.id as Tabs.TabID).$selected = item.$selected;
+                });
                 continue;
             }
 
@@ -703,10 +717,18 @@ export class Model {
             });
             moved_item_ids.push(t.id as Tabs.TabID);
             dont_steal_tabs.add(t.id as Tabs.TabID);
+
+            // Finally, copy the selection state of the original model item to
+            // the new item.  Otherwise newly-created items might not appear to
+            // be selected.  Done asynchronously to give the model a chance to
+            // update first.
+            setTimeout(() => {
+                this.tabs.tab(t.id as Tabs.TabID).$selected = item.$selected;
+            });
         }
 
         // Delete bookmarks for all the tabs we restored.
-        await Promise.all(delete_bm_ids.map(bm => browser.bookmarks.remove(bm)));
+        await Promise.all(delete_bm_ids.map(bm => this.deleteBookmark(bm)));
         if (options.task) ++options.task.value;
 
         return moved_item_ids;

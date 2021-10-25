@@ -808,6 +808,15 @@ describe('model', () => {
                 windowId: windows.right.id,
                 hidden: false,
             });
+
+            // We should get some deleted items since we moved bookmarks out
+            await events.nextN('KVS.Memory.onSet', 2);
+            expect(model.deleted_items.state.entries[0].item).to.deep.include({
+                url: bookmarks.helen.url,
+            });
+            expect(model.deleted_items.state.entries[1].item).to.deep.include({
+                url: bookmarks.nate.url,
+            });
         });
 
         it('moves tabs and bookmarks into the window', async() => {
@@ -842,6 +851,12 @@ describe('model', () => {
                 .to.deep.equal([
                     bookmarks.doug_2.id, bookmarks.helen.id, bookmarks.patricia.id,
                 ]);
+
+            // We should get some deleted items since we moved bookmarks out
+            await events.nextN('KVS.Memory.onSet', 1);
+            expect(model.deleted_items.state.entries[0].item).to.deep.include({
+                url: bookmarks.nate.url,
+            });
         });
     });
 
