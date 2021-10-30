@@ -27,12 +27,11 @@
 <script lang="ts">
 import {defineComponent} from 'vue'
 
-import launch from './launch-vue';
-import {required} from './util';
+import {required} from '../util';
 
-const Main = defineComponent({
+export default defineComponent({
     components: {
-        Notification: require('./components/notification.vue').default,
+        Notification: require('../components/notification.vue').default,
     },
 
     props: {
@@ -64,18 +63,5 @@ const Main = defineComponent({
             setTimeout(() => { this.copied = false; }, 3000);
         }
     },
-});
-
-export default Main;
-
-launch(Main, async() => {
-    const myurl = new URL(document.location.href);
-
-    const url = myurl.searchParams.get('url');
-    if (url) document.title = url;
-
-    return {
-        propsData: { url },
-    };
 });
 </script>

@@ -48,8 +48,7 @@
 import {PropType, defineComponent} from 'vue';
 
 import {filterMap, required, textMatcher} from '../util';
-import launch, {pageref} from '../launch-vue';
-import ui_model from '../ui-model';
+import {pageref} from '../launch-vue';
 import {Model} from '../model';
 import * as DI from '../model/deleted-items';
 
@@ -61,7 +60,7 @@ type FilteredDeletedItem = FilteredCount<DI.DeletedItem>;
 
 type FilteredCount<F> = F & {filtered_count?: number};
 
-const Main = defineComponent({
+export default defineComponent({
     components: {
         LoadMore: require('../components/load-more.vue').default,
         Bookmark: require('./bookmark.vue').default,
@@ -189,22 +188,5 @@ const Main = defineComponent({
             return date_formatter.format(d);
         }
     },
-});
-
-export default Main;
-
-launch(Main, async() => {
-    const model = await ui_model();
-    return {
-        propsData: {
-            state: model.deleted_items.state,
-        },
-        provide: {
-            $model: model,
-        },
-        methods: {
-            model() { return model; },
-        },
-    };
 });
 </script>

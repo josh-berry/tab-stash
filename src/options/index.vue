@@ -216,10 +216,8 @@
 </template>
 
 <script lang="ts">
-import browser from 'webextension-polyfill';
-import {PropType, defineComponent, reactive} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
-import launch from '../launch-vue';
 import * as Options from '../model/options';
 
 const prop = (area: string, name: string) => ({
@@ -240,7 +238,7 @@ function options() {
     return ret;
 }
 
-const Main = defineComponent({
+export default defineComponent({
     components: {
         FeatureFlag: require('./feature-flag').default,
     },
@@ -292,22 +290,6 @@ const Main = defineComponent({
         local_def() { return Options.LOCAL_DEF; },
         sync_def() { return Options.SYNC_DEF; },
     },
-});
-export default Main;
-
-launch(Main, async() => {
-    const opts = await Options.Model.live();
-    (<any>globalThis).model = opts;
-    return {
-        propsData: reactive({
-            hasSidebar: !! browser.sidebarAction,
-            sync: opts.sync.state,
-            local: opts.local.state,
-        }),
-        methods: {
-            model() { return opts; },
-        },
-    };
 });
 </script>
 

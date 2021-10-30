@@ -1,12 +1,12 @@
 <template>
 <main :class="{'selection-active': selection_active}" @click="deselectAll">
-  <teleport to="body">
+  <component :is="Teleport" to="body">
     <transition appear name="dialog">
       <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
                  @close="dialog = undefined">
       </component>
     </transition>
-  </teleport>
+  </component>
   <transition-group tag="aside" class="notification-overlay" appear name="notification">
     <Notification key="new-features" v-if="recently_updated === 'features'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
@@ -88,18 +88,17 @@ const Teleport = teleport_ as {
 import browser from 'webextension-polyfill';
 import {defineComponent, PropType} from 'vue';
 
-import launch, {pageref} from '../launch-vue';
+import {pageref} from '../launch-vue';
 import {
-    TaskMonitor, resolveNamed, logErrors, textMatcher,
+    TaskMonitor, logErrors, textMatcher,
     parseVersion, required,
 } from '../util';
-import ui_model from '../ui-model';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab, WindowID} from '../model/tabs';
 import {Bookmark, Folder} from '../model/bookmarks';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
-const Main = defineComponent({
+export default defineComponent({
     components: {
         Teleport,
         Button: require('../components/button.vue').default,
@@ -222,7 +221,7 @@ const Main = defineComponent({
     methods: {
         pageref,
 
-        model(): Model { return <any>undefined; }, // dummy; overridden below
+        model(): Model { return <any>undefined; }, // dummy; overridden in index.ts
 
         collapseAll() {
             this.collapsed = ! this.collapsed;
@@ -290,30 +289,6 @@ const Main = defineComponent({
             }
         })},
     },
-});
-
-export default Main;
-
-launch(Main, async() => {
-    const p = await resolveNamed({
-        model: ui_model(),
-        win: browser.windows.getCurrent(),
-        curtab: browser.tabs.getCurrent(),
-        extinfo: browser.management.getSelf(),
-    });
-
-    return {
-        propsData: {
-            window_id: p.win.id!,
-            my_version: p.extinfo.version,
-        },
-        provide: {
-            $model: p.model,
-        },
-        methods: {
-            model() { return p.model; },
-        },
-    };
 });
 </script>
 
