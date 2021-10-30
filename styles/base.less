@@ -5,6 +5,7 @@ body {
     background-color: var(--page-bg);
     color: var(--page-fg);
     scrollbar-color: var(--scroll-handle) var(--scroll-bar);
+    overscroll-behavior: contain;
 }
 
 html.view-popup {
@@ -58,6 +59,7 @@ a:active {
     background-color: var(--userlink-active-bg);
     color: var(--userlink-active-fg);
 }
+summary:active, summary:focus-within { box-shadow: none; }
 
 form {
     row-gap: var(--ctrl-mh);
@@ -108,6 +110,11 @@ option {
 }
 
 .disabled, [disabled] { color: var(--disabled-fg); }
+
+.selected {
+    background-color: var(--selected-bg);
+    font-weight: bold;
+}
 
 // Drag and drop ghost elements
 [data-dnd-ghost] {

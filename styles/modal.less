@@ -64,9 +64,7 @@
 details.menu {
     // The button to open the menu (the details's <summary>)
     & > summary {
-        display: inline-block;
         list-style: none; // no triangle on Firefox
-
         &::-webkit-details-marker { display: none; } // no triangle on Chrome
     }
     &[open] > summary {
@@ -74,10 +72,6 @@ details.menu {
         box-shadow: var(--shadow);
     }
     &[open] > summary.action {
-        // Open menus which are actions should always look part of the menu.
-        border-bottom-left-radius: 0px;
-        border-bottom-right-radius: 0px;
-
         // They should also be colorized to show the menu is open.
         background-color: var(--button-hover-bg);
     }
@@ -99,27 +93,30 @@ details.menu {
         flex-direction: column;
         overflow: auto;
 
-        & > * {
+        & a, & button, & .menu-item {
             cursor: default;
             margin: 0;
             padding: 0 var(--menu-mw);
-        }
-        & > a, & > button {
+
             display: flex;
             align-items: center;
+            gap: var(--ctrl-mw);
             min-height: var(--item-h);
             border: none;
             border-radius: 0;
-            color: var(--link-fg);
             text-decoration: none;
-            background: transparent;
             text-align: left;
             white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
 
-            &:hover, &:focus-within { background-color: var(--item-hover-bg); }
-            &:active { background-color: var(--item-active-bg); }
+            &:not(.disabled) {
+                color: var(--link-fg);
+                &:hover, &:focus-within { background-color: var(--item-hover-bg); }
+                &:active { background-color: var(--item-active-bg); }
+            }
         }
-        & > hr {
+        & hr {
             margin: var(--menu-mh) 0;
             padding: 0;
             border: none;

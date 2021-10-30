@@ -45,6 +45,23 @@ nav.action-group {
     }
 }
 
+.action.first {
+    border-top-left-radius: var(--ctrl-border-radius);
+    border-bottom-left-radius: var(--ctrl-border-radius);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.action.middle {
+    border-radius: 0;
+}
+
+.action.last {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: var(--ctrl-border-radius);
+    border-bottom-right-radius: var(--ctrl-border-radius);
+}
 
 
 //
@@ -67,6 +84,7 @@ nav.action-group {
 // Icons for each action
 .action {
     &.mainmenu { background-image: var(--icon-mainmenu); }
+    &.menu { background-image: var(--icon-menu); }
     &.collapse { background-image: var(--icon-collapse-open); }
     &.expand { background-image: var(--icon-collapse-closed); }
     &.cancel { background-image: var(--icon-cancel); }

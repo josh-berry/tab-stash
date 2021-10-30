@@ -34,8 +34,10 @@
         </span>
     </Notification>
   </transition-group>
-  <header class="page action-container">
-    <Menu class="menu" summaryClass="action mainmenu">
+  <header class="page action-container"
+          @click.stop="; /* Don't propagate clicks so we can search without
+                            losing whatever is currently selected. */">
+    <Menu class="menu main-menu" summaryClass="action mainmenu">
       <a @click.prevent.stop="showOptions">Options...</a>
       <hr/>
       <a @click.prevent.stop="dialog = {class: 'ImportDialog'}">Import...</a>
@@ -49,10 +51,9 @@
       <a href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
       <a :href="pageref('whats-new.html')">What's New?</a>
     </Menu>
+    <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
            :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
-           @click.stop="; /* Don't propagate clicks so we can search without
-                             losing whatever is currently selected. */"
            v-model="searchtext">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
@@ -101,6 +102,7 @@ import {fetchInfoForSites} from '../tasks/siteinfo';
 export default defineComponent({
     components: {
         Teleport,
+        SelectionMenu: require('./selection-menu.vue').default,
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         ExportDialog: require('../tasks/export.vue').default,
