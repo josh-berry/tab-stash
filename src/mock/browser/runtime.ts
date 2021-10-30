@@ -7,7 +7,7 @@ let verbose = false;
 class MockPort implements Runtime.Port {
     id: string;
     name: string;
-    error?: object;
+    error?: Runtime.PortErrorType;
     onDisconnect: events.MockEvent<(p: Runtime.Port) => void>;
     onMessage: events.MockEvent<(msg: any, p: Runtime.Port) => void>;
 

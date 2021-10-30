@@ -184,7 +184,7 @@ export class Port<S extends Send, R extends Send>
             try {
                 data = JSON.parse(JSON.stringify(e));
             } catch (ee) {
-                data = e.toString();
+                data = `${e}`;
             }
 
             if (e instanceof Error) {

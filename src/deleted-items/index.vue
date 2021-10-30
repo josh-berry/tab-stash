@@ -15,7 +15,7 @@
             </header>
             <ul class="contents">
                 <li v-for="rec of group.records" :key="rec.key">
-                    <Folder v-if="rec.item.children" :deletion="rec" />
+                    <Folder v-if="'children' in rec.item" :deletion="rec" />
                     <Bookmark v-else :deletion="rec" />
                 </li>
             </ul>
@@ -27,12 +27,11 @@
             <span class="spinner size-2x-icon" />
         </template>
         <template #fully-loaded>
-            <span v-if="search && this.state.entries.length === 0">
+            <span v-if="search && state.entries.length === 0">
                 No matching items were found.  Your item may have been deleted
                 on another computer, or outside of Tab Stash entirely.
             </span>
-            <span v-else-if="this.state.entries.length === 0
-                          && this.state.fullyLoaded">
+            <span v-else-if="state.entries.length === 0 && state.fullyLoaded">
                 It doesn't look like you've deleted anything on this computer
                 yet.
             </span>

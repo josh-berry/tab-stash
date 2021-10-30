@@ -74,6 +74,17 @@
 </template>
 
 <script lang="ts">
+// Workaround for https://github.com/vuejs/vue-next/issues/2855
+import {
+    Teleport as teleport_,
+    TeleportProps,
+    VNodeProps
+} from 'vue';
+const Teleport = teleport_ as {
+    new (): { $props: VNodeProps & TeleportProps }
+};
+// End workaround
+
 import browser from 'webextension-polyfill';
 import {defineComponent, PropType} from 'vue';
 
@@ -90,6 +101,7 @@ import {fetchInfoForSites} from '../tasks/siteinfo';
 
 const Main = defineComponent({
     components: {
+        Teleport,
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         ExportDialog: require('../tasks/export.vue').default,
