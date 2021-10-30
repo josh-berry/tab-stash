@@ -21,7 +21,7 @@ export type SiteInfo = {
     finalUrl?: string;
     title?: string;
     favIconUrl?: string;
-    error?: Error;
+    error?: unknown;
 };
 
 export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):

@@ -226,7 +226,7 @@ export async function importURLs(
                     + siteinfo.originalUrl + "\n\n"
                     + "The error was:\n\n"
                     + siteinfo.error + "\n"
-                    + siteinfo.error.stack + "\n\n"
+                    + (<any>siteinfo.error)?.stack + "\n\n"
                     + "Really sorry about this!  Please let us know by filing "
                     + "a bug with the above error text (see the "
                     + "\"Help and Support\" menu).  We'll clean up any "

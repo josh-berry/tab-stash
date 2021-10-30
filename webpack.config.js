@@ -6,11 +6,11 @@ const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
     entry: {
         "index": "./src/index.ts",
-        "deleted-items": "./src/deleted-items/index.vue",
-        "restore": "./src/restore.vue",
-        "stash-list": "./src/stash-list/index.vue",
-        "options": "./src/options/index.vue",
-        "whats-new": "./src/whats-new/index.vue",
+        "deleted-items": "./src/deleted-items/index.ts",
+        "restore": "./src/restore/index.ts",
+        "stash-list": "./src/stash-list/index.ts",
+        "options": "./src/options/index.ts",
+        "whats-new": "./src/whats-new/index.ts",
     },
     mode: "production",
     devtool: "source-map",

@@ -298,14 +298,12 @@
 </template>
 
 <script lang="ts">
-import browser from 'webextension-polyfill';
 import {defineComponent} from 'vue';
-import launch, {pageref} from '../launch-vue';
+import {pageref} from '../launch-vue';
 
-import * as Options from "../model/options";
-import {resolveNamed, required} from '../util';
+import {required} from '../util';
 
-const Main = defineComponent({
+export default defineComponent({
     components: {
         Version: require('./version.vue').default,
         L: require('./item.vue').default,
@@ -319,27 +317,6 @@ const Main = defineComponent({
     methods: {
         pageref,
     },
-});
-export default Main;
-
-launch(Main, async() => {
-    const r = await resolveNamed({
-        options: Options.Model.live(),
-        extn: browser.management.getSelf(),
-    });
-    (<any>globalThis).options = r.options;
-
-    // If we are caught up to the current version, just show everything.
-    const version = r.options.local.state.last_notified_version == r.extn.version
-        ? undefined : r.options.local.state.last_notified_version;
-
-    r.options.local.set({last_notified_version: r.extn.version});
-
-    return {
-        propsData: {
-            last_notified_version: version,
-        },
-    };
 });
 </script>
 
