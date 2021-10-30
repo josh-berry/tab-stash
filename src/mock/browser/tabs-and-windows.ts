@@ -129,11 +129,24 @@ class State {
                 oldTab = t;
                 t.active = false;
             }
+            if (t.highlighted) t.highlighted = false;
         }
+
         tab.active = true;
         this.onTabActivated.send({
             windowId: win.id, tabId: tab.id, previousTabId: oldTab?.id
         });
+
+        tab.highlighted = true;
+        this.onTabHighlighted.send({
+            windowId: win.id, tabIds: win.tabs.filter(t => t.highlighted).map(t => t.id),
+        });
+
+        if (tab.discarded) {
+            tab.discarded = false;
+            this.onTabUpdated.send(tab.id, {discarded: false},
+                JSON.parse(JSON.stringify(tab)));
+        }
     }
 }
 
@@ -244,7 +257,39 @@ class MockWindows implements W.Static {
 
     // istanbul ignore next
     async update(windowId: number, updateInfo: W.UpdateUpdateInfoType): Promise<W.Window> {
-        throw new Error('Method not implemented.');
+        const win = this._state.win(windowId);
+
+        const notImplemented = (name: keyof W.UpdateUpdateInfoType) => {
+            // istanbul ignore if
+            if (name in updateInfo) {
+                throw new Error(`Parameter ${name} is not implemented`);
+            }
+        };
+        notImplemented('left');
+        notImplemented('top');
+        notImplemented('width');
+        notImplemented('height');
+        notImplemented('drawAttention');
+        notImplemented('state');
+        notImplemented('titlePreface');
+
+        if (updateInfo.focused !== undefined) {
+            // istanbul ignore else
+            if (updateInfo.focused) {
+                this._state.focus_window(win);
+            } else {
+                // Not quite Z-order, but close enough...
+                const w = this._state.windows.find(w => w);
+                // istanbul ignore else
+                if (w) {
+                    this._state.focus_window(w);
+                } else {
+                    win.focused = false;
+                }
+            }
+        }
+
+        return only_win(win);
     }
 
     async remove(windowId: number): Promise<void> {
@@ -301,7 +346,7 @@ class MockTabs implements T.Static {
 
     // istanbul ignore next
     async get(tabId: number): Promise<T.Tab> {
-        throw new Error('Method not implemented.');
+        return JSON.parse(JSON.stringify(this._state.tab(tabId)));
     }
 
     // istanbul ignore next
@@ -370,7 +415,7 @@ class MockTabs implements T.Static {
         }
 
         // istanbul ignore next
-        const filterBool = (name: keyof T.QueryQueryInfoType & keyof T.Tab) => {
+        const filterEqual = (name: keyof T.QueryQueryInfoType & keyof T.Tab) => {
             if (name in queryInfo) res = res.filter(t => t[name] === queryInfo[name]);
         };
         const notImplemented = (name: keyof T.QueryQueryInfoType) => {
@@ -379,20 +424,20 @@ class MockTabs implements T.Static {
                 throw new Error(`Query parameter ${name} is not implemented`);
             }
         };
-        filterBool('active');
-        filterBool('attention');
-        filterBool('pinned');
-        filterBool('audible');
+        filterEqual('active');
+        filterEqual('attention');
+        filterEqual('pinned');
+        filterEqual('audible');
         notImplemented('muted');
-        filterBool('highlighted');
+        filterEqual('highlighted');
         notImplemented('currentWindow');
         notImplemented('lastFocusedWindow');
         notImplemented('status');
-        filterBool('discarded');
-        filterBool('hidden');
+        filterEqual('discarded');
+        filterEqual('hidden');
         notImplemented('title');
         notImplemented('url');
-        notImplemented('windowId');
+        filterEqual('windowId');
         notImplemented('windowType');
         notImplemented('index');
         notImplemented('cookieStoreId');
@@ -401,6 +446,11 @@ class MockTabs implements T.Static {
         notImplemented('camera');
         notImplemented('microphone');
         notImplemented('autoDiscardable');
+
+        if ('windowId' in queryInfo) {
+            // If we're looking at a particular window, return tabs in sorted order
+            res = res.sort((a, b) => a.index - b.index);
+        }
         return JSON.parse(JSON.stringify(res));
     }
 
@@ -431,7 +481,6 @@ class MockTabs implements T.Static {
 
         const tab = this._state.tab(tabId);
 
-        notImplemented('highlighted');
         notImplemented('pinned');
         notImplemented('muted');
         notImplemented('openerTabId');
@@ -443,6 +492,16 @@ class MockTabs implements T.Static {
         if (options.url !== undefined) {
             dirty.url = options.url;
             tab.url = options.url;
+        }
+        if (options.highlighted !== undefined) {
+            const win = this._state.win(tab.windowId);
+            if (tab.highlighted !== options.highlighted) {
+                tab.highlighted = options.highlighted;
+                this.onHighlighted.send({
+                    windowId: win.id,
+                    tabIds: win.tabs.filter(t => t.highlighted).map(t => t.id),
+                });
+            }
         }
         if (options.active !== undefined) {
             // istanbul ignore else
@@ -559,7 +618,15 @@ class MockTabs implements T.Static {
 
     // istanbul ignore next
     async discard(tabIds: number | number[]): Promise<void> {
-        throw new Error('Method not implemented.');
+        if (typeof tabIds === 'number') tabIds = [tabIds];
+        for (const tid of tabIds) {
+            const tab = this._state.tab(tid);
+            if (! tab.active && ! tab.discarded) {
+                tab.discarded = true;
+                this.onUpdated.send(tid, {discarded: true},
+                    JSON.parse(JSON.stringify(tab)));
+            }
+        }
     }
 
     // istanbul ignore next
@@ -644,12 +711,28 @@ class MockTabs implements T.Static {
 
     // istanbul ignore next
     async show(tabIds: number | number[]): Promise<void> {
-        throw new Error('Method not implemented.');
+        tabIds = tabIds instanceof Array ? tabIds : [tabIds];
+        for (const tid of tabIds) {
+            const tab = this._state.tab(tid);
+            if (tab.hidden) {
+                tab.hidden = false;
+                this.onUpdated.send(tid, {hidden: false}, JSON.parse(JSON.stringify(tab)));
+            }
+        }
     }
 
-    // istanbul ignore next
     async hide(tabIds: number | number[]): Promise<number[]> {
-        throw new Error('Method not implemented.');
+        tabIds = tabIds instanceof Array ? tabIds : [tabIds];
+        const ret = [];
+        for (const tid of tabIds) {
+            const tab = this._state.tab(tid);
+            if (! tab.hidden) {
+                ret.push(tid);
+                tab.hidden = true;
+                this.onUpdated.send(tid, {hidden: true}, JSON.parse(JSON.stringify(tab)));
+            }
+        }
+        return ret;
     }
 
     // istanbul ignore next

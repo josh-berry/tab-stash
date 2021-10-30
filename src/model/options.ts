@@ -121,7 +121,7 @@ export class Model {
         }));
     }
 
-    private constructor(src: Source) {
+    constructor(src: Source) {
         this.sync = src.sync;
         this.local = src.local;
     }

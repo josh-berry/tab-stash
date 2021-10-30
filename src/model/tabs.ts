@@ -1,4 +1,4 @@
-import {reactive} from "vue";
+import {computed, reactive} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
 import {EventWiring, filterMap} from "../util";
 
@@ -17,6 +17,9 @@ export type Tab = {
     hidden: boolean,
     active: boolean,
     highlighted: boolean,
+    discarded: boolean,
+
+    $selected?: boolean,
 };
 
 export type WindowID = number & {readonly __window_id: unique symbol};
@@ -40,6 +43,13 @@ export class Model {
     private readonly tabs_by_url = new Map<string, Set<Tab>>();
 
     current_window: WindowID | undefined;
+
+    /** The number of selected tabs. */
+    readonly selected_count = computed(() => {
+        let count = 0;
+        for (const _ of this.selectedItems()) ++count;
+        return count;
+    });
 
     //
     // Loading data and wiring up events
@@ -133,6 +143,24 @@ export class Model {
     //
     // User-level operations on tabs
     //
+
+    /** Moves a tab such that it precedes the item with index `toIndex` in
+     * the destination window.  (You can pass an index `>=` the length of the
+     * windows's tab list to move the item to the end of the window.) */
+    async move(id: TabID, toWindow: WindowID, toIndex: number): Promise<void> {
+        // This method mainly exists to provide consistent behavior between
+        // bookmarks.move() and tabs.move().
+        const tab = this.tab(id);
+
+        // Unlike browser.bookmarks.move(), browser.tabs.move() behaves the same
+        // on both Firefox and Chrome.
+        if (tab.windowId === toWindow) {
+            const position = this.positionOf(tab);
+            if (toIndex > position.index) toIndex--;
+        }
+
+        await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
+    }
 
     /** Close the specified tabs, but leave the browser window open (and create
      * a new tab if necessary to keep it open). */
@@ -243,6 +271,7 @@ export class Model {
                 hidden: tab.hidden ?? false,
                 active: tab.active,
                 highlighted: tab.highlighted,
+                discarded: tab.discarded ?? false,
             });
             this.tabs.set(tab.id as TabID, t);
         } else {
@@ -262,6 +291,7 @@ export class Model {
             t.hidden = tab.hidden ?? false;
             t.active = tab.active;
             t.highlighted = tab.highlighted;
+            t.discarded = tab.discarded ?? false;
         }
 
         // Insert the tab in its new position in the window
@@ -289,6 +319,7 @@ export class Model {
         if (info.favIconUrl !== undefined) t.favIconUrl = info.favIconUrl;
         if (info.pinned !== undefined) t.pinned = info.pinned;
         if (info.hidden !== undefined) t.hidden = info.hidden;
+        if (info.discarded !== undefined) t.discarded = info.discarded;
     }
 
     whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {
@@ -340,6 +371,7 @@ export class Model {
     whenTabRemoved(tabId: number) {
         const t = this.tabs.get(tabId as TabID);
         if (! t) return; // tab is already removed
+
         const pos = this.positionOf(t);
 
         this.tabs.delete(t.id);
@@ -356,5 +388,46 @@ export class Model {
         // istanbul ignore if -- internal consistency
         if (! index) return;
         index.delete(t);
+    }
+
+    //
+    // Handling selection/deselection of tabs in the UI
+    //
+
+    isSelected(item: Tab): boolean { return !!item.$selected; }
+
+    async setSelected(items: Iterable<Tab>, isSelected: boolean) {
+        for (const item of items) item.$selected = isSelected;
+    }
+
+    *selectedItems(): Generator<Tab> {
+        // We only allow tabs in the current window to be selected
+        // istanbul ignore if -- shouldn't occur in tests
+        if (this.current_window === undefined) return;
+        const tabs = this.window(this.current_window).tabs;
+        for (const tid of tabs) {
+            const t = this.tab(tid);
+            if (! t.hidden && ! t.pinned && t.$selected) yield t;
+        }
+    }
+
+    itemsInRange(start: Tab, end: Tab): Tab[] | null {
+        // istanbul ignore if -- shouldn't occur in tests
+        if (this.current_window === undefined) return null;
+        if (start.windowId !== this.current_window) return null;
+        if (end.windowId !== this.current_window) return null;
+
+        let startPos = this.positionOf(start);
+        let endPos = this.positionOf(end);
+
+        if (endPos.index < startPos.index) {
+            const tmp = endPos;
+            endPos = startPos;
+            startPos = tmp;
+        }
+
+        return this.window(this.current_window).tabs
+            .slice(startPos.index, endPos.index + 1)
+            .map(tid => this.tab(tid));
     }
 };

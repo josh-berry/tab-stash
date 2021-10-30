@@ -33,7 +33,7 @@ class MockStorageArea {
             if (k in this._storage) res[k] = JSON.parse(this._storage[k]);
         }
 
-        return Promise.resolve(res);
+        return res;
     }
 
     async set(obj: StorageObject): Promise<void> {
@@ -50,7 +50,6 @@ class MockStorageArea {
         }
 
         this._events.send(ev, this._area);
-        return Promise.resolve();
     }
 
     async remove(keys: string | string[]): Promise<void> {
@@ -66,7 +65,6 @@ class MockStorageArea {
         }
 
         this._events.send(ev, this._area);
-        return Promise.resolve();
     }
 
     // istanbul ignore next - implemented only to conform to the interface

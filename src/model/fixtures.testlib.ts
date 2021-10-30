@@ -10,6 +10,17 @@ import * as events from '../mock/events';
 
 import type {NodeID} from './bookmarks';
 import type {Tab, TabID, WindowID} from './tabs';
+import type * as BookmarkMetadata from './bookmark-metadata';
+import type * as Favicons from './favicons';
+import type * as DeletedItems from './deleted-items';
+import {KeyValueStore} from '../datastore/kvs';
+import {Options} from '.';
+
+//
+// The test data.
+//
+// This is at the very top just below imports so it's easy to refer to.
+//
 
 export const B = 'about:blank';
 
@@ -45,15 +56,6 @@ const WINDOWS = {
     ],
 } as const;
 
-export type TabFixture = {
-    windows: {[k in WindowName]: Windows.Window & {id: WindowID}},
-    tabs: {[k in TabName]: Tabs.Tab & {id: TabID}},
-};
-type WindowName = keyof typeof WINDOWS;
-type TabName = (typeof WINDOWS)[WindowName][any]['id'];
-
-
-
 const BOOKMARKS = {
     id: 'root', title: TEST_ROOT_NAME, children: [
         {id: 'doug_1', title: 'Doug Duplicate', url: `${B}#doug`},
@@ -74,9 +76,90 @@ const BOOKMARKS = {
             {id: 'unnamed', title: 'saved-1970-01-01T00:00:00.000Z', children: [
                 {id: 'undyne', title: 'Undyne Unnamed', url: `${B}#undyne`},
             ]},
+            {id: 'big_stash', title: 'Big Stash', children: [
+                {id: 'one', title: 'One', url: `${B}#1`},
+                {id: 'two', title: 'Two', url: `${B}#2`},
+                {id: 'three', title: 'Three', url: `${B}#3`},
+                {id: 'four', title: 'Four', url: `${B}#4`},
+                {id: 'five', title: 'Five', url: `${B}#5`},
+                {id: 'six', title: 'Six', url: `${B}#6`},
+                {id: 'seven', title: 'Seven', url: `${B}#7`},
+                {id: 'eight', title: 'Eight', url: `${B}#8`},
+            ]},
         ]},
     ],
 } as const;
+
+const BOOKMARK_METADATA: BookmarkMetadataFixture = {
+    unnamed: {collapsed: true},
+    nonexistent: {collapsed: true},
+};
+
+/** List of URLs with favicons in the cache.  The favIconUrls themselves are
+ * generated from the page URLs. */
+const FAVICONS: string[] = [
+    `${B}#doug`,
+    `${B}#nate`,
+    `${B}#alice`,
+    `${B}#betty`,
+    `${B}#undyne`,
+    `${B}#sir-not-appearing-in-this-film`,
+];
+
+/** List of deleted items.  The deletion time is calculated automatically since
+ * it must be relative to Date.now() for various things like GC to work
+ * correctly--that is, we can't hard-code the timestamps.
+ *
+ * Newest items should be listed first (just like the UI and model). */
+const DELETED_ITEMS: Omit<DeletedItems.SourceValue, 'deleted_at'>[] = [
+    {
+        item: {
+            title: 'Deleted Bookmark from Folder with Matching ID',
+            url: `${B}#deleted`,
+            favIconUrl: `${B}#deleted.ico`,
+        },
+        deleted_from: {folder_id: "names", title: "Names"},
+    },
+    {
+        item: {
+            title: 'Deleted Bookmark from Folder with Matching Title',
+            url: `${B}#gone`,
+            favIconUrl: `${B}#gone.ico`,
+        },
+        deleted_from: {folder_id: "invalid-folder-id", title: "Names"},
+    },
+    {
+        item: {title: 'Deleted Folder', children: [
+            {title: 'Child 1', url: `${B}#deleted-child-1`},
+            {title: 'Child 2', url: `${B}#deleted-child-2`},
+            {title: 'Child 3', url: `${B}#deleted-child-3`},
+        ]},
+    },
+    {
+        item: {
+            title: 'Deleted Bookmark from Deleted Folder',
+            url: `${B}#deleted2`,
+            favIconUrl: `${B}#deleted2.ico`,
+        },
+        deleted_from: {folder_id: "y-a-invalid-bm-id", title: "Deleted Folder"},
+    },
+    {
+        item: {title: 'Older Deleted Bookmark', url: `${B}#older-deleted`},
+    },
+];
+
+
+
+//
+// Types for the test data.
+//
+
+export type TabFixture = {
+    windows: {[k in WindowName]: Windows.Window & {id: WindowID}},
+    tabs: {[k in TabName]: Tabs.Tab & {id: TabID}},
+};
+type WindowName = keyof typeof WINDOWS;
+type TabName = (typeof WINDOWS)[WindowName][any]['id'];
 
 export type BookmarkFixture = {
     [k in BookmarkName]: Bookmarks.BookmarkTreeNode & {id: NodeID, parentId: NodeID}
@@ -84,7 +167,6 @@ export type BookmarkFixture = {
 type BookmarkName = BookmarkNamesHere<typeof BOOKMARKS>;
 type BookmarkNamesHere<B extends NamedBookmark> = B['id']
     | (B extends NamedBookmarkFolder ? BookmarkNamesHere<B['children'][any]> : never);
-
 interface NamedBookmark {
     readonly id: string,
     readonly children?: readonly NamedBookmark[],
@@ -94,7 +176,18 @@ interface NamedBookmarkFolder {
     readonly children: readonly NamedBookmark[],
 }
 
+type BookmarkMetadataFixture =
+    Partial<{[k: string]: BookmarkMetadata.BookmarkMetadata}>;
 
+
+
+//
+// How to load the test data into the test.
+//
+// For bookmarks/tabs, this is typically done directly against browser.*, which
+// may be a live or a mock implementation.  For things that go into a KVS, the
+// KVS can be passed as a parameter.
+//
 
 export async function make_bookmarks(): Promise<BookmarkFixture> {
     // TODO: Cleanup from any prior failed runs (if we're in a real browser)
@@ -125,8 +218,6 @@ export async function make_bookmarks(): Promise<BookmarkFixture> {
     return res as BookmarkFixture;
 }
 
-
-
 export async function make_tabs(): Promise<TabFixture> {
     // TODO: Cleanup from any prior failed runs (if we're in a real browser)
     const windows: Partial<TabFixture['windows']> = {};
@@ -137,6 +228,7 @@ export async function make_tabs(): Promise<TabFixture> {
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         // istanbul ignore if -- browser compatibility and type safety
         if (! win.tabs) win.tabs = [];
@@ -145,10 +237,19 @@ export async function make_tabs(): Promise<TabFixture> {
             const t = tab_def as unknown as Tab;
             const tab = await browser.tabs.create({
                 windowId: win.id, url: t.url,
-                active: !!t.active
+                active: !!t.active, pinned: !!t.pinned
             });
             await events.next(browser.tabs.onCreated);
-            if (t.active) await events.next(browser.tabs.onActivated);
+            if (t.active) {
+                await events.next(browser.tabs.onActivated);
+                await events.next(browser.tabs.onHighlighted);
+            }
+
+            if (t.hidden) {
+                await browser.tabs.hide([tab.id!]);
+                await events.next(browser.tabs.onUpdated);
+                tab.hidden = true;
+            }
 
             tab.windowId = win.id;
             tab.index = i;
@@ -170,4 +271,45 @@ export async function make_tabs(): Promise<TabFixture> {
         windows: windows as TabFixture['windows'],
         tabs: tabs as TabFixture['tabs'],
     };
+}
+
+export async function make_bookmark_metadata(
+    kvs: KeyValueStore<string, BookmarkMetadata.BookmarkMetadata>,
+    bms: BookmarkFixture,
+): Promise<void> {
+    await kvs.set(Object.keys(BOOKMARK_METADATA).map(k => ({
+        key: bms[k as BookmarkName]?.id ?? k,
+        value: BOOKMARK_METADATA[k]!,
+    })));
+    await events.next(kvs.onSet);
+}
+
+export async function make_favicons(
+    kvs: KeyValueStore<string, Favicons.Favicon>
+): Promise<void> {
+    await kvs.set(FAVICONS.map(url => ({
+        key: url,
+        value: {favIconUrl: `${url}.favicon`},
+    })));
+    await events.next(kvs.onSet);
+}
+
+export async function make_deleted_items(
+    kvs: KeyValueStore<string, DeletedItems.SourceValue>
+): Promise<void> {
+    const increment_ms = Options.SYNC_DEF.deleted_items_expiration_days.default
+        * 24 * 60 * 60 * 1000 / (DELETED_ITEMS.length - 1);
+
+    let deleted_at = Date.now();
+    await kvs.set(DELETED_ITEMS.map(item => {
+        deleted_at -= increment_ms;
+        return {
+            key: `${new Date(deleted_at).toISOString()}-rand`,
+            value: {
+                deleted_at: new Date(deleted_at).toISOString(),
+                ...item,
+            },
+        };
+    }));
+    await events.next(kvs.onSet);
 }

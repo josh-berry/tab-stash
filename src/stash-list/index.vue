@@ -1,5 +1,5 @@
 <template>
-<main>
+<main :class="{'selection-active': selection_active}" @click="deselectAll">
   <teleport to="body">
     <transition appear name="dialog">
       <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
@@ -51,6 +51,8 @@
     </Menu>
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
            :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
+           @click.stop="; /* Don't propagate clicks so we can search without
+                             losing whatever is currently selected. */"
            v-model="searchtext">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
@@ -138,6 +140,10 @@ const Main = defineComponent({
             return this.model().deleted_items.state.recentlyDeleted;
         },
 
+        selection_active(): boolean {
+            return this.model().selection.selected_count.value > 0;
+        },
+
         counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
             if (this.stash_root?.children) {
@@ -215,6 +221,10 @@ const Main = defineComponent({
                 if (! ('children' in f)) continue;
                 metadata.setCollapsed(f.id, this.collapsed);
             }
+        },
+
+        deselectAll() {
+            this.model().selection.clearSelection().catch(console.error);
         },
 
         search_filter(i: Bookmark | Tab) {

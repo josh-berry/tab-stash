@@ -59,13 +59,15 @@ describe('model/bookmarks', () => {
     });
 
     it('finds all URLs in the stash root', async () => {
-        expect(model.urlsInStash()).to.deep.equal(new Set([
+        expect(Array.from(model.urlsInStash()).sort()).to.deep.equal([
+            `${B}#1`, `${B}#2`, `${B}#3`, `${B}#4`,
+            `${B}#5`, `${B}#6`, `${B}#7`, `${B}#8`,
             `${B}#doug`,
             `${B}#helen`,
-            `${B}#patricia`,
             `${B}#nate`,
+            `${B}#patricia`,
             `${B}#undyne`,
-        ]));
+        ]);
     });
 
     it('inserts bookmarks into the tree', async () => {
@@ -174,11 +176,12 @@ describe('model/bookmarks', () => {
         expect(() => model.node(bms.names.id)).to.throw(Error);
         expect(model.folder(bms.stash_root.id).children).to.deep.equal([
             bms.unnamed.id,
+            bms.big_stash.id,
         ]);
     });
 
     it('reorders bookmarks (forward)', async () => {
-        await model.move(bms.alice.id, bms.outside.id, 3);
+        await model.move(bms.alice.id, bms.outside.id, 4);
         await events.next(browser.bookmarks.onMoved);
 
         expect(model.folder(bms.outside.id).children).to.deep.equal([
@@ -345,6 +348,64 @@ describe('model/bookmarks', () => {
             expect(root2).not.to.be.undefined;
             expect(root1).to.equal(root2);
             expect(model.stash_root.value).to.equal(root1);
+        });
+    });
+
+    describe('selection model', () => {
+        it('tracks selected items', async () => {
+            model.setSelected([
+                model.node(bms.undyne.id),
+                model.node(bms.nate.id),
+                model.node(bms.helen.id),
+            ], true);
+
+            expect(Array.from(model.selectedItems())).to.deep.equal([
+                model.node(bms.helen.id),
+                model.node(bms.nate.id),
+                model.node(bms.undyne.id),
+            ]);
+
+            expect(model.isSelected(model.node(bms.helen.id))).to.be.true;
+            expect(model.isSelected(model.node(bms.nate.id))).to.be.true;
+            expect(model.isSelected(model.node(bms.undyne.id))).to.be.true;
+
+            expect(model.isSelected(model.node(bms.patricia.id))).to.be.false;
+            expect(model.isSelected(model.node(bms.unnamed.id))).to.be.false;
+        });
+
+        it('identifies items in a range within a folder', async () => {
+            const range = model.itemsInRange(
+                model.node(bms.doug_2.id), model.node(bms.patricia.id));
+            expect(range).to.deep.equal([
+                model.node(bms.doug_2.id),
+                model.node(bms.helen.id),
+                model.node(bms.patricia.id),
+            ]);
+        });
+
+        it('identifies items in a range within a folder (backwards)', async () => {
+            const range = model.itemsInRange(
+                model.node(bms.patricia.id), model.node(bms.doug_2.id));
+            expect(range).to.deep.equal([
+                model.node(bms.doug_2.id),
+                model.node(bms.helen.id),
+                model.node(bms.patricia.id),
+            ]);
+        });
+
+        it('identifies a single-item range', async () => {
+            const range = model.itemsInRange(
+                model.node(bms.helen.id), model.node(bms.helen.id));
+            expect(range).to.deep.equal([
+                model.node(bms.helen.id),
+            ]);
+        });
+
+        it('refuses to identify ranges across folders', async () => {
+            // for now, anyway...
+            expect(model.itemsInRange(
+                    model.node(bms.doug_2.id), model.node(bms.undyne.id)))
+                .to.be.null;
         });
     });
 });

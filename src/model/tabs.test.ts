@@ -34,6 +34,7 @@ describe('model/tabs', () => {
                 hidden: !!tab.hidden,
                 active: !!tab.active,
                 highlighted: !!tab.highlighted,
+                discarded: !!tab.discarded
             });
         }
     });
@@ -63,6 +64,7 @@ describe('model/tabs', () => {
             active: false,
             pinned: false,
             highlighted: false,
+            discarded: false,
         });
 
         expect(model.window(windows.left.id).tabs).to.deep.equal([
@@ -113,6 +115,7 @@ describe('model/tabs', () => {
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         const tid = win.tabs![0].id as M.TabID;
 
@@ -155,6 +158,7 @@ describe('model/tabs', () => {
             hidden: false,
             active: false,
             highlighted: false,
+            discarded: false,
         });
         expect(Array.from(model.tabsWithURL("hi")))
             .to.deep.equal([model.tab(16384 as M.TabID)]);
@@ -169,6 +173,7 @@ describe('model/tabs', () => {
         await events.next(browser.tabs.onCreated);
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         events.send(browser.tabs.onCreated, {
             id: tab.id!,
@@ -194,6 +199,7 @@ describe('model/tabs', () => {
             hidden: !!tab.hidden,
             active: !!tab.active,
             highlighted: !!tab.highlighted,
+            discarded: !!tab.discarded,
         });
         expect(model.tabsWithURL("cats")).to.deep.equal(new Set([
             model.tab(tid),
@@ -365,6 +371,7 @@ describe('model/tabs', () => {
         const t = {
             id: 16384, windowId: 16590, title: '', url: '',
             active: false, pinned: false, highlighted: false, hidden: false,
+            discarded: false,
         } as M.Tab;
         events.send(browser.tabs.onCreated, JSON.parse(JSON.stringify(t)));
         await events.next(browser.tabs.onCreated);
@@ -388,8 +395,82 @@ describe('model/tabs', () => {
 
         await browser.tabs.update(tabs.left_charlotte.id, {active: true});
         await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
 
         expect(model.tab(tabs.left_alice.id)!.active).to.equal(false);
         expect(model.tab(tabs.left_charlotte.id)!.active).to.equal(true);
+    });
+
+    describe('selection model', () => {
+        beforeEach(async () => {
+            await browser.windows.update(windows.real.id, {focused: true});
+            await events.next(browser.windows.onFocusChanged);
+        });
+
+        it('tracks selected items', async () => {
+            model.setSelected([
+                model.tab(tabs.real_bob.id),
+                model.tab(tabs.real_estelle.id),
+                model.tab(tabs.real_doug.id),
+            ], true);
+
+            expect(Array.from(model.selectedItems())).to.deep.equal([
+                model.tab(tabs.real_bob.id),
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_estelle.id),
+            ]);
+
+            expect(model.isSelected(model.tab(tabs.real_bob.id))).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_doug.id))).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_estelle.id))).to.be.true;
+
+            expect(model.isSelected(model.tab(tabs.left_betty.id))).to.be.false;
+            expect(model.isSelected(model.tab(tabs.right_adam.id))).to.be.false;
+        });
+
+        it('identifies items in a range within a window', async () => {
+            const range = model.itemsInRange(
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_francis.id));
+            expect(range).to.deep.equal([
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_doug_2.id),
+                model.tab(tabs.real_estelle.id),
+                model.tab(tabs.real_francis.id),
+            ]);
+        });
+
+        it('identifies items in a range within a window (backwards)', async () => {
+            const range = model.itemsInRange(
+                model.tab(tabs.real_francis.id),
+                model.tab(tabs.real_doug.id));
+            expect(range).to.deep.equal([
+                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_doug_2.id),
+                model.tab(tabs.real_estelle.id),
+                model.tab(tabs.real_francis.id),
+            ]);
+        });
+
+        it('identifies a single-item range', async () => {
+            const range = model.itemsInRange(
+                model.tab(tabs.real_blank.id),
+                model.tab(tabs.real_blank.id));
+            expect(range).to.deep.equal([
+                model.tab(tabs.real_blank.id),
+            ]);
+        });
+
+        it('refuses to identify ranges across windows', async () => {
+            expect(model.itemsInRange(
+                    model.tab(tabs.right_adam.id),
+                    model.tab(tabs.real_bob.id)))
+                .to.be.null;
+
+            expect(model.itemsInRange(
+                    model.tab(tabs.real_bob.id),
+                    model.tab(tabs.right_adam.id)))
+                .to.be.null;
+        });
     });
 });

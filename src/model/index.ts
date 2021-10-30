@@ -32,6 +32,8 @@
 
 import browser from 'webextension-polyfill';
 
+import {filterMap, TaskMonitor, urlToOpen} from '../util';
+
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
 
@@ -41,18 +43,36 @@ import * as DeletedItems from './deleted-items';
 
 import * as Favicons from './favicons';
 import * as BookmarkMetadata from './bookmark-metadata';
-import {filterMap, TaskMonitor, urlToOpen} from '../util';
+import * as Selection from './selection';
 
 export {
     BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons,
     BookmarkMetadata,
 };
 
-export type PartialTabInfo = {
-    id?: Tabs.TabID | number,
+/** The StashItem is anything that can be placed in the stash.  It could already
+ * be present as a tab (`id: number`), a bookmark (`id: string`), or not present
+ * at all (no `id`).  It captures just the essential details of an item, like
+ * its title, URL and identity (if it's part of the model). */
+export type StashItem = {
+    id?: string | number,
     title?: string,
     url?: string,
+    $selected?: boolean,
 };
+
+/** An actual bookmark/tab that is part of the model. */
+export type ModelItem = Bookmarks.Node | Tabs.Tab;
+
+export function isTab(item?: StashItem): item is StashItem & {id: Tabs.TabID} {
+    if (! item) return false;
+    return (typeof item.id === 'number');
+}
+
+export function isBookmark(item?: StashItem): item is StashItem & {id: Bookmarks.NodeID} {
+    if (! item) return false;
+    return (typeof item.id === 'string');
+}
 
 export type Source = {
     readonly browser_settings: BrowserSettings.Model;
@@ -84,6 +104,7 @@ export class Model {
 
     readonly favicons: Favicons.Model;
     readonly bookmark_metadata: BookmarkMetadata.Model;
+    readonly selection: Selection.Model;
 
     constructor(src: Source) {
         this.browser_settings = src.browser_settings;
@@ -95,16 +116,28 @@ export class Model {
 
         this.favicons = src.favicons;
         this.bookmark_metadata = src.bookmark_metadata;
+        this.selection = new Selection.Model([this.tabs, this.bookmarks]);
     }
 
     //
     // Accessors
     //
 
+    /** Fetch and return an item, regardless of whether it's a bookmark or tab. */
+    item(id: string | number): ModelItem {
+        if (typeof id === 'string') return this.bookmarks.node(id as Bookmarks.NodeID);
+        else if (typeof id === 'number') return this.tabs.tab(id as Tabs.TabID);
+        // istanbul ignore next
+        else throw new Error(`Invalid model ID: ${id}`);
+    }
+
     /** Is the passed-in URL one we want to include in the stash?  Excludes
      * things like new-tab pages and Tab Stash pages (so we don't stash
      * ourselves). */
-     isURLStashable(url_str: string): boolean {
+    isURLStashable(url_str?: string): boolean {
+        // Things without URLs are not stashable.
+        if (! url_str) return false;
+
         // New-tab URLs, homepages and the like are never stashable.
         if (this.browser_settings.isNewTabURL(url_str)) return false;
 
@@ -142,13 +175,20 @@ export class Model {
         return topmost.id;
     }
 
+    /** Yields all selected items (tabs and bookmarks). */
+    *selectedItems(): Generator<ModelItem> {
+        for (const item of this.tabs.selectedItems()) yield item;
+        for (const item of this.bookmarks.selectedItems()) yield item;
+    }
+
     //
     // Mutators
     //
 
     /** Garbage-collect various caches and deleted items. */
     async gc() {
-        const deleted_exp = this.options.sync.state.deleted_items_expiration_days * 24*60*60*1000;
+        const deleted_exp = Date.now() -
+            this.options.sync.state.deleted_items_expiration_days * 24*60*60*1000;
 
         await this.deleted_items.dropOlderThan(deleted_exp);
         await this.favicons.gc(url =>
@@ -181,7 +221,12 @@ export class Model {
             .filter(t => ! t.hidden);
 
         let selected = tabs.filter(t => t.highlighted);
-        if (selected.length <= 1) selected = tabs;
+        if (selected.length <= 1) {
+            // If the user didn't specifically select a set of tabs to be
+            // stashed, we ignore tabs which should not be included in the stash
+            // for whatever reason (e.g. the new tab page).
+            selected = tabs.filter(t => this.isURLStashable(t.url));
+        }
 
         // We filter out pinned tabs AFTER checking how many tabs are selected
         // because otherwise the user might have a pinned tab focused, and highlight
@@ -199,7 +244,7 @@ export class Model {
      * If `close` is true, closes/hides the stashed tabs according to the user's
      * preferences. */
     async stashTabs(
-        tabs: PartialTabInfo[],
+        tabs: StashItem[],
         options: {
             folderId?: Bookmarks.NodeID,
             close?: boolean
@@ -223,32 +268,21 @@ export class Model {
      * itself. */
     async bookmarkTabs(
         folderId: Bookmarks.NodeID | undefined,
-        all_tabs: PartialTabInfo[],
+        all_tabs: StashItem[],
         options?: {newFolderTitle?: string, taskMonitor?: TaskMonitor},
-    ): Promise<BookmarkTabsResult>
-    {
-        const tm = options?.taskMonitor;
-        if (tm) {
-            if (options?.newFolderTitle) {
-                tm.status = `Creating bookmarks for ${options.newFolderTitle}...`;
-            } else {
-                tm.status = "Creating bookmarks...";
-            }
-        }
-
+    ): Promise<BookmarkTabsResult> {
         // Figure out which of the tabs to save.  We ignore tabs with
         // unparseable URLs or which look like extensions and internal browser
         // things.
         //
         // We filter out all tabs without URLs below. #cast
-        const tabs = <(PartialTabInfo & {url: string})[]>
+        const tabs = <(StashItem & {url: string})[]>
             all_tabs.filter(t => t.url && this.isURLStashable(t.url));
 
         // If there are no tabs to save, early-exit here so we don't
         // unnecessarily create bookmark folders we don't need.
         if (tabs.length == 0) {
-            if (tm) tm.value = tm.max;
-            return {tabs, bookmarks: []};
+            return {tabs: [], bookmarks: []};
         }
 
         // Find or create the root of the stash.
@@ -258,18 +292,21 @@ export class Model {
         // what we already have), and where in the folder to save them (we want
         // to append).
         let tabs_to_actually_save = tabs;
-        let index = 0;
         let newFolderId: undefined | string = undefined;
 
         if (folderId === undefined) {
             // Create a new folder, if it wasn't specified.
-            const folder = await browser.bookmarks.create({
-                parentId: root.id,
-                title: options?.newFolderTitle
-                    ?? Bookmarks.genDefaultFolderName(new Date()),
-                index: 0, // Newest folders should show up on top
-            });
-            folderId = folder.id as Bookmarks.NodeID;
+            if (options?.newFolderTitle) {
+                const folder = await browser.bookmarks.create({
+                    parentId: root.id,
+                    title: options?.newFolderTitle
+                        ?? Bookmarks.genDefaultFolderName(new Date()),
+                    index: 0, // Newest folders should show up on top
+                });
+                folderId = folder.id as Bookmarks.NodeID;
+            } else {
+                folderId = await this.ensureRecentUnnamedFolder();
+            }
             newFolderId = folderId;
 
             // When saving to this folder, we want to save all tabs we
@@ -295,68 +332,19 @@ export class Model {
 
             tabs_to_actually_save = tabs_to_actually_save.filter(
                 tab => ! existing_bms.includes(tab.url));
-
-            // Append new bookmarks to the end of the folder.
-            index = existing_bms.length;
         }
-
-        if (tm) tm.max = tabs_to_actually_save.length * 2;
 
         // Now save each tab as a bookmark.
-        //
-        // Unfortunately, Firefox doesn't have an API to save multiple bookmarks
-        // in a single transaction, so to avoid this being unbearably slow, we
-        // do this in two passes--create a bunch of empty bookmarks in parallel,
-        // and then fill them in with the right values (again in parallel).
-        let ps: Promise<browser.Bookmarks.BookmarkTreeNode>[] = [];
-        const created_bm_ids = new Set();
-        for (let _tab of tabs_to_actually_save) {
-            ps.push(browser.bookmarks.create({
-                parentId: folderId,
-                title: 'Stashing...',
-                // We provide a unique URL for each in-progress stash to avoid
-                // problems with Firefox Sync erroneously de-duplicating
-                // bookmarks with the same URL while the stash is in progress.
-                // See issue #8 and Firefox bug 1549648.
-                url: `about:blank#stashing-${folderId}-${index}`,
-                index,
-            }));
-            ++index;
-        }
-        for (let p of ps) {
-            created_bm_ids.add((await p).id);
-            if (tm) ++tm.value;
-        }
-        ps = [];
-
-        // We now read the folder back to determine the order of the created
-        // bookmarks, so we can fill each of them in in the correct order.
-        //
-        // We know that the bookmark node returned from getSubTree() has
-        // children because it's a folder we created or identified earlier, and
-        // we were able to successfully create child bookmarks under it above.
-        // #undef
-        let child_bms = (await browser.bookmarks.getSubTree(folderId))[0].children!;
-
-        // Now fill everything in.
-        let tab_index = 0;
-        for (let bm of child_bms) {
-            if (! created_bm_ids.has(bm.id)) continue;
-            created_bm_ids.delete(bm.id);
-            ps.push(browser.bookmarks.update(bm.id, {
-                title: tabs_to_actually_save[tab_index].title,
-                url: tabs_to_actually_save[tab_index].url,
-            }));
-            ++tab_index;
-        }
-
-        const bookmarks: browser.Bookmarks.BookmarkTreeNode[] = [];
-        for (let p of ps) {
-            bookmarks.push(await p);
-            if (tm) ++tm.value;
-        }
-
-        return {tabs, bookmarks, newFolderId};
+        const bookmarks = await this.putItemsInFolder({
+            items: tabs_to_actually_save,
+            toFolderId: folderId,
+            task: options?.taskMonitor,
+        });
+        return {
+            tabs: tabs.filter(t => isTab(t)) as Tabs.Tab[],
+            bookmarks: bookmarks.map(id => this.bookmarks.bookmark(id)),
+            newFolderId,
+        };
     }
 
     /** Hide/discard/close the specified tabs, according to the user's settings
@@ -369,6 +357,7 @@ export class Model {
         await Promise.all(
             tabIds.map(tid => browser.tabs.update(tid, {highlighted: false})));
 
+        // istanbul ignore else -- hide() is always available in tests
         if (browser.tabs.hide) {
             // If the browser supports hiding tabs, then hide or close them
             // according to the user's preference.
@@ -402,119 +391,347 @@ export class Model {
     async restoreTabs(
         urls: string[],
         options: {background?: boolean}
-    ): Promise<number[]> {
+    ): Promise<Tabs.TabID[]> {
         if (this.tabs.current_window === undefined) {
             throw new Error(`Not sure what the current window is`);
+        }
+
+        // As a special case, if we are restoring just a single tab, first check
+        // if we already have the tab open and just switch to it.  (No need to
+        // disturb the ordering of tabs in the browser window.)
+        if (! options.background && urls.length === 1 && urls[0]) {
+            const t = Array.from(this.tabs.tabsWithURL(urls[0]))
+                .find(t => t.url === urls[0] && ! t.hidden
+                        && t.windowId === this.tabs.current_window);
+            if (t) {
+                await browser.tabs.update(t.id, {active: true});
+                return [t.id];
+            }
         }
 
         // Remove duplicate URLs so we only try to restore each URL once.
         const url_set = new Set(filterMap(urls, url => url));
 
-        // We want to know what tabs were recently closed, so we can
-        // restore/un-hide tabs as appropriate.
-        const closed_tabs = await browser.sessions.getRecentlyClosed();
-
         // We want to know what tabs are currently open in the window, so we can
         // avoid opening duplicates.
-        const win_id = this.tabs.current_window;
-        const win_tabs = this.tabs.window(win_id).tabs
+        const win_tabs = this.tabs.window(this.tabs.current_window).tabs
             .map(tid => this.tabs.tab(tid));
 
         // We want to know which tab the user is currently looking at so we can
-        // close it if it's just the new-tab page, and because if we restore any
-        // closed tabs, the browser will re-focus (and we may want to shift the
-        // focus back if we've been asked to restore in the background).
+        // close it if it's just the new-tab page.
         const active_tab = win_tabs.filter(t => t.active)[0];
 
-        // We can restore a tab in one of four(!) ways:
-        //
-        // 1. Do nothing (because the tab is already open).
-        // 2. Un-hide() it, if it was previously hidden and is still open.
-        // 3. Re-open a recently-closed tab with the same URL.
-        // 4. Open a new tab.
-        //
-        // Let's figure out which strategy to use for each tab, and kick it off.
-        const ps: Promise<number>[] = [];
-        let index = win_tabs.length;
-        for (const url of url_set) {
-            const open = win_tabs.find(tabLookingAtP(url));
-            if (open && open.id !== undefined) {
-                // Tab is already open.  If it was hidden, un-hide it and move
-                // it to the right location in the tab bar.
-                if (open.hidden) {
-                    ps.push(async function(open) {
-                        if (browser.tabs.show) await browser.tabs.show([open.id!]);
-                        await browser.tabs.move(open.id!, {windowId: win_id, index});
-                        return open.id;
-                    }(open));
-                    ++index;
-                }
-                continue;
+        const tab_ids = await this.putItemsInWindow({
+            // NOTE: We rely on the fact that Set always remembers the order in
+            // which items were inserted to be sure that tabs are always
+            // restored in the correct order.
+            items: Array.from(url_set).map(url => ({url})),
+            toWindowId: this.tabs.current_window
+        });
+
+        if (! options.background) {
+            // Switch to the last tab that we restored (if desired).  We choose
+            // the LAST tab to behave similarly to the user having just opened a
+            // bunch of tabs.
+            if (tab_ids.length > 0) {
+                await browser.tabs.update(tab_ids[tab_ids.length - 1], {active: true});
             }
 
-            const closed = closed_tabs.map(s => s.tab).find(tabLookingAtP(url));
-            if (closed) {
-                // Tab was recently-closed.  Re-open it, and move it to the
-                // right location in the tab bar.
-                ps.push(async function(ct) {
-                    // #undef We filtered out non-tab sessions above, and we know
-                    // that /ct/ is a session-flavored Tab.
-                    const t = (await browser.sessions.restore(ct.sessionId!)).tab!;
-                    // #undef The restored tab is a normal (non-devtools) tab
-                    await browser.tabs.move(t.id!, {windowId: win_id, index});
-                    return t.id!;
-                }(closed));
-                ++index;
-                continue;
-            }
-
-            ps.push(browser.tabs.create({
-                active: false, url: urlToOpen(url), windowId: win_id, index})
-                .then(t => t.id!));
-            ++index;
-        }
-
-        // NOTE: Can't do this with .map() since await doesn't work in a nested
-        // function context. :/
-        let tab_ids: number[] = await Promise.all(ps);
-
-        if (! options || ! options.background) {
-            // Special case: If we were asked to open only one tab AND that tab
-            // is already open, just switch to it.
-            if (url_set.size == 1 && tab_ids.length == 0) {
-                const url = url_set.values().next().value;
-                const open_tab = win_tabs.find(tabLookingAtP(url));
-                // #undef Since we opened no tabs, yet we were asked to open one
-                // URL, the tab must be open and therefore listed in /win_tabs/.
-                await browser.tabs.update(open_tab!.id, {active: true});
-            }
-
-            // Special case: If only one tab was restored, switch to it.  (This
-            // is different from the special case above, in which NO tabs are
-            // restored.)
-            if (tab_ids.length == 1) {
-                await browser.tabs.update(tab_ids[0], {active: true});
-            }
-
-            // Finally, if we opened at least one tab, AND the current tab is
-            // looking at the new-tab page, close the current tab in the
-            // background.
+            // Finally, if we opened at least one tab, AND we were looking at
+            // the new-tab page, close the new-tab page in the background.
             if (tab_ids.length > 0
                 && this.browser_settings.isNewTabURL(active_tab.url ?? '')
                 && active_tab.status === 'complete')
             {
-                // #undef devtools tabs don't have URLs and won't fall in here
                 browser.tabs.remove([active_tab.id]).catch(console.log);
             }
-
-        } else {
-            // Caller has indicated they don't want the tab focus disturbed.
-            // Unfortunately, if we restored any sessions, that WILL disturb the
-            // focus, so we need to re-focus on the previously-active tab.
-            await browser.tabs.update(active_tab.id, {active: true});
         }
 
         return tab_ids;
+    }
+
+    /** Returns the ID of an unnamed folder at the top of the stash, creating a
+     * new one if necessary. */
+    async ensureRecentUnnamedFolder(): Promise<Bookmarks.NodeID> {
+        const stash_root = await this.bookmarks.ensureStashRoot();
+        const id = this.mostRecentUnnamedFolderId();
+
+        if (id !== undefined) return id;
+
+        const bm = await browser.bookmarks.create({
+            parentId: stash_root.id,
+            title: Bookmarks.genDefaultFolderName(new Date()),
+            index: 0,
+        });
+        return bm.id as Bookmarks.NodeID;
+    }
+
+    /** Moves or copies items (bookmarks, tabs, and/or external items) to a
+     * particular location in a particular bookmark folder.
+     *
+     * When `move` is true, if the source item is a bookmark, it will be moved
+     * directly (so the ID remains the same).  If it's a tab, the tab will be
+     * closed once the bookmark is created.  External items (without an ID) will
+     * simply be created as new bookmarks, regardless of `move`. */
+    async putItemsInFolder(options: {
+        move?: boolean,
+        items: StashItem[],
+        toFolderId: Bookmarks.NodeID,
+        toIndex?: number,
+        task?: TaskMonitor,
+    }): Promise<Bookmarks.NodeID[]> {
+        // First we try to find the folder we're moving to.
+        const to_folder = this.bookmarks.folder(options.toFolderId);
+
+        // Then we adjust our items depending on whether we're moving or
+        // copying.
+        let items = options.items;
+        if (! options.move) {
+            // NIFTY HACK: If we remove all the item IDs, putItemsInFolder()
+            // will effectively just copy, because it looks like we're "moving"
+            // items not in the stash already.
+            items = items.map(({title, url}) => ({title, url}));
+        }
+
+        // Note: We explicitly DON'T check stashability here because the caller
+        // has presumably done this for us--and has explicitly chosen what to
+        // put in the folder.
+
+        if (options.task) options.task.max = options.items.length;
+
+        // Now, we move everything into the folder.  `to_index` is maintained as
+        // the insertion point (i.e. the next inserted item should have index
+        // `to_index`).
+        const moved_item_ids: Bookmarks.NodeID[] = [];
+        const close_tab_ids: Tabs.TabID[] = [];
+
+        for (
+            let i = 0,
+                to_index = options.toIndex ?? to_folder.children.length;
+            i < items.length;
+            ++i, ++to_index, options.task && ++options.task.value
+        ) {
+            const item = items[i];
+            const model_item = item.id !== undefined ? this.item(item.id) : undefined;
+
+            // If it's a bookmark, just move it directly.
+            if (isBookmark(model_item)) {
+                const pos = this.bookmarks.positionOf(model_item);
+                await this.bookmarks.move(model_item.id, to_folder.id, to_index);
+                moved_item_ids.push(model_item.id);
+                if (pos.parent === to_folder && pos.index < to_index) {
+                    // Because we are moving items which appear in the list
+                    // before the insertion point, the insertion point shouldn't
+                    // move--the index of the moved item is actually to_index -
+                    // 1, so the location of the next item should still be
+                    // to_index.
+                    --to_index;
+                }
+                continue;
+            }
+
+            // If it's a tab, mark the tab for closure.
+            if (isTab(item)) close_tab_ids.push(item.id);
+
+            // Otherwise, we treat tabs and external items the same (i.e. just
+            // create a new bookmark).
+            //
+            // TODO fill in title/icon details if missing?
+            const bm = await browser.bookmarks.create({
+                title: item.title || item.url,
+                url: item.url,
+                parentId: to_folder.id,
+                index: to_index,
+            });
+            moved_item_ids.push(bm.id as Bookmarks.NodeID);
+
+            // Propagate selection state asynchronously so the model has a
+            // chance to catch up.
+            setTimeout(() => {
+                this.bookmarks.bookmark(bm.id as Bookmarks.NodeID).$selected =
+                    item.$selected;
+            });
+        }
+
+        // Hide/close any tabs which were moved from, since they are now
+        // (presumably) in the stash.
+        await this.hideOrCloseStashedTabs(close_tab_ids);
+
+        return moved_item_ids;
+    }
+
+    /** Move or copy items (bookmarks, tabs, and/or external items) to a
+     * particular location in a particular window.  Tabs which are
+     * moved/created/restored will NOT be active (i.e. they will always be in
+     * the background).
+     *
+     * When `move` is true, if the source item is a tab, it will be moved
+     * directly (so the ID remains the same).  If it's a bookmark, a new tab
+     * will be created or an existing hidden/closed tab will be restored and
+     * moved into the right place.  External items (without an ID) will simply
+     * be created as new tabs, regardless of `move`. */
+    async putItemsInWindow(options: {
+        move?: boolean,
+        items: StashItem[],
+        toWindowId: Tabs.WindowID,
+        toIndex?: number,
+        task?: TaskMonitor,
+    }): Promise<Tabs.TabID[]> {
+        const to_win_id = options.toWindowId;
+        const win = this.tabs.window(to_win_id);
+
+        // Try to figure out where to move items from, or if new tabs need to be
+        // created fresh.  (We don't worry about restoring recently-closed tabs
+        // yet; those are handled differently.)
+        let items = options.items;
+        if (! options.move) {
+            // If we're copying instead of moving, just remove all the item IDs,
+            // which will leave the sources alone.
+            items = items.map(({title, url}) => ({title, url}));
+        }
+
+        // We want to know what tabs were recently closed, so we can
+        // restore/un-hide tabs as appropriate.
+        //
+        // TODO Unit tests don't support sessions yet
+        const closed_tabs = !! browser.sessions?.getRecentlyClosed
+            ? await browser.sessions.getRecentlyClosed()
+            : [];
+
+        if (options.task) options.task.max = items.length + 1;
+
+        // Keep track of which tabs we are moving/have already stolen.  A tab
+        // can be "stolen" if we have a non-tab item with a URL that matches a
+        // tab which we are not already moving--in this case, we "steal" the
+        // already-open tab so we don't have to open a duplicate.
+        const dont_steal_tabs = new Set<Tabs.TabID>(filterMap(items, i => {
+            if (! isTab(i)) return undefined;
+            return i.id;
+        }));
+
+        // Now, we move/restore tabs.
+        const moved_item_ids: Tabs.TabID[] = [];
+        const delete_bm_ids: Bookmarks.Bookmark[] = [];
+
+        for (
+            let i = 0,
+                to_index = options.toIndex ?? win.tabs.length;
+            i < items.length;
+            ++i, ++to_index, options.task && ++options.task.value
+        ) {
+            const item = items[i];
+            const model_item = item.id !== undefined ? this.item(item.id) : undefined;
+
+            // If the item we're moving is a tab, just move it into place.
+            if (isTab(model_item)) {
+                const pos = this.tabs.positionOf(model_item);
+                await this.tabs.move(model_item.id, to_win_id, to_index);
+                moved_item_ids.push(model_item.id);
+                dont_steal_tabs.add(model_item.id);
+
+                if (pos.window === win && pos.index < to_index) {
+                    // This is a rotation in the same window; since move() first
+                    // removes and then adds the tab, we need to decrement
+                    // toIndex so the moved tab ends up in the right place.
+                    --to_index;
+                }
+                continue;
+            }
+
+            // If we're "moving" a bookmark into a window, mark the bookmark
+            // for deletion later.
+            if (isBookmark(model_item)) delete_bm_ids.push(model_item);
+
+            // If the item we're moving is not a tab, we need to create a
+            // new tab or restore an old one from somewhere else.
+            //
+            // TODO: Don't do too many of these at once because the browser
+            // will fall over.
+
+            const url = item.url;
+            if (! url) {
+                // No URL? Don't bother restoring anything.
+                --to_index;
+                continue;
+            }
+
+            // First let's see if we have another tab we can just "steal"--that
+            // is, move into place to represent the source item (which,
+            // remember, is NOT ITSELF A TAB).
+            //
+            // There is a dual purpose here--we want to reuse hidden tabs where
+            // possible, but we also try to move other tabs from the current
+            // window so that we don't end up creating duplicates for the user.
+            const already_open = Array.from(this.tabs.tabsWithURL(url))
+                .filter(t => ! dont_steal_tabs.has(t.id) && ! t.pinned)
+                .sort((a, b) => (-a.hidden) - (-b.hidden)); // prefer hidden tabs
+            if (already_open.length > 0) {
+                const t = already_open[0];
+                const pos = this.tabs.positionOf(t);
+
+                if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
+
+                await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
+                if (pos.window === win && pos.index < to_index) --to_index;
+                moved_item_ids.push(t.id);
+                dont_steal_tabs.add(t.id);
+                this.tabs.tab(t.id).$selected = item.$selected;
+                continue;
+            }
+
+            // If we don't have a tab to move, let's see if a tab was recently
+            // closed that we can restore.
+            const closed = filterMap(closed_tabs, s => s.tab).find(tabLookingAtP(url));
+            if (closed) {
+                // Remember the active tab in this window (if any), because
+                // restoring a recently-closed tab will disturb the focus.
+                const active_tab = win.tabs
+                    .map(tid => this.tabs.tab(tid))
+                    .find(t => t.active);
+
+                const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
+                await browser.tabs.move(t.id!, {windowId: to_win_id, index: to_index});
+
+                // Reset the focus to the previously-active tab. (We do this
+                // immediately, inside the loop, so as to minimize any
+                // flickering the user might see.)
+                if (active_tab) {
+                    await browser.tabs.update(active_tab.id, {active: true});
+                }
+
+                moved_item_ids.push(t.id as Tabs.TabID);
+                dont_steal_tabs.add(t.id as Tabs.TabID);
+
+                // Propagate the item's selection state to the restored tab.  Do
+                // this asynchronously so the model has a chance to update.
+                setTimeout(() => {
+                    this.tabs.tab(t.id as Tabs.TabID).$selected = item.$selected;
+                });
+                continue;
+            }
+
+            // Else we just need to create a completely new tab.
+            const t = await browser.tabs.create({
+                active: false, url: urlToOpen(url), windowId:
+                to_win_id, index: to_index,
+            });
+            moved_item_ids.push(t.id as Tabs.TabID);
+            dont_steal_tabs.add(t.id as Tabs.TabID);
+
+            // Finally, copy the selection state of the original model item to
+            // the new item.  Otherwise newly-created items might not appear to
+            // be selected.  Done asynchronously to give the model a chance to
+            // update first.
+            setTimeout(() => {
+                this.tabs.tab(t.id as Tabs.TabID).$selected = item.$selected;
+            });
+        }
+
+        // Delete bookmarks for all the tabs we restored.
+        await Promise.all(delete_bm_ids.map(bm => this.deleteBookmark(bm)));
+        if (options.task) ++options.task.value;
+
+        return moved_item_ids;
     }
 
     /** Deletes the specified bookmark subtree, saving it to deleted items.  You
@@ -526,14 +743,14 @@ export class Model {
 
         const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
             if ('children' in item) return {
-                title: item.title ?? '',
+                title: item.title,
                 children: filterMap(item.children, i =>
                     i && toDelItem(this.bookmarks.node(i))),
             };
 
             if ('url' in item) return {
-                title: item.title ?? item.url ?? '',
-                url: item.url ?? '',
+                title: item.title,
+                url: item.url,
                 favIconUrl: this.favicons.get(item.url!).value?.favIconUrl
                     || undefined,
             };
@@ -576,16 +793,20 @@ export class Model {
         di.state.recentlyDeleted = di.state.recentlyDeleted.filter(
             ({key: k}) => k !== deletion.key);
 
+        const stash_root = await this.bookmarks.ensureStashRoot();
+
         if ('children' in deletion.item) {
             // Restoring an entire folder of bookmarks; just put it at the root.
-            const stash_root = await this.bookmarks.ensureStashRoot();
             const folder = await browser.bookmarks.create({
                 parentId: stash_root.id,
                 title: deletion.item.title,
                 index: 0,
             });
             const fid = folder.id as Bookmarks.NodeID;
-            await this.bookmarkTabs(fid, deletion.item.children);
+            await this.putItemsInFolder({
+                items: deletion.item.children,
+                toFolderId: fid,
+            });
 
             // Restore their favicons.
             for (const c of deletion.item.children) {
@@ -599,31 +820,24 @@ export class Model {
             let folderId: Bookmarks.NodeID | undefined;
 
             if (deletion.deleted_from) {
+                const from = deletion.deleted_from;
                 try {
-                    await browser.bookmarks.get(deletion.deleted_from.folder_id);
-
+                    this.bookmarks.folder(from.folder_id as Bookmarks.NodeID);
                     // The exact bookmark we want still exists, use it
-                    folderId = deletion.deleted_from.folder_id as Bookmarks.NodeID;
-
-                } catch (e) {
+                    folderId = from.folder_id as Bookmarks.NodeID;
+                } catch (_) {
                     // Search for an existing folder inside the stash root with
                     // the same name as the folder it was deleted from.
-                    const stash_root = this.bookmarks.stash_root.value;
-                    for (const bm of await browser.bookmarks.search(
-                            {title: deletion.deleted_from.title}))
-                    {
-                        if (bm.type !== 'folder') continue;
-                        if (bm.parentId !== stash_root?.id) continue;
-                        if (bm.title !== deletion.deleted_from.title) continue;
-                        folderId = bm.id as Bookmarks.NodeID;
-                        break;
-                    }
+                    const child = stash_root.children
+                        .map(id => this.bookmarks.node(id))
+                        .find(c => 'children' in c && c.title === from.title);
+                    if (child) folderId = child.id;
                 }
             }
 
             // If we still don't know where it came from or its prior containing
             // folder was deleted, just put it in an unnamed folder.
-            if (! folderId) folderId = this.mostRecentUnnamedFolderId();
+            if (! folderId) folderId = await this.ensureRecentUnnamedFolder();
 
             // Restore the bookmark.
             await this.bookmarkTabs(folderId, [deletion.item]);
@@ -663,8 +877,8 @@ export class Model {
 };
 
 export type BookmarkTabsResult = {
-    tabs: PartialTabInfo[],
-    bookmarks: browser.Bookmarks.BookmarkTreeNode[],
+    tabs: Tabs.Tab[],
+    bookmarks: Bookmarks.Bookmark[],
     newFolderId?: string,
 };
 

@@ -1,11 +1,11 @@
 <template>
 <div v-if="loading" class="folder-item deleted loading">
-    <ItemIcon class="spinner size-icon" />
+    <span class="item-icon icon spinner size-icon" />
     <span class="text status-text">{{loading}}...</span>
 </div>
 <div v-else class="folder-item deleted action-container">
-    <ItemIcon v-if="item.favIconUrl" :src="item.favIconUrl" />
-    <span v-else class="icon" />
+    <ItemIcon class="item-icon icon" :src="item.favIconUrl"
+              :default-class="{'icon-tab': true}"/>
     <a class="text" :href="item.url" target="_blank" :title="tooltip"><span>{{item.title}}</span></a>
     <ButtonBox>
         <Button class="stash one" tooltip="Restore" @action="restore" />

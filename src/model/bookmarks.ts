@@ -1,4 +1,4 @@
-import {reactive, Ref, ref} from "vue";
+import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {EventWiring, filterMap, nextTick} from "../util";
@@ -10,7 +10,13 @@ export type Bookmark = NodeBase & {url: string};
 export type Separator = NodeBase & {type: 'separator'};
 export type Folder = NodeBase & {children: NodeID[]};
 
-type NodeBase = {parentId: NodeID, id: NodeID, dateAdded?: number, title: string};
+type NodeBase = {
+    parentId: NodeID,
+    id: NodeID,
+    dateAdded?: number,
+    title: string,
+    $selected?: boolean,
+};
 
 export type NodeID = string & {readonly __node_id: unique symbol};
 
@@ -46,6 +52,13 @@ export class Model {
      * which one to use.  The contents of the warning are an error to show the
      * user and a function to direct them to more information. */
     readonly stash_root_warning: Ref<{text: string, help: () => void} | undefined> = ref();
+
+    /** The number of selected bookmarks. */
+    readonly selected_count = computed(() => {
+        let count = 0;
+        for (const _ of this.selectedItems()) ++count;
+        return count;
+    });
 
     /** Tracks folders which are candidates to be the stash root, and their
      * parents (up to the root).  Any changes to these folders should recompute
@@ -100,6 +113,15 @@ export class Model {
         const node = this.by_id.get(id);
         if (! node) throw new Error(`No such bookmark node: ${id}`);
         return node;
+    }
+
+    /** Retrieves the bookmark with the specified ID, or throws an exception if
+     * the ID does not exist or is not a bookmark (e.g. it's a separator or
+     * folder). */
+    bookmark(id: NodeID): Bookmark {
+        const node = this.node(id);
+        if ('url' in node) return node;
+        throw new Error(`Bookmark node is not a bookmark: ${id}`);
     }
 
     /** Retrieves the folder with the specified ID, or throws an exception if
@@ -220,8 +242,9 @@ export class Model {
     // Mutators
     //
 
-    /** Moves a bookmark such that its index in the destination folder is
-     * `toIndex`.
+    /** Moves a bookmark such that it precedes the item with index `toIndex` in
+     * the destination folder.  (You can pass an index `>=` the length of the
+     * bookmark folder's children to move the item to the end of the folder.)
      *
      * Use this instead of `browser.bookmarks.move()`, which behaves differently
      * in Chrome and Firefox... */
@@ -231,16 +254,14 @@ export class Model {
         // first added, then removed from its old location, so the index of the
         // item after the move will sometimes be toIndex-1 instead of toIndex;
         // we account for this below.
-        const node = this.by_id.get(id);
-        // istanbul ignore if -- caller consistency
-        if (! node) throw new Error(`No such bookmark: ${id}`);
+        const node = this.node(id);
 
-        // istanbul ignore if
-        if (! browser.runtime.getBrowserInfo) {
-            // We're using Chrome
+        // istanbul ignore else
+        if (!! browser.runtime.getBrowserInfo) {
+            // We're using Firefox
             if (node.parentId === toParent) {
                 const position = this.positionOf(node);
-                if (toIndex > position.index) toIndex++;
+                if (toIndex > position.index) toIndex--;
             }
         }
         await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
@@ -497,6 +518,56 @@ export class Model {
         return candidates;
     }
 
+    //
+    // Handling selection/deselection of bookmarks in the UI
+    //
+
+    isSelected(item: Node): boolean { return !!item.$selected; }
+
+    async setSelected(items: Iterable<Node>, isSelected: boolean) {
+        for (const item of items) item.$selected = isSelected;
+    }
+
+    *selectedItems(): Generator<Node> {
+        const self = this;
+        function* walk(bm: Node): Generator<Node> {
+            if (bm.$selected) {
+                yield bm;
+                // If a parent is selected, we don't want to return every single
+                // node in the subtree because this breaks drag-and-drop--we
+                // would want to move a folder as a single unit, rather than
+                // moving the folder, then all its children, then all their
+                // children, and so on (effectively flattening the tree).
+                return;
+            }
+            if ('children' in bm) {
+                for (const c of bm.children) yield* walk(self.node(c));
+            }
+        }
+
+        // We only consider items inside the stash root, since those are the
+        // only items that show up in the UI.
+        // istanbul ignore else -- when testing we should always have a root
+        if (this.stash_root.value) yield* walk(this.stash_root.value);
+    }
+
+    itemsInRange(start: Node, end: Node): Node[] | null {
+        let startPos = this.positionOf(start);
+        let endPos = this.positionOf(end);
+
+        if (startPos.parent !== endPos.parent) return null;
+
+        if (endPos.index < startPos.index) {
+            const tmp = endPos;
+            endPos = startPos;
+            startPos = tmp;
+        }
+
+        return startPos.parent.children
+            .slice(startPos.index, endPos.index + 1)
+            .map(id => this.node(id));
+    }
+
     private _add_url(bm: Bookmark) {
         this.bookmarksWithURL(bm.url).add(bm);
     }
@@ -517,7 +588,7 @@ export class Model {
 
 /** Given a folder name, check if it's an "default"-shaped folder name (i.e.
  * just a timestamp) and return the timestamp portion of the name if so. */
- export function getDefaultFolderNameISODate(n: string): string | null {
+export function getDefaultFolderNameISODate(n: string): string | null {
     let m = n.match(/saved-([-0-9:.T]+Z)/);
     return m ? m[1] : null;
 }

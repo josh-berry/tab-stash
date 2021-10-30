@@ -1,11 +1,11 @@
 <template>
 <div v-if="loading" class="folder-item deleted loading">
-    <ItemIcon class="spinner size-icon" />
+    <span class="item-icon icon spinner size-icon" />
     <span class="text status-text">{{loading}}...</span>
 </div>
 <div v-else>
     <div class="folder-item deleted action-container">
-        <ItemIcon class="icon-folder" />
+        <span class="item-icon icon icon-folder" />
         <span class="text" :title="tooltip">{{deletion.item.title}}</span>
         <ButtonBox>
             <Button class="stash" tooltip="Restore" @action="restore" />
@@ -42,7 +42,6 @@ export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
-        ItemIcon: require('../components/item-icon.vue').default,
         Menu: require('../components/menu.vue').default,
 
         Bookmark: require('./bookmark.vue').default,
