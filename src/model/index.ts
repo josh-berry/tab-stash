@@ -153,7 +153,7 @@ export class Model {
         const root = this.bookmarks.stash_root.value;
         if (! root) return undefined;
 
-        const topmost = root.children
+        const topmost = root.children && root.children[0] !== undefined
             ? this.bookmarks.node(root.children[0]) : undefined;
 
         // Is there a top-most item under the root folder, and is it a folder?
