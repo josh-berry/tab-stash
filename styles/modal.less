@@ -82,15 +82,22 @@ details.menu {
         background-color: var(--button-hover-bg);
     }
 
+    // The bounding box holding the menu.  We add padding here so the menu never
+    // outgrows the viewport.  (The padding will be overridden by the Vue menu
+    // component to position the menu properly.)
+    & > .menu-bounds {
+        padding: var(--menu-mh) var(--menu-mw);
+    }
+
     // The pop-up menu itself, showing a list of items
-    & > nav {
+    & > .menu-bounds > nav {
         padding: var(--menu-mh) 0;
         background-color: var(--group-bg);
         box-shadow: var(--shadow);
         border: var(--group-border);
         display: flex;
         flex-direction: column;
-        flex-grow: 1;
+        overflow: auto;
 
         & > * {
             cursor: default;
