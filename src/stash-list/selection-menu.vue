@@ -1,7 +1,7 @@
 <template>
-<Menu class="menu selection-menu" @open="onOpenMenu">
+<Menu ref="menu" class="menu selection-menu" @open="onOpenMenu">
     <template #summary>
-        <div class="count">{{selected_count}}</div>
+        <div class="count">{{selectedCount}}</div>
         <div class="icon icon-move-menu-inverse"></div>
     </template>
 
@@ -9,10 +9,9 @@
         <input ref="search" type="search" placeholder="Search or create group"
                 v-model="searchText"
                 @click.stop=""
-                @keypress.esc="searchText = ''"
-                @keypress.enter.prevent.stop="moveToSearch"/>
+                @keypress.enter.prevent.stop="moveToSearch(); closeMenu();"/>
         <input type="button" class="action stash newgroup" tabindex="0"
-                :title="createTooltip" @click="moveToNew" />
+                :title="createTooltip" @click="create" />
         <div class="status-text">
             Hit Enter to {{searchStatus}}
         </div>
@@ -21,7 +20,7 @@
     <hr/>
 
     <div :class="$style.list">
-        <a v-for="(folder, index) of stash_folders"
+        <a v-for="(folder, index) of stashFolders"
             :class="{'selected': (index === 0 && searchText !== '')}"
             title="Move to &quot;{{friendlyFolderName(folder.title)}}&quot;"
             tabindex="0" @click.prevent="moveTo(folder.id)"
@@ -43,7 +42,7 @@
 <script lang="ts">
 import {defineComponent} from "@vue/runtime-core";
 
-import {filterMap, textMatcher} from "../util";
+import {filterMap, logErrors, textMatcher} from "../util";
 import {Model} from "../model";
 import {Folder, NodeID, friendlyFolderName} from "../model/bookmarks";
 
@@ -61,11 +60,11 @@ export default defineComponent({
     inject: ['$model'],
 
     computed: {
-        selected_count(): number {
+        selectedCount(): number {
             return this.model().selection.selected_count.value;
         },
 
-        stash_folders(): Folder[] {
+        stashFolders(): Folder[] {
             const bookmarks = this.model().bookmarks;
             const stash_root = bookmarks.stash_root.value;
             if (! stash_root) return [];
@@ -87,8 +86,8 @@ export default defineComponent({
 
         searchStatus(): string {
             if (this.searchText === '') return `create a new group`;
-            if (this.stash_folders.length === 0) return `create "${this.searchText}"`;
-            return `move to "${friendlyFolderName(this.stash_folders[0].title)}"`;
+            if (this.stashFolders.length === 0) return `create "${this.searchText}"`;
+            return `move to "${friendlyFolderName(this.stashFolders[0].title)}"`;
         },
     },
 
@@ -96,33 +95,74 @@ export default defineComponent({
         model(): Model { return (<any>this).$model as Model; },
         friendlyFolderName,
 
+        closeMenu() { (<any>this.$refs.menu).close(); },
+
         onOpenMenu() {
+            this.searchText = '';
             (<HTMLElement>this.$refs.search).focus();
         },
 
-        moveToNew() {
-
-        },
+        create() { logErrors(async() => {
+            const model = this.model();
+            let folder;
+            if (! this.searchText) {
+                folder = await model.bookmarks.createUnnamedFolder();
+            } else {
+                const stash_root = await model.bookmarks.ensureStashRoot();
+                folder = await model.bookmarks.create({
+                    parentId: stash_root.id,
+                    title: this.searchText,
+                    index: 0,
+                });
+            }
+            this.moveTo(folder.id);
+        }); },
 
         moveToSearch() {
-            // should mirror stash_menu_msg
+            if (this.searchText === '' || this.stashFolders.length === 0) {
+                this.create();
+            } else {
+                const folder = this.stashFolders[0];
+                this.moveTo(folder.id);
+            }
         },
 
-        moveTo(id: NodeID) {
-            console.log(id);
-        },
+        moveTo(id: NodeID) { logErrors(async() => {
+            const model = this.model();
+            await model.putItemsInFolder({
+                move: true,
+                items: Array.from(model.selectedItems()),
+                toFolderId: id,
+            });
+        }); },
 
-        openInWindow() {
+        openInWindow() { logErrors(async() => {
+            const model = this.model();
+            if (model.tabs.current_window === undefined) return;
 
-        },
+            await model.putItemsInWindow({
+                move: false,
+                items: Array.from(model.selectedItems()),
+                toWindowId: model.tabs.current_window,
+            });
+        }); },
 
-        moveToWindow() {
+        moveToWindow() { logErrors(async() => {
+            const model = this.model();
+            if (model.tabs.current_window === undefined) return;
 
-        },
+            await model.putItemsInWindow({
+                move: true,
+                items: Array.from(model.selectedItems()),
+                toWindowId: model.tabs.current_window,
+            });
+        }); },
 
-        remove() {
-
-        },
+        remove() { logErrors(async() => {
+            const model = this.model();
+            const ids = Array.from(model.selectedItems()).map(i => i.id);
+            await model.deleteItems(ids);
+        }); },
     }
 });
 

@@ -115,6 +115,12 @@ export class Model {
         return node;
     }
 
+    /** Retrieves the node with the specified ID, or returns `undefined` if it
+     * does not exist. */
+    getNode(id: NodeID): Node | undefined {
+        return this.by_id.get(id);
+    }
+
     /** Retrieves the bookmark with the specified ID, or throws an exception if
      * the ID does not exist or is not a bookmark (e.g. it's a separator or
      * folder). */

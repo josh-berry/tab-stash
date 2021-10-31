@@ -713,6 +713,33 @@ export class Model {
         return moved_items;
     }
 
+    /** Deletes the specified items (bookmark nodes or tabs), saving any deleted
+     * bookmarks to the deleted-items model. */
+    async deleteItems(ids: Iterable<Bookmarks.NodeID | Tabs.TabID>) {
+        const tabs = [];
+        for (const id of ids) {
+            if (typeof id === 'string') {
+                // It's a bookmark
+                const node = this.bookmarks.getNode(id);
+                if (! node) continue;
+
+                if ('children' in node) {
+                    await this.deleteBookmarkTree(id);
+                } else if ('url' in node) {
+                    await this.deleteBookmark(node);
+                } else {
+                    // separator
+                    await this.bookmarks.remove(id);
+                }
+
+            } else {
+                tabs.push(id);
+            }
+        }
+
+        await this.tabs.remove(tabs);
+    }
+
     /** Deletes the specified bookmark subtree, saving it to deleted items.  You
      * should use {@link deleteBookmark()} for individual bookmarks, because it
      * will cleanup the parent folder if the parent folder has a "default" name
