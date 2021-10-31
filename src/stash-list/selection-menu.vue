@@ -6,21 +6,35 @@
         <div class="icon icon-move-menu-inverse"></div>
     </template>
 
-    <div :class="{[$style.new_stash]: true}">
-        <input ref="search" type="search" placeholder="Search or create group"
-                v-model="searchText"
-                @click.stop=""
-                @keypress.enter.prevent.stop="moveToSearch(); closeMenu();"/>
-        <input type="button" class="action stash newgroup" tabindex="0"
-                :title="createTooltip" @click="create" />
-        <div class="status-text">
-            Hit Enter to {{searchStatus}}
-        </div>
-    </div>
+    <a tabindex="0" title="Open all stashed tabs in the window"
+       @click.prevent="openInWindow">
+        <span class="icon icon-restore"></span>
+        <span>Open</span>
+    </a>
+    <a tabindex="0" title="Open tabs and delete them from the stash"
+       @click.prevent="moveToWindow">
+        <span class="icon icon-restore-del"></span>
+        <span>Unstash</span>
+    </a>
+
+    <hr/>
+
+    <input ref="search" type="search" placeholder="Search or create group"
+            v-model="searchText"
+            @click.stop=""
+            @keypress.enter.prevent.stop="moveToSearch(); closeMenu();"/>
+
+    <a :class="{'selected': searchText === '' || stashFolders.length === 0}"
+       :title="createTitle"
+       @click.prevent="create">
+        <span class="icon icon-new-empty-group"></span>
+        {{ createTitle }}
+    </a>
 
     <hr/>
 
     <div :class="$style.list">
+
         <a v-for="(folder, index) of stashFolders"
             :class="{'selected': (index === 0 && searchText !== '')}"
             :title="`Move to &quot;${friendlyFolderName(folder.title)}&quot;`"
@@ -30,13 +44,11 @@
 
     <hr/>
 
-    <a tabindex="0" title="Open all stashed tabs in the window"
-        @click.prevent="openInWindow"><span class="icon icon-restore"></span> Open</a>
-    <a tabindex="0" title="Open tabs and delete them from the stash"
-        @click.prevent="moveToWindow"><span class="icon icon-restore-del"></span> Unstash</a>
-    <hr/>
     <a tabindex="0" title="Delete stashed tabs and close unstashed tabs"
-        @click.prevent="remove"><span class="icon icon-delete"></span> Delete or Close</a>
+       @click.prevent="remove">
+       <span class="icon icon-delete"></span>
+       <span>Delete or Close</span>
+    </a>
 </Menu>
 </template>
 
@@ -80,8 +92,8 @@ export default defineComponent({
             return textMatcher(friendlyFolderName(this.searchText));
         },
 
-        createTooltip(): string {
-            const what = this.searchText !== '' ? `"${this.searchText}"` : `a new group`;
+        createTitle(): string {
+            const what = this.searchText !== '' ? `"${this.searchText}"` : `New Group`;
             return `Create ${what}`;
         },
 
@@ -150,7 +162,9 @@ export default defineComponent({
 
         moveToWindow() { logErrors(async() => {
             const model = this.model();
-            if (model.tabs.current_window === undefined) return;
+            if (model.tabs.current_window === undefined) {
+                throw new Error(`BUG: No current window`);
+            }
 
             await model.putItemsInWindow({
                 move: true,
@@ -177,23 +191,5 @@ export default defineComponent({
     flex-direction: column;
     padding-left: 0 !important;
     padding-right: 0 !important;
-}
-
-.new_stash {
-    padding: 0 var(--menu-mw);
-
-    display: grid;
-    grid-template-columns: 1fr 0fr;
-    column-gap: var(--ctrl-mw);
-    row-gap: var(--menu-mh);
-}
-
-.new_stash :global(.status-text) {
-    grid-row: 2;
-    grid-column: 1 / 3;
-
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
 }
 </style>
