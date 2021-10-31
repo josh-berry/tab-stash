@@ -70,9 +70,9 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent, nextTick} from 'vue';
+import {defineComponent, nextTick} from 'vue';
 
-import {filterMap, required} from '../util';
+import {filterMap} from '../util';
 import {Model} from '../model';
 import {Node, Folder, friendlyFolderName, Bookmark} from '../model/bookmarks';
 
@@ -88,11 +88,14 @@ export default defineComponent({
 
     emits: ['close'],
 
-    props: {
-        stash: required(Array as PropType<Node[]>),
-    },
+    props: {},
 
     computed: {
+        stash(): Node[] {
+            const m = this.model().bookmarks;
+            return (m.stash_root.value?.children ?? [])
+                .map(id => m.node(id));
+        },
         folders(): Folder[] {
             return this.stash.filter(t => 'children' in t) as Folder[];
         },
@@ -102,7 +105,7 @@ export default defineComponent({
         format: 'urls-folders',
     }),
 
-    mounted(this: any) { this.$nextTick(() => this.select_all()); },
+    mounted(this: any) { this.select_all(); },
 
     watch: {
         format(this: any, val: string) { this.select_all(); },
@@ -138,9 +141,11 @@ export default defineComponent({
 
         copy() { document.execCommand('copy'); },
         select_all() {
-            (<HTMLElement>this.$refs.output).focus();
-            nextTick(() => window.getSelection()!
-                .selectAllChildren(<Element>this.$refs.output));
+            nextTick(() => {
+                (<HTMLElement>this.$refs.output).focus();
+                window.getSelection()!
+                    .selectAllChildren(<Element>this.$refs.output);
+            });
         }
     },
 });

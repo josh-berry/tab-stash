@@ -244,10 +244,7 @@ export default defineComponent({
         },
 
         showExportDialog() {
-            this.dialog = {
-                class: 'ExportDialog',
-                props: {stash: this.stash_root?.children || []},
-            };
+            this.dialog = {class: 'ExportDialog', props: {}};
         },
 
         async fetchMissingFavicons() { logErrors(async() => {
