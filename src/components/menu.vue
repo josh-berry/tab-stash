@@ -2,31 +2,27 @@
 <details ref="details" :open="open" :class="{
             [$style.details]: true, [horizontal]: true, [vertical]: true,
          }"
-         @toggle="onToggle" @keydown.esc.prevent.stop="close"
-         @click.prevent.stop="toggle">
-
-  <!-- NOTE: The above non-standard click handling is needed to prevent clicks
-       on the <summary> from propagating out of the <details> (and no, putting a
-       handler on the <summary> itself doesn't work in FF at least, which is
-       mystifying...) -->
-
-  <!-- NOTE: This isn't quite the same as <modal-backdrop> because it doesn't
-       contain the thing we're showing. -->
-  <div v-if="open" :class="$style.modal" tabindex="-1" @click.prevent.stop="close" />
+         @toggle="onToggle" @click.prevent.stop="toggle">
 
   <summary ref="summary" :class="{[$style.summary]: true, [summaryClass]: true}">
     <slot name="summary">{{name}}</slot>
   </summary>
 
-  <div ref="bounds" :style="bounds" :class="{
-            'menu-bounds': true, [$style.bounds]: true,
-            [vertical]: true, [horizontal]: true
-        }">
-    <nav ref="menu" :class="$style.menu" tabIndex="0"
-         @click.stop="close" @focusout="onFocusOut">
-      <slot></slot>
-    </nav>
-  </div>
+  <teleport v-if="open" to="body">
+    <div :class="{[$style.modal]: true, 'menu-modal': true, [modalClass]: true}"
+         tabindex="-1"
+         @keydown.esc.prevent.stop="close" @click.prevent.stop="close">
+      <div ref="bounds" :style="bounds" :class="{
+                'menu-bounds': true, [$style.bounds]: true,
+                [vertical]: true, [horizontal]: true
+            }">
+        <nav ref="menu" :class="$style.menu" tabIndex="0"
+             @click.stop="close" @focusout="onFocusOut">
+          <slot></slot>
+        </nav>
+      </div>
+    </div>
+  </teleport>
 
 </details>
 </template>
@@ -38,6 +34,7 @@ export default defineComponent({
     props: {
         name: String,
         summaryClass: String,
+        modalClass: String,
     },
 
     data: () => ({
@@ -99,6 +96,7 @@ export default defineComponent({
             if (this.open) {
                 // Just in case it was opened by some other means than toggle()
                 this.updatePosition();
+                (<HTMLElement>this.$refs.menu).focus();
                 this.$emit('open');
             } else {
                 this.$emit('close');
@@ -106,9 +104,9 @@ export default defineComponent({
         },
 
         onFocusOut() {
-            if ((<HTMLElement>this.$refs.menu).closest("details:focus-within")
-                    !== this.$refs.details)
-            {
+            const menu = this.$refs.menu as HTMLElement;
+            const bounds = this.$refs.bounds as HTMLElement;
+            if (menu.closest('.menu-bounds:focus-within') !== bounds) {
                 this.close();
             }
         },
@@ -132,6 +130,7 @@ export default defineComponent({
     cursor: default;
     content: " ";
     background: transparent;
+    overflow: hidden;
 }
 
 .bounds {

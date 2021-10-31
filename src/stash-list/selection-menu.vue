@@ -1,5 +1,6 @@
 <template>
-<Menu ref="menu" class="menu selection-menu" @open="onOpenMenu">
+<Menu ref="menu" class="menu selection-menu" modalClass="action-container"
+      @open="onOpenMenu">
     <template #summary>
         <div class="count">{{selectedCount}}</div>
         <div class="icon icon-move-menu-inverse"></div>

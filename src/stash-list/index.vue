@@ -38,13 +38,13 @@
           @click.stop="; /* Don't propagate clicks so we can search without
                             losing whatever is currently selected. */">
     <Menu class="menu main-menu" summaryClass="action mainmenu">
-      <a @click.prevent.stop="showOptions">Options...</a>
+      <a @click.prevent="showOptions">Options...</a>
       <hr/>
-      <a @click.prevent.stop="dialog = {class: 'ImportDialog'}">Import...</a>
-      <a @click.prevent.stop="showExportDialog">Export...</a>
+      <a @click.prevent="dialog = {class: 'ImportDialog'}">Import...</a>
+      <a @click.prevent="showExportDialog">Export...</a>
       <hr/>
       <a :href="pageref('deleted-items.html')">Deleted Items...</a>
-      <a @click.prevent.stop="fetchMissingFavicons">Fetch Missing Icons</a>
+      <a @click.prevent="fetchMissingFavicons">Fetch Missing Icons</a>
       <hr/>
       <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
       <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
