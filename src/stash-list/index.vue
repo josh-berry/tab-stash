@@ -1,12 +1,5 @@
 <template>
 <main :class="{'selection-active': selection_active}" @click="deselectAll">
-  <component :is="Teleport" to="body">
-    <transition appear name="dialog">
-      <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
-                 @close="dialog = undefined">
-      </component>
-    </transition>
-  </component>
   <transition-group tag="aside" class="notification-overlay" appear name="notification">
     <Notification key="new-features" v-if="recently_updated === 'features'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
@@ -72,20 +65,14 @@
     <a :href="pageref('whats-new.html')">What's New</a>
   </footer>
 </main>
+
+<transition appear name="dialog">
+    <component v-if="dialog" :is="dialog.class" v-bind="dialog.props"
+               @close="dialog = undefined" />
+</transition>
 </template>
 
 <script lang="ts">
-// Workaround for https://github.com/vuejs/vue-next/issues/2855
-import {
-    Teleport as teleport_,
-    TeleportProps,
-    VNodeProps
-} from 'vue';
-const Teleport = teleport_ as {
-    new (): { $props: VNodeProps & TeleportProps }
-};
-// End workaround
-
 import browser from 'webextension-polyfill';
 import {defineComponent, PropType} from 'vue';
 
@@ -101,7 +88,6 @@ import {fetchInfoForSites} from '../tasks/siteinfo';
 
 export default defineComponent({
     components: {
-        Teleport,
         SelectionMenu: require('./selection-menu.vue').default,
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
