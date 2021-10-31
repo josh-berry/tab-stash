@@ -27,9 +27,39 @@ header.page {
     background-color: var(--page-bg);
     border-bottom: var(--divider-border);
 
-    &.page > .title {
+    & > .main-menu {
+        grid-row: 1; grid-column: 1;
+        .selection-active & { display: none; }
+    }
+    & > .selection-menu { grid-row: 1; grid-column: 1; }
+    & > input[type="search"] {
+        grid-row: 1; grid-column: 2;
+    }
+    & > .action.collapse { grid-row: 1; grid-column: 4; }
+
+    & > .title {
         margin: 0 0 0 8px;
     }
+}
+
+input[type="search"] {
+    min-width: 16px;
+}
+
+.selection-menu > summary {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    padding: var(--icon-p) var(--ctrl-pw);
+    gap: var(--ctrl-mw);
+
+    background-color: var(--userlink-fg);
+    color: var(--page-bg);
+    border-radius: var(--ctrl-border-radius);
+
+    &:hover { background-color: var(--userlink-hover-fg); }
+    &:active, &:focus-within { background-color: var(--userlink-active-fg); }
 }
 
 .notification-overlay {

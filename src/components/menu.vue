@@ -18,7 +18,7 @@
     <slot name="summary">{{name}}</slot>
   </summary>
 
-  <div v-if="open" ref="bounds" :style="bounds" :class="{
+  <div ref="bounds" :style="bounds" :class="{
             'menu-bounds': true, [$style.bounds]: true,
             [vertical]: true, [horizontal]: true
         }">

@@ -453,17 +453,9 @@ export class Model {
     /** Returns the ID of an unnamed folder at the top of the stash, creating a
      * new one if necessary. */
     async ensureRecentUnnamedFolder(): Promise<Bookmarks.Folder> {
-        const stash_root = await this.bookmarks.ensureStashRoot();
         const folder = this.mostRecentUnnamedFolder();
-
         if (folder !== undefined) return folder;
-
-        const bm = await this.bookmarks.create({
-            parentId: stash_root.id,
-            title: Bookmarks.genDefaultFolderName(new Date()),
-            index: 0,
-        });
-        return bm as Bookmarks.Folder;
+        return await this.bookmarks.createUnnamedFolder();
     }
 
     /** Moves or copies items (bookmarks, tabs, and/or external items) to a
@@ -719,6 +711,33 @@ export class Model {
         if (options.task) ++options.task.value;
 
         return moved_items;
+    }
+
+    /** Deletes the specified items (bookmark nodes or tabs), saving any deleted
+     * bookmarks to the deleted-items model. */
+    async deleteItems(ids: Iterable<Bookmarks.NodeID | Tabs.TabID>) {
+        const tabs = [];
+        for (const id of ids) {
+            if (typeof id === 'string') {
+                // It's a bookmark
+                const node = this.bookmarks.getNode(id);
+                if (! node) continue;
+
+                if ('children' in node) {
+                    await this.deleteBookmarkTree(id);
+                } else if ('url' in node) {
+                    await this.deleteBookmark(node);
+                } else {
+                    // separator
+                    await this.bookmarks.remove(id);
+                }
+
+            } else {
+                tabs.push(id);
+            }
+        }
+
+        await this.tabs.remove(tabs);
     }
 
     /** Deletes the specified bookmark subtree, saving it to deleted items.  You

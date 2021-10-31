@@ -141,15 +141,10 @@
             background-color: var(--button-bg);
         }
 
-        &.selected {
-            background-color: var(--selected-bg);
-            font-weight: bold;
-
-            & .action.select {
-                background-color: var(--userlink-fg);
-                &:hover { background-color: var(--userlink-hover-fg); }
-                &:active, &:focus-within { background-color: var(--userlink-active-fg); }
-            }
+        &.selected .action.select {
+            background-color: var(--userlink-fg);
+            &:hover { background-color: var(--userlink-hover-fg); }
+            &:active, &:focus-within { background-color: var(--userlink-active-fg); }
         }
 
         &:hover, &:focus-within {
