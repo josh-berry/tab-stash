@@ -58,7 +58,6 @@ import {DragAction, DropAction} from '../components/dnd-list';
 
 import {Model, StashItem} from '../model';
 import {Tab} from '../model/tabs';
-import {genDefaultFolderName} from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
 const DROP_FORMATS = [
@@ -144,11 +143,7 @@ export default defineComponent({
         },
 
         async newGroup() {logErrors(async() => {
-            await browser.bookmarks.create({
-                parentId: (await this.model().bookmarks.ensureStashRoot()).id,
-                title: genDefaultFolderName(new Date()),
-                index: 0, // Newest folders should show up on top
-            });
+            await this.model().bookmarks.createUnnamedFolder();
         })},
 
         async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {

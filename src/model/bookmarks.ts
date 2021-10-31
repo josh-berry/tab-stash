@@ -197,42 +197,6 @@ export class Model {
         return urls;
     }
 
-    /** Find and return the stash root, or create one if it doesn't exist. */
-    async ensureStashRoot(): Promise<Folder> {
-        if (this.stash_root.value) return this.stash_root.value;
-
-        await this.create({title: this.stash_root_name});
-
-        // GROSS HACK to avoid creating duplicate roots follows.
-        //
-        // We sample at irregular intervals for a bit to see if any other models
-        // are trying to create the stash root at the same time we are. If so,
-        // this sampling gives us a higher chance to observe each other.  But if
-        // we consistently see a single candidate over time, we can assume we're
-        // the only one running right now.
-        const start = Date.now();
-        let delay = 10;
-
-        let candidates = this._maybeUpdateStashRoot();
-        while (Date.now() - start < delay) {
-            if (candidates.length > 1) {
-                // If we find MULTIPLE candidates so soon after finding NONE,
-                // there must be multiple threads trying to create the root
-                // folder.  Let's try to remove one.  We are guaranteed that all
-                // threads see the same ordering of candidate folders (and thus
-                // will all choose the same folder to save) because the
-                // candidate list is sorted deterministically.
-                await this.remove(candidates[1].id).catch(() => {});
-                delay += 10;
-            }
-            await new Promise(r => setTimeout(r, 5*Math.random()));
-            candidates = this._maybeUpdateStashRoot();
-        }
-        // END GROSS HACK
-
-        return candidates[0];
-    }
-
     //
     // Mutators
     //
@@ -298,6 +262,54 @@ export class Model {
             const pos = this.positionOf(node);
             if (pos.parent.id !== toParent || pos.index !== toIndex) throw TRY_AGAIN;
         });
+    }
+
+    /** Find and return the stash root, or create one if it doesn't exist. */
+    async ensureStashRoot(): Promise<Folder> {
+        if (this.stash_root.value) return this.stash_root.value;
+
+        await this.create({title: this.stash_root_name});
+
+        // GROSS HACK to avoid creating duplicate roots follows.
+        //
+        // We sample at irregular intervals for a bit to see if any other models
+        // are trying to create the stash root at the same time we are. If so,
+        // this sampling gives us a higher chance to observe each other.  But if
+        // we consistently see a single candidate over time, we can assume we're
+        // the only one running right now.
+        const start = Date.now();
+        let delay = 10;
+
+        let candidates = this._maybeUpdateStashRoot();
+        while (Date.now() - start < delay) {
+            if (candidates.length > 1) {
+                // If we find MULTIPLE candidates so soon after finding NONE,
+                // there must be multiple threads trying to create the root
+                // folder.  Let's try to remove one.  We are guaranteed that all
+                // threads see the same ordering of candidate folders (and thus
+                // will all choose the same folder to save) because the
+                // candidate list is sorted deterministically.
+                await this.remove(candidates[1].id).catch(() => {});
+                delay += 10;
+            }
+            await new Promise(r => setTimeout(r, 5*Math.random()));
+            candidates = this._maybeUpdateStashRoot();
+        }
+        // END GROSS HACK
+
+        return candidates[0];
+    }
+
+    /** Unconditionally create a new unnamed folder at the top of the stash root
+     * (creating the stash root if it does not exist). */
+     async createUnnamedFolder(): Promise<Folder> {
+        const stash_root = await this.ensureStashRoot();
+        const bm = await this.create({
+            parentId: stash_root.id,
+            title: genDefaultFolderName(new Date()),
+            index: 0,
+        });
+        return bm as Folder;
     }
 
     /** Removes the folder `folder_id` if it is empty and unnamed.

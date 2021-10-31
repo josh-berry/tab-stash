@@ -453,17 +453,9 @@ export class Model {
     /** Returns the ID of an unnamed folder at the top of the stash, creating a
      * new one if necessary. */
     async ensureRecentUnnamedFolder(): Promise<Bookmarks.Folder> {
-        const stash_root = await this.bookmarks.ensureStashRoot();
         const folder = this.mostRecentUnnamedFolder();
-
         if (folder !== undefined) return folder;
-
-        const bm = await this.bookmarks.create({
-            parentId: stash_root.id,
-            title: Bookmarks.genDefaultFolderName(new Date()),
-            index: 0,
-        });
-        return bm as Bookmarks.Folder;
+        return await this.bookmarks.createUnnamedFolder();
     }
 
     /** Moves or copies items (bookmarks, tabs, and/or external items) to a
