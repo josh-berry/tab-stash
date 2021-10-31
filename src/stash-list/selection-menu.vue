@@ -6,16 +6,16 @@
         <div class="icon icon-move-menu-inverse"></div>
     </template>
 
-    <a tabindex="0" title="Open all stashed tabs in the window"
-       @click.prevent="openInWindow">
+    <button tabindex="0" title="Open all stashed tabs in the window"
+            @click.prevent="openInWindow">
         <span class="icon icon-restore"></span>
         <span>Open</span>
-    </a>
-    <a tabindex="0" title="Open tabs and delete them from the stash"
-       @click.prevent="moveToWindow">
+    </button>
+    <button tabindex="0" title="Open tabs and delete them from the stash"
+            @click.prevent="moveToWindow">
         <span class="icon icon-restore-del"></span>
         <span>Unstash</span>
-    </a>
+    </button>
 
     <hr/>
 
@@ -24,31 +24,30 @@
             @click.stop=""
             @keypress.enter.prevent.stop="moveToSearch(); closeMenu();"/>
 
-    <a :class="{'selected': searchText === '' || stashFolders.length === 0}"
-       :title="createTitle"
-       @click.prevent="create">
+    <button :class="{'selected': searchText === '' || stashFolders.length === 0}"
+            :title="createTitle"
+            @click.prevent="create">
         <span class="icon icon-new-empty-group"></span>
-        {{ createTitle }}
-    </a>
+        <span>{{ createTitle }}</span>
+    </button>
 
     <hr/>
 
-    <div :class="$style.list">
-
-        <a v-for="(folder, index) of stashFolders"
-            :class="{'selected': (index === 0 && searchText !== '')}"
-            :title="`Move to &quot;${friendlyFolderName(folder.title)}&quot;`"
-            tabindex="0" @click.prevent="moveTo(folder.id)"
-            >{{friendlyFolderName(folder.title)}}</a>
+    <div :class="$style.list" tabindex="-1">
+        <button v-for="(folder, index) of stashFolders"
+                :class="{'selected': (index === 0 && searchText !== '')}"
+                :title="`Move to &quot;${friendlyFolderName(folder.title)}&quot;`"
+                @click.prevent="moveTo(folder.id)"
+            >{{friendlyFolderName(folder.title)}}</button>
     </div>
 
     <hr/>
 
-    <a tabindex="0" title="Delete stashed tabs and close unstashed tabs"
-       @click.prevent="remove">
+    <button title="Delete stashed tabs and close unstashed tabs"
+            @click.prevent="remove">
        <span class="icon icon-delete"></span>
        <span>Delete or Close</span>
-    </a>
+    </button>
 </Menu>
 </template>
 

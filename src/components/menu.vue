@@ -1,15 +1,17 @@
 <template>
-<details ref="details" :open="open" :class="{
+<details ref="details" :open="isOpen" :class="{
             [$style.details]: true, [horizontal]: true, [vertical]: true,
          }"
-         @toggle="onToggle" @click.prevent.stop="toggle">
+         @toggle="onToggle" @click.prevent.stop="open">
 
-  <summary ref="summary" :class="{[$style.summary]: true, [summaryClass]: true}">
+  <summary ref="summary" :class="{[$style.summary]: true, [summaryClass]: true}"
+           tabindex="0">
     <slot name="summary">{{name}}</slot>
   </summary>
 
-  <teleport v-if="open" to="body">
-    <div :class="{[$style.modal]: true, 'menu-modal': true, [modalClass]: true}"
+  <component v-if="isOpen || persist" :is="inPlace ? 'div' : 'teleport'" to="body">
+    <div :style="isOpen ? '' : 'display: none'"
+         :class="{[$style.modal]: true, 'menu-modal': true, [modalClass]: true}"
          tabindex="-1"
          @keydown.esc.prevent.stop="close" @click.prevent.stop="close">
       <div ref="bounds" :style="bounds" :class="{
@@ -22,19 +24,25 @@
         </nav>
       </div>
     </div>
-  </teleport>
-
+  </component>
 </details>
 </template>
 
 <script lang="ts">
-import {defineComponent} from 'vue';
+import {Teleport, Component, defineComponent} from 'vue';
 
 export default defineComponent({
+    components: {
+        // Cast: work around https://github.com/vuejs/vue-next/issues/2855
+        Teleport: Teleport as unknown as Component,
+    },
+
     props: {
         name: String,
         summaryClass: String,
         modalClass: String,
+        inPlace: Boolean,
+        persist: Boolean,
     },
 
     data: () => ({
@@ -42,7 +50,7 @@ export default defineComponent({
         origin: undefined as DOMRect | undefined,
         vertical: 'below' as 'above' | 'below',
         horizontal: 'left' as 'left' | 'right',
-        open: false,
+        isOpen: false,
     }),
 
     computed: {
@@ -81,25 +89,37 @@ export default defineComponent({
             this.horizontal = pos.right < center.x ? 'left' : 'right';
         },
 
-        toggle() {
+        open() {
             // Do this first to avoid flickering
             this.updatePosition();
-            this.open = ! this.open;
+            this.isOpen = true;
+            this.$nextTick(() => {
+                // Make sure the focus is within the menu so we can detect when
+                // focus leaves the menu, and close it automatically.
+                (<HTMLElement>this.$refs.menu).focus();
+                this.$emit('open');
+            });
         },
 
         close() {
-            this.open = false;
+            // Move the focus out of the menu before we try to close it,
+            // otherwise Firefox gets confused about where the focus is and will
+            // forget to turn off :focus-within attributes on some parent
+            // elements... (this seems to be a Firefox bug)
+            (<HTMLElement>this.$refs.summary).focus();
+            this.$nextTick(() => {
+                this.isOpen = false;
+                this.$emit('close');
+                (<HTMLElement>this.$refs.summary).blur();
+            });
         },
 
         onToggle() {
-            this.open = (<HTMLDetailsElement>this.$refs.details).open;
-            if (this.open) {
-                // Just in case it was opened by some other means than toggle()
-                this.updatePosition();
-                (<HTMLElement>this.$refs.menu).focus();
-                this.$emit('open');
+            const details = this.$refs.details as HTMLDetailsElement;
+            if (details.open) {
+                this.open();
             } else {
-                this.$emit('close');
+                this.close();
             }
         },
 

@@ -31,18 +31,18 @@
           @click.stop="; /* Don't propagate clicks so we can search without
                             losing whatever is currently selected. */">
     <Menu class="menu main-menu" summaryClass="action mainmenu">
-      <a @click.prevent="showOptions">Options...</a>
+      <button @click.prevent="showOptions">Options...</button>
       <hr/>
-      <a @click.prevent="dialog = {class: 'ImportDialog'}">Import...</a>
-      <a @click.prevent="showExportDialog">Export...</a>
+      <button @click.prevent="dialog = {class: 'ImportDialog'}">Import...</button>
+      <button @click.prevent="showExportDialog">Export...</button>
       <hr/>
-      <a :href="pageref('deleted-items.html')">Deleted Items...</a>
-      <a @click.prevent="fetchMissingFavicons">Fetch Missing Icons</a>
+      <a tabindex="0" :href="pageref('deleted-items.html')">Deleted Items...</a>
+      <button @click.prevent="fetchMissingFavicons">Fetch Missing Icons</button>
       <hr/>
-      <a href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
-      <a href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
-      <a href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
-      <a :href="pageref('whats-new.html')">What's New?</a>
+      <a tabindex="0" href="https://josh-berry.github.io/tab-stash/tips.html">Tips and Tricks</a>
+      <a tabindex="0" href="https://github.com/josh-berry/tab-stash/wiki">Wiki</a>
+      <a tabindex="0" href="https://josh-berry.github.io/tab-stash/support.html">Help and Support</a>
+      <a tabindex="0" :href="pageref('whats-new.html')">What's New?</a>
     </Menu>
     <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"

@@ -10,8 +10,8 @@
     <ButtonBox>
         <Button class="stash one" tooltip="Restore" @action="restore" />
         <Menu class="menu" summaryClass="action remove last-toolbar-button"
-                title="Delete Forever">
-            <a @click.prevent.stop="remove">Delete Forever</a>
+                title="Delete Forever" inPlace>
+            <button @click.prevent.stop="remove">Delete Forever</button>
         </Menu>
     </ButtonBox>
     <slot></slot>

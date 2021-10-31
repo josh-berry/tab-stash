@@ -77,56 +77,63 @@ details.menu {
     }
 }
 
-.menu-modal {
-    // The bounding box holding the menu.  We add padding here so the menu never
-    // outgrows the viewport.  (The padding will be overridden by the Vue menu
-    // component to position the menu properly.)
-    & > .menu-bounds {
-        padding: var(--menu-mh) var(--menu-mw);
+// The bounding box holding the menu.  We add padding here so the menu never
+// outgrows the viewport.  (The padding will be overridden by the Vue menu
+// component to position the menu properly.)
+.menu-bounds {
+    padding: var(--menu-mh) var(--menu-mw);
+}
+
+// The pop-up menu itself, showing a list of items
+.menu-bounds > nav {
+    padding: var(--menu-mh) 0;
+    background-color: var(--group-bg);
+    box-shadow: var(--shadow);
+    border: var(--group-border);
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+
+    & input {
+        margin: var(--ctrl-mh) var(--ctrl-mw);
     }
 
-    // The pop-up menu itself, showing a list of items
-    & > .menu-bounds > nav {
-        padding: var(--menu-mh) 0;
-        background-color: var(--group-bg);
-        box-shadow: var(--shadow);
-        border: var(--group-border);
+    & a, & button, & .menu-item {
+        cursor: default;
+        margin: 0;
+        padding: 0 var(--menu-mw);
+
         display: flex;
-        flex-direction: column;
-        overflow: auto;
+        align-items: center;
+        gap: var(--ctrl-mw);
+        min-height: var(--item-h);
+        border: none;
+        border-radius: 0;
+        text-decoration: none;
+        text-align: left;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        background: inherit;
 
-        & input {
-            margin: var(--ctrl-mh) var(--ctrl-mw);
-        }
+        // Needed because the above background change overrides the global
+        // .selected rules.
+        &.selected { background-color: var(--selected-bg); }
 
-        & a, & button, & .menu-item {
-            cursor: default;
-            margin: 0;
-            padding: 0 var(--menu-mw);
-
-            display: flex;
-            align-items: center;
-            gap: var(--ctrl-mw);
-            min-height: var(--item-h);
-            border: none;
-            border-radius: 0;
-            text-decoration: none;
-            text-align: left;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            overflow: hidden;
-
-            &:not(.disabled) {
-                color: var(--link-fg);
-                &:hover, &:focus-within { background-color: var(--item-hover-bg); }
-                &:active { background-color: var(--item-active-bg); }
+        &:not(.disabled) {
+            color: var(--link-fg);
+            &:hover, &:focus-within {
+                background-color: var(--item-hover-bg);
+                box-shadow: none;
             }
+            &:active { background-color: var(--item-active-bg); }
         }
-        & hr {
-            margin: var(--menu-mh) 0;
-            padding: 0;
-            border: none;
-            border-top: var(--divider-border);
-        }
+    }
+
+    & hr {
+        margin: var(--menu-mh) 0;
+        padding: 0;
+        border: none;
+        border-top: var(--divider-border);
     }
 }
