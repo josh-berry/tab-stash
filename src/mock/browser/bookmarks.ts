@@ -7,7 +7,10 @@ type Node = Folder | Bookmark | Separator;
 type Folder = NodeInfo & {type?: 'folder', children: Node[]};
 type Separator = NodeInfo & {type?: 'separator', url: string};
 type Bookmark = NodeInfo & {type?: 'bookmark', url: string};
-type NodeInfo = {id: string, title: string, parentId: string | undefined, index: number};
+type NodeInfo = {
+    id: string, title: string, dateAdded: number,
+    parentId: string | undefined, index: number,
+};
 
 class MockBookmarks implements BM.Static {
     readonly onCreated: events.MockEvent<(id: string, bookmark: BM.BookmarkTreeNode) => void> =
@@ -25,7 +28,7 @@ class MockBookmarks implements BM.Static {
     constructor() {
         this.root = {
             id: this._freeID(), title: '', parentId: undefined, index: 0,
-            children: []
+            children: [], dateAdded: 0,
         };
         this.by_id.set(this.root.id, this.root);
         fixup_child_ordering(this.root);
@@ -89,6 +92,7 @@ class MockBookmarks implements BM.Static {
                 title: bookmark.title ?? '',
                 url: bookmark.url,
                 parentId, index,
+                dateAdded: Date.now(),
             };
             if (Math.random() < 0.5) bm.type = 'bookmark';
 
@@ -100,6 +104,7 @@ class MockBookmarks implements BM.Static {
             bm = {
                 id: this._freeID(), title: '', url: '',
                 type: 'separator', parentId, index,
+                dateAdded: Date.now(),
             };
 
         } else {
@@ -109,6 +114,7 @@ class MockBookmarks implements BM.Static {
                 title: bookmark.title ?? '',
                 children: [],
                 parentId, index,
+                dateAdded: Date.now(),
             };
             if (Math.random() < 0.5) bm.type = 'folder';
         }
@@ -177,6 +183,7 @@ class MockBookmarks implements BM.Static {
         const parent = this._getFolder(node.parentId!);
         parent.children.splice(node.index, 1);
         fixup_child_ordering(parent);
+        this.by_id.delete(id);
 
         this.onRemoved.send(id, {
             parentId: node.parentId!,
@@ -191,6 +198,7 @@ class MockBookmarks implements BM.Static {
         const parent = this._getFolder(node.parentId!);
         parent.children.splice(node.index, 1);
         fixup_child_ordering(parent);
+        this.by_id.delete(id);
 
         this.onRemoved.send(id, {
             parentId: node.parentId!,
@@ -203,7 +211,7 @@ class MockBookmarks implements BM.Static {
         const node = this._get(id);
         // istanbul ignore if
         if (! ('children' in node)) {
-            console.error(`Bookmark tree:`, this.root);
+            // console.error(`Bookmark tree:`, this.root);
             throw new Error(`${id} is not a folder`);
         }
         return node;
@@ -213,7 +221,7 @@ class MockBookmarks implements BM.Static {
         const node = this.by_id.get(id);
         // istanbul ignore if
         if (! node) {
-            console.error(`Bookmark tree:`, this.root);
+            // console.error(`Bookmark tree:`, this.root);
             throw new Error(`No such bookmark: ${id}`);
         }
         return node;

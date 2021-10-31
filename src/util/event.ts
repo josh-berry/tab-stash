@@ -48,7 +48,13 @@ if ((<any>globalThis).mock?.events) {
         }
 
         private sendSync(...args: Args<L>) {
-            for (const fn of this._listeners) fn(...args);
+            for (const fn of this._listeners) {
+                try {
+                    fn(...args);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
         }
     }
 }

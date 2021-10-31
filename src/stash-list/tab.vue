@@ -64,7 +64,7 @@ export default defineComponent({
 
         stash(ev: MouseEvent) { logErrors(async () => {
             await this.model().stashTabs([this.tab], {
-                folderId: this.model().mostRecentUnnamedFolderId(),
+                folderId: this.model().mostRecentUnnamedFolder()?.id,
                 close: ! ev.altKey,
             });
         })},
@@ -79,7 +79,7 @@ export default defineComponent({
         })},
 
         remove() { logErrors(async () => {
-            await this.model().tabs.closeTabs([this.tab.id]);
+            await this.model().tabs.remove([this.tab.id]);
         })},
     },
 });

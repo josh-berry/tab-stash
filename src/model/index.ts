@@ -32,7 +32,7 @@
 
 import browser from 'webextension-polyfill';
 
-import {filterMap, TaskMonitor, urlToOpen} from '../util';
+import {filterMap, shortPoll, TaskMonitor, TRY_AGAIN, urlToOpen} from '../util';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
@@ -149,7 +149,7 @@ export class Model {
      * created recently, return its ID.  Otherwise return `undefined`.  Used to
      * determine where to place single bookmarks we are trying to stash, if we
      * don't already know where they should go. */
-    mostRecentUnnamedFolderId(): Bookmarks.NodeID | undefined {
+    mostRecentUnnamedFolder(): Bookmarks.Folder | undefined {
         const root = this.bookmarks.stash_root.value;
         if (! root) return undefined;
 
@@ -172,7 +172,7 @@ export class Model {
         // If so, we can put new stuff here by default.  (Otherwise we should
         // probably assume this isn't recent enough and a new folder should be
         // created.)
-        return topmost.id;
+        return topmost;
     }
 
     /** Yields all selected items (tabs and bookmarks). */
@@ -305,7 +305,7 @@ export class Model {
                 });
                 folderId = folder.id as Bookmarks.NodeID;
             } else {
-                folderId = await this.ensureRecentUnnamedFolder();
+                folderId = (await this.ensureRecentUnnamedFolder()).id;
             }
             newFolderId = folderId;
 
@@ -342,7 +342,7 @@ export class Model {
         });
         return {
             tabs: tabs.filter(t => isTab(t)) as Tabs.Tab[],
-            bookmarks: bookmarks.map(id => this.bookmarks.bookmark(id)),
+            bookmarks: bookmarks as Bookmarks.Bookmark[],
             newFolderId,
         };
     }
@@ -367,7 +367,7 @@ export class Model {
                 await browser.tabs.discard(tabIds);
                 break;
             case 'close':
-                await browser.tabs.remove(tabIds);
+                await this.tabs.remove(tabIds);
                 break;
             case 'hide':
             default:
@@ -378,7 +378,7 @@ export class Model {
         } else {
             // The browser does not support hiding tabs, so our only option is
             // to close them.
-            await browser.tabs.remove(tabIds);
+            await this.tabs.remove(tabIds);
         }
     }
 
@@ -391,7 +391,7 @@ export class Model {
     async restoreTabs(
         urls: string[],
         options: {background?: boolean}
-    ): Promise<Tabs.TabID[]> {
+    ): Promise<Tabs.Tab[]> {
         if (this.tabs.current_window === undefined) {
             throw new Error(`Not sure what the current window is`);
         }
@@ -405,7 +405,7 @@ export class Model {
                         && t.windowId === this.tabs.current_window);
             if (t) {
                 await browser.tabs.update(t.id, {active: true});
-                return [t.id];
+                return [t];
             }
         }
 
@@ -421,7 +421,7 @@ export class Model {
         // close it if it's just the new-tab page.
         const active_tab = win_tabs.filter(t => t.active)[0];
 
-        const tab_ids = await this.putItemsInWindow({
+        const tabs = await this.putItemsInWindow({
             // NOTE: We rely on the fact that Set always remembers the order in
             // which items were inserted to be sure that tabs are always
             // restored in the correct order.
@@ -433,13 +433,13 @@ export class Model {
             // Switch to the last tab that we restored (if desired).  We choose
             // the LAST tab to behave similarly to the user having just opened a
             // bunch of tabs.
-            if (tab_ids.length > 0) {
-                await browser.tabs.update(tab_ids[tab_ids.length - 1], {active: true});
+            if (tabs.length > 0) {
+                await browser.tabs.update(tabs[tabs.length - 1].id, {active: true});
             }
 
             // Finally, if we opened at least one tab, AND we were looking at
             // the new-tab page, close the new-tab page in the background.
-            if (tab_ids.length > 0
+            if (tabs.length > 0
                 && this.browser_settings.isNewTabURL(active_tab.url ?? '')
                 && active_tab.status === 'complete')
             {
@@ -447,23 +447,23 @@ export class Model {
             }
         }
 
-        return tab_ids;
+        return tabs;
     }
 
     /** Returns the ID of an unnamed folder at the top of the stash, creating a
      * new one if necessary. */
-    async ensureRecentUnnamedFolder(): Promise<Bookmarks.NodeID> {
+    async ensureRecentUnnamedFolder(): Promise<Bookmarks.Folder> {
         const stash_root = await this.bookmarks.ensureStashRoot();
-        const id = this.mostRecentUnnamedFolderId();
+        const folder = this.mostRecentUnnamedFolder();
 
-        if (id !== undefined) return id;
+        if (folder !== undefined) return folder;
 
-        const bm = await browser.bookmarks.create({
+        const bm = await this.bookmarks.create({
             parentId: stash_root.id,
             title: Bookmarks.genDefaultFolderName(new Date()),
             index: 0,
         });
-        return bm.id as Bookmarks.NodeID;
+        return bm as Bookmarks.Folder;
     }
 
     /** Moves or copies items (bookmarks, tabs, and/or external items) to a
@@ -479,7 +479,7 @@ export class Model {
         toFolderId: Bookmarks.NodeID,
         toIndex?: number,
         task?: TaskMonitor,
-    }): Promise<Bookmarks.NodeID[]> {
+    }): Promise<Bookmarks.Node[]> {
         // First we try to find the folder we're moving to.
         const to_folder = this.bookmarks.folder(options.toFolderId);
 
@@ -502,7 +502,7 @@ export class Model {
         // Now, we move everything into the folder.  `to_index` is maintained as
         // the insertion point (i.e. the next inserted item should have index
         // `to_index`).
-        const moved_item_ids: Bookmarks.NodeID[] = [];
+        const moved_items: Bookmarks.Node[] = [];
         const close_tab_ids: Tabs.TabID[] = [];
 
         for (
@@ -518,7 +518,7 @@ export class Model {
             if (isBookmark(model_item)) {
                 const pos = this.bookmarks.positionOf(model_item);
                 await this.bookmarks.move(model_item.id, to_folder.id, to_index);
-                moved_item_ids.push(model_item.id);
+                moved_items.push(model_item);
                 if (pos.parent === to_folder && pos.index < to_index) {
                     // Because we are moving items which appear in the list
                     // before the insertion point, the insertion point shouldn't
@@ -537,27 +537,21 @@ export class Model {
             // create a new bookmark).
             //
             // TODO fill in title/icon details if missing?
-            const bm = await browser.bookmarks.create({
+            const node = await this.bookmarks.create({
                 title: item.title || item.url,
                 url: item.url,
                 parentId: to_folder.id,
                 index: to_index,
             });
-            moved_item_ids.push(bm.id as Bookmarks.NodeID);
-
-            // Propagate selection state asynchronously so the model has a
-            // chance to catch up.
-            setTimeout(() => {
-                this.bookmarks.bookmark(bm.id as Bookmarks.NodeID).$selected =
-                    item.$selected;
-            });
+            moved_items.push(node);
+            node.$selected = item.$selected;
         }
 
         // Hide/close any tabs which were moved from, since they are now
         // (presumably) in the stash.
         await this.hideOrCloseStashedTabs(close_tab_ids);
 
-        return moved_item_ids;
+        return moved_items;
     }
 
     /** Move or copy items (bookmarks, tabs, and/or external items) to a
@@ -576,7 +570,7 @@ export class Model {
         toWindowId: Tabs.WindowID,
         toIndex?: number,
         task?: TaskMonitor,
-    }): Promise<Tabs.TabID[]> {
+    }): Promise<Tabs.Tab[]> {
         const to_win_id = options.toWindowId;
         const win = this.tabs.window(to_win_id);
 
@@ -610,7 +604,7 @@ export class Model {
         }));
 
         // Now, we move/restore tabs.
-        const moved_item_ids: Tabs.TabID[] = [];
+        const moved_items: Tabs.Tab[] = [];
         const delete_bm_ids: Bookmarks.Bookmark[] = [];
 
         for (
@@ -626,7 +620,7 @@ export class Model {
             if (isTab(model_item)) {
                 const pos = this.tabs.positionOf(model_item);
                 await this.tabs.move(model_item.id, to_win_id, to_index);
-                moved_item_ids.push(model_item.id);
+                moved_items.push(model_item);
                 dont_steal_tabs.add(model_item.id);
 
                 if (pos.window === win && pos.index < to_index) {
@@ -673,7 +667,7 @@ export class Model {
 
                 await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
                 if (pos.window === win && pos.index < to_index) --to_index;
-                moved_item_ids.push(t.id);
+                moved_items.push(t);
                 dont_steal_tabs.add(t.id);
                 this.tabs.tab(t.id).$selected = item.$selected;
                 continue;
@@ -699,39 +693,32 @@ export class Model {
                     await browser.tabs.update(active_tab.id, {active: true});
                 }
 
-                moved_item_ids.push(t.id as Tabs.TabID);
-                dont_steal_tabs.add(t.id as Tabs.TabID);
-
-                // Propagate the item's selection state to the restored tab.  Do
-                // this asynchronously so the model has a chance to update.
-                setTimeout(() => {
-                    this.tabs.tab(t.id as Tabs.TabID).$selected = item.$selected;
+                const tab = await shortPoll(() => {
+                    try {
+                        return this.tabs.tab(t.id as Tabs.TabID);
+                    } catch (e) { throw TRY_AGAIN; }
                 });
+                moved_items.push(tab);
+                dont_steal_tabs.add(tab.id);
+                tab.$selected = item.$selected;
                 continue;
             }
 
             // Else we just need to create a completely new tab.
-            const t = await browser.tabs.create({
+            const tab = await this.tabs.create({
                 active: false, url: urlToOpen(url), windowId:
                 to_win_id, index: to_index,
             });
-            moved_item_ids.push(t.id as Tabs.TabID);
-            dont_steal_tabs.add(t.id as Tabs.TabID);
-
-            // Finally, copy the selection state of the original model item to
-            // the new item.  Otherwise newly-created items might not appear to
-            // be selected.  Done asynchronously to give the model a chance to
-            // update first.
-            setTimeout(() => {
-                this.tabs.tab(t.id as Tabs.TabID).$selected = item.$selected;
-            });
+            moved_items.push(tab);
+            dont_steal_tabs.add(tab.id);
+            tab.$selected = item.$selected;
         }
 
         // Delete bookmarks for all the tabs we restored.
         await Promise.all(delete_bm_ids.map(bm => this.deleteBookmark(bm)));
         if (options.task) ++options.task.value;
 
-        return moved_item_ids;
+        return moved_items;
     }
 
     /** Deletes the specified bookmark subtree, saving it to deleted items.  You
@@ -759,7 +746,7 @@ export class Model {
         };
 
         await this.deleted_items.add(toDelItem(bm));
-        await browser.bookmarks.removeTree(bm.id);
+        await this.bookmarks.removeTree(bm.id);
     }
 
     /** Deletes the specified bookmark, saving it to deleted items.  If it was
@@ -777,7 +764,7 @@ export class Model {
             title: parent.title!,
         } : undefined);
 
-        await browser.bookmarks.remove(bm.id);
+        await this.bookmarks.remove(bm.id);
 
         if (! parent) return;
         await this.bookmarks.removeFolderIfEmptyAndUnnamed(parent?.id);
@@ -797,15 +784,14 @@ export class Model {
 
         if ('children' in deletion.item) {
             // Restoring an entire folder of bookmarks; just put it at the root.
-            const folder = await browser.bookmarks.create({
+            const folder = await this.bookmarks.create({
                 parentId: stash_root.id,
                 title: deletion.item.title,
                 index: 0,
             });
-            const fid = folder.id as Bookmarks.NodeID;
             await this.putItemsInFolder({
                 items: deletion.item.children,
-                toFolderId: fid,
+                toFolderId: folder.id,
             });
 
             // Restore their favicons.
@@ -837,7 +823,7 @@ export class Model {
 
             // If we still don't know where it came from or its prior containing
             // folder was deleted, just put it in an unnamed folder.
-            if (! folderId) folderId = await this.ensureRecentUnnamedFolder();
+            if (! folderId) folderId = (await this.ensureRecentUnnamedFolder()).id;
 
             // Restore the bookmark.
             await this.bookmarkTabs(folderId, [deletion.item]);
@@ -866,7 +852,7 @@ export class Model {
         const child = deletion.item.children[childIndex];
         if (! child) return;
 
-        await this.bookmarkTabs(this.mostRecentUnnamedFolderId(), [child]);
+        await this.bookmarkTabs(this.mostRecentUnnamedFolder()?.id, [child]);
 
         if ('url' in child && child.favIconUrl) {
             this.favicons.maybeSet(child.url, child.favIconUrl);

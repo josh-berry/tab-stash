@@ -221,8 +221,9 @@ describe('model', () => {
                 expect(model.options.local.state.after_stashing_tab)
                     .to.equal('close');
 
-                await model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+                const p = model.hideOrCloseStashedTabs([tabs.right_doug.id]);
                 await events.next(browser.tabs.onRemoved);
+                await p;
 
                 await browser.tabs.get(tabs.right_doug.id).then(
                     // istanbul ignore next
@@ -519,9 +520,9 @@ describe('model', () => {
                 toFolderId: bookmarks.names.id,
                 toIndex: 2,
             });
-            await events.nextN(browser.tabs.onUpdated, 2);
             await events.nextN(browser.bookmarks.onCreated, 2);
             await events.nextN(browser.bookmarks.onMoved, 2);
+            await events.nextN(browser.tabs.onUpdated, 2);
             await p;
 
             const titles = [
@@ -788,7 +789,7 @@ describe('model', () => {
 
             const ids = [
                 tabs.right_blank.id, tabs.right_adam.id,
-                tabs.real_helen.id, res[1],
+                tabs.real_helen.id, res[1].id,
                 tabs.right_doug.id,
             ];
 
@@ -874,7 +875,7 @@ describe('model', () => {
             await p;
         }
 
-        async function checkLeftWindowTabs() {
+        function checkLeftWindowTabs() {
             const model_tabs = model.tabs.window(windows.left.id).tabs
                 .map(tid => model.tabs.tab(tid));
 
@@ -887,7 +888,7 @@ describe('model', () => {
             expect(model_tabs[3].active).to.be.true;
         }
 
-        async function checkLeftWindowBookmarks(new_stash_id: NodeID) {
+        function checkLeftWindowBookmarks(new_stash_id: NodeID) {
             const new_stash = model.bookmarks.folder(new_stash_id);
             expect(getDefaultFolderNameISODate(new_stash.title)).not.to.be.null;
             expect(new_stash.children.map(id => model.bookmarks.bookmark(id).url))
@@ -897,23 +898,24 @@ describe('model', () => {
         it('adds stashed tabs to a new unnamed bookmark folder', async () => {
             await stashLeftWindow(true);
 
-            await checkLeftWindowTabs();
+            checkLeftWindowTabs();
             const new_stash_id = model.bookmarks.stash_root.value!.children[0];
-            await checkLeftWindowBookmarks(new_stash_id);
+            checkLeftWindowBookmarks(new_stash_id);
             expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
         });
 
         it('adds stashed tabs to a recently-created unnamed bookmark folder', async () => {
             expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
-            await model.ensureRecentUnnamedFolder();
+            const p = model.ensureRecentUnnamedFolder();
             await events.next(browser.bookmarks.onCreated);
+            await p;
             expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
 
             await stashLeftWindow(false);
 
-            await checkLeftWindowTabs();
+            checkLeftWindowTabs();
             const new_stash_id = model.bookmarks.stash_root.value!.children[0];
-            await checkLeftWindowBookmarks(new_stash_id);
+            checkLeftWindowBookmarks(new_stash_id);
             expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
         });
 
@@ -921,7 +923,7 @@ describe('model', () => {
             await stashLeftWindow(false, bookmarks.names.id);
 
             const stash = model.bookmarks.folder(bookmarks.names.id);
-            await checkLeftWindowTabs();
+            checkLeftWindowTabs();
             expect(stash.children.map(id => model.bookmarks.bookmark(id).url))
                 .to.deep.equal([
                     `${B}#doug`, `${B}#helen`, `${B}#patricia`, `${B}#nate`,
@@ -995,14 +997,15 @@ describe('model', () => {
         });
 
         it('restores multiple tabs', async () => {
-            const tids = await model.restoreTabs([`${B}#harry`, `${B}#new-restored`], {});
+            const p = model.restoreTabs([
+                `${B}#harry`, `${B}#new-restored`], {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onCreated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
+            const restored = await p;
 
-            const restored = tids.map(tid => model.tabs.tab(tid));
             expect(restored[0].hidden).to.be.false;
             expect(restored[0].active).to.be.false;
             expect(restored[1].hidden).to.be.false;
@@ -1020,23 +1023,27 @@ describe('model', () => {
                 tabs.real_francis.id,
                 tabs.real_helen.id,
                 tabs.real_harry.id,
-                tids[1],
+                restored[1].id,
             ]);
         });
 
         it('skips or steals duplicates when restoring tabs', async () => {
-            const tids = await model.restoreTabs(
+            const p = model.restoreTabs(
                 [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#betty`, `${B}#paul`], {});
-            await events.nextN(browser.tabs.onUpdated, 2);
-            await events.nextN<any>([browser.tabs.onMoved, browser.tabs.onAttached], 3);
+            await events.next(browser.tabs.onUpdated);
+            await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onUpdated);
+            await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onAttached);
             await events.next(browser.tabs.onCreated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
+            const restored = await p;
 
-            expect(tids.slice(0, 3)).to.deep.equal([
-                tabs.real_harry.id, tabs.real_doug_2.id, tabs.left_betty.id]);
+            expect(restored.slice(0, 3)).to.deep.equal([
+                    tabs.real_harry.id, tabs.real_doug_2.id, tabs.left_betty.id
+                ].map(id => model.tabs.tab(id)));
 
-            const restored = tids.map(tid => model.tabs.tab(tid));
             expect(restored.map(t => t.hidden))
                 .to.deep.equal([false, false, false, false]);
             expect(restored.map(t => t.active))
@@ -1055,7 +1062,7 @@ describe('model', () => {
                 tabs.real_harry.id,
                 tabs.real_doug_2.id,
                 tabs.left_betty.id,
-                tids[3],
+                restored[3].id,
             ]);
         });
     });
@@ -1072,9 +1079,10 @@ describe('model', () => {
         }
 
         it('deletes folders and remembers them as deleted items', async () => {
-            await model.deleteBookmarkTree(bookmarks.names.id);
+            const p = model.deleteBookmarkTree(bookmarks.names.id);
             await events.next(browser.bookmarks.onRemoved);
             await events.next('KVS.Memory.onSet');
+            await p;
 
             expect(() => model.bookmarks.node(bookmarks.names.id)).to.throw(Error);
             expect(model.bookmarks.stash_root.value!.children).to.deep.equal([
@@ -1095,9 +1103,10 @@ describe('model', () => {
         });
 
         it('deletes bookmarks and remembers them as deleted items', async () => {
-            await model.deleteBookmark(model.bookmarks.bookmark(bookmarks.helen.id));
+            const p = model.deleteBookmark(model.bookmarks.bookmark(bookmarks.helen.id));
             await events.next(browser.bookmarks.onRemoved);
             await events.next('KVS.Memory.onSet');
+            await p;
 
             expect(() => model.bookmarks.node(bookmarks.helen.id)).to.throw(Error);
             expect(model.bookmarks.folder(bookmarks.names.id).children).to.deep.equal([
@@ -1116,9 +1125,10 @@ describe('model', () => {
         });
 
         it('un-deletes folders', async () => {
-            await model.deleteBookmarkTree(bookmarks.names.id);
+            const p1 = model.deleteBookmarkTree(bookmarks.names.id);
             await events.next(browser.bookmarks.onRemoved);
             await events.next('KVS.Memory.onSet');
+            await p1;
 
             expect(() => model.bookmarks.node(bookmarks.names.id)).to.throw(Error);
             expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
@@ -1137,9 +1147,10 @@ describe('model', () => {
 
         describe('un-deletes bookmarks', () => {
             beforeEach(async () => {
-                await model.deleteBookmark(model.bookmarks.bookmark(bookmarks.helen.id));
+                const p = model.deleteBookmark(model.bookmarks.bookmark(bookmarks.helen.id));
                 await events.next(browser.bookmarks.onRemoved);
                 await events.next('KVS.Memory.onSet');
+                await p;
 
                 // Wait for time to advance so we don't delete two items in the
                 // same millisecond, and we can thus guarantee their sort order.
@@ -1170,9 +1181,10 @@ describe('model', () => {
                 // deleted item #1 is the item deleted in beforeEach() above
 
                 // deleted item #0:
-                await model.deleteBookmarkTree(bookmarks.names.id);
+                const p1 = model.deleteBookmarkTree(bookmarks.names.id);
                 await events.next(browser.bookmarks.onRemoved);
                 await events.next('KVS.Memory.onSet');
+                await p1;
 
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
                 expect(model.deleted_items.state.entries[1].item.title)
@@ -1194,9 +1206,10 @@ describe('model', () => {
                 // deleted item #1 is the item deleted in beforeEach() above
 
                 // deleted item #0:
-                await model.deleteBookmarkTree(bookmarks.names.id);
+                const p1 = model.deleteBookmarkTree(bookmarks.names.id);
                 await events.next(browser.bookmarks.onRemoved);
                 await events.next('KVS.Memory.onSet');
+                await p1;
 
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
                 expect(model.deleted_items.state.entries[1].item.title)
@@ -1222,9 +1235,10 @@ describe('model', () => {
 
         describe('un-deletes individual bookmarks in a deleted folder', () => {
             beforeEach(async () => {
-                await model.deleteBookmarkTree(bookmarks.names.id);
+                const p = model.deleteBookmarkTree(bookmarks.names.id);
                 await events.next(browser.bookmarks.onRemoved);
                 await events.next('KVS.Memory.onSet');
+                await p;
 
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
             });

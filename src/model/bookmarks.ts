@@ -1,7 +1,7 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
-import {EventWiring, filterMap, nextTick} from "../util";
+import {EventWiring, filterMap, nextTick, shortPoll, TRY_AGAIN} from "../util";
 
 /** A node in the bookmark tree. */
 export type Node = Bookmark | Separator | Folder;
@@ -201,39 +201,34 @@ export class Model {
     async ensureStashRoot(): Promise<Folder> {
         if (this.stash_root.value) return this.stash_root.value;
 
-        await browser.bookmarks.create({title: this.stash_root_name});
-
-        // Wait for a few ms so that if there are multiple calls happening in
-        // different contexts (e.g. background, UIs etc.), we have a chance to
-        // catch it and clean up duplicates.
-        await new Promise(resolve => setTimeout(resolve, 4));
-
-        let candidates = this._maybeUpdateStashRoot();
-
-        // istanbul ignore if -- internal consistency
-        if (! this.stash_root.value) {
-            throw new Error(`Unable to locate newly-created stash root`);
-        }
+        await this.create({title: this.stash_root_name});
 
         // GROSS HACK to avoid creating duplicate roots follows.
-        let retries = candidates.length;
-        while (candidates.length > 1 && retries > 0) {
-            // If we find MULTIPLE candidates so soon after finding NONE, there
-            // must be multiple threads trying to create the root folder.  Let's
-            // delete all but the first one.  We are guaranteed that all threads
-            // see the same ordering of candidate folders (and thus will all
-            // choose the same folder to save) because the sort is
-            // deterministic.
-            await browser.bookmarks.remove(candidates[1].id).catch(console.warn);
+        //
+        // We sample at irregular intervals for a bit to see if any other models
+        // are trying to create the stash root at the same time we are. If so,
+        // this sampling gives us a higher chance to observe each other.  But if
+        // we consistently see a single candidate over time, we can assume we're
+        // the only one running right now.
+        const start = Date.now();
+        let delay = 10;
+
+        let candidates = this._maybeUpdateStashRoot();
+        while (Date.now() - start < delay) {
+            if (candidates.length > 1) {
+                // If we find MULTIPLE candidates so soon after finding NONE,
+                // there must be multiple threads trying to create the root
+                // folder.  Let's try to remove one.  We are guaranteed that all
+                // threads see the same ordering of candidate folders (and thus
+                // will all choose the same folder to save) because the
+                // candidate list is sorted deterministically.
+                await this.remove(candidates[1].id).catch(() => {});
+                delay += 10;
+            }
+            await new Promise(r => setTimeout(r, 5*Math.random()));
             candidates = this._maybeUpdateStashRoot();
-            --retries;
         }
         // END GROSS HACK
-
-        // istanbul ignore if -- internal consistency
-        if (this.stash_root.value !== candidates[0]) {
-            throw new Error("BUG: stash_root doesn't match candidate[0]");
-        }
 
         return candidates[0];
     }
@@ -241,6 +236,40 @@ export class Model {
     //
     // Mutators
     //
+
+    /** Creates a bookmark and waits for the model to reflect the creation.
+     * Returns the bookmark node in the model. */
+    async create(bm: browser.Bookmarks.CreateDetails): Promise<Node> {
+        const ret = await browser.bookmarks.create(bm);
+        return await shortPoll(() => {
+            const bm = this.by_id.get(ret.id as NodeID);
+            if (! bm) throw TRY_AGAIN;
+            return bm;
+        });
+    }
+
+    /** Deletes a bookmark and waits for the model to reflect the deletion. */
+    async remove(id: NodeID): Promise<void> {
+        await browser.bookmarks.remove(id);
+
+        // Wait for the model to catch up
+        await shortPoll(() => {
+            // Wait for the model to catch up
+            if (this.by_id.has(id)) throw TRY_AGAIN;
+        });
+    }
+
+    /** Deletes an entire tree of bookmarks and waits for the model to reflect
+     * the deletion. */
+    async removeTree(id: NodeID): Promise<void> {
+        await browser.bookmarks.removeTree(id);
+
+        // Wait for the model to catch up
+        await shortPoll(() => {
+            // Wait for the model to catch up
+            if (this.by_id.has(id)) throw TRY_AGAIN;
+        });
+    }
 
     /** Moves a bookmark such that it precedes the item with index `toIndex` in
      * the destination folder.  (You can pass an index `>=` the length of the
@@ -265,6 +294,10 @@ export class Model {
             }
         }
         await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
+        await shortPoll(() => {
+            const pos = this.positionOf(node);
+            if (pos.parent.id !== toParent || pos.index !== toIndex) throw TRY_AGAIN;
+        });
     }
 
     /** Removes the folder `folder_id` if it is empty and unnamed.
@@ -295,7 +328,7 @@ export class Model {
         await nextTick();
 
         if (folder.children.length > 0) return;
-        await browser.bookmarks.remove(folder.id);
+        await this.remove(folder.id);
     }
 
     //

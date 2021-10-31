@@ -19,6 +19,9 @@
 const inspect = require('util').inspect
     ?? ((v: any) => JSON.stringify(v, undefined, 4));
 
+// NOTE: Duplicates util/index.ts, to avoid any dependency on prod code.
+const later: <F extends () => any>(f: F) => void = setImmediate ?? setTimeout;
+
 import type {Event, EventSource} from '../util/event';
 
 import type {Args} from '../util';
@@ -203,9 +206,9 @@ export class EventWatcher<L extends AnyListener = AnyListener> {
             };
             this.state.waiters.add(waiter);
 
-            setTimeout(() => {
+            later(() => {
                 run(this.state);
-                setTimeout(() => {
+                later(() => {
                     this.state.waiters.delete(waiter);
                     resolve(events);
                 });
@@ -267,10 +270,14 @@ export function send<L extends AnyListener>(ev: EventSource<L>, ...args: Args<L>
 //
 
 function run(state: EventSystemState) {
-    if (! state.runner) state.runner = Promise.resolve().then(() => {
-        state.runner = null;
-        runner(state);
-    }).catch(console.error);
+    if (state.runner) return;
+    state.runner = new Promise(resolve => {
+        later(() => {
+            state.runner = null;
+            runner(state);
+            resolve();
+        });
+    });
 }
 
 function runner(state: EventSystemState) {

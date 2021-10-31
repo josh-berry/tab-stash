@@ -1,6 +1,6 @@
 import {computed, reactive} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {EventWiring, filterMap} from "../util";
+import {EventWiring, filterMap, shortPoll, TRY_AGAIN} from "../util";
 
 export type Window = {
     readonly id: WindowID,
@@ -144,6 +144,16 @@ export class Model {
     // User-level operations on tabs
     //
 
+    /** Creates a new tab and waits for the model to reflect its existence. */
+    async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
+        const t = await browser.tabs.create(tab);
+        return await shortPoll(() => {
+            const tab = this.tabs.get(t.id as TabID);
+            if (tab) return tab;
+            throw TRY_AGAIN;
+        });
+    }
+
     /** Moves a tab such that it precedes the item with index `toIndex` in
      * the destination window.  (You can pass an index `>=` the length of the
      * windows's tab list to move the item to the end of the window.) */
@@ -160,13 +170,20 @@ export class Model {
         }
 
         await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
+        await shortPoll(() => {
+            const pos = this.positionOf(tab);
+            if (pos.window.id !== toWindow || pos.index !== toIndex) throw TRY_AGAIN;
+        });
     }
 
     /** Close the specified tabs, but leave the browser window open (and create
      * a new tab if necessary to keep it open). */
-    async closeTabs(tabIds: TabID[]): Promise<void> {
+    async remove(tabIds: TabID[]): Promise<void> {
         await this.refocusAwayFromTabs(tabIds);
         await browser.tabs.remove(tabIds);
+        await shortPoll(() => {
+            if (tabIds.find(tid => this.tabs.has(tid)) !== undefined) throw TRY_AGAIN;
+        });
     }
 
     /** If any of the provided tabIds are the active tab, change to a different

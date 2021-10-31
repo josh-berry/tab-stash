@@ -156,7 +156,7 @@ export default defineComponent({
         })},
 
         async remove() {logErrors(async() => {
-            await this.model().tabs.closeTabs(this.visibleChildren.map(t => t.id));
+            await this.model().tabs.remove(this.visibleChildren.map(t => t.id));
         })},
 
         async removeStashed() {logErrors(async() => {
@@ -176,7 +176,7 @@ export default defineComponent({
                 // Discard hidden/stashed tabs to free memory.
                 const tabs = this.tabs.filter(
                     t => t && t.hidden && this.isItemStashed(t));
-                await this.model().tabs.closeTabs(filterMap(tabs, t => t?.id));
+                await this.model().tabs.remove(filterMap(tabs, t => t?.id));
             } else {
                 // Closes ALL open tabs (stashed and unstashed).
                 //

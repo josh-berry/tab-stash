@@ -128,7 +128,11 @@ describe('model/deleted-items', () => {
     it('tracks recently-deleted items for a short time', async() => {
         clock = FakeTimers.install();
         await model.add({title: 'Recent', url: 'recent'});
-        await events.next(source.onSet);
+
+        const ev = events.next(source.onSet);
+        clock.runToFrame();
+        await ev;
+
         expect(model.state.recentlyDeleted.length).to.equal(1);
         expect(model.state.recentlyDeleted[0]).to.deep.include({
             item: {

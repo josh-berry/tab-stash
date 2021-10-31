@@ -7,7 +7,7 @@ import {
 } from './util';
 import service_model from './service-model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
-import {WindowID} from './model/tabs';
+import {TabID, WindowID} from './model/tabs';
 
 logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
@@ -128,7 +128,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab || tab.windowId === undefined) return;
         await model.stashTabs([tab], {
-            folderId: model.mostRecentUnnamedFolderId(),
+            folderId: model.mostRecentUnnamedFolder()?.id,
             close: true,
         });
     },
@@ -149,7 +149,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
         await model.stashTabs([tab], {
-            folderId: model.mostRecentUnnamedFolderId(),
+            folderId: model.mostRecentUnnamedFolder()?.id,
             close: false,
         });
     },
@@ -190,7 +190,7 @@ async function stash_something(stash_what: StashWhatOpt, tab: Tabs.Tab) {
 
         case 'single':
             await model.stashTabs([tab], {
-                folderId: model.mostRecentUnnamedFolderId(),
+                folderId: model.mostRecentUnnamedFolder()?.id,
                 close: true,
             });
 
@@ -334,11 +334,11 @@ logErrors(async () => {
                 if (! t.hidden) continue;
                 if (t.id === undefined) continue;
                 if (! removed_urls.has(urlToOpen(t.url!))) continue;
-                tids.push(t.id);
+                tids.push(t.id as TabID);
             }
         }
 
-        await browser.tabs.remove(tids);
+        await model.tabs.remove(tids);
 
         managed_urls = new_urls;
     });

@@ -202,16 +202,60 @@ export async function resolveNamed<T extends {[k: string]: any}>(
     return objects;
 }
 
+/** Arranges for a function to be called "later" (after queued events have been
+ * processed but without any further delay, if possible).
+ *
+ * In Node, setImmediate() is more efficient because setTimeout() always takes
+ * at least 1ms.  But in the browser, there is no setImmediate() and
+ * setTimeout() can take 0ms (unless you call it too much.
+ *
+ * References:
+ * - https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
+ * - https://nodejs.org/dist/latest-v16.x/docs/api/timers.html#setimmediatecallback-args
+ */
+export const later: <F extends () => any>(f: F) => void =
+    globalThis.setImmediate ?? globalThis.setTimeout;
+
 /** Waits for the next iteration of the event loop and for Vue to flush any
  * pending watches (allowing event handlers etc. to run in the meantime). */
 export async function nextTick(): Promise<void> {
     // We FIRST wait for the event loop, which may deliver outside events that
     // percolate through to Vue reactive objects.
-    await new Promise(resolve => setTimeout(resolve));
+    await new Promise<void>(resolve => later(resolve));
 
     // Only once we've drained the event loop do we then wait for Vue to catch
     // up and apply any changes.
     await Vue.nextTick.apply(undefined);
+}
+
+/** Calls `fn()` repeatedly for up to "a few" repetitions until `fn()` returns
+ * without throwing `TRY_AGAIN`.  "A few" is implementation-dependent but is
+ * guaranteed to be (approximately) less than 10ms.
+ *
+ * If the function does not return a value within a reasonable mount of time,
+ * returns `undefined`.  */
+export async function shortPoll<T>(fn: () => T): Promise<T> {
+    // Relies on the implicit behavior of setTimeout() being automatically
+    // delayed--see "Nested timeouts" from:
+    // https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
+
+    const start = Date.now();
+    while (Date.now() - start < 10) {
+        try { return fn(); }
+        catch (e) { if (e !== TRY_AGAIN) throw e; }
+        await nextTick();
+    }
+    throw new TimedOutError();
+}
+
+/** The exception to throw to get {@link shortPoll()} to try again. */
+export const TRY_AGAIN: unique symbol = Symbol('TRY_AGAIN');
+export type TryAgain = typeof TRY_AGAIN;
+
+/** The exception thrown by {@link shortPoll()} if we give up polling and the
+ * function never returned a value. */
+export class TimedOutError extends Error {
+    constructor() { super('Timed out'); }
 }
 
 // Returns a function which, when called, arranges to call the async function
@@ -349,8 +393,13 @@ export class EventWiring<O> {
         if (this._object) throw new Error(`Attempt to wire() multiple times`);
 
         this._object = obj;
-        this._forward = (method, ...args) =>
-            this._object[method].apply(this._object, args);
+        this._forward = (method, ...args) => {
+            try {
+                this._object[method].apply(this._object, args);
+            } catch (e) {
+                console.error(e);
+            }
+        };
 
         for (const ev of this._queue) this._forward(ev.method, ev.args);
         this._queue = [];

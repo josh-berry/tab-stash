@@ -16,6 +16,7 @@ describe('model/bookmarks', () => {
         // here.
         bms = await make_bookmarks();
         model = await M.Model.from_browser(STASH_ROOT_NAME);
+        expect(events.pendingCount(), "Pending events in beforeEach").to.equal(0);
     });
 
     describe('loads bookmarks from the browser', () => {
@@ -75,7 +76,6 @@ describe('model/bookmarks', () => {
             title: 'New', url: '/new',
             parentId: bms.root.id, index: 2
         });
-        new_bm.dateAdded = undefined;
         delete new_bm.index;
         delete new_bm.type;
         await events.next(browser.bookmarks.onCreated);
@@ -181,8 +181,9 @@ describe('model/bookmarks', () => {
     });
 
     it('reorders bookmarks (forward)', async () => {
-        await model.move(bms.alice.id, bms.outside.id, 4);
+        const p = model.move(bms.alice.id, bms.outside.id, 4);
         await events.next(browser.bookmarks.onMoved);
+        await p;
 
         expect(model.folder(bms.outside.id).children).to.deep.equal([
             bms.separator.id,
@@ -193,8 +194,9 @@ describe('model/bookmarks', () => {
     });
 
     it('reorders bookmarks (backward)', async () => {
-        await model.move(bms.empty.id, bms.outside.id, 0);
+        const p = model.move(bms.empty.id, bms.outside.id, 0);
         await events.next(browser.bookmarks.onMoved);
+        await p;
 
         expect(model.folder(bms.outside.id).children).to.deep.equal([
             bms.empty.id,
@@ -205,8 +207,9 @@ describe('model/bookmarks', () => {
     });
 
     it('moves bookmarks between folders', async () => {
-        await model.move(bms.bob.id, bms.names.id, 2);
+        const p = model.move(bms.bob.id, bms.names.id, 2);
         await events.next(browser.bookmarks.onMoved);
+        await p;
 
         expect(model.folder(bms.outside.id).children).to.deep.equal([
             bms.alice.id,
@@ -327,7 +330,7 @@ describe('model/bookmarks', () => {
             expect(model.stash_root.value).to.equal(root);
         });
 
-        it('reentrantly', async () => {
+        it('reentrant', async () => {
             // Testing the case where two different bookmark instances on two
             // different computers (or maybe just in two different windows on
             // the same computer) create two different stash roots.
@@ -336,8 +339,10 @@ describe('model/bookmarks', () => {
             expect(events.pendingCount()).to.equal(0);
             expect(model.stash_root.value).to.be.undefined;
 
+            const model2 = await M.Model.from_browser(STASH_ROOT_NAME);
+
             const p1 = model.ensureStashRoot();
-            const p2 = model.ensureStashRoot();
+            const p2 = model2.ensureStashRoot();
             await events.nextN(browser.bookmarks.onCreated, 2);
             await events.nextN(browser.bookmarks.onRemoved, 1);
             expect(events.pendingCount()).to.equal(0);
@@ -346,8 +351,9 @@ describe('model/bookmarks', () => {
             const root2 = await p2;
             expect(root1).not.to.be.undefined;
             expect(root2).not.to.be.undefined;
-            expect(root1).to.equal(root2);
+            expect(root1).to.deep.equal(root2);
             expect(model.stash_root.value).to.equal(root1);
+            expect(model2.stash_root.value).to.equal(root2);
         });
     });
 
