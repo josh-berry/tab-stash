@@ -22,7 +22,7 @@
     <div :class="$style.list">
         <a v-for="(folder, index) of stashFolders"
             :class="{'selected': (index === 0 && searchText !== '')}"
-            title="Move to &quot;{{friendlyFolderName(folder.title)}}&quot;"
+            :title="`Move to &quot;${friendlyFolderName(folder.title)}&quot;`"
             tabindex="0" @click.prevent="moveTo(folder.id)"
             >{{friendlyFolderName(folder.title)}}</a>
     </div>
@@ -80,7 +80,7 @@ export default defineComponent({
         },
 
         createTooltip(): string {
-            const what = this.searchText !== '' ? `"${this.searchText}"` : `a new stash`;
+            const what = this.searchText !== '' ? `"${this.searchText}"` : `a new group`;
             return `Create ${what}`;
         },
 
