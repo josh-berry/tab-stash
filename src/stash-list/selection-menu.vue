@@ -6,7 +6,7 @@
         <div class="icon icon-move-menu-inverse"></div>
     </template>
 
-    <button tabindex="0" title="Open all stashed tabs in the window"
+    <button tabindex="0" title="Open stashed tabs"
             @click.prevent="openInWindow">
         <span class="icon icon-restore"></span>
         <span>Open</span>
@@ -25,7 +25,7 @@
             @keypress.enter.prevent.stop="moveToSearch(); closeMenu();"/>
 
     <button :class="{'selected': searchText === '' || stashFolders.length === 0}"
-            :title="createTitle"
+            :title="createTooltip"
             @click.prevent="create">
         <span class="icon icon-new-empty-group"></span>
         <span>{{ createTitle }}</span>
@@ -92,14 +92,13 @@ export default defineComponent({
         },
 
         createTitle(): string {
-            const what = this.searchText !== '' ? `"${this.searchText}"` : `New Group`;
-            return `Create ${what}`;
+            if (this.searchText === '') return 'Move to New Group';
+            return `Move to "${this.searchText}"`;
         },
 
-        searchStatus(): string {
-            if (this.searchText === '') return `create a new group`;
-            if (this.stashFolders.length === 0) return `create "${this.searchText}"`;
-            return `move to "${friendlyFolderName(this.stashFolders[0].title)}"`;
+        createTooltip(): string {
+            if (this.searchText === '') return `Move to a new group`;
+            return `Move to new group "${this.searchText}"`;
         },
     },
 
