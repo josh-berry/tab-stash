@@ -1,7 +1,8 @@
 <template>
 <li :title="subtext">
   <span v-if="v" :class="{[v.toLowerCase().replace(':', '')]: true}">{{v}}</span>
-  <slot/>
+  <span v-if="v">&nbsp;</span>
+  <span><slot/></span>
   <span v-if="issue !== undefined" class="issue">
       [<span v-for="(i, idx) of issues" :key="i"><a :key="i"
           :href="`https://github.com/josh-berry/tab-stash/issues/${i}`"

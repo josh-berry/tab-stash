@@ -3,7 +3,7 @@
                     'action-container': true,
                     collapsed: is_collapsed}">
     <header>
-      <span class="group-title">Version {{v}}</span>
+      <span class="folder-name">Version {{v}}</span>
       <Button :class="{collapse: ! is_collapsed, expand: is_collapsed}"
               @action="collapsed = ! is_collapsed" />
     </header>
