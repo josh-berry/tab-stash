@@ -11,7 +11,8 @@
         </component>
         <component :is="itemIs || 'li'"
                 :style="draggingIndex === index ? 'display: none' : ''"
-                draggable="true" :ref="el => {listEls[index] = el}"
+                :ref="el => {listEls[index] = el}"
+                @mousedown="enableDrag(index)" @mouseup="disableDrag(index)"
                 @dragstart="itemDragStart($event, index)" @dragend="itemDragEnd"
                 @dragenter="itemDragEnter($event, index)" @dragover="itemDragOver"
                 @drop="doDrop">
@@ -124,9 +125,26 @@ export default defineComponent({
     },
 
     methods: {
+        /** We only set `draggable="true"` on the dragged element when we
+         * actually want to start dragging.  This allows for children of the
+         * draggable element to intercept mousedown events to prevent dragging,
+         * so that such children can be interacted with. */
+        enableDrag(index: number) {
+            this.listEls[index].draggable = true;
+        },
+
+        /** Undo the effect of enableDrag() -- see that method for details. */
+        disableDrag(index: number) {
+            this.listEls[index].draggable = false;
+        },
+
         /** Fired on the source location at the very beginning/end of the op */
         itemDragStart(ev: DragEvent, index: number) {
+            // Now that the drag has started, undo the effect of enableDrag() as
+            // explained there.
+            this.disableDrag(index);
             ev.stopPropagation();
+
             if (DND.dropTask) {
                 // Only one DnD operation is allowed at a time.
                 ev.preventDefault();

@@ -1,10 +1,7 @@
 <template>
-<input v-if="state != 'displaying'" type="text"
+<input v-if="state != 'displaying'" ref="input" type="text"
        :value="editableValue" :placeholder="defaultValue" :disabled="state != 'editing'"
-       ref="input"
-       @dragenter.stop="" @dragover.stop="" @mousedown.stop=""
-       @pointerdown.stop="" @touchstart.stop="" @click.stop=""
-       @dblclick.stop="" @altclick.stop=""
+       @mousedown.stop="; /* prevent parent from starting a drag */"
        @blur="commit" @keyup.enter.prevent="commit"
        @keyup.esc.prevent="cancel">
 <span v-else :title="displayValue" @click.prevent.stop="begin">{{displayValue}}</span>
