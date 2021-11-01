@@ -64,7 +64,7 @@ import {DragAction, DropAction} from '../components/dnd-list';
 
 import {Model, StashItem} from '../model';
 import {
-    Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate,
+    Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, friendlyFolderName,
 } from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
@@ -112,8 +112,21 @@ export default defineComponent({
             },
         },
 
+        /** Returns a "default" name to use if no explicit name is set.  This
+         * default is typically a timestamp with one of two sources--if the
+         * folder has a title that looks like a "default" title, we use that.
+         * Otherwise we generate the default name from the folder's creation
+         * time.
+         *
+         * This approach handles unnamed folders which were synced from
+         * elsewhere and thus have a creation time that isn't their actual
+         * creation time. */
         defaultTitle(): string {
-            return `Saved ${(new Date(this.folder.dateAdded || 0)).toLocaleString()}`;
+            if (getDefaultFolderNameISODate(this.folder.title) !== null) {
+                return friendlyFolderName(this.folder.title);
+            } else {
+                return `Saved ${(new Date(this.folder.dateAdded || 0)).toLocaleString()}`;
+            }
         },
         nonDefaultTitle(): string | undefined {
             return getDefaultFolderNameISODate(this.folder.title) !== null
@@ -175,7 +188,13 @@ export default defineComponent({
 
         async rename(title: string) {
             if (title === '') {
-                // Give it a default name based on when the folder was created
+                if (getDefaultFolderNameISODate(this.folder.title) !== null) {
+                    // It already has a default name; leave it alone so we don't
+                    // lose track of when the folder was actually created.
+                    return;
+                }
+
+                // Else give it a default name based on the creation time
                 title = genDefaultFolderName(new Date(this.folder.dateAdded || 0));
             }
 
