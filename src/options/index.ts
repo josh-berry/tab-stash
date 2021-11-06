@@ -1,3 +1,5 @@
+// istanbul ignore file -- launcher shim for the live UI
+
 import browser from 'webextension-polyfill';
 
 import launch from '../launch-vue';

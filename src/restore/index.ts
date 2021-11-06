@@ -1,3 +1,5 @@
+// istanbul ignore file -- launcher shim for the live UI
+
 import launch from '../launch-vue';
 
 launch(require('./index.vue').default, async() => {

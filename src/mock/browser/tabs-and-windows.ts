@@ -142,6 +142,7 @@ class State {
             windowId: win.id, tabIds: win.tabs.filter(t => t.highlighted).map(t => t.id),
         });
 
+        // istanbul ignore if -- no need to test this in Tab Stash
         if (tab.discarded) {
             tab.discarded = false;
             this.onTabUpdated.send(tab.id, {discarded: false},
@@ -722,10 +723,12 @@ class MockTabs implements T.Static {
     }
 
     async hide(tabIds: number | number[]): Promise<number[]> {
+        // istanbul ignore next -- trivial
         tabIds = tabIds instanceof Array ? tabIds : [tabIds];
         const ret = [];
         for (const tid of tabIds) {
             const tab = this._state.tab(tid);
+            // istanbul ignore else -- no need to test this in Tab Stash
             if (! tab.hidden) {
                 ret.push(tid);
                 tab.hidden = true;
