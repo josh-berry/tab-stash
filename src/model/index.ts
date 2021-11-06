@@ -189,20 +189,19 @@ export class Model {
         const filter = textMatcher(text);
 
         this.bookmarks.filter.value = node => {
-            if (node.title && filter(node.title)) return true;
-            if ('url' in node && node.url && filter(node.url)) return true;
+            if (filter(node.title)) return true;
 
-            // Filter should also pass if the parent folder's title matches (so
-            // that all children of a matching parent are visible).
-            const pos = this.bookmarks.positionOf(node);
-            if (filter(pos.parent.title)) return true;
+            if ('url' in node) {
+                if (filter(node.url)) return true;
 
-            // Filter should pass if any of its children are not filtered (so
-            // the parent is visible in the UI)
-            if ('children' in node
-                    && node.children.find(id => this.bookmarks.node(id).$visible)) {
-                return true;
+            } else if ('children' in node) {
+                // Filter should pass if any of its children are not filtered
+                // (so the parent is visible in the UI)
+                const visible_child = node.children.find(id =>
+                    this.bookmarks.node(id).$visible);
+                if (visible_child) return true;
             }
+
             return false;
         };
 
