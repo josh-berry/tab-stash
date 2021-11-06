@@ -804,9 +804,6 @@ export class Model {
         } : undefined);
 
         await this.bookmarks.remove(bm.id);
-
-        if (! parent) return;
-        await this.bookmarks.removeFolderIfEmptyAndUnnamed(parent?.id);
     }
 
     /** Un-delete a deleted item.  Removes it from deleted_items and adds it

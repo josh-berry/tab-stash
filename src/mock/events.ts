@@ -20,6 +20,7 @@ const inspect = require('util').inspect
     ?? ((v: any) => JSON.stringify(v, undefined, 4));
 
 // NOTE: Duplicates util/index.ts, to avoid any dependency on prod code.
+// istanbul ignore next
 const later: <F extends () => any>(f: F) => void = setImmediate ?? setTimeout;
 
 import type {Event, EventSource} from '../util/event';

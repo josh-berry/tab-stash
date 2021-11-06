@@ -1,7 +1,7 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
-import {EventWiring, filterMap, nextTick, shortPoll, TRY_AGAIN} from "../util";
+import {EventWiring, filterMap, shortPoll, TRY_AGAIN} from "../util";
 
 /** A node in the bookmark tree. */
 export type Node = Bookmark | Separator | Folder;
@@ -218,8 +218,15 @@ export class Model {
         });
     }
 
-    /** Deletes a bookmark and waits for the model to reflect the deletion. */
+    /** Deletes a bookmark and waits for the model to reflect the deletion.
+     *
+     * If the node is part of the stash and belongs to an unnamed folder which
+     * is now empty, cleanup that folder as well.
+     */
     async remove(id: NodeID): Promise<void> {
+        const node = this.node(id);
+        const pos = this.positionOf(node);
+
         await browser.bookmarks.remove(id);
 
         // Wait for the model to catch up
@@ -227,6 +234,8 @@ export class Model {
             // Wait for the model to catch up
             if (this.by_id.has(id)) throw TRY_AGAIN;
         });
+
+        await this.maybeCleanupEmptyFolder(pos.parent);
     }
 
     /** Deletes an entire tree of bookmarks and waits for the model to reflect
@@ -254,12 +263,19 @@ export class Model {
         // item after the move will sometimes be toIndex-1 instead of toIndex;
         // we account for this below.
         const node = this.node(id);
+        const position = this.positionOf(node);
+
+        // Clamp the destination index based on the model length, or the poll
+        // below won't see the index it's expecting.  (This isn't 100%
+        // reliable--we might still get an exception if multiple concurrent
+        // moves are going on, but even Firefox itself has bugs in this
+        // situation, soooo... *shrug*)
+        toIndex = Math.min(this.folder(toParent).children.length, Math.max(0, toIndex));
 
         // istanbul ignore else
         if (!! browser.runtime.getBrowserInfo) {
             // We're using Firefox
             if (node.parentId === toParent) {
-                const position = this.positionOf(node);
                 if (toIndex > position.index) toIndex--;
             }
         }
@@ -268,6 +284,8 @@ export class Model {
             const pos = this.positionOf(node);
             if (pos.parent.id !== toParent || pos.index !== toIndex) throw TRY_AGAIN;
         });
+
+        await this.maybeCleanupEmptyFolder(position.parent);
     }
 
     /** Find and return the stash root, or create one if it doesn't exist. */
@@ -318,34 +336,19 @@ export class Model {
         return bm as Folder;
     }
 
-    /** Removes the folder `folder_id` if it is empty and unnamed.
-     * `last_child_id` is the ID of some child that was just removed from the
-     * folder; if the child still appears to be present in the model, we will
-     * assume it's just because the model hasn't been updated yet and remove the
-     * folder anyway.
-     *
-     * But if any children OTHER than `last_child_id` appear in the folder, it
-     * will be left untouched.
-      */
-    async removeFolderIfEmptyAndUnnamed(folder_id: NodeID) {
-        const folder = this.by_id.get(folder_id);
-        if (! folder || ! ('children' in folder)) return;
-
+    /** Removes the folder if it is empty, unnamed and within the stash root. */
+    private async maybeCleanupEmptyFolder(folder: Folder) {
         // Folder does not have a default/unnamed-shape name
         if (getDefaultFolderNameISODate(folder.title) === null) return;
-
-        // HACK: We wait for any pending model updates to happen here, because
-        // this method is commonly called after deleting something that's in the
-        // folder.  So we want to make doubly-sure the folder is actually empty
-        // (and give the model a chance to catch up with any moves etc. that
-        // happened out of the folder) before deleting it.
-        //
-        // Otherwise, we might get into model inconsistencies (e.g. if the
-        // folder removal shows up before we've finished processing its
-        // contents).
-        await nextTick();
-
         if (folder.children.length > 0) return;
+        if (! this.stash_root.value) return;
+        if (! this.isNodeInFolder(folder, this.stash_root.value.id)) return;
+
+        // NOTE: This will never be recursive because remove() only calls us if
+        // we're removing a leaf node, which we are never doing here.
+        //
+        // ALSO NOTE: If the folder is suddenly NOT empty due to a race, stale
+        // model, etc., this will fail, because the browser itself will throw.
         await this.remove(folder.id);
     }
 

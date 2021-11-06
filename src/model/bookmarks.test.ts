@@ -414,4 +414,98 @@ describe('model/bookmarks', () => {
                 .to.be.null;
         });
     });
+
+    describe('cleans up empty folders', () => {
+        it('when deleting stash bookmarks from an unnamed folder', async () => {
+            const p = model.remove(bms.undyne.id);
+            await events.nextN(browser.bookmarks.onRemoved, 2);
+            await p;
+
+            expect(model.getNode(bms.unnamed.id)).to.be.undefined;
+            expect(model.folder(bms.stash_root.id).children).to.deep.equal([
+                bms.names.id,
+                bms.big_stash.id,
+            ]);
+        });
+
+        it('when moving stash bookmarks to another folder', async () => {
+            const p = model.move(bms.undyne.id, bms.names.id, 5);
+            await events.next(browser.bookmarks.onMoved);
+            await events.next(browser.bookmarks.onRemoved);
+            await p;
+
+            expect(model.getNode(bms.unnamed.id)).to.be.undefined;
+            expect(model.folder(bms.stash_root.id).children).to.deep.equal([
+                bms.names.id,
+                bms.big_stash.id,
+            ]);
+            expect(model.folder(bms.names.id).children).to.deep.equal([
+                bms.doug_2.id,
+                bms.helen.id,
+                bms.patricia.id,
+                bms.nate.id,
+                bms.undyne.id,
+            ]);
+        });
+
+        describe('but not', () => {
+            let new_unnamed: M.Node;
+            let new_child: M.Node;
+
+            beforeEach(async() => {
+                const p1 = model.create({
+                    title: 'saved-1970-01-01T00:00:00.000Z',
+                    parentId: bms.outside.id,
+                });
+                await events.next(browser.bookmarks.onCreated);
+                new_unnamed = await p1;
+
+                const p2 = model.create({
+                    title: 'Foo',
+                    url: 'foo',
+                    parentId: new_unnamed.id,
+                });
+                await events.next(browser.bookmarks.onCreated);
+                new_child = await p2;
+            });
+
+            it('when deleting bookmarks outside the stash root', async () => {
+                const p = model.remove(new_child.id);
+                await events.nextN(browser.bookmarks.onRemoved, 1);
+                await p;
+
+                expect(model.getNode(new_child.id)).to.be.undefined;
+                expect(model.folder(new_unnamed.id).children).to.deep.equal([]);
+                expect(model.folder(bms.outside.id).children).to.deep.equal([
+                    bms.alice.id,
+                    bms.separator.id,
+                    bms.bob.id,
+                    bms.empty.id,
+                    new_unnamed.id,
+                ]);
+            });
+
+            it('when moving bookmarks outside the stash root', async () => {
+                const p = model.move(new_child.id, bms.names.id, 5);
+                await events.next(browser.bookmarks.onMoved);
+                await p;
+
+                expect(model.folder(new_unnamed.id).children).to.deep.equal([]);
+                expect(model.folder(bms.outside.id).children).to.deep.equal([
+                    bms.alice.id,
+                    bms.separator.id,
+                    bms.bob.id,
+                    bms.empty.id,
+                    new_unnamed.id,
+                ]);
+                expect(model.folder(bms.names.id).children).to.deep.equal([
+                    bms.doug_2.id,
+                    bms.helen.id,
+                    bms.patricia.id,
+                    bms.nate.id,
+                    new_child.id,
+                ]);
+            });
+        });
+    });
 });
