@@ -5,11 +5,9 @@
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
             @action="collapsed = ! collapsed" />
-    <ButtonBox class="folder-actions">
+    <ButtonBox v-if="selectedCount === 0" class="folder-actions">
       <Button class="stash here" @action="stash"
-              :tooltip="(selectedCount
-                ? `Stash ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy tabs)`
-                : `Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`)" />
+              :tooltip="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`" />
       <Button class="stash one here" @action="stashOne"
               :tooltip="`Stash the active tab to this group `
                         + `(hold ${altKey} to keep tabs open)`" />
@@ -20,6 +18,10 @@
               :tooltip="`Open all tabs in the group and delete the group `
                       + `(hold ${bgKey} to open in background)`" />
       <Button class="remove" @action="remove" tooltip="Delete this group" />
+    </ButtonBox>
+    <ButtonBox v-else class="folder-actions">
+        <Button class="stash here" @action="move"
+                :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`" />
     </ButtonBox>
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
@@ -145,23 +147,14 @@ export default defineComponent({
 
         isValidChild(node: Node): boolean { return 'url' in node; },
 
-        async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
-            // Stashing possibly-selected open tabs into the current group.
-            const win_id = this.model().tabs.current_window;
+        stash(ev: MouseEvent | KeyboardEvent) {
+            const model = this.model();
+            const win_id = model.tabs.current_window;
             if (! win_id) return;
 
-            const model = this.model();
-
-            if (this.selectedCount > 0) {
-                await model.putSelectedInFolder({
-                    move: ! ev.altKey,
-                    toFolderId: this.folder.id,
-                });
-            } else {
-                await model.stashTabsInWindow(
-                    win_id, {folderId: this.folder.id, close: ! ev.altKey});
-            }
-        })},
+            logErrors(() => model.stashTabsInWindow(
+                    win_id, {folderId: this.folder.id, close: ! ev.altKey}));
+        },
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             const tab = this.model().tabs.activeTab();
@@ -169,6 +162,17 @@ export default defineComponent({
             await this.model().stashTabs([tab],
                 {folderId: this.folder.id, close: ! ev.altKey});
         })},
+
+        move(ev: MouseEvent | KeyboardEvent) {
+            const model = this.model();
+            const win_id = model.tabs.current_window;
+            if (! win_id) return;
+
+            logErrors(() => model.putSelectedInFolder({
+                move: ! ev.altKey,
+                toFolderId: this.folder.id,
+            }));
+        },
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
             await this.model().restoreTabs(

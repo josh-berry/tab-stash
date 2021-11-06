@@ -8,12 +8,8 @@
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
             @action="collapsed = ! collapsed" />
-    <ButtonBox class="folder-actions">
-      <Button v-if="selectedCount > 0" class="restore" @action="copyToWindow"
-              :tooltip="`Open ${selectedCount} tab(s)`" />
-      <Button v-if="selectedCount > 0" class="restore-remove" @action="moveToWindow"
-              :tooltip="`Unstash ${selectedCount} tab(s)`" />
-      <Button v-if="selectedCount === 0" class="stash" @action="stash"
+    <ButtonBox v-if="selectedCount === 0" class="folder-actions">
+      <Button class="stash" @action="stash"
               :tooltip="`Stash only the unstashed tabs to a new group (hold ${altKey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
@@ -24,6 +20,14 @@
       <Button class="remove opened" @action="removeOpen" :tooltip="
 `Click: Close all open tabs
 ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
+    </ButtonBox>
+    <ButtonBox v-else class="folder-actions">
+      <Button class="stash newgroup" @action="moveToNewGroup"
+              :tooltip="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`" />
+      <Button v-if="selectedCount > 0" class="restore" @action="copyToWindow"
+              :tooltip="`Open ${selectedCount} tab(s)`" />
+      <Button v-if="selectedCount > 0" class="restore-remove" @action="moveToWindow"
+              :tooltip="`Unstash ${selectedCount} tab(s)`" />
     </ButtonBox>
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
@@ -198,6 +202,14 @@ export default defineComponent({
         moveToWindow() {
             logErrors(() => this.model().putSelectedInWindow({move: true}));
         },
+
+        moveToNewGroup(ev: MouseEvent | KeyboardEvent) { logErrors(async () => {
+            const folder = await this.model().bookmarks.createUnnamedFolder();
+            await this.model().putSelectedInFolder({
+                move: ! ev.altKey,
+                toFolderId: folder.id,
+            });
+        })},
 
         drag(ev: DragAction<Tab>) {
             const items = ev.value.$selected
