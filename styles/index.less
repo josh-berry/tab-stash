@@ -203,6 +203,12 @@ html.metrics-compact { @import "metrics-compact"; }
             var(--userlink-fg) var(--active-marker-bw),
             transparent var(--active-marker-bw));
 
+        &.selected {
+            background: linear-gradient(to right,
+                var(--userlink-fg) var(--active-marker-bw),
+                var(--selected-bg) var(--active-marker-bw));
+        }
+
         &:hover {
             background: linear-gradient(to right,
                 var(--userlink-fg) var(--active-marker-bw),
