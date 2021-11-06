@@ -22,7 +22,7 @@
     <input ref="search" type="search" placeholder="Search or create group"
             v-model="searchText"
             @click.stop=""
-            @keypress.enter.prevent.stop="moveToSearch(); closeMenu();"/>
+            @keypress.enter.prevent.stop="moveToSearch($event); closeMenu();"/>
 
     <button :class="{'selected': searchText === '' || stashFolders.length === 0}"
             :title="createTooltip"
@@ -36,8 +36,8 @@
     <div :class="$style.list" tabindex="-1">
         <button v-for="(folder, index) of stashFolders"
                 :class="{'selected': (index === 0 && searchText !== '')}"
-                :title="`Move to &quot;${friendlyFolderName(folder.title)}&quot;`"
-                @click.prevent="moveTo(folder.id)"
+                :title="`Move to &quot;${friendlyFolderName(folder.title)}&quot; (hold ${altKey} to copy)`"
+                @click.prevent="moveTo($event, folder.id)"
             >{{friendlyFolderName(folder.title)}}</button>
     </div>
 
@@ -54,7 +54,7 @@
 <script lang="ts">
 import {defineComponent} from "@vue/runtime-core";
 
-import {filterMap, logErrors, textMatcher} from "../util";
+import {altKeyName, filterMap, logErrors, textMatcher} from "../util";
 import {Model} from "../model";
 import {Folder, NodeID, friendlyFolderName} from "../model/bookmarks";
 
@@ -72,6 +72,8 @@ export default defineComponent({
     inject: ['$model'],
 
     computed: {
+        altKey: altKeyName,
+
         selectedCount(): number {
             return this.model().selection.selected_count.value;
         },
@@ -97,8 +99,9 @@ export default defineComponent({
         },
 
         createTooltip(): string {
-            if (this.searchText === '') return `Move to a new group`;
-            return `Move to new group "${this.searchText}"`;
+            const copy = `(hold ${this.altKey} to copy)`;
+            if (this.searchText === '') return `Move to a new group ${copy}`;
+            return `Move to new group "${this.searchText} ${copy}"`;
         },
     },
 
@@ -113,7 +116,7 @@ export default defineComponent({
             (<HTMLElement>this.$refs.search).focus();
         },
 
-        create() { logErrors(async() => {
+        create(ev: MouseEvent | KeyboardEvent) { logErrors(async() => {
             const model = this.model();
             let folder;
             if (! this.searchText) {
@@ -126,22 +129,22 @@ export default defineComponent({
                     index: 0,
                 });
             }
-            this.moveTo(folder.id);
+            this.moveTo(ev, folder.id);
         }); },
 
-        moveToSearch() {
+        moveToSearch(ev: MouseEvent | KeyboardEvent) {
             if (this.searchText === '' || this.stashFolders.length === 0) {
-                this.create();
+                this.create(ev);
             } else {
                 const folder = this.stashFolders[0];
-                this.moveTo(folder.id);
+                this.moveTo(ev, folder.id);
             }
         },
 
-        moveTo(id: NodeID) { logErrors(async() => {
+        moveTo(ev: MouseEvent | KeyboardEvent, id: NodeID) { logErrors(async() => {
             const model = this.model();
             await model.putItemsInFolder({
-                move: true,
+                move: ! ev.altKey,
                 items: Array.from(model.selectedItems()),
                 toFolderId: id,
             });
