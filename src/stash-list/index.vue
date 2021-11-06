@@ -1,5 +1,6 @@
 <template>
-<main :class="{'selection-active': selection_active}" @click="deselectAll">
+<main :class="{'selection-active': selection_active}" tabindex="0"
+      @click="deselectAll" @keydown.esc.prevent.stop="onEscape">
   <transition-group tag="aside" class="notification-overlay" appear name="notification">
     <Notification key="new-features" v-if="recently_updated === 'features'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
@@ -46,8 +47,7 @@
     </Menu>
     <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
-           :placeholder="search_placeholder" @keyup.esc.prevent="searchText=''"
-           v-model="searchText">
+           :placeholder="search_placeholder" v-model="searchText">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
             @action="collapseAll" />
@@ -214,6 +214,14 @@ export default defineComponent({
                 if (! ('children' in f)) continue;
                 metadata.setCollapsed(f.id, this.collapsed);
             }
+        },
+
+        onEscape() {
+            if (this.searchText) {
+                this.searchText = '';
+                return;
+            }
+            this.deselectAll();
         },
 
         deselectAll() {
