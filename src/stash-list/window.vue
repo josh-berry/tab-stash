@@ -42,7 +42,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
       </template>
     </dnd-list>
     <div class="folder-item disabled" v-if="filteredCount > 0">
-      <span class="icon" /> <!-- spacer -->
+      <span class="indent" />
       <span class="text status-text hidden-count">
         + {{filteredCount}} filtered
       </span>
