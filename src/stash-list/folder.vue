@@ -32,10 +32,11 @@
   </header>
   <div class="contents">
     <dnd-list class="tabs" v-model="children" item-key="id"
+              :item-class="(item: Node) => ({hidden: ! isValidChild(item) || ! item.$visible})"
               :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
         <bookmark v-if="isValidChild(item)" :bookmark="item"
-                  :class="{hidden: ! item.$visible, 'folder-item': true}" />
+                  :class="{'folder-item': true}" />
       </template>
     </dnd-list>
     <div class="folder-item disabled" v-if="filterCount > 0">

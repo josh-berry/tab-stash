@@ -34,11 +34,11 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
   </header>
   <div class="contents">
     <dnd-list class="tabs" v-model="tabs" item-key="id"
+              :item-class="(item: Tab) => ({hidden: ! isValidChild(item) || ! item.$visible})"
               :accepts="accepts" :drag="drag" :drop="drop"
               :mimic-height="true">
       <template #item="{item}">
-        <tab v-if="isValidChild(item)" :tab="item"
-             :class="{hidden: ! item.$visible, 'folder-item': true}" />
+        <tab v-if="isValidChild(item)" :tab="item" :class="{'folder-item': true}" />
       </template>
     </dnd-list>
     <div class="folder-item disabled" v-if="filteredCount > 0">

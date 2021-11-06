@@ -1,11 +1,11 @@
 <template>
 <dnd-list class="folder-list" v-model="children" item-key="id"
+         :item-class="(f: Node) => ({hidden: ! ('children' in f) || ! f.$visible})"
          :accepts="accepts" :drag="drag" :drop="drop"
          :mimic-height="true">
   <template #item="{item: f}">
-    <Folder v-if="'children' in f" :class="{hidden: ! f.$visible}"
-            :folder="f" :metadata="model().bookmark_metadata.get(f.id)"
-            ref="folders" />
+    <Folder v-if="'children' in f" ref="folders"
+            :folder="f" :metadata="model().bookmark_metadata.get(f.id)" />
   </template>
 </dnd-list>
 </template>

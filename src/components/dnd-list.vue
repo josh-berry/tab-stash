@@ -11,6 +11,7 @@
         </component>
         <component :is="itemIs || 'li'"
                 :style="draggingIndex === index ? 'display: none' : ''"
+                :class="itemClass && itemClass(item, index)"
                 :ref="el => {listEls[index] = el}"
                 @mousedown="enableDrag(index)" @mouseup="disableDrag(index)"
                 @dragstart="itemDragStart($event, index)" @dragend="itemDragEnd"
@@ -71,6 +72,8 @@ export default defineComponent({
         is: String,
         itemIs: String,
         itemKey: required(String),
+        itemClass: Function as PropType<
+            (item: any, index: number) => Record<string, string> | string>,
         accepts: [String, Array] as PropType<string | string[]>,
         modelValue: required(Array),
 
