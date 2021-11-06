@@ -84,8 +84,11 @@ export default defineComponent({
     data: () => ({
         /** An array of HTMLElements for each item in the list.  Used to compute
          * the size of the ghost (which should mimic the size of the item being
-         * dragged). */
-        listEls: [] as HTMLElement[],
+         * dragged).
+         *
+         * The `| null` is required by Vue--it can happen when a component is in
+         * the process of being unmounted (AFAICT). */
+        listEls: [] as (HTMLElement | null)[],
 
         /** A snapshot of the model saved before beginning an actual drop
          * operation, which is shown to the user until the drop operation
@@ -130,12 +133,14 @@ export default defineComponent({
          * draggable element to intercept mousedown events to prevent dragging,
          * so that such children can be interacted with. */
         enableDrag(index: number) {
-            this.listEls[index].draggable = true;
+            const el = this.listEls[index];
+            if (el) el.draggable = true;
         },
 
         /** Undo the effect of enableDrag() -- see that method for details. */
         disableDrag(index: number) {
-            this.listEls[index].draggable = false;
+            const el = this.listEls[index];
+            if (el) el.draggable = false;
         },
 
         /** Fired on the source location at the very beginning/end of the op */
@@ -160,7 +165,10 @@ export default defineComponent({
             // setTimeout() to work around a Chrome bug described here:
             // https://stackoverflow.com/questions/19639969/html5-dragend-event-firing-immediately
             setTimeout(() => {
-                const rect = this.listEls[index].getBoundingClientRect();
+                const el = this.listEls[index];
+                if (! el) return;
+
+                const rect = el.getBoundingClientRect();
                 DND.dragging = {parent: this, index};
                 DND.dropping = {parent: this, index};
                 DND.ghostStyle = {width: rect.width, height: rect.height};
