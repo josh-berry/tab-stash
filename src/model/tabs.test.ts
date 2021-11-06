@@ -5,6 +5,7 @@ import * as events from '../mock/events';
 
 import * as M from './tabs';
 import {B, make_tabs, TabFixture} from './fixtures.testlib';
+import {nextTick} from '../util';
 
 describe('model/tabs', () => {
     let windows: TabFixture['windows'];
@@ -34,7 +35,9 @@ describe('model/tabs', () => {
                 hidden: !!tab.hidden,
                 active: !!tab.active,
                 highlighted: !!tab.highlighted,
-                discarded: !!tab.discarded
+                discarded: !!tab.discarded,
+                $visible: true,
+                $selected: false,
             });
         }
     });
@@ -65,6 +68,8 @@ describe('model/tabs', () => {
             pinned: false,
             highlighted: false,
             discarded: false,
+            $visible: true,
+            $selected: false,
         });
 
         expect(model.window(windows.left.id).tabs).to.deep.equal([
@@ -159,6 +164,8 @@ describe('model/tabs', () => {
             active: false,
             highlighted: false,
             discarded: false,
+            $visible: true,
+            $selected: false,
         });
         expect(Array.from(model.tabsWithURL("hi")))
             .to.deep.equal([model.tab(16384 as M.TabID)]);
@@ -200,6 +207,8 @@ describe('model/tabs', () => {
             active: !!tab.active,
             highlighted: !!tab.highlighted,
             discarded: !!tab.discarded,
+            $visible: true,
+            $selected: false,
         });
         expect(model.tabsWithURL("cats")).to.deep.equal(new Set([
             model.tab(tid),
@@ -434,7 +443,7 @@ describe('model/tabs', () => {
                 model.tab(tabs.real_francis.id));
             expect(range).to.deep.equal([
                 model.tab(tabs.real_doug.id),
-                model.tab(tabs.real_doug_2.id),
+                // model.tab(tabs.real_doug_2.id), // hidden
                 model.tab(tabs.real_estelle.id),
                 model.tab(tabs.real_francis.id),
             ]);
@@ -446,7 +455,7 @@ describe('model/tabs', () => {
                 model.tab(tabs.real_doug.id));
             expect(range).to.deep.equal([
                 model.tab(tabs.real_doug.id),
-                model.tab(tabs.real_doug_2.id),
+                // model.tab(tabs.real_doug_2.id), // hidden
                 model.tab(tabs.real_estelle.id),
                 model.tab(tabs.real_francis.id),
             ]);
@@ -471,6 +480,23 @@ describe('model/tabs', () => {
                     model.tab(tabs.real_bob.id),
                     model.tab(tabs.right_adam.id)))
                 .to.be.null;
+        });
+
+        it('removes filtered and hidden tabs from ranges', async () => {
+            model.filter.value = node =>
+                ! ('url' in node) || ! node.url.includes('estelle');
+            await nextTick(); // to update the filter
+
+            expect(model.tab(tabs.real_doug.id).$visible).to.be.true;
+            expect(model.tab(tabs.real_estelle.id).$visible).to.be.false;
+            expect(model.itemsInRange(
+                    model.tab(tabs.real_patricia.id), model.tab(tabs.real_francis.id)))
+                .to.deep.equal([
+                    model.tab(tabs.real_blank.id),
+                    model.tab(tabs.real_bob.id),
+                    model.tab(tabs.real_doug.id),
+                    model.tab(tabs.real_francis.id),
+                ]);
         });
     });
 });

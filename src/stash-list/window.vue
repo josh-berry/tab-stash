@@ -14,7 +14,7 @@
       <Button v-if="selectedCount > 0" class="restore-remove" @action="moveToWindow"
               :tooltip="`Unstash ${selectedCount} tab(s)`" />
       <Button v-if="selectedCount === 0" class="stash" @action="stash"
-              :tooltip="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`" />
+              :tooltip="`Stash only the unstashed tabs to a new group (hold ${altKey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
       <Button v-if="! collapsed" class="remove" @action="remove"
@@ -24,7 +24,7 @@
       <Button v-if="! collapsed" class="remove opened" @action="removeOpen"
               :tooltip="
 `Click: Close all open tabs
-${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
+${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     </ButtonBox>
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
@@ -37,15 +37,14 @@ ${altkey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
               :accepts="accepts" :drag="drag" :drop="drop"
               :mimic-height="true">
       <template #item="{item}">
-        <tab :tab="item"
-             :class="{hidden: (! filter(item)) || (userFilter && ! userFilter(item)),
-                      'folder-item': true}" />
+        <tab v-if="isValidChild(item)" :tab="item"
+             :class="{hidden: ! item.$visible, 'folder-item': true}" />
       </template>
     </dnd-list>
-    <div class="folder-item disabled" v-if="filterCount > 0">
+    <div class="folder-item disabled" v-if="filteredCount > 0">
       <span class="icon" /> <!-- spacer -->
       <span class="text status-text hidden-count">
-        + {{filterCount}} filtered
+        + {{filteredCount}} filtered
       </span>
     </div>
   </div>
@@ -81,9 +80,6 @@ export default defineComponent({
     inject: ['$model'],
 
     props: {
-        // View filter function
-        userFilter: Function as PropType<(item: Tab) => boolean>,
-
         // Window contents
         tabs: required(Array as PropType<readonly Tab[]>),
 
@@ -92,7 +88,7 @@ export default defineComponent({
     },
 
     computed: {
-        altkey: altKeyName,
+        altKey: altKeyName,
 
         accepts() { return DROP_FORMATS; },
 
@@ -109,22 +105,18 @@ export default defineComponent({
             },
         },
 
-        filteredChildren(): Tab[] {
-            return this.tabs.filter(c => this.filter(c));
+        validChildren(): Tab[] {
+            return this.tabs.filter(t => this.isValidChild(t));
         },
         visibleChildren(): Tab[] {
-            if (this.userFilter) {
-                return this.filteredChildren.filter(this.userFilter);
-            } else {
-                return this.filteredChildren;
-            }
+            return this.validChildren.filter(t => t.$visible);
         },
-        filterCount(): number {
-            return this.filteredChildren.length - this.visibleChildren.length;
+        filteredCount(): number {
+            return this.validChildren.length - this.visibleChildren.length;
         },
 
         selectedCount(): number {
-            return this.model().selection.selected_count.value;
+            return this.model().selection.selectedCount.value;
         },
     },
 
@@ -132,10 +124,10 @@ export default defineComponent({
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
 
-        filter(t: Tab) {
-            return ! t.hidden && ! t.pinned && t.url
-                && this.model().isURLStashable(t.url)
-                && (this.model().options.sync.state.show_all_open_tabs
+        isValidChild(t: Tab): boolean {
+            const model = this.model();
+            return ! t.hidden && ! t.pinned && model.isURLStashable(t.url)
+                && (model.options.sync.state.show_all_open_tabs
                     || ! this.isItemStashed(t));
         },
 

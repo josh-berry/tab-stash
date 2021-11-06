@@ -71,9 +71,9 @@ export default defineComponent({
 
         open(ev: MouseEvent) { logErrors(async () => {
             (<HTMLElement>this.$refs.a).blur();
-            if (this.model().selection.selected_count.value > 0) {
+            if (this.model().selection.selectedCount.value > 0) {
                 this.select(ev);
-                return
+                return;
             }
             await browser.tabs.update(this.tab.id, {active: true});
         })},

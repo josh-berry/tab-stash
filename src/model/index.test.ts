@@ -296,6 +296,30 @@ describe('model', () => {
                         active: false, hidden: undefined},
                 ]);
         });
+
+        it('clears any selections on hidden tabs', async () => {
+            const tab = model.tabs.tab(tabs.real_bob.id);
+
+            await model.tabs.setSelected([tab], true);
+            expect(tab.$selected).to.be.true;
+            expect(Array.from(model.selectedItems())).to.deep.equal([tab]);
+
+            const p1 = browser.tabs.update(tab.id, {highlighted: true});
+            await events.next(browser.tabs.onHighlighted);
+            await p1;
+
+            expect(tab.highlighted).to.be.true;
+
+            const p2 = model.hideOrCloseStashedTabs([tab.id]);
+            await events.next(browser.tabs.onHighlighted);
+            await events.next(browser.tabs.onUpdated);
+            await p2;
+
+            expect(tab.hidden).to.be.true;
+            expect(tab.highlighted).to.be.false;
+            expect(tab.$selected).to.be.false;
+            expect(Array.from(model.selectedItems())).to.deep.equal([]);
+        });
     });
 
     describe('puts items in bookmark folders', () => {

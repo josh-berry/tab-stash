@@ -2,6 +2,7 @@ import {expect} from 'chai';
 import browser, {Bookmarks} from 'webextension-polyfill';
 
 import * as events from '../mock/events';
+import {nextTick} from '../util';
 
 import * as M from './bookmarks';
 
@@ -80,8 +81,12 @@ describe('model/bookmarks', () => {
         delete new_bm.type;
         await events.next(browser.bookmarks.onCreated);
 
-        expect(model.node(new_bm.id as M.NodeID)).to.deep.equal(new_bm);
-        expect(model.bookmarksWithURL('/new')).to.deep.equal(new Set([new_bm]));
+        expect(model.node(new_bm.id as M.NodeID)).to.deep.equal({
+            ...new_bm, $visible: true, $selected: false,
+        });
+        expect(model.bookmarksWithURL('/new')).to.deep.equal(new Set([{
+            ...new_bm, $visible: true, $selected: false,
+        }]));
         expect(model.folder(bms.root.id).children).to.deep.equal([
             bms.doug_1.id,
             bms.francis.id,
@@ -412,6 +417,22 @@ describe('model/bookmarks', () => {
             expect(model.itemsInRange(
                     model.node(bms.doug_2.id), model.node(bms.undyne.id)))
                 .to.be.null;
+        });
+
+        it('removes filtered items from ranges', async () => {
+            model.filter.value = node =>
+                ! ('url' in node) || ! node.url.includes('helen');
+            await nextTick(); // to update the filter
+
+            expect(model.node(bms.doug_2.id).$visible).to.be.true;
+            expect(model.node(bms.helen.id).$visible).to.be.false;
+            expect(model.itemsInRange(
+                    model.node(bms.doug_2.id), model.node(bms.nate.id)))
+                .to.deep.equal([
+                    model.node(bms.doug_2.id),
+                    model.node(bms.patricia.id),
+                    model.node(bms.nate.id),
+                ]);
         });
     });
 

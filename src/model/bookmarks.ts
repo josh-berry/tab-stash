@@ -15,7 +15,9 @@ type NodeBase = {
     id: NodeID,
     dateAdded?: number,
     title: string,
-    $selected?: boolean,
+
+    $selected: boolean,
+    readonly $visible: boolean,
 };
 
 export type NodeID = string & {readonly __node_id: unique symbol};
@@ -54,11 +56,16 @@ export class Model {
     readonly stash_root_warning: Ref<{text: string, help: () => void} | undefined> = ref();
 
     /** The number of selected bookmarks. */
-    readonly selected_count = computed(() => {
+    readonly selectedCount = computed(() => {
         let count = 0;
         for (const _ of this.selectedItems()) ++count;
         return count;
     });
+
+    /** A filter function--assign to this to filter bookmarks using the
+     * function.  Each bookmark's $visible property will be updated
+     * automatically when a function is assigned to this ref. */
+    readonly filter: Ref<(node: Node) => boolean> = ref((_: Node) => true);
 
     /** Tracks folders which are candidates to be the stash root, and their
      * parents (up to the root).  Any changes to these folders should recompute
@@ -373,22 +380,27 @@ export class Model {
 
         let node = this.by_id.get(nodeId);
         if (! node) {
+            const $visible = computed(() => this.filter.value(node!));
+
             if (isFolder(new_bm)) {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
-                    title: new_bm.title ?? '', children: []
+                    title: new_bm.title ?? '', children: [],
+                    $visible, $selected: false,
                 });
 
             } else if (new_bm.type === 'separator') {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
                     type: 'separator' as 'separator', title: '' as '',
+                    $visible, $selected: false,
                 });
 
             } else {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
                     title: new_bm.title ?? '', url: new_bm.url ?? '',
+                    $visible, $selected: false,
                 });
                 this._add_url(node);
             }
@@ -576,7 +588,11 @@ export class Model {
     // Handling selection/deselection of bookmarks in the UI
     //
 
-    isSelected(item: Node): boolean { return !!item.$selected; }
+    isSelected(item: Node): boolean { return item.$selected; }
+
+    async clearSelection() {
+        for (const bm of this.by_id.values()) bm.$selected = false;
+    }
 
     async setSelected(items: Iterable<Node>, isSelected: boolean) {
         for (const item of items) item.$selected = isSelected;
@@ -619,7 +635,8 @@ export class Model {
 
         return startPos.parent.children
             .slice(startPos.index, endPos.index + 1)
-            .map(id => this.node(id));
+            .map(id => this.node(id))
+            .filter(t => t.$visible);
     }
 
     private _add_url(bm: Bookmark) {

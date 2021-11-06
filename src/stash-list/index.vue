@@ -46,20 +46,17 @@
     </Menu>
     <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
-           :placeholder="search_placeholder" @keyup.esc.prevent="searchtext=''"
-           v-model="searchtext">
+           :placeholder="search_placeholder" @keyup.esc.prevent="searchText=''"
+           v-model="searchText">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <window :tabs="tabs" :userFilter="search_filter"
-            :metadata="model().bookmark_metadata.get('')" />
+    <window :tabs="tabs" :metadata="model().bookmark_metadata.get('')" />
   </div>
   <folder-list ref="stashed" v-if="stash_root"
-               :parentFolder="stash_root"
-               :userFilter="search_filter"
-               :hideIfEmpty="searchtext !== ''" />
+               :parentFolder="stash_root" />
   <footer class="page status-text">
     Tab Stash {{my_version}} &mdash;
     <a :href="pageref('whats-new.html')">What's New</a>
@@ -74,16 +71,13 @@
 
 <script lang="ts">
 import browser from 'webextension-polyfill';
-import {defineComponent, PropType} from 'vue';
+import {PropType, defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
-import {
-    TaskMonitor, logErrors, textMatcher,
-    parseVersion, required,
-} from '../util';
+import {TaskMonitor, logErrors, parseVersion, required} from '../util';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab, WindowID} from '../model/tabs';
-import {Bookmark, Folder} from '../model/bookmarks';
+import {Folder} from '../model/bookmarks';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
 export default defineComponent({
@@ -108,7 +102,7 @@ export default defineComponent({
 
     data: () => ({
         collapsed: false,
-        searchtext: '',
+        searchText: '',
         dialog: undefined as undefined | {class: string, props?: any},
     }),
 
@@ -140,7 +134,7 @@ export default defineComponent({
         },
 
         selection_active(): boolean {
-            return this.model().selection.selected_count.value > 0;
+            return this.model().selection.selectedCount.value > 0;
         },
 
         counts(): {tabs: number, groups: number} {
@@ -161,10 +155,6 @@ export default defineComponent({
             const groups = counts.groups == 1 ? 'group' : 'groups';
             const tabs = counts.tabs == 1 ? 'tab' : 'tabs';
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
-        },
-
-        text_matcher(): (txt: string) => boolean {
-            return textMatcher(this.searchtext);
         },
     },
 
@@ -206,6 +196,10 @@ export default defineComponent({
         */
     },
 
+    watch: {
+        searchText(text) { this.model().setFilter(text); },
+    },
+
     methods: {
         pageref,
 
@@ -224,12 +218,6 @@ export default defineComponent({
 
         deselectAll() {
             this.model().selection.clearSelection().catch(console.error);
-        },
-
-        search_filter(i: Bookmark | Tab) {
-            if (this.searchtext === '') return true;
-            return (i.title && this.text_matcher(i.title))
-                || (i.url && this.text_matcher(i.url));
         },
 
         showOptions() {

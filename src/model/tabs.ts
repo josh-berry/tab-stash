@@ -1,4 +1,4 @@
-import {computed, reactive} from "vue";
+import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
 import {EventWiring, filterMap, shortPoll, TRY_AGAIN} from "../util";
 
@@ -19,7 +19,8 @@ export type Tab = {
     highlighted: boolean,
     discarded: boolean,
 
-    $selected?: boolean,
+    $selected: boolean,
+    readonly $visible: boolean,
 };
 
 export type WindowID = number & {readonly __window_id: unique symbol};
@@ -44,8 +45,13 @@ export class Model {
 
     current_window: WindowID | undefined;
 
+    /** Ref to a function which filters tabs--if the function returns true, the
+     * tab should be visible in the UI.  Each tab's `$visible` property will be
+     * updated automatically when a function is assigned to this ref. */
+    readonly filter: Ref<(t: Tab) => boolean> = ref((_: Tab) => true);
+
     /** The number of selected tabs. */
-    readonly selected_count = computed(() => {
+    readonly selectedCount = computed(() => {
         let count = 0;
         for (const _ of this.selectedItems()) ++count;
         return count;
@@ -289,6 +295,9 @@ export class Model {
                 active: tab.active,
                 highlighted: tab.highlighted,
                 discarded: tab.discarded ?? false,
+
+                $selected: false,
+                $visible: computed(() => this.filter.value(t!)),
             });
             this.tabs.set(tab.id as TabID, t);
         } else {
@@ -411,7 +420,11 @@ export class Model {
     // Handling selection/deselection of tabs in the UI
     //
 
-    isSelected(item: Tab): boolean { return !!item.$selected; }
+    isSelected(item: Tab): boolean { return item.$selected; }
+
+    async clearSelection() {
+        for (const t of this.tabs.values()) t.$selected = false;
+    }
 
     async setSelected(items: Iterable<Tab>, isSelected: boolean) {
         for (const item of items) item.$selected = isSelected;
@@ -424,7 +437,7 @@ export class Model {
         const tabs = this.window(this.current_window).tabs;
         for (const tid of tabs) {
             const t = this.tab(tid);
-            if (! t.hidden && ! t.pinned && t.$selected) yield t;
+            if (t.$selected) yield t;
         }
     }
 
@@ -445,6 +458,7 @@ export class Model {
 
         return this.window(this.current_window).tabs
             .slice(startPos.index, endPos.index + 1)
-            .map(tid => this.tab(tid));
+            .map(tid => this.tab(tid))
+            .filter(t => ! t.hidden && ! t.pinned && t.$visible);
     }
 };

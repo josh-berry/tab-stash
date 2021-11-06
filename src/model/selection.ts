@@ -5,23 +5,34 @@ import {Ref, computed} from "vue";
  * right order, select ranges of items, etc. */
 export interface SelectableModel<T = any> {
     /** A Vue ref which reports how many items are selected. */
-    selected_count: Ref<number>;
+    selectedCount: Ref<number>;
 
-    /** Check the selection state of an item. */
+    /** Check if an item is selected. */
     isSelected(item: T): boolean;
+
+    /** Clear all selections (even on items invisible to the user). */
+    clearSelection(): Promise<void>;
 
     /** Set the selection state of one or more items to `isSelected`.  (Note
      * that this function should NOT disturb the selection state of any items
-     * not mentioned in `items`.) */
+     * not mentioned in `items`.)
+     *
+     * setSelected() should select the item regardless of whether it's visible
+     * to the user or not. */
     setSelected(items: Iterable<T>, isSelected: boolean): Promise<void>;
 
-    /** Yields the set of items which are selected, sorted appropriately
-     * for how the items would be shown to the user. */
+    /** Yields the set of items which are selected, sorted appropriately for how
+     * the items would be shown to the user.  The selected items returned should
+     * *include* any items that are selected but invisible to the user. */
     selectedItems(): IterableIterator<T>;
 
     /** Given `start` and `end` items, if both items are part of the same
      * list/sequence, return a list of all the items in the range `[start,
      * end]`, inclusive.  Otherwise return null.
+     *
+     * Unlike the other methods on this interface, items which are invisible to
+     * the user should be *omitted*, so the user does not select things which
+     * they cannot see.
      *
      * NOTE: Since the caller has no idea where `start` and `end` are in
      * relation to each other, it may be that `end` appears in the model before
@@ -30,8 +41,8 @@ export interface SelectableModel<T = any> {
 }
 
 /** Helper model to handle selecting/deselecting items in the UI.  This model
- * does not actually maintain selection state--that's done by setting/clearing a
- * special `$selected` property on model objects.
+ * does not actually maintain selection state--that's done by calling
+ * `setSelected()` on the SelectableModel.
  *
  * It works across multiple models, so that it can keep global state about a
  * multi-selection operation (and avoid Vue components from having to do this).
@@ -39,8 +50,8 @@ export interface SelectableModel<T = any> {
 export class Model {
     readonly models: readonly SelectableModel[];
 
-    readonly selected_count = computed(() => this.models
-        .reduce((count, m) => count + m.selected_count.value, 0));
+    readonly selectedCount = computed(() => this.models
+        .reduce((count, m) => count + m.selectedCount.value, 0));
 
     /** The last item that was selected. */
     lastSelected?: {
@@ -61,19 +72,12 @@ export class Model {
         this.models = Array.from(models);
     }
 
-    /** Clear all selections.  Returns the number of items that were
-     * de-selected. */
-    async clearSelection(): Promise<number> {
-        let count = 0;
-        const ps = [];
+    /** Clear all selections, including any that may not be visible to the user.
+     * This should reset the model back to a clean slate where absolutely
+     * nothing is selected anywhere (filtered or otherwise). */
+    async clearSelection(): Promise<void> {
         this.lastSelected = undefined;
-        for (const m of this.models) {
-            const unselect = Array.from(m.selectedItems());
-            ps.push(m.setSelected(unselect, false));
-            count += unselect.length;
-        }
-        await Promise.all(ps);
-        return count;
+        await Promise.all(this.models.map(m => m.clearSelection()));
     }
 
     async toggleSelectFromEvent(ev: MouseEvent, model: SelectableModel, item: any) {
@@ -87,14 +91,9 @@ export class Model {
      * de-select it. */
     async toggleSelectOne(model: SelectableModel, item: any) {
         const wasSelected = model.isSelected(item);
-        const selectCount = await this.clearSelection();
+        const selectCount = this.selectedCount.value;
+        await this.clearSelection();
 
-        // We clear lastSelected here because we are basically clearing the
-        // entire set of selected items, thus resetting the selection state.  If
-        // the user tries to select anything again, we should not remember what
-        // they had deselected before (or they might get a surprising range of
-        // items selected).
-        this.lastSelected = undefined;
         if (selectCount == 1 && wasSelected) return;
 
         await model.setSelected([item], true);

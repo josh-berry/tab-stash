@@ -1,10 +1,6 @@
 <template>
-<section :class="{folder: true,
-              'action-container': true,
-              collapsed: collapsed,
-              hidden: hideIfEmpty && visibleChildren.length == 0,
-              }"
-          :data-id="folder.id">
+<section :class="{folder: true, 'action-container': true, collapsed: collapsed}"
+         :data-id="folder.id">
   <header>
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
@@ -13,10 +9,10 @@
       <Button class="stash here" @action="stash"
               :tooltip="(selectedCount
                 ? `Stash ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy tabs)`
-                : `Stash all (or highlighted) open tabs to this group (hold ${altkey} to keep tabs open)`)" />
+                : `Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`)" />
       <Button class="stash one here" @action="stashOne"
               :tooltip="`Stash the active tab to this group `
-                        + `(hold ${altkey} to keep tabs open)`" />
+                        + `(hold ${altKey} to keep tabs open)`" />
       <Button class="restore" @action="restoreAll"
               :tooltip="`Open all tabs in this group `
                       + `(hold ${bgKey} to open in background)`" />
@@ -35,13 +31,11 @@
                     :edit="rename"></editable-label>
   </header>
   <div class="contents">
-    <dnd-list class="tabs" v-model="allChildren" item-key="id"
+    <dnd-list class="tabs" v-model="children" item-key="id"
               :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
-        <bookmark v-if="! ('children' in item)" :bookmark="item"
-             :class="{hidden: (filter && ! filter(item))
-                        || (userFilter && ! userFilter(item)),
-                      'folder-item': true}" />
+        <bookmark v-if="isValidChild(item)" :bookmark="item"
+                  :class="{hidden: ! item.$visible, 'folder-item': true}" />
       </template>
     </dnd-list>
     <div class="folder-item disabled" v-if="filterCount > 0">
@@ -85,10 +79,6 @@ export default defineComponent({
     inject: ['$model'],
 
     props: {
-        // View filter functions
-        userFilter: Function as PropType<(item: Bookmark) => boolean>,
-        hideIfEmpty: Boolean,
-
         // Bookmark folder
         folder: required(Object as PropType<Folder>),
 
@@ -96,12 +86,12 @@ export default defineComponent({
     },
 
     computed: {
-        altkey: altKeyName,
+        altKey: altKeyName,
         bgKey: bgKeyName,
 
         accepts() { return DROP_FORMATS; },
 
-        allChildren(): readonly Node[] {
+        children(): readonly Node[] {
             return this.folder.children.map(cid => this.model().bookmarks.node(cid));
         },
 
@@ -134,28 +124,26 @@ export default defineComponent({
                 ? undefined : this.folder.title;
         },
 
-        filteredChildren(): Bookmark[] {
-            return this.allChildren.filter(c => 'url' in c) as Bookmark[];
+        validChildren(): Bookmark[] {
+            return this.children.filter(c => this.isValidChild(c)) as Bookmark[];
         },
         visibleChildren(): Bookmark[] {
-            if (this.userFilter) {
-                return this.filteredChildren.filter(this.userFilter);
-            } else {
-                return this.filteredChildren;
-            }
+            return this.validChildren.filter(c => c.$visible);
         },
         filterCount(): number {
-            return this.filteredChildren.length - this.visibleChildren.length;
+            return this.validChildren.length - this.visibleChildren.length;
         },
 
         selectedCount(): number {
-            return this.model().selection.selected_count.value;
+            return this.model().selection.selectedCount.value;
         },
     },
 
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+
+        isValidChild(node: Node): boolean { return 'url' in node; },
 
         async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
             // Stashing possibly-selected open tabs into the current group.
@@ -184,7 +172,7 @@ export default defineComponent({
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
             await this.model().restoreTabs(
-                this.filteredChildren.map(c => c.url),
+                this.validChildren.map(c => c.url),
                 {background: bgKeyPressed(ev)});
         })},
 
@@ -196,7 +184,7 @@ export default defineComponent({
             const bg = bgKeyPressed(ev);
 
             await this.model().restoreTabs(
-                this.filteredChildren.map(c => c.url),
+                this.validChildren.map(c => c.url),
                 {background: bg});
             await this.model().deleteBookmarkTree(this.folder.id);
         })},

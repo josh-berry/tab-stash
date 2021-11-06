@@ -75,7 +75,7 @@ export default defineComponent({
         altKey: altKeyName,
 
         selectedCount(): number {
-            return this.model().selection.selected_count.value;
+            return this.model().selection.selectedCount.value;
         },
 
         stashFolders(): Folder[] {

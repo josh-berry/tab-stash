@@ -32,7 +32,7 @@
 
 import browser from 'webextension-polyfill';
 
-import {filterMap, shortPoll, TaskMonitor, TRY_AGAIN, urlToOpen} from '../util';
+import {filterMap, shortPoll, TaskMonitor, textMatcher, TRY_AGAIN, urlToOpen} from '../util';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
@@ -184,6 +184,32 @@ export class Model {
     //
     // Mutators
     //
+
+    setFilter(text: string) {
+        const filter = textMatcher(text);
+
+        this.bookmarks.filter.value = node => {
+            if (node.title && filter(node.title)) return true;
+            if ('url' in node && node.url && filter(node.url)) return true;
+
+            // Filter should also pass if the parent folder's title matches (so
+            // that all children of a matching parent are visible).
+            const pos = this.bookmarks.positionOf(node);
+            if (filter(pos.parent.title)) return true;
+
+            // Filter should pass if any of its children are not filtered (so
+            // the parent is visible in the UI)
+            if ('children' in node
+                    && node.children.find(id => this.bookmarks.node(id).$visible)) {
+                return true;
+            }
+            return false;
+        };
+
+        this.tabs.filter.value = t =>
+               (!!t.title && filter(t.title))
+            || (!!t.url && filter(t.url));
+    }
 
     /** Garbage-collect various caches and deleted items. */
     async gc() {
@@ -376,6 +402,7 @@ export class Model {
         // Clear any highlights/selections on tabs we are stashing
         await Promise.all(
             tabIds.map(tid => browser.tabs.update(tid, {highlighted: false})));
+        await this.tabs.setSelected(tabIds.map(id => this.tabs.tab(id)), false);
 
         // istanbul ignore else -- hide() is always available in tests
         if (browser.tabs.hide) {
@@ -556,7 +583,7 @@ export class Model {
                 index: to_index,
             });
             moved_items.push(node);
-            node.$selected = item.$selected;
+            await this.bookmarks.setSelected([node], !!item.$selected);
         }
 
         // Hide/close any tabs which were moved from, since they are now
@@ -681,7 +708,7 @@ export class Model {
                 if (pos.window === win && pos.index < to_index) --to_index;
                 moved_items.push(t);
                 dont_steal_tabs.add(t.id);
-                this.tabs.tab(t.id).$selected = item.$selected;
+                await this.tabs.setSelected([this.tabs.tab(t.id)], !!item.$selected);
                 continue;
             }
 
@@ -712,7 +739,7 @@ export class Model {
                 });
                 moved_items.push(tab);
                 dont_steal_tabs.add(tab.id);
-                tab.$selected = item.$selected;
+                await this.tabs.setSelected([tab], !!item.$selected);
                 continue;
             }
 
@@ -723,7 +750,7 @@ export class Model {
             });
             moved_items.push(tab);
             dont_steal_tabs.add(tab.id);
-            tab.$selected = item.$selected;
+            await this.tabs.setSelected([tab], !!item.$selected);
         }
 
         // Delete bookmarks for all the tabs we restored.

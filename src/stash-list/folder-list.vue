@@ -3,9 +3,8 @@
          :accepts="accepts" :drag="drag" :drop="drop"
          :mimic-height="true">
   <template #item="{item: f}">
-    <Folder :folder="f"
-            :userFilter="userFilter" :hideIfEmpty="hideIfEmpty"
-            :metadata="model().bookmark_metadata.get(f.id)"
+    <Folder v-if="'children' in f" :class="{hidden: ! f.$visible}"
+            :folder="f" :metadata="model().bookmark_metadata.get(f.id)"
             ref="folders" />
   </template>
 </dnd-list>
@@ -14,10 +13,10 @@
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
 
-import {filterMap, required} from '../util';
+import {required} from '../util';
 
 import {Model} from '../model';
-import {Bookmark, Folder, NodeID} from '../model/bookmarks';
+import {Folder, Node, NodeID} from '../model/bookmarks';
 import {DragAction, DropAction} from '../components/dnd-list';
 
 const DROP_FORMAT = 'application/x-tab-stash-folder-id';
@@ -32,22 +31,13 @@ export default defineComponent({
 
     props: {
         parentFolder: required(Object as PropType<Folder>),
-        userFilter: Function as PropType<(i: Bookmark) => boolean>,
-
-        // Whether to hide a folder entirely if it has no elements (e.g. because
-        // we're filtering at the moment)
-        hideIfEmpty: Boolean,
     },
 
     computed: {
         accepts() { return DROP_FORMAT; },
-        children(): readonly Folder[] {
+        children(): Node[] {
             const bookmarks = this.model().bookmarks;
-            return filterMap(this.parentFolder.children, cid => {
-                const child = bookmarks.node(cid);
-                if ('children' in child) return child;
-                return undefined;
-            });
+            return this.parentFolder.children.map(id => bookmarks.node(id));
         },
     },
 
