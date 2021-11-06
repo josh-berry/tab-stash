@@ -159,7 +159,7 @@ export default defineComponent({
     },
 
     mounted() {
-        if (document.documentElement.classList.contains('popup-view')) {
+        if (document.documentElement.classList.contains('view-popup')) {
             (<HTMLInputElement>this.$refs.search).focus();
         }
 
