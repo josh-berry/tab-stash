@@ -19,8 +19,7 @@
       <Button class="restore-remove" @action="restoreAndRemove"
               :tooltip="`Open all tabs in the group and delete the group `
                       + `(hold ${bgKey} to open in background)`" />
-      <Button v-if="! collapsed" class="remove" @action="remove"
-              tooltip="Delete this group" />
+      <Button class="remove" @action="remove" tooltip="Delete this group" />
     </ButtonBox>
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,

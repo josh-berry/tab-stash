@@ -17,12 +17,11 @@
               :tooltip="`Stash only the unstashed tabs to a new group (hold ${altKey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
-      <Button v-if="! collapsed" class="remove" @action="remove"
+      <Button class="remove" @action="remove"
               :tooltip="`Close all unstashed tabs`" />
-      <Button v-if="! collapsed" class="remove stashed" @action="removeStashed"
+      <Button class="remove stashed" @action="removeStashed"
               :tooltip="`Close all stashed tabs`" />
-      <Button v-if="! collapsed" class="remove opened" @action="removeOpen"
-              :tooltip="
+      <Button class="remove opened" @action="removeOpen" :tooltip="
 `Click: Close all open tabs
 ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     </ButtonBox>
