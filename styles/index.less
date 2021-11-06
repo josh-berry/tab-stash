@@ -195,7 +195,19 @@ html.metrics-compact { @import "metrics-compact"; }
         text-decoration: none;
     }
 
-    &.open > a { color: var(--userlink-fg); }
+    &.open > a {
+        color: var(--userlink-fg);
+    }
+
+    &.no-match {
+        // When we are searching, dim items which wouldn't show up in a search,
+        // except that their parent folder matches the search.
+        & > a, & > a:visited, &.open > a {
+            .status-text();
+            text-decoration: line-through;
+        }
+        & > .action.select { opacity: 60%; }
+    }
 
     &.active {
         font-weight: bold;

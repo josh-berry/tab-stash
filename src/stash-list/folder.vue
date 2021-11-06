@@ -32,18 +32,18 @@
                     :edit="rename"></editable-label>
   </header>
   <div class="contents">
-    <dnd-list class="tabs" v-model="children" item-key="id"
-              :item-class="(item: Node) => ({hidden: ! isValidChild(item) || ! item.$visible})"
+    <dnd-list class="tabs" v-model="children" item-key="id" :item-class="childClasses"
               :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
         <bookmark v-if="isValidChild(item)" :bookmark="item"
-                  :class="{'folder-item': true}" />
+                  :class="{'folder-item': true, 'no-match': ! item.$visible}" />
       </template>
     </dnd-list>
-    <div class="folder-item disabled" v-if="filterCount > 0">
+    <div class="folder-item" v-if="filterCount > 0"
+         @click.prevent.stop="showFiltered = ! showFiltered">
       <span class="indent" />
       <span class="text status-text hidden-count">
-        + {{filterCount}} filtered
+        {{showFiltered ? '-' : '+'}} {{filterCount}} filtered
       </span>
     </div>
   </div>
@@ -86,6 +86,10 @@ export default defineComponent({
 
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
+
+    data: () => ({
+        showFiltered: false,
+    }),
 
     computed: {
         altKey: altKeyName,
@@ -144,6 +148,11 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+
+        childClasses(node: Node): Record<string, boolean> {
+            return {hidden: ! (
+                this.isValidChild(node) && (this.showFiltered || node.$visible))};
+        },
 
         isValidChild(node: Node): boolean { return 'url' in node; },
 

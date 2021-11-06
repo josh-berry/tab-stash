@@ -36,18 +36,18 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
                     :value="title" :defaultValue="title" />
   </header>
   <div class="contents">
-    <dnd-list class="tabs" v-model="tabs" item-key="id"
-              :item-class="(item: Tab) => ({hidden: ! isValidChild(item) || ! item.$visible})"
-              :accepts="accepts" :drag="drag" :drop="drop"
-              :mimic-height="true">
+    <dnd-list class="tabs" v-model="tabs" item-key="id" :item-class="childClasses"
+              :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
-        <tab v-if="isValidChild(item)" :tab="item" :class="{'folder-item': true}" />
+        <tab v-if="isValidChild(item)" :tab="item"
+             :class="{'folder-item': true, 'no-match': ! item.$visible}" />
       </template>
     </dnd-list>
-    <div class="folder-item disabled" v-if="filteredCount > 0">
+    <div class="folder-item" v-if="filteredCount > 0"
+         @click.prevent.stop="showFiltered = ! showFiltered">
       <span class="indent" />
       <span class="text status-text hidden-count">
-        + {{filteredCount}} filtered
+        {{showFiltered ? '-' : '+'}} {{filteredCount}} filtered
       </span>
     </div>
   </div>
@@ -90,6 +90,10 @@ export default defineComponent({
         metadata: required(Object as PropType<BookmarkMetadataEntry>),
     },
 
+    data: () => ({
+        showFiltered: false,
+    }),
+
     computed: {
         altKey: altKeyName,
 
@@ -126,6 +130,11 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+
+        childClasses(t: Tab): Record<string, boolean> {
+            return {hidden: ! (
+                this.isValidChild(t) && (this.showFiltered || t.$visible))};
+        },
 
         isValidChild(t: Tab): boolean {
             const model = this.model();
