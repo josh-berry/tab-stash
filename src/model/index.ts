@@ -202,6 +202,26 @@ export class Model {
         });
     }
 
+    /** Put the set of currently-selected items in the current window. */
+    async putSelectedInWindow(options: {move: boolean}) {
+        if (this.tabs.current_window === undefined) {
+            throw new Error(`No current window`);
+        }
+        await this.putItemsInWindow({
+            items: Array.from(this.selectedItems()),
+            toWindowId: this.tabs.current_window,
+            ...options,
+        });
+    }
+
+    /** Put the set of currently-selected items in the specified folder. */
+    async putSelectedInFolder(options: {move: boolean, toFolderId: Bookmarks.NodeID}) {
+        await this.putItemsInFolder({
+            items: Array.from(this.selectedItems()),
+            ...options,
+        });
+    }
+
     /** Stash either all tabs (if none are selected) or the selected tabs in the
      * window `windowId` (or the current window, if `windowId` is undefined).
      *

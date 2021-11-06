@@ -11,8 +11,9 @@
             @action="collapsed = ! collapsed" />
     <ButtonBox class="folder-actions">
       <Button class="stash here" @action="stash"
-              :tooltip="`Stash all (or selected) open tabs to this group `
-                        + `(hold ${altkey} to keep tabs open)`" />
+              :tooltip="(selectedCount
+                ? `Stash ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy tabs)`
+                : `Stash all (or highlighted) open tabs to this group (hold ${altkey} to keep tabs open)`)" />
       <Button class="stash one here" @action="stashOne"
               :tooltip="`Stash the active tab to this group `
                         + `(hold ${altkey} to keep tabs open)`" />
@@ -146,6 +147,10 @@ export default defineComponent({
         filterCount(): number {
             return this.filteredChildren.length - this.visibleChildren.length;
         },
+
+        selectedCount(): number {
+            return this.model().selection.selected_count.value;
+        },
     },
 
     methods: {
@@ -156,8 +161,18 @@ export default defineComponent({
             // Stashing possibly-selected open tabs into the current group.
             const win_id = this.model().tabs.current_window;
             if (! win_id) return;
-            await this.model().stashTabsInWindow(
-                win_id, {folderId: this.folder.id, close: ! ev.altKey});
+
+            const model = this.model();
+
+            if (this.selectedCount > 0) {
+                await model.putSelectedInFolder({
+                    move: ! ev.altKey,
+                    toFolderId: this.folder.id,
+                });
+            } else {
+                await model.stashTabsInWindow(
+                    win_id, {folderId: this.folder.id, close: ! ev.altKey});
+            }
         })},
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {

@@ -7,7 +7,7 @@
     </template>
 
     <button tabindex="0" title="Open stashed tabs"
-            @click.prevent="openInWindow">
+            @click.prevent="copyToWindow">
         <span class="icon icon-restore"></span>
         <span>Open</span>
     </button>
@@ -141,38 +141,20 @@ export default defineComponent({
             }
         },
 
-        moveTo(ev: MouseEvent | KeyboardEvent, id: NodeID) { logErrors(async() => {
-            const model = this.model();
-            await model.putItemsInFolder({
+        moveTo(ev: MouseEvent | KeyboardEvent, id: NodeID) {
+            logErrors(() => this.model().putSelectedInFolder({
                 move: ! ev.altKey,
-                items: Array.from(model.selectedItems()),
                 toFolderId: id,
-            });
-        }); },
+            }));
+        },
 
-        openInWindow() { logErrors(async() => {
-            const model = this.model();
-            if (model.tabs.current_window === undefined) return;
+        copyToWindow() {
+            logErrors(() => this.model().putSelectedInWindow({move: false}));
+        },
 
-            await model.putItemsInWindow({
-                move: false,
-                items: Array.from(model.selectedItems()),
-                toWindowId: model.tabs.current_window,
-            });
-        }); },
-
-        moveToWindow() { logErrors(async() => {
-            const model = this.model();
-            if (model.tabs.current_window === undefined) {
-                throw new Error(`BUG: No current window`);
-            }
-
-            await model.putItemsInWindow({
-                move: true,
-                items: Array.from(model.selectedItems()),
-                toWindowId: model.tabs.current_window,
-            });
-        }); },
+        moveToWindow() {
+            logErrors(() => this.model().putSelectedInWindow({move: true}));
+        },
 
         remove() { logErrors(async() => {
             const model = this.model();

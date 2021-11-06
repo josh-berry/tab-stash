@@ -9,7 +9,11 @@
             tooltip="Hide the tabs for this group"
             @action="collapsed = ! collapsed" />
     <ButtonBox class="folder-actions">
-      <Button class="stash" @action="stash"
+      <Button v-if="selectedCount > 0" class="restore" @action="copyToWindow"
+              :tooltip="`Open ${selectedCount} tab(s)`" />
+      <Button v-if="selectedCount > 0" class="restore-remove" @action="moveToWindow"
+              :tooltip="`Unstash ${selectedCount} tab(s)`" />
+      <Button v-if="selectedCount === 0" class="stash" @action="stash"
               :tooltip="`Stash only the unstashed tabs to a new group (hold ${altkey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
@@ -118,6 +122,10 @@ export default defineComponent({
         filterCount(): number {
             return this.filteredChildren.length - this.visibleChildren.length;
         },
+
+        selectedCount(): number {
+            return this.model().selection.selected_count.value;
+        },
     },
 
     methods: {
@@ -191,6 +199,14 @@ export default defineComponent({
                 browser.tabs.remove(close_tabs).catch(console.log);
             }
         })},
+
+        copyToWindow() {
+            logErrors(() => this.model().putSelectedInWindow({move: false}));
+        },
+
+        moveToWindow() {
+            logErrors(() => this.model().putSelectedInWindow({move: true}));
+        },
 
         drag(ev: DragAction<Tab>) {
             const items = ev.value.$selected
