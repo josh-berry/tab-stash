@@ -28,11 +28,14 @@
                 <h3>{{friendlyFolderName(f.title)}}</h3>
                 <ul>
                     <li v-for="bm of leaves(f)" :key="bm.id">
-                        <img v-if="format.endsWith('-icons')"
-                             :src="bm.favicon && bm.favicon.value"
-                             :srcset="bm.favicon && bm.favicon.value && `${bm.favicon.value} 2x`"
-                             referrerpolicy="no-referrer" alt="" class="icon">
-                        <a :href="bm.url">{{bm.title}}</a>
+                        <a :href="bm.url">
+                            <img v-if="format.endsWith('-icons')"
+                                 :src="faviconFor(bm)"
+                                 :srcset="faviconFor(bm) && `${faviconFor(bm)} 2x`"
+                                 referrerpolicy="no-referrer" alt="" class="icon">
+                            {{format.endsWith('-icons') ? ' ' : ''}}
+                            {{bm.title}}
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -122,6 +125,11 @@ export default defineComponent({
                 if ('url' in child) return child;
                 return undefined;
             });
+        },
+
+        faviconFor(bm: Bookmark): string | undefined {
+            if (! bm.url) return undefined;
+            return this.model().favicons.get(bm.url)?.value?.favIconUrl || undefined;
         },
 
         quote_emphasis_md(text: string): string {
