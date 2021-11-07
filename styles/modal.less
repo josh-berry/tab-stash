@@ -101,7 +101,8 @@ details.menu {
     & a, & button, & .menu-item {
         cursor: default;
         margin: 0;
-        padding: 0 var(--menu-mw);
+        // Extra 16px is for scroll bars, should they appear...
+        padding: 0 calc(var(--menu-mw) + 16px) 0 var(--menu-mw);
 
         display: flex;
         align-items: center;
