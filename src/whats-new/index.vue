@@ -301,18 +301,10 @@
 import {defineComponent} from 'vue';
 import {pageref} from '../launch-vue';
 
-import {required} from '../util';
-
 export default defineComponent({
     components: {
         Version: require('./version.vue').default,
         L: require('./item.vue').default,
-    },
-    provide() {
-        return {the_last_notified_version: this.last_notified_version};
-    },
-    props: {
-        last_notified_version: required(String),
     },
     methods: {
         pageref,

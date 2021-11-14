@@ -19,8 +19,9 @@ launch(require('./index.vue').default, async() => {
     r.options.local.set({last_notified_version: r.extn.version});
 
     return {
-        propsData: {
+        provide: {
             last_notified_version: version,
         },
+        propsData: {},
     };
 });

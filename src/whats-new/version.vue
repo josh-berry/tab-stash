@@ -14,24 +14,28 @@
 </template>
 
 <script lang="ts">
-import {cmpVersions} from '../util';
+import {defineComponent} from 'vue';
+import {cmpVersions, required} from '../util';
 
-export default {
+export default defineComponent({
     components: {
         ButtonBox: require('../components/button-box.vue').default,
         Button: require('../components/button.vue').default,
     },
-    props: {v: String},
-    inject: ['the_last_notified_version'],
-    data: () => ({collapsed: undefined}),
+
+    props: {v: required(String)},
+    inject: ['last_notified_version'],
+    data: () => ({collapsed: undefined as boolean | undefined}),
+
     computed: {
-        is_collapsed: function(this: any): boolean {
+        is_collapsed(): boolean {
+            const version = (<any>this).last_notified_version as string;
+
             if (this.collapsed !== undefined) return this.collapsed;
-            return this.the_last_notified_version !== undefined
-                && cmpVersions(this.v, this.the_last_notified_version) <= 0;
+            return version !== undefined && cmpVersions(this.v, version) <= 0;
         },
     },
-}
+});
 </script>
 
 <style>
