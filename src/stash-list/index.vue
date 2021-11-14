@@ -4,13 +4,13 @@
   <transition-group tag="aside" class="notification-overlay" appear name="notification">
     <Notification key="new-features" v-if="recently_updated === 'features'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} now offers options to customize how it looks.
-      See what's new!
+      Tab Stash {{my_version}} now allows you to select and move multiple tabs
+      at once.  See what else is new!
     </Notification>
     <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} now offers options to customize how it looks.
-      See what's new!
+      Tab Stash {{my_version}} now allows you to select and move multiple tabs
+      at once.  See what else is new!
     </Notification>
     <Notification key="stash-root-warning" v-if="stash_root_warning"
                   @activate="stash_root_warning.help">

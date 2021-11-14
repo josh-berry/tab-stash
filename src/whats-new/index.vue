@@ -8,7 +8,34 @@
 
   <div class="folder-list one-column">
 
-    <Version v="Next">
+    <Version v="2.10">
+      <L :issue="57" v="New:">Select and move multiple tabs at once using
+      drag-and-drop or the new selection menu.  Click on a tab's icon to get
+      started!</L>
+
+      <L v="New:">If you want to see which tabs in a particular group don't
+      match your search, click the "+ N Filtered" label to show all tabs in that
+      group.</L>
+
+      <L :issue="118" v="Improved:">Group names are now searched along with tab
+      titles and URLs.  If you have a lot of groups, it's now easier to find the
+      one you're looking for.</L>
+
+      <L :issue="160" v="Improved:">"Delete" buttons are now shown even on
+      collapsed groups.  Now that Tab Stash can un-delete items, there's no
+      reason to hide the "delete" buttons anymore since a mistake is easy to
+      fix.</L>
+
+      <L v="Improved">the aesthetics of the UI in various small ways (most
+      notably, a default icon is now shown for tabs that don't have one).</L>
+
+      <L :subtext="`Tab Stash now uses Vue 3, and a number of off-the-shelf `
+            + `components were replaced with custom implementations to make the `
+            + `code cleaner, simpler and faster. There is also a completely `
+            + `rewritten model and a LOT more automated tests.`"
+         v="Improved:">Lots of behind-the-scenes improvements to pave the way
+      for new features and better performance.</L>
+
       <L :issue="122" v="Fixed:">Tab Stash no longer stashes new/blank tabs.
       This also means that, if we are asked to stash tabs when only a new tab is
       open, we won't create a group with just a single, lonely new tab.</L>
