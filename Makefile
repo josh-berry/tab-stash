@@ -1,6 +1,8 @@
 VERSION := $(shell node -e "x=`cat assets/manifest.json`; console.log(x.version)")
 COMMIT := $(shell git rev-parse --short HEAD)
-FULL_VERSION := $(VERSION)-$(COMMIT)
+DEV_TAG := $(if $(shell git tag --points-at=HEAD),,-dev)
+DIRTY_TAG := $(if $(shell git status --porcelain),-dirty,)
+FULL_VERSION := $(VERSION)$(DEV_TAG)-$(COMMIT)$(DIRTY_TAG)
 
 ifeq ($(VERSION),)
 $(error Unable to determine the current version number)
@@ -38,7 +40,7 @@ rel:
 	@echo "Release package: $(DIST_PKG)"
 	@echo "Source package:  $(SRC_PKG)"
 	@echo
-	@echo "If everything looks good, run \"git push --tags\", and"
+	@echo "If everything looks good, run \"git push && git push --tags\", and"
 	@echo "upload to AMO."
 	@echo ""
 .PHONY: rel
@@ -66,7 +68,7 @@ pkg-source: clean-working-tree
 	mkdir -p $(RELEASE_DIR)
 	rm -rf $(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG)
 	git fetch -f origin
-	git clone -b v$(VERSION) . $(RELEASE_DIR)/$(SRCPKG_DIR)
+	git clone --depth 1 -b v$(VERSION) . $(RELEASE_DIR)/$(SRCPKG_DIR)
 	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) gc --aggressive
 	tar -C $(RELEASE_DIR) -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
