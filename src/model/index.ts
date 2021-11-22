@@ -282,9 +282,9 @@ export class Model {
             close?: boolean
         }
     ): Promise<void> {
-        const tabs = this.tabs.window(windowId).tabs
-            .map(tid => this.tabs.tab(tid))
-            .filter(t => ! t.hidden);
+        const win = expect(this.tabs.window(windowId),
+            () => `Trying to stash tabs to unknown window ${windowId}`);
+        const tabs = this.tabs.tabsIn(win).filter(t => ! t.hidden);
 
         let selected = tabs.filter(t => t.highlighted);
         if (selected.length <= 1) {
@@ -422,7 +422,7 @@ export class Model {
         // Clear any highlights/selections on tabs we are stashing
         await Promise.all(
             tabIds.map(tid => browser.tabs.update(tid, {highlighted: false})));
-        await this.tabs.setSelected(tabIds.map(id => this.tabs.tab(id)), false);
+        await this.tabs.setSelected(filterMap(tabIds, id => this.tabs.tab(id)), false);
 
         // istanbul ignore else -- hide() is always available in tests
         if (browser.tabs.hide) {
@@ -462,6 +462,8 @@ export class Model {
         if (this.tabs.current_window === undefined) {
             throw new Error(`Not sure what the current window is`);
         }
+        const cur_win = expect(this.tabs.window(this.tabs.current_window),
+            () => `Current window ${this.tabs.current_window} is unknown to the model`);
 
         // As a special case, if we are restoring just a single tab, first check
         // if we already have the tab open and just switch to it.  (No need to
@@ -481,8 +483,7 @@ export class Model {
 
         // We want to know what tabs are currently open in the window, so we can
         // avoid opening duplicates.
-        const win_tabs = this.tabs.window(this.tabs.current_window).tabs
-            .map(tid => this.tabs.tab(tid));
+        const win_tabs = this.tabs.tabsIn(cur_win);
 
         // We want to know which tab the user is currently looking at so we can
         // close it if it's just the new-tab page.
@@ -632,7 +633,8 @@ export class Model {
         task?: TaskMonitor,
     }): Promise<Tabs.Tab[]> {
         const to_win_id = options.toWindowId;
-        const win = this.tabs.window(to_win_id);
+        const win = expect(this.tabs.window(to_win_id),
+            () => `Trying to put items in unknown window ${to_win_id}`);
 
         // Try to figure out where to move items from, or if new tabs need to be
         // created fresh.  (We don't worry about restoring recently-closed tabs
@@ -683,7 +685,7 @@ export class Model {
                 moved_items.push(model_item);
                 dont_steal_tabs.add(model_item.id);
 
-                if (pos.window === win && pos.index < to_index) {
+                if (pos && pos.window === win && pos.index < to_index) {
                     // This is a rotation in the same window; since move() first
                     // removes and then adds the tab, we need to decrement
                     // toIndex so the moved tab ends up in the right place.
@@ -726,10 +728,10 @@ export class Model {
                 if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
 
                 await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
-                if (pos.window === win && pos.index < to_index) --to_index;
+                if (pos && pos.window === win && pos.index < to_index) --to_index;
                 moved_items.push(t);
                 dont_steal_tabs.add(t.id);
-                await this.tabs.setSelected([this.tabs.tab(t.id)], !!item.$selected);
+                await this.tabs.setSelected([t], !!item.$selected);
                 continue;
             }
 
@@ -739,9 +741,7 @@ export class Model {
             if (closed) {
                 // Remember the active tab in this window (if any), because
                 // restoring a recently-closed tab will disturb the focus.
-                const active_tab = win.tabs
-                    .map(tid => this.tabs.tab(tid))
-                    .find(t => t.active);
+                const active_tab = this.tabs.tabsIn(win).find(t => t.active);
 
                 const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
                 await browser.tabs.move(t.id!, {windowId: to_win_id, index: to_index});

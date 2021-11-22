@@ -74,7 +74,7 @@ import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
-import {TaskMonitor, parseVersion, required} from '../util';
+import {TaskMonitor, expect, parseVersion, required} from '../util';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab, WindowID} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
@@ -111,11 +111,17 @@ export default defineComponent({
             return this.model().bookmarks.stash_root_warning.value;
         },
         tabs(): readonly Tab[] {
-            return this.model().tabs.window(this.window_id).tabs
-                .map(tid => this.model().tabs.tab(tid));
+            const m = this.model().tabs;
+            const win = expect(m.window(this.window_id), () => `Current window unknown`);
+            return m.tabsIn(win);
         },
         stash_root(): Folder | undefined {
             return this.model().bookmarks.stash_root.value;
+        },
+        stash_groups(): Folder[] {
+            if (! this.stash_root?.children) return [];
+            return this.model().bookmarks.childrenOf(this.stash_root)
+                .filter(c => 'children' in c) as Folder[];
         },
 
         recently_updated(): undefined | 'features' | 'fixes' {
@@ -139,13 +145,9 @@ export default defineComponent({
 
         counts(): {tabs: number, groups: number} {
             let tabs = 0, groups = 0;
-            if (this.stash_root?.children) {
-                for (const fid of this.stash_root.children) {
-                    const f = this.model().bookmarks.node(fid);
-                    if (! ('children' in f)) continue;
-                    tabs += f.children.length;
-                    groups++;
-                }
+            for (const f of this.stash_groups) {
+                tabs += f.children.length;
+                groups++;
             }
             return {tabs, groups};
         },
@@ -209,9 +211,7 @@ export default defineComponent({
             this.collapsed = ! this.collapsed;
             const metadata = this.model().bookmark_metadata;
             metadata.setCollapsed('', this.collapsed);
-            for (const fid of this.stash_root?.children || []) {
-                const f = this.model().bookmarks.node(fid);
-                if (! ('children' in f)) continue;
+            for (const f of this.stash_groups) {
                 metadata.setCollapsed(f.id, this.collapsed);
             }
         },

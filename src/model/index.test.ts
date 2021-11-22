@@ -67,9 +67,9 @@ describe('model', () => {
 
         // We need the indexes in the models to be populated
         await events.watch(['EventfulMap.onInsert', 'EventfulMap.onUpdate']).untilNextTick();
-        expect(tab_model.window(windows.left.id).tabs.length).to.equal(3);
-        expect(tab_model.window(windows.right.id).tabs.length).to.equal(3);
-        expect(tab_model.window(windows.real.id).tabs.length).to.equal(10);
+        expect(tab_model.window(windows.left.id)!.tabs.length).to.equal(3);
+        expect(tab_model.window(windows.right.id)!.tabs.length).to.equal(3);
+        expect(tab_model.window(windows.real.id)!.tabs.length).to.equal(10);
         expect(bm_model.stash_root.value!.id).to.equal(bookmarks.stash_root.id);
     });
 
@@ -188,7 +188,7 @@ describe('model', () => {
                     url: tabs.right_doug.url,
                     hidden: true,
                 });
-                expect(model.tabs.tab(tabs.right_doug.id).discarded).not.to.be.ok;
+                expect(model.tabs.tab(tabs.right_doug.id)!.discarded).not.to.be.ok;
             });
 
             it('hides and unloads tabs', async () => {
@@ -230,7 +230,7 @@ describe('model', () => {
                     () => expect.fail('browser.tabs.get did not throw'),
                     () => {},
                 );
-                expect(() => model.tabs.tab(tabs.right_doug.id)).to.throw(Error);
+                expect(model.tabs.tab(tabs.right_doug.id)).to.be.undefined;
             });
         });
 
@@ -263,15 +263,15 @@ describe('model', () => {
                     {id: win[3].id, url: B, active: true, hidden: undefined},
                 ]);
 
-            expect(model.tabs.window(windows.left.id).tabs).to.deep.equal([
+            expect(model.tabs.window(windows.left.id)!.tabs).to.deep.equal([
                 tabs.left_alice.id,
                 tabs.left_betty.id,
                 tabs.left_charlotte.id,
                 win[3].id!,
             ]);
-            expect(model.tabs.tab(tabs.left_alice.id).hidden).to.be.true;
-            expect(model.tabs.tab(tabs.left_betty.id).hidden).to.be.true;
-            expect(model.tabs.tab(tabs.left_charlotte.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.left_alice.id)!.hidden).to.be.true;
+            expect(model.tabs.tab(tabs.left_betty.id)!.hidden).to.be.true;
+            expect(model.tabs.tab(tabs.left_charlotte.id)!.hidden).to.be.true;
             expect(model.tabs.tab(win[3].id as TabID)).to.deep.include({
                 active: true,
             });
@@ -298,7 +298,7 @@ describe('model', () => {
         });
 
         it('clears any selections on hidden tabs', async () => {
-            const tab = model.tabs.tab(tabs.real_bob.id);
+            const tab = model.tabs.tab(tabs.real_bob.id)!;
 
             await model.tabs.setSelected([tab], true);
             expect(tab.$selected).to.be.true;
@@ -495,8 +495,8 @@ describe('model', () => {
             const p = model.putItemsInFolder({
                 move: true,
                 items: [
-                    model.tabs.tab(tabs.real_bob.id),
-                    model.tabs.tab(tabs.real_estelle.id)
+                    model.tabs.tab(tabs.real_bob.id)!,
+                    model.tabs.tab(tabs.real_estelle.id)!,
                 ],
                 toFolderId: bookmarks.names.id,
                 toIndex: 2,
@@ -514,8 +514,8 @@ describe('model', () => {
                 `${B}#patricia`, `${B}#nate`
             ];
 
-            expect(model.tabs.tab(tabs.real_bob.id).hidden).to.be.true;
-            expect(model.tabs.tab(tabs.real_estelle.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.real_bob.id)!.hidden).to.be.true;
+            expect(model.tabs.tab(tabs.real_estelle.id)!.hidden).to.be.true;
 
             const real_folder = await browser.bookmarks.getChildren(bookmarks.names.id);
             expect(real_folder.map(c => c.title), "Browser bookmark titles")
@@ -536,8 +536,8 @@ describe('model', () => {
             const p = model.putItemsInFolder({
                 move: true,
                 items: [
-                    model.tabs.tab(tabs.real_bob.id),
-                    model.tabs.tab(tabs.real_estelle.id),
+                    model.tabs.tab(tabs.real_bob.id)!,
+                    model.tabs.tab(tabs.real_estelle.id)!,
                     model.bookmarks.bookmark(bookmarks.two.id)!,
                     model.bookmarks.bookmark(bookmarks.four.id)!,
                 ],
@@ -560,8 +560,8 @@ describe('model', () => {
                 `${B}#patricia`, `${B}#nate`
             ];
 
-            expect(model.tabs.tab(tabs.real_bob.id).hidden).to.be.true;
-            expect(model.tabs.tab(tabs.real_estelle.id).hidden).to.be.true;
+            expect(model.tabs.tab(tabs.real_bob.id)!.hidden).to.be.true;
+            expect(model.tabs.tab(tabs.real_estelle.id)!.hidden).to.be.true;
             expect(model.bookmarks.bookmark(bookmarks.two.id)!.parentId)
                 .to.equal(bookmarks.names.id);
             expect(model.bookmarks.bookmark(bookmarks.four.id)!.parentId)
@@ -600,8 +600,8 @@ describe('model', () => {
             expect(real_tabs.map(c => c.id), "Browser tab IDs")
                 .to.deep.equal(children.map(c => tabs[c].id));
 
-            const win = model.tabs.window(windows[windowName].id);
-            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+            const win = model.tabs.window(windows[windowName].id)!;
+            expect(win.tabs.map(c => model.tabs.tab(c)!.url), "Model tab URLs")
                 .to.deep.equal(children.map(c => tabs[c].url));
             expect(win.tabs, "Model tab IDs")
                 .to.deep.equal(children.map(c => tabs[c].id));
@@ -779,8 +779,8 @@ describe('model', () => {
             const real_tabs = await browser.tabs.query({windowId: windows.right.id});
             expect(real_tabs.map(c => c.url), "Browser tab URLs").to.deep.equal(urls);
 
-            const win = model.tabs.window(windows.right.id);
-            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+            const win = model.tabs.window(windows.right.id)!;
+            expect(win.tabs.map(c => model.tabs.tab(c)!.url), "Model tab URLs")
                 .to.deep.equal(urls);
         });
 
@@ -821,8 +821,8 @@ describe('model', () => {
             expect(real_tabs.map(c => c.url), "Browser tab URLs").to.deep.equal(urls);
             expect(real_tabs.map(c => c.id), "Browser tab IDs").to.deep.equal(ids);
 
-            const win = model.tabs.window(windows.right.id);
-            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+            const win = model.tabs.window(windows.right.id)!;
+            expect(win.tabs.map(c => model.tabs.tab(c)!.url), "Model tab URLs")
                 .to.deep.equal(urls);
             expect(win.tabs, "Model tab IDs").to.deep.equal(ids);
 
@@ -848,7 +848,7 @@ describe('model', () => {
             const p = model.putItemsInWindow({
                 move: true,
                 items: [
-                    model.tabs.tab(tabs.right_doug.id),
+                    model.tabs.tab(tabs.right_doug.id)!,
                     model.bookmarks.bookmark(bookmarks.nate.id)!,
                 ],
                 toWindowId: windows.right.id,
@@ -868,8 +868,8 @@ describe('model', () => {
             const real_tabs = await browser.tabs.query({windowId: windows.right.id});
             expect(real_tabs.map(c => c.url), "Browser tab URLs").to.deep.equal(urls);
 
-            const win = model.tabs.window(windows.right.id);
-            expect(win.tabs.map(c => model.tabs.tab(c).url), "Model tab URLs")
+            const win = model.tabs.window(windows.right.id)!;
+            expect(win.tabs.map(c => model.tabs.tab(c)!.url), "Model tab URLs")
                 .to.deep.equal(urls);
 
             expect(model.bookmarks.folder(bookmarks.names.id)!.children)
@@ -900,8 +900,8 @@ describe('model', () => {
         }
 
         function checkLeftWindowTabs() {
-            const model_tabs = model.tabs.window(windows.left.id).tabs
-                .map(tid => model.tabs.tab(tid));
+            const win = model.tabs.window(windows.left.id)!;
+            const model_tabs = model.tabs.tabsIn(win);
 
             expect(model_tabs.map(t => t.url)).to.deep.equal([
                 `${B}#alice`, `${B}#betty`, `${B}#charlotte`, `${B}`
@@ -962,8 +962,8 @@ describe('model', () => {
             await events.nextN(browser.tabs.onUpdated, 4);
             await p;
 
-            const model_tabs = model.tabs.window(windows.real.id).tabs
-                .map(tid => model.tabs.tab(tid));
+            const win = model.tabs.window(windows.real.id)!;
+            const model_tabs = model.tabs.tabsIn(win);
 
             expect(model_tabs.map(t => t.url))
                 .to.deep.equal(windows.real.tabs!.map(t => t.url));
@@ -996,12 +996,12 @@ describe('model', () => {
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
 
-            const restored = model.tabs.tab(tabs.real_harry.id);
+            const restored = model.tabs.tab(tabs.real_harry.id)!;
             expect(restored.hidden).to.be.false;
             expect(restored.active).to.be.true;
             expect(restored.windowId).to.equal(windows.real.id);
 
-            const win = model.tabs.window(windows.real.id);
+            const win = model.tabs.window(windows.real.id)!;
             expect(win.tabs[win.tabs.length - 1]).to.equal(tabs.real_harry.id);
         });
 
@@ -1010,13 +1010,13 @@ describe('model', () => {
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
 
-            const restored = model.tabs.tab(tabs.real_estelle.id);
+            const restored = model.tabs.tab(tabs.real_estelle.id)!;
             expect(restored.hidden).to.be.false;
             expect(restored.active).to.be.true;
             expect(restored.windowId).to.equal(windows.real.id);
 
             // Nothing should have moved
-            const win = model.tabs.window(windows.real.id);
+            const win = model.tabs.window(windows.real.id)!;
             expect(win.tabs).to.deep.equal(windows.real.tabs!.map(t => t.id));
         });
 
@@ -1035,7 +1035,7 @@ describe('model', () => {
             expect(restored[1].hidden).to.be.false;
             expect(restored[1].active).to.be.true;
 
-            const win = model.tabs.window(windows.real.id);
+            const win = model.tabs.window(windows.real.id)!;
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,
@@ -1073,7 +1073,7 @@ describe('model', () => {
             expect(restored.map(t => t.active))
                 .to.deep.equal([false, false, false, true]);
 
-            const win = model.tabs.window(windows.real.id);
+            const win = model.tabs.window(windows.real.id)!;
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,

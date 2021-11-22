@@ -1,6 +1,6 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {filterMap, logErrors, nonReentrant, shortPoll, tryAgain} from "../util";
+import {expect, filterMap, logErrors, nonReentrant, shortPoll, tryAgain} from "../util";
 import {EventWiring} from "../util/wiring";
 
 export type Window = {
@@ -133,26 +133,23 @@ export class Model {
     // Accessors
     //
 
-    window(id: WindowID): Window {
-        const win = this.windows.get(id);
-        if (! win) throw new Error(`No such window: ${id}`);
-        return win;
-    }
+    window(id: WindowID): Window | undefined { return this.windows.get(id); }
+    tab(id: TabID): Tab | undefined { return this.tabs.get(id); }
 
-    tab(id: TabID): Tab {
-        const tab = this.tabs.get(id);
-        if (! tab) throw new Error(`No such tab: ${id}`);
-        return tab;
+    tabsIn(win: Window): Tab[] {
+        return filterMap(win.tabs, cid => this.tab(cid));
     }
 
     /** Returns the parent window of the tab, and the index of the tab in that
      * parent window's .tabs array. */
-    positionOf(tab: Tab): TabPosition {
+    positionOf(tab: Tab): TabPosition | undefined {
         const window = this.window(tab.windowId);
-        const index = window.tabs.findIndex(tid => tid === tab.id);
+        if (! window) return undefined;
 
+        const index = window.tabs.findIndex(tid => tid === tab.id);
         // istanbul ignore next -- internal sanity
-        if (index === -1) throw new Error(`Tab not in its parent window: ${tab.id}`);
+        if (index === -1) return undefined;
+
         return {window, index};
     }
 
@@ -162,9 +159,10 @@ export class Model {
         if (windowId === undefined) windowId = this.current_window;
         if (windowId === undefined) return undefined;
 
-        return this.window(windowId).tabs
-            .map(t => this.tab(t))
-            .filter(t => t.active)[0];
+        const window = this.window(windowId);
+        if (! window) return undefined;
+
+        return filterMap(window.tabs, t => this.tab(t)).filter(t => t.active)[0];
     }
 
     /** Returns a reactive set of tabs with the specified URL. */
@@ -184,11 +182,7 @@ export class Model {
     /** Creates a new tab and waits for the model to reflect its existence. */
     async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
         const t = await browser.tabs.create(tab);
-        return await shortPoll(() => {
-            const tab = this.tabs.get(t.id as TabID);
-            if (tab) return tab;
-            tryAgain();
-        });
+        return await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
     }
 
     /** Moves a tab such that it precedes the item with index `toIndex` in
@@ -197,18 +191,19 @@ export class Model {
     async move(id: TabID, toWindow: WindowID, toIndex: number): Promise<void> {
         // This method mainly exists to provide consistent behavior between
         // bookmarks.move() and tabs.move().
-        const tab = this.tab(id);
+        const tab = expect(this.tab(id), () => `Tab ${id} does not exist`);
 
         // Unlike browser.bookmarks.move(), browser.tabs.move() behaves the same
         // on both Firefox and Chrome.
         if (tab.windowId === toWindow) {
             const position = this.positionOf(tab);
-            if (toIndex > position.index) toIndex--;
+            if (position && toIndex > position.index) toIndex--;
         }
 
         await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
         await shortPoll(() => {
             const pos = this.positionOf(tab);
+            if (! pos) tryAgain();
             if (pos.window.id !== toWindow || pos.index !== toIndex) tryAgain();
         });
     }
@@ -238,8 +233,9 @@ export class Model {
 
         // NOTE: We expect there to be at most one active tab per window.
         for (const active_tab of active_tabs) {
-            const tabs_in_window = this.window(active_tab.windowId).tabs
-                .map(t => this.tab(t))
+            const win = expect(this.window(active_tab.windowId),
+                () => `Couldn't find parent window for active tab ${active_tab.id}`);
+            const tabs_in_window = filterMap(win.tabs, t => this.tab(t))
                 .filter(t => ! t.hidden && ! t.pinned);
             const closing_tabs_in_window =
                 closing_tabs.filter(t => t.windowId === active_tab.windowId);
@@ -261,12 +257,13 @@ export class Model {
                 // from, to mimic the browser's behavior when closing the front
                 // tab.
 
-                const idx = this.positionOf(active_tab).index;
-                let candidates = tabs_in_window.slice(idx + 1);
+                const pos = expect(this.positionOf(active_tab),
+                    () => `Couldn't find position of active tab ${active_tab.id}`);
+                let candidates = tabs_in_window.slice(pos.index + 1);
                 let focus_tab = candidates.find(
                     t => t.id !== undefined && ! tabIds.find(id => t.id === id));
                 if (! focus_tab) {
-                    candidates = tabs_in_window.slice(0, idx).reverse();
+                    candidates = tabs_in_window.slice(0, pos.index).reverse();
                     focus_tab = candidates.find(
                         t => t.id !== undefined && ! tabIds.find(id => t.id === id));
                 }
@@ -335,7 +332,7 @@ export class Model {
             // Remove this tab from its prior position
             if (this.windows.get(tab.windowId as WindowID)) {
                 const pos = this.positionOf(t);
-                pos.window.tabs.splice(pos.index, 1);
+                if (pos) pos.window.tabs.splice(pos.index, 1);
             }
             this._remove_url(t);
 
@@ -365,7 +362,9 @@ export class Model {
     }
 
     whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
-        const t = this.tab(id as TabID);
+        const t = expect(this.tab(id as TabID),
+            () => `Got change event for unknown tab ${id}`);
+
         if (info.status !== undefined) t.status = info.status as Tabs.TabStatus;
         if (info.title !== undefined) t.title = info.title;
         if (info.url !== undefined) {
@@ -385,42 +384,46 @@ export class Model {
     }
 
     whenTabMoved(tabId: number, info: {windowId: number, toIndex: number}) {
-        const t = this.tab(tabId as TabID);
+        const t = expect(this.tab(tabId as TabID),
+            () => `Got move event for unknown tab ${tabId}`);
 
         const oldPos = this.positionOf(t);
-        oldPos.window.tabs.splice(oldPos.index, 1);
+        if (oldPos) oldPos.window.tabs.splice(oldPos.index, 1);
 
-        const newWindow = this.window(info.windowId as WindowID);
+        const newWindow = expect(this.window(info.windowId as WindowID),
+            () => `Tab ${tabId} moved to unknown window ${info.windowId}`);
         t.windowId = info.windowId as WindowID;
         newWindow.tabs.splice(info.toIndex, 0, t.id);
     }
 
     whenTabReplaced(newId: number, oldId: number) {
-        const t = this.tab(oldId as TabID);
-        const win = this.window(t.windowId);
-        const idx = win.tabs.findIndex(tid => t.id === tid);
+        const t = expect(this.tab(oldId as TabID),
+            () => `Got replace event for unknown tab ${oldId} (-> ${newId})`);
+
+        const pos = this.positionOf(t);
+        if (pos) pos.window.tabs[pos.index] = newId as TabID;
 
         t.id = newId as TabID;
-        // istanbul ignore else -- internal sanity
-        if (idx >= 0) win.tabs[idx] = t.id;
-
         this.tabs.delete(oldId as TabID);
         this.tabs.set(t.id, t);
     }
 
     whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
+        const tab = expect(this.tab(info.tabId as TabID),
+            () => `Got activated event for unknown tab ${info.tabId}`);
+
         // Chrome doesn't tell us which tab was deactivated, so we have to
         // find it and mark it deactivated ourselves...
         const win = this.window(info.windowId as WindowID);
-        for (const tid of win.tabs) this.tab(tid).active = false;
+        if (win) for (const t of this.tabsIn(win)) t.active = false;
 
-        const tab = this.tab(info.tabId as TabID);
         tab.active = true;
     }
 
     whenTabsHighlighted(info: Tabs.OnHighlightedHighlightInfoType) {
-        for (const tid of this.window(info.windowId as WindowID).tabs) {
-            const t = this.tab(tid);
+        const win = expect(this.window(info.windowId as WindowID),
+            () => `Got highlighted event for unknown window ${info.windowId}`);
+        for (const t of this.tabsIn(win)) {
             t.highlighted = info.tabIds.findIndex(id => id === t.id) !== -1;
         }
     }
@@ -432,7 +435,7 @@ export class Model {
         const pos = this.positionOf(t);
 
         this.tabs.delete(t.id);
-        pos.window.tabs.splice(pos.index, 1);
+        if (pos) pos.window.tabs.splice(pos.index, 1);
         this._remove_url(t);
     }
 
@@ -465,11 +468,11 @@ export class Model {
         // We only allow tabs in the current window to be selected
         // istanbul ignore if -- shouldn't occur in tests
         if (this.current_window === undefined) return;
-        const tabs = this.window(this.current_window).tabs;
-        for (const tid of tabs) {
-            const t = this.tab(tid);
-            if (t.$selected) yield t;
-        }
+
+        const win = this.window(this.current_window);
+        if (! win) return;
+
+        for (const t of this.tabsIn(win)) if (t.$selected) yield t;
     }
 
     itemsInRange(start: Tab, end: Tab): Tab[] | null {
@@ -478,18 +481,21 @@ export class Model {
         if (start.windowId !== this.current_window) return null;
         if (end.windowId !== this.current_window) return null;
 
+        const win = this.window(this.current_window);
+        if (! win) return null;
+
         let startPos = this.positionOf(start);
         let endPos = this.positionOf(end);
 
+        if (! startPos || ! endPos) return null;
         if (endPos.index < startPos.index) {
             const tmp = endPos;
             endPos = startPos;
             startPos = tmp;
         }
 
-        return this.window(this.current_window).tabs
+        return this.tabsIn(win)
             .slice(startPos.index, endPos.index + 1)
-            .map(tid => this.tab(tid))
             .filter(t => ! t.hidden && ! t.pinned && t.$visible);
     }
 };

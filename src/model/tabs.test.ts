@@ -45,7 +45,7 @@ describe('model/tabs', () => {
     it("tracks tabs by window", async () => {
         for (const w in windows) {
             const win = windows[w as keyof typeof windows];
-            expect(model.window(win.id).tabs)
+            expect(model.window(win.id)!.tabs)
                 .to.deep.equal(win.tabs!.map(t => t.id));
         }
     });
@@ -72,13 +72,13 @@ describe('model/tabs', () => {
             $selected: false,
         });
 
-        expect(model.window(windows.left.id).tabs).to.deep.equal([
+        expect(model.window(windows.left.id)!.tabs).to.deep.equal([
             tabs.left_alice.id,
             tabs.left_betty.id,
             tabs.left_charlotte.id,
             t.id!,
         ]);
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.right_adam.id,
             tabs.right_doug.id,
@@ -129,7 +129,7 @@ describe('model/tabs', () => {
         expect(model.tabsWithURL(`${B}#hi`)).to.deep.equal(new Set([
             model.tab(tid),
         ]));
-        expect(model.window(win.id as M.WindowID).tabs).to.deep.equal([tid]);
+        expect(model.window(win.id as M.WindowID)!.tabs).to.deep.equal([tid]);
 
         // Cleanup for running this test in a live environment - close the
         // window we just created
@@ -137,8 +137,8 @@ describe('model/tabs', () => {
         await events.next(browser.windows.onRemoved);
         await events.next(browser.windows.onFocusChanged);
 
-        expect(() => model.tab(tid)).to.throw(Error);
-        expect(() => model.window(win.id as M.WindowID)).to.throw(Error);
+        expect(model.tab(tid)).to.be.undefined;
+        expect(model.window(win.id as M.WindowID)).to.be.undefined;
     });
 
     it("opens tabs in new windows", async () => {
@@ -169,7 +169,7 @@ describe('model/tabs', () => {
         });
         expect(Array.from(model.tabsWithURL("hi")))
             .to.deep.equal([model.tab(16384 as M.TabID)]);
-        expect(model.window(16590 as M.WindowID).tabs).to.deep.equal([tab.id]);
+        expect(model.window(16590 as M.WindowID)!.tabs).to.deep.equal([tab.id]);
     });
 
     it("handles duplicate tab-creation events gracefully", async () => {
@@ -213,7 +213,7 @@ describe('model/tabs', () => {
         expect(model.tabsWithURL("cats")).to.deep.equal(new Set([
             model.tab(tid),
         ]));
-        expect(model.window(win.id! as M.WindowID).tabs).to.deep.equal([tid]);
+        expect(model.window(win.id! as M.WindowID)!.tabs).to.deep.equal([tid]);
 
         // Cleanup when running in a live environment - close the window we just
         // created
@@ -221,8 +221,8 @@ describe('model/tabs', () => {
         await events.next(browser.windows.onRemoved);
         await events.next(browser.windows.onFocusChanged);
 
-        expect(() => model.tab(tid)).to.throw(Error);
-        expect(() => model.window(win.id! as M.WindowID)).to.throw(Error);
+        expect(model.tab(tid)).to.be.undefined;
+        expect(model.window(win.id! as M.WindowID)).to.be.undefined;
     });
 
     it("closes tabs", async () => {
@@ -230,8 +230,8 @@ describe('model/tabs', () => {
         await browser.tabs.remove(tabs.right_adam.id);
         await events.next(browser.tabs.onRemoved);
 
-        expect(() => model.tab(tabs.right_adam.id)).to.throw(Error);
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.tab(tabs.right_adam.id)).to.be.undefined;
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.right_doug.id,
         ]);
@@ -244,8 +244,8 @@ describe('model/tabs', () => {
         events.send(browser.tabs.onRemoved, ...ev);
         await events.next(browser.tabs.onRemoved);
 
-        expect(() => model.tab(tabs.right_adam.id)).to.throw(Error);
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.tab(tabs.right_adam.id)).to.be.undefined;
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.right_doug.id,
         ]);
@@ -256,13 +256,13 @@ describe('model/tabs', () => {
         await browser.windows.remove(windows.right.id);
         await events.next(browser.windows.onRemoved);
 
-        expect(() => model.window(windows.right.id)).to.throw(Error);
+        expect(model.window(windows.right.id)).to.be.undefined;
         expect(model.tab(tabs.left_alice.id)).to.not.be.undefined;
         expect(model.tab(tabs.left_betty.id)).to.not.be.undefined;
         expect(model.tab(tabs.left_charlotte.id)).to.not.be.undefined;
-        expect(() => model.tab(tabs.right_blank.id)).to.throw(Error);
-        expect(() => model.tab(tabs.right_adam.id)).to.throw(Error);
-        expect(() => model.tab(tabs.right_doug.id)).to.throw(Error);
+        expect(model.tab(tabs.right_blank.id)).to.be.undefined;
+        expect(model.tab(tabs.right_adam.id)).to.be.undefined;
+        expect(model.tab(tabs.right_doug.id)).to.be.undefined;
     });
 
     it("moves tabs within a window (forwards)", async () => {
@@ -270,7 +270,7 @@ describe('model/tabs', () => {
                 {windowId: windows.left.id, index: 2});
         await events.next(browser.tabs.onMoved);
 
-        expect(model.window(windows.left.id).tabs).to.deep.equal([
+        expect(model.window(windows.left.id)!.tabs).to.deep.equal([
             tabs.left_betty.id,
             tabs.left_charlotte.id,
             tabs.left_alice.id,
@@ -282,7 +282,7 @@ describe('model/tabs', () => {
         expect(model.tab(tabs.left_alice.id)).to.deep.include({
             windowId: windows.left.id});
 
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.right_adam.id,
             tabs.right_doug.id,
@@ -300,7 +300,7 @@ describe('model/tabs', () => {
             {windowId: windows.left.id, index: 0});
         await events.next(browser.tabs.onMoved);
 
-        expect(model.window(windows.left.id).tabs).to.deep.equal([
+        expect(model.window(windows.left.id)!.tabs).to.deep.equal([
             tabs.left_charlotte.id,
             tabs.left_alice.id,
             tabs.left_betty.id,
@@ -312,7 +312,7 @@ describe('model/tabs', () => {
         expect(model.tab(tabs.left_betty.id)).to.deep.include({
             windowId: windows.left.id});
 
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.right_adam.id,
             tabs.right_doug.id,
@@ -330,7 +330,7 @@ describe('model/tabs', () => {
             {windowId: windows.right.id, index: 1});
         await events.next(browser.tabs.onAttached);
 
-        expect(model.window(windows.left.id).tabs).to.deep.equal([
+        expect(model.window(windows.left.id)!.tabs).to.deep.equal([
             tabs.left_alice.id,
             tabs.left_charlotte.id,
         ]);
@@ -339,7 +339,7 @@ describe('model/tabs', () => {
         expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
             windowId: windows.left.id});
 
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.left_betty.id,
             tabs.right_adam.id,
@@ -361,15 +361,15 @@ describe('model/tabs', () => {
         events.send(browser.tabs.onReplaced, 16384, tabs.left_charlotte.id);
         await events.next(browser.tabs.onReplaced);
 
-        expect(() => model.tab(tabs.left_charlotte.id)).to.throw(Error);
+        expect(model.tab(tabs.left_charlotte.id)).to.be.undefined;
         expect(model.tab(16384 as M.TabID)).to.equal(tab);
 
-        expect(model.window(windows.left.id).tabs).to.deep.equal([
+        expect(model.window(windows.left.id)!.tabs).to.deep.equal([
             tabs.left_alice.id,
             tabs.left_betty.id,
             16384 as M.TabID,
         ]);
-        expect(model.window(windows.right.id).tabs).to.deep.equal([
+        expect(model.window(windows.right.id)!.tabs).to.deep.equal([
             tabs.right_blank.id,
             tabs.right_adam.id,
             tabs.right_doug.id,
@@ -418,9 +418,9 @@ describe('model/tabs', () => {
 
         it('tracks selected items', async () => {
             model.setSelected([
-                model.tab(tabs.real_bob.id),
-                model.tab(tabs.real_estelle.id),
-                model.tab(tabs.real_doug.id),
+                model.tab(tabs.real_bob.id)!,
+                model.tab(tabs.real_estelle.id)!,
+                model.tab(tabs.real_doug.id)!,
             ], true);
 
             expect(Array.from(model.selectedItems())).to.deep.equal([
@@ -429,18 +429,18 @@ describe('model/tabs', () => {
                 model.tab(tabs.real_estelle.id),
             ]);
 
-            expect(model.isSelected(model.tab(tabs.real_bob.id))).to.be.true;
-            expect(model.isSelected(model.tab(tabs.real_doug.id))).to.be.true;
-            expect(model.isSelected(model.tab(tabs.real_estelle.id))).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_bob.id)!)).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_doug.id)!)).to.be.true;
+            expect(model.isSelected(model.tab(tabs.real_estelle.id)!)).to.be.true;
 
-            expect(model.isSelected(model.tab(tabs.left_betty.id))).to.be.false;
-            expect(model.isSelected(model.tab(tabs.right_adam.id))).to.be.false;
+            expect(model.isSelected(model.tab(tabs.left_betty.id)!)).to.be.false;
+            expect(model.isSelected(model.tab(tabs.right_adam.id)!)).to.be.false;
         });
 
         it('identifies items in a range within a window', async () => {
             const range = model.itemsInRange(
-                model.tab(tabs.real_doug.id),
-                model.tab(tabs.real_francis.id));
+                model.tab(tabs.real_doug.id)!,
+                model.tab(tabs.real_francis.id)!);
             expect(range).to.deep.equal([
                 model.tab(tabs.real_doug.id),
                 // model.tab(tabs.real_doug_2.id), // hidden
@@ -451,8 +451,8 @@ describe('model/tabs', () => {
 
         it('identifies items in a range within a window (backwards)', async () => {
             const range = model.itemsInRange(
-                model.tab(tabs.real_francis.id),
-                model.tab(tabs.real_doug.id));
+                model.tab(tabs.real_francis.id)!,
+                model.tab(tabs.real_doug.id)!);
             expect(range).to.deep.equal([
                 model.tab(tabs.real_doug.id),
                 // model.tab(tabs.real_doug_2.id), // hidden
@@ -463,8 +463,8 @@ describe('model/tabs', () => {
 
         it('identifies a single-item range', async () => {
             const range = model.itemsInRange(
-                model.tab(tabs.real_blank.id),
-                model.tab(tabs.real_blank.id));
+                model.tab(tabs.real_blank.id)!,
+                model.tab(tabs.real_blank.id)!);
             expect(range).to.deep.equal([
                 model.tab(tabs.real_blank.id),
             ]);
@@ -472,13 +472,13 @@ describe('model/tabs', () => {
 
         it('refuses to identify ranges across windows', async () => {
             expect(model.itemsInRange(
-                    model.tab(tabs.right_adam.id),
-                    model.tab(tabs.real_bob.id)))
+                    model.tab(tabs.right_adam.id)!,
+                    model.tab(tabs.real_bob.id)!))
                 .to.be.null;
 
             expect(model.itemsInRange(
-                    model.tab(tabs.real_bob.id),
-                    model.tab(tabs.right_adam.id)))
+                    model.tab(tabs.real_bob.id)!,
+                    model.tab(tabs.right_adam.id)!))
                 .to.be.null;
         });
 
@@ -487,10 +487,10 @@ describe('model/tabs', () => {
                 ! ('url' in node) || ! node.url.includes('estelle');
             await nextTick(); // to update the filter
 
-            expect(model.tab(tabs.real_doug.id).$visible).to.be.true;
-            expect(model.tab(tabs.real_estelle.id).$visible).to.be.false;
+            expect(model.tab(tabs.real_doug.id)!.$visible).to.be.true;
+            expect(model.tab(tabs.real_estelle.id)!.$visible).to.be.false;
             expect(model.itemsInRange(
-                    model.tab(tabs.real_patricia.id), model.tab(tabs.real_francis.id)))
+                    model.tab(tabs.real_patricia.id)!, model.tab(tabs.real_francis.id)!))
                 .to.deep.equal([
                     model.tab(tabs.real_blank.id),
                     model.tab(tabs.real_bob.id),
