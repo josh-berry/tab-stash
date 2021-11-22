@@ -113,6 +113,11 @@ export class Model {
      * like the model has gotten out of sync with the browser (e.g. for crash
      * recovery). */
     readonly reload = nonReentrant(async () => {
+        function mark(marked: Set<string>, root: Bookmarks.BookmarkTreeNode) {
+            marked.add(root.id);
+            if (root.children) for (const c of root.children) mark(marked, c);
+        }
+
         // We loop until we can complete a reload without receiving any
         // concurrent events from the browser--if we get a concurrent event, we
         // need to try loading again, since we don't know how the event was
@@ -125,6 +130,13 @@ export class Model {
             const root = tree[0]!;
             this.root_id = root.id as NodeID;
             this.whenBookmarkCreated(root.id, root);
+
+            // Clean up bookmarks that don't exist anymore
+            const marked = new Set<string>();
+            mark(marked, root);
+            for (const id of this.by_id.keys()) {
+                if (! marked.has(id)) this.whenBookmarkRemoved(id);
+            }
         }
     });
 
