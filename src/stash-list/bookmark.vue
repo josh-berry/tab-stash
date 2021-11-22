@@ -27,7 +27,7 @@
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
 
-import {altKeyName, bgKeyName, bgKeyPressed, required, logErrors} from '../util';
+import {altKeyName, bgKeyName, bgKeyPressed, required} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
@@ -80,12 +80,12 @@ export default defineComponent({
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
 
-        select(ev: MouseEvent) { logErrors(async () => {
+        select(ev: MouseEvent) { this.model().attempt(async () => {
             await this.model().selection.toggleSelectFromEvent(
                 ev, this.model().bookmarks, this.bookmark);
         })},
 
-        open(ev: MouseEvent) { logErrors(async () => {
+        open(ev: MouseEvent) { this.model().attempt(async () => {
             (<HTMLElement>this.$refs.a).blur();
             if (this.model().selection.selectedCount.value > 0) {
                 this.select(ev);
@@ -98,11 +98,11 @@ export default defineComponent({
             await this.model().restoreTabs([this.bookmark.url], {background: bg});
         })},
 
-        remove() { logErrors(async () => {
+        remove() { this.model().attempt(async () => {
             await this.model().deleteBookmark(this.bookmark);
         })},
 
-        openRemove(ev: MouseEvent) { logErrors(async () => {
+        openRemove(ev: MouseEvent) { this.model().attempt(async () => {
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
             await this.model().restoreTabs([this.bookmark.url], {background: bg});

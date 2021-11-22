@@ -21,7 +21,6 @@
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
 
-import {logErrors} from '../util';
 import {Model} from '../model';
 import {DeletedBookmark, Deletion} from '../model/deleted-items';
 
@@ -74,7 +73,7 @@ export default defineComponent({
         run(what: string, f: () => Promise<void>) {
             if (this.loading != '') return;
             this.loading = what;
-            const p = logErrors(f);
+            const p = this.model().attempt(f);
             p.finally(() => {this.loading = ''});
         },
 

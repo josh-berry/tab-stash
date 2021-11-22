@@ -1,7 +1,8 @@
 import {reactive} from "vue";
 import browser from "webextension-polyfill";
 
-import {EventWiring, resolveNamed} from "../util";
+import {logErrors, nonReentrant, resolveNamed} from "../util";
+import {EventWiring} from "../util/wiring";
 
 export type State = {
     newtab_url: string;
@@ -17,43 +18,59 @@ export type State = {
 export class Model {
     readonly state: State;
 
+    /** Did we receive an event since the last (re)load of the model? */
+    private _event_since_load: boolean = false;
+
     static async live(): Promise<Model> {
-        if (! browser.browserSettings) {
-            // This is Chrome, which does not report the new-tab and homepage
-            // URLs to extensions.  So we have to fall back to guessing/only
-            // looking for built-in URLs.
-            return new Model({
-                newtab_url: 'about:newtab',
-                home_url: 'about:blank',
-            });
-        }
-
-        const wiring = Model._wiring();
-
-        const state: State = await resolveNamed({
-            newtab_url: browser.browserSettings.newTabPageOverride.get({})
-                .then(s => s.value),
-            home_url: browser.browserSettings.homepageOverride.get({})
-                .then(s => s.value),
-        });
-
-        const model = new Model(state);
-        wiring.wire(model);
+        const model = new Model();
+        await model.reload();
         return model;
     }
 
-    private static _wiring(): EventWiring<Model> {
-        const wiring = new EventWiring<Model>();
+    private constructor() {
+        this.state = reactive({
+            newtab_url: 'about:newtab',
+            home_url: 'about:blank',
+        });
+
+        // Chrome does not report browser settings, so we fallback to defaults.
+        if (! browser.browserSettings) return;
+
+        const wiring = new EventWiring(this, {
+            onFired: () => { this._event_since_load = true; },
+            onError: () => { logErrors(() => this.reload()); }
+        });
+
         wiring.listen(browser.browserSettings.newTabPageOverride.onChange,
-            'whenNewTabPageChanged');
+            this.whenNewTabPageChanged);
         wiring.listen(browser.browserSettings.homepageOverride.onChange,
-            'whenHomepageChanged');
-        return wiring;
+            this.whenHomepageChanged);
     }
 
-    private constructor(state: State) {
-        this.state = reactive(state);
-    }
+    readonly reload = nonReentrant(async () => {
+        // Chrome does not report browser settings, so we fallback to defaults.
+        if (! browser.browserSettings) return;
+
+        // Loop if we receive events while loading settings, so that we always
+        // exit this function with the browser and the model in sync.
+        this._event_since_load = true;
+        while (this._event_since_load) {
+            this._event_since_load = false;
+
+            const state: State = await resolveNamed({
+                newtab_url: browser.browserSettings.newTabPageOverride.get({})
+                    .then(s => s.value),
+                home_url: browser.browserSettings.homepageOverride.get({})
+                    .then(s => s.value),
+            });
+            this.state.newtab_url = state.newtab_url;
+            this.state.home_url = state.home_url;
+        }
+    });
+
+    //
+    // Accessors
+    //
 
     /** Determine if the URL provided is a new-tab URL or homepage URL (i.e.
      * something the user would consider as "empty"). */

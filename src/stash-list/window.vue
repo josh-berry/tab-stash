@@ -58,7 +58,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
 import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
-import {altKeyName, filterMap, logErrors, required} from '../util';
+import {altKeyName, filterMap, required} from '../util';
 
 import {DragAction, DropAction} from '../components/dnd-list';
 
@@ -130,6 +130,7 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
 
         childClasses(t: Tab): Record<string, boolean> {
             return {hidden: ! (
@@ -154,19 +155,19 @@ export default defineComponent({
             return !!bms.find(bm => bookmarks.isNodeInFolder(bm, stash_root_id));
         },
 
-        async newGroup() {logErrors(async() => {
+        async newGroup() {this.attempt(async() => {
             await this.model().bookmarks.createUnnamedFolder();
         })},
 
-        async stash(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
+        async stash(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             await this.model().stashTabs(this.visibleChildren, {close: ! ev.altKey});
         })},
 
-        async remove() {logErrors(async() => {
+        async remove() {this.attempt(async() => {
             await this.model().tabs.remove(this.visibleChildren.map(t => t.id));
         })},
 
-        async removeStashed() {logErrors(async() => {
+        async removeStashed() {this.attempt(async() => {
             if (! this.isItemStashed) throw new Error(
                 "isItemStashed not provided to tab folder");
 
@@ -175,7 +176,7 @@ export default defineComponent({
                 .map(t => t.id));
         })},
 
-        async removeOpen(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
+        async removeOpen(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             if (! this.isItemStashed) throw new Error(
                 "isItemStashed not provided to tab folder");
 
@@ -205,14 +206,14 @@ export default defineComponent({
         })},
 
         copyToWindow() {
-            logErrors(() => this.model().putSelectedInWindow({move: false}));
+            this.attempt(() => this.model().putSelectedInWindow({move: false}));
         },
 
         moveToWindow() {
-            logErrors(() => this.model().putSelectedInWindow({move: true}));
+            this.attempt(() => this.model().putSelectedInWindow({move: true}));
         },
 
-        moveToNewGroup(ev: MouseEvent | KeyboardEvent) { logErrors(async () => {
+        moveToNewGroup(ev: MouseEvent | KeyboardEvent) { this.attempt(async () => {
             const folder = await this.model().bookmarks.createUnnamedFolder();
             await this.model().putSelectedInFolder({
                 move: ! ev.altKey,
@@ -232,12 +233,13 @@ export default defineComponent({
             const data = ev.dataTransfer.getData('application/x-tab-stash-items');
             const items = JSON.parse(data) as StashItem[];
 
-            await this.model().putItemsInWindow({
+            const model = this.model();
+            await model.attempt(() => model.putItemsInWindow({
                 items,
                 toWindowId: this.model().tabs.current_window!,
                 toIndex: ev.toIndex,
                 move: true,
-            });
+            }));
         },
     },
 });

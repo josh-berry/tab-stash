@@ -246,7 +246,7 @@ describe('model/bookmarks', () => {
         it('path to a bookmark', async () => {
             const helen = model.node(bms.helen.id)!;
             expect(model.pathTo(helen)).to.deep.equal([
-                {parent: model.root, index: 0},
+                {parent: model.node(model.root_id!), index: 0},
                 {parent: model.node(bms.root.id), index: 3},
                 {parent: model.node(bms.stash_root.id), index: 0},
                 {parent: model.node(bms.names.id), index: 1},

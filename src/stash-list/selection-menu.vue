@@ -54,7 +54,7 @@
 <script lang="ts">
 import {defineComponent} from "@vue/runtime-core";
 
-import {altKeyName, filterMap, logErrors, textMatcher} from "../util";
+import {altKeyName, filterMap, textMatcher} from "../util";
 import {Model} from "../model";
 import {Folder, NodeID, friendlyFolderName} from "../model/bookmarks";
 
@@ -107,6 +107,8 @@ export default defineComponent({
 
     methods: {
         model(): Model { return (<any>this).$model as Model; },
+        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+
         friendlyFolderName,
 
         closeMenu() { (<any>this.$refs.menu).close(); },
@@ -116,7 +118,7 @@ export default defineComponent({
             (<HTMLElement>this.$refs.search).focus();
         },
 
-        create(ev: MouseEvent | KeyboardEvent) { logErrors(async() => {
+        create(ev: MouseEvent | KeyboardEvent) { this.attempt(async() => {
             const model = this.model();
             let folder;
             if (! this.searchText) {
@@ -142,21 +144,21 @@ export default defineComponent({
         },
 
         moveTo(ev: MouseEvent | KeyboardEvent, id: NodeID) {
-            logErrors(() => this.model().putSelectedInFolder({
+            this.attempt(() => this.model().putSelectedInFolder({
                 move: ! ev.altKey,
                 toFolderId: id,
             }));
         },
 
         copyToWindow() {
-            logErrors(() => this.model().putSelectedInWindow({move: false}));
+            this.attempt(() => this.model().putSelectedInWindow({move: false}));
         },
 
         moveToWindow() {
-            logErrors(() => this.model().putSelectedInWindow({move: true}));
+            this.attempt(() => this.model().putSelectedInWindow({move: true}));
         },
 
-        remove() { logErrors(async() => {
+        remove() { this.attempt(async() => {
             const model = this.model();
             const ids = Array.from(model.selectedItems()).map(i => i.id);
             await model.deleteItems(ids);

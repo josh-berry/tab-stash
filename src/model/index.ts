@@ -32,7 +32,7 @@
 
 import browser from 'webextension-polyfill';
 
-import {filterMap, shortPoll, TaskMonitor, textMatcher, TRY_AGAIN, urlToOpen} from '../util';
+import {filterMap, logErrors, nonReentrant, shortPoll, TaskMonitor, textMatcher, TRY_AGAIN, urlToOpen} from '../util';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
@@ -117,6 +117,28 @@ export class Model {
         this.favicons = src.favicons;
         this.bookmark_metadata = src.bookmark_metadata;
         this.selection = new Selection.Model([this.tabs, this.bookmarks]);
+    }
+
+    /** Reload model data (where possible) in the event of an unexpected issue.
+     * This should be used sparingly as it's quite expensive. */
+    readonly reload = nonReentrant(async () => {
+        await Promise.all([
+            this.tabs.reload(),
+            this.bookmarks.reload(),
+            this.browser_settings.reload(),
+        ]);
+    });
+
+    /** Run an async function.  If it throws, reload the model (to try to
+     * eliminate any inconsistencies) and log the error for further study. */
+    async attempt<R>(fn: () => Promise<R>): Promise<R> {
+        try {
+            return await fn();
+        } catch (e) {
+            console.error(e);
+            logErrors(async () => this.reload());
+            throw e;
+        }
     }
 
     //

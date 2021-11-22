@@ -74,7 +74,7 @@ import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
-import {TaskMonitor, logErrors, parseVersion, required} from '../util';
+import {TaskMonitor, parseVersion, required} from '../util';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab, WindowID} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
@@ -243,7 +243,7 @@ export default defineComponent({
             this.dialog = {class: 'ExportDialog', props: {}};
         },
 
-        async fetchMissingFavicons() { logErrors(async() => {
+        async fetchMissingFavicons() { this.model().attempt(async() => {
             const favicons = this.model().favicons;
             const urls = this.model().bookmarks.urlsInStash();
 

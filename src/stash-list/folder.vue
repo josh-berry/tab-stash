@@ -54,9 +54,7 @@
 import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
-import {
-    altKeyName, bgKeyName, bgKeyPressed, logErrors, required
-} from '../util';
+import {altKeyName, bgKeyName, bgKeyPressed, required} from '../util';
 import {DragAction, DropAction} from '../components/dnd-list';
 
 import {Model, StashItem} from '../model';
@@ -148,6 +146,7 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
 
         childClasses(node: Node): Record<string, boolean> {
             return {hidden: ! (
@@ -161,11 +160,11 @@ export default defineComponent({
             const win_id = model.tabs.current_window;
             if (! win_id) return;
 
-            logErrors(() => model.stashTabsInWindow(
+            model.attempt(() => model.stashTabsInWindow(
                     win_id, {folderId: this.folder.id, close: ! ev.altKey}));
         },
 
-        async stashOne(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
+        async stashOne(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const tab = this.model().tabs.activeTab();
             if (! tab) return;
             await this.model().stashTabs([tab],
@@ -177,23 +176,23 @@ export default defineComponent({
             const win_id = model.tabs.current_window;
             if (! win_id) return;
 
-            logErrors(() => model.putSelectedInFolder({
+            model.attempt(() => model.putSelectedInFolder({
                 move: ! ev.altKey,
                 toFolderId: this.folder.id,
             }));
         },
 
-        async restoreAll(ev: MouseEvent | KeyboardEvent) {logErrors(async () => {
+        async restoreAll(ev: MouseEvent | KeyboardEvent) {this.attempt(async () => {
             await this.model().restoreTabs(
                 this.validChildren.map(c => c.url),
                 {background: bgKeyPressed(ev)});
         })},
 
-        async remove() {logErrors(async() => {
+        async remove() {this.attempt(async() => {
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
-        async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {logErrors(async() => {
+        async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const bg = bgKeyPressed(ev);
 
             await this.model().restoreTabs(
@@ -202,7 +201,7 @@ export default defineComponent({
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
-        async rename(title: string) {
+        async rename(title: string) { this.attempt(async() => {
             if (title === '') {
                 if (getDefaultFolderNameISODate(this.folder.title) !== null) {
                     // It already has a default name; leave it alone so we don't
@@ -215,7 +214,7 @@ export default defineComponent({
             }
 
             await browser.bookmarks.update(this.folder.id, {title});
-        },
+        })},
 
         drag(ev: DragAction<Bookmark>) {
             const items = ev.value.$selected
@@ -229,12 +228,13 @@ export default defineComponent({
             const data = ev.dataTransfer.getData('application/x-tab-stash-items');
             const items = JSON.parse(data) as StashItem[];
 
-            await this.model().putItemsInFolder({
+            const model = this.model();
+            await model.attempt(() => this.model().putItemsInFolder({
                 items,
                 toFolderId: this.folder.id,
                 toIndex: ev.toIndex,
                 move: true,
-            });
+            }));
         },
     },
 });

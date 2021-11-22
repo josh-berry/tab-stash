@@ -25,7 +25,7 @@
 import {PropType, defineComponent} from 'vue';
 import browser from 'webextension-polyfill';
 
-import {altKeyName, bgKeyName, required, logErrors} from '../util';
+import {altKeyName, bgKeyName, required} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 
@@ -56,20 +56,21 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
+        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
 
-        select(ev: MouseEvent) { logErrors(async () => {
+        select(ev: MouseEvent) { this.attempt(async () => {
             await this.model().selection.toggleSelectFromEvent(
                 ev, this.model().tabs, this.tab);
         })},
 
-        stash(ev: MouseEvent) { logErrors(async () => {
+        stash(ev: MouseEvent) { this.attempt(async () => {
             await this.model().stashTabs([this.tab], {
                 folderId: this.model().mostRecentUnnamedFolder()?.id,
                 close: ! ev.altKey,
             });
         })},
 
-        open(ev: MouseEvent) { logErrors(async () => {
+        open(ev: MouseEvent) { this.attempt(async () => {
             (<HTMLElement>this.$refs.a).blur();
             if (this.model().selection.selectedCount.value > 0) {
                 this.select(ev);
@@ -78,7 +79,7 @@ export default defineComponent({
             await browser.tabs.update(this.tab.id, {active: true});
         })},
 
-        remove() { logErrors(async () => {
+        remove() { this.attempt(async () => {
             await this.model().tabs.remove([this.tab.id]);
         })},
     },

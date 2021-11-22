@@ -168,15 +168,15 @@ function show_something(show_what: ShowWhatOpt) {
             break;
 
         case 'tab':
-            logErrors(commands.show_tab);
+            model.attempt(commands.show_tab);
             break;
 
         case 'popup':
-            logErrors(commands.show_popup);
+            model.attempt(commands.show_popup);
 
         case 'sidebar':
         default:
-            logErrors(commands.show_sidebar_or_tab);
+            model.attempt(commands.show_sidebar_or_tab);
             break;
     }
 }
@@ -220,7 +220,7 @@ if (browser.browserAction) {
     // doesn't allow us to then show the popup after the async call
     // returns--because we're no longer in a user event context.
     function setupPopup() {
-        logErrors(async() => {
+        model.attempt(async() => {
             if (model.options.sync.state.browser_action_show === 'popup') {
                 // As soon as we configure a popup, the onClicked handler below
                 // will no longer run (the popup will be shown instead).  This
@@ -266,14 +266,14 @@ if (model.options.local.state.last_notified_version === undefined) {
     // just assume it's a fresh install).  Record our current version number
     // here so we can detect upgrades in the future and show the user a
     // whats-new notification.
-    logErrors(async() => model.options.local.set({
+    model.attempt(async() => model.options.local.set({
         last_notified_version: (await browser.management.getSelf()).version
     }));
 }
 
 // Check which options are selected for the browser and page actions, and change
 // their icons accordingly.
-model.options.sync.onChanged.addListener(asyncEvent(async opts => {
+model.options.sync.onChanged.addListener(opts => model.attempt(async () => {
     function getTitle(stash: StashWhatOpt): string {
         switch (stash) {
             case 'all': return "Stash all (or selected) tabs";
@@ -313,7 +313,7 @@ model.options.sync.onChanged.addListener(asyncEvent(async opts => {
 logErrors(async () => {
     let managed_urls = model.bookmarks.urlsInStash();
 
-    const close_removed_bookmarks = nonReentrant(async function() {
+    const close_removed_bookmarks = nonReentrant(() => model.attempt(async () => {
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
         const new_urls = model.bookmarks.urlsInStash();
@@ -341,7 +341,7 @@ logErrors(async () => {
         await model.tabs.remove(tids);
 
         managed_urls = new_urls;
-    });
+    }));
 
     browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
     browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
@@ -443,17 +443,17 @@ setTimeout(discard_old_hidden_tabs,
 // local storage.
 //
 
-const gc = nonReentrant(async function() {
+const gc = nonReentrant(() => model.attempt(async () => {
     // Hard-coded to a day for now, for people who don't restart their browsers
     // regularly.  If this ever needs to be changed, we can always add an option
     // for it later.
     setTimeout(gc, 24*60*60*1000);
 
     await model.gc();
-});
+}));
 
 // Here we call gc() on browser restart to ensure it happens
 // at least once.
-logErrors(gc);
+model.attempt(gc);
 
 }); // END FILE-WIDE ASYNC BLOCK

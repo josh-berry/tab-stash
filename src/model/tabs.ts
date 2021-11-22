@@ -1,6 +1,7 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {EventWiring, filterMap, shortPoll, TRY_AGAIN} from "../util";
+import {filterMap, logErrors, nonReentrant, shortPoll, TRY_AGAIN} from "../util";
+import {EventWiring} from "../util/wiring";
 
 export type Window = {
     readonly id: WindowID,
@@ -57,6 +58,9 @@ export class Model {
         return count;
     });
 
+    /** Did we receive an event since the last (re)load of the model? */
+    private _event_since_load: boolean = false;
+
     //
     // Loading data and wiring up events
     //
@@ -64,39 +68,66 @@ export class Model {
     /** Construct a model by loading tabs from the browser.  The model will keep
      * itself updated by listening to browser events. */
     static async from_browser(): Promise<Model> {
-        const wiring = Model._wiring();
-        const tabs = await browser.tabs.query({});
         const win = await browser.windows.getCurrent();
 
-        const model = new Model(tabs, win.id as WindowID);
-        wiring.wire(model);
+        const model = new Model(win.id as WindowID);
+        await model.reload();
         return model;
     }
 
-    /** Wire up browser events so that we update the state when the browser
-     * tells us something has changed.  We use EventWiring to get around the
-     * chicken-and-egg problem that we want to start listening for events before
-     * the model is fully-constructed yet.  EventWiring will queue events for us
-     * until the model is ready, at which point they will all be dispatched. */
-    static _wiring(): EventWiring<Model> {
-        const wiring = new EventWiring<Model>();
-        wiring.listen(browser.windows.onCreated, 'whenWindowCreated');
-        wiring.listen(browser.windows.onRemoved, 'whenWindowRemoved');
-        wiring.listen(browser.tabs.onCreated, 'whenTabCreated');
-        wiring.listen(browser.tabs.onUpdated, 'whenTabUpdated');
-        wiring.listen(browser.tabs.onAttached, 'whenTabAttached');
-        wiring.listen(browser.tabs.onMoved, 'whenTabMoved');
-        wiring.listen(browser.tabs.onReplaced, 'whenTabReplaced');
-        wiring.listen(browser.tabs.onActivated, 'whenTabActivated');
-        wiring.listen(browser.tabs.onHighlighted, 'whenTabsHighlighted');
-        wiring.listen(browser.tabs.onRemoved, 'whenTabRemoved');
-        return wiring;
+    private constructor(current_window?: WindowID) {
+        this.current_window = current_window;
+
+        const wiring = new EventWiring(this, {
+            onFired: () => { this._event_since_load = true; },
+            // istanbul ignore next -- safety net; reload the model in the event
+            // of an unexpected exception.
+            onError: () => { logErrors(() => this.reload()); },
+        });
+
+        wiring.listen(browser.windows.onCreated, this.whenWindowCreated);
+        wiring.listen(browser.windows.onRemoved, this.whenWindowRemoved);
+        wiring.listen(browser.tabs.onCreated, this.whenTabCreated);
+        wiring.listen(browser.tabs.onUpdated, this.whenTabUpdated);
+        wiring.listen(browser.tabs.onAttached, this.whenTabAttached);
+        wiring.listen(browser.tabs.onMoved, this.whenTabMoved);
+        wiring.listen(browser.tabs.onReplaced, this.whenTabReplaced);
+        wiring.listen(browser.tabs.onActivated, this.whenTabActivated);
+        wiring.listen(browser.tabs.onHighlighted, this.whenTabsHighlighted);
+        wiring.listen(browser.tabs.onRemoved, this.whenTabRemoved);
     }
 
-    private constructor(tabs: Tabs.Tab[], current_window?: WindowID) {
-        this.current_window = current_window;
-        for (const t of tabs) this.whenTabCreated(t);
-    }
+    /** Fetch tabs/windows from the browser again and update the model's
+     * understanding of the world with the browser's data.  Use this if it looks
+     * like the model has gotten out of sync with the browser (e.g. for crash
+     * recovery). */
+    readonly reload = nonReentrant(async () => {
+        // We loop until we can complete a reload without receiving any
+        // concurrent events from the browser--if we get a concurrent event, we
+        // need to try loading again, since we don't know how the event was
+        // ordered with respect to the query().
+        this._event_since_load = true;
+        while (this._event_since_load) {
+            this._event_since_load = false;
+            let tabs = await browser.tabs.query({});
+
+            // We sort tabs by index so that they always get inserted into their
+            // parent windows in the correct order, even if they're provided to
+            // us out of order.
+            tabs = tabs.sort((a, b) => a.index - b.index);
+            for (const t of tabs) this.whenTabCreated(t);
+
+            // Clean up any old tabs/windows that don't exist anymore.
+            const old_tabs = new Set(this.tabs.keys());
+            const old_windows = new Set(this.windows.keys());
+            for (const t of tabs) {
+                old_tabs.delete(t.id as TabID);
+                old_windows.delete(t.windowId as WindowID);
+            }
+            for (const t of old_tabs) this.whenTabRemoved(t);
+            for (const w of old_windows) this.whenWindowRemoved(w);
+        }
+    });
 
     //
     // Accessors

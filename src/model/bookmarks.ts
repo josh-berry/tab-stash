@@ -1,7 +1,8 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
-import {EventWiring, filterMap, shortPoll, TRY_AGAIN} from "../util";
+import {filterMap, logErrors, nonReentrant, shortPoll, TRY_AGAIN} from "../util";
+import {EventWiring} from '../util/wiring';
 
 /** A node in the bookmark tree. */
 export type Node = Bookmark | Separator | Folder;
@@ -40,9 +41,8 @@ export class Model {
     private readonly by_id = new Map<NodeID, Node>();
     private readonly by_url = new Map<string, Set<Bookmark>>();
 
-    /** The root folder for all of the user's bookmarks (Tab Stash or
-     * otherwise).  You probably want `stash_root` instead. */
-    readonly root: Folder;
+    /** The ID of the root node (set only once the model is loaded). */
+    root_id: NodeID | undefined;
 
     /** The title to look for to locate the stash root. */
     readonly stash_root_name: string;
@@ -72,6 +72,9 @@ export class Model {
      * the stash root. */
     private _stash_root_watch = new Set<Folder>();
 
+    /** Did we receive an event since the last (re)load of the model? */
+    private _event_since_load: boolean = false;
+
     //
     // Loading data and wiring up events
     //
@@ -79,36 +82,49 @@ export class Model {
     /** Construct a model by loading bookmarks from the browser bookmark store.
      * It will listen for bookmark events to keep itself updated. */
     static async from_browser(stash_root_name_test_only?: string): Promise<Model> {
-        const wiring = Model._wiring();
-        const tree = await browser.bookmarks.getTree();
-
         // istanbul ignore if
         if (! stash_root_name_test_only) stash_root_name_test_only = STASH_ROOT;
 
-        const model = new Model(tree[0]!, stash_root_name_test_only);
-        wiring.wire(model);
+        const model = new Model(stash_root_name_test_only);
+        await model.reload();
         return model;
     }
 
-    /** Wire up browser events so that we update the state when the browser
-     * tells us something has changed.  We use EventWiring to get around the
-     * chicken-and-egg problem that we want to start listening for events before
-     * the model is fully-constructed yet.  EventWiring will queue events for us
-     * until the model is ready, at which point they will all be dispatched. */
-    static _wiring(): EventWiring<Model> {
-        const wiring = new EventWiring<Model>();
-        wiring.listen(browser.bookmarks.onCreated, 'whenBookmarkCreated');
-        wiring.listen(browser.bookmarks.onChanged, 'whenBookmarkChanged');
-        wiring.listen(browser.bookmarks.onMoved, 'whenBookmarkMoved');
-        wiring.listen(browser.bookmarks.onRemoved, 'whenBookmarkRemoved');
-        return wiring;
+    private constructor(stash_root_name: string) {
+        this.stash_root_name = stash_root_name;
+
+        const wiring = new EventWiring(this, {
+            onFired: () => { this._event_since_load = true; },
+            // istanbul ignore next -- safety net; reload the model in the event
+            // of an unexpected exception.
+            onError: () => { logErrors(() => this.reload()); },
+        });
+
+        wiring.listen(browser.bookmarks.onCreated, this.whenBookmarkCreated);
+        wiring.listen(browser.bookmarks.onChanged, this.whenBookmarkChanged);
+        wiring.listen(browser.bookmarks.onMoved, this.whenBookmarkMoved);
+        wiring.listen(browser.bookmarks.onRemoved, this.whenBookmarkRemoved);
     }
 
-    private constructor(root: Bookmarks.BookmarkTreeNode, stash_root_name: string) {
-        this.stash_root_name = stash_root_name;
-        this.whenBookmarkCreated(root.id, root); // will set the stash root
-        this.root = this.by_id.get(root.id as NodeID)! as Folder;
-    }
+    /** Fetch bookmarks from the browser again and update the model's
+     * understanding of the world with the browser's data.  Use this if it looks
+     * like the model has gotten out of sync with the browser (e.g. for crash
+     * recovery). */
+    readonly reload = nonReentrant(async () => {
+        // We loop until we can complete a reload without receiving any
+        // concurrent events from the browser--if we get a concurrent event, we
+        // need to try loading again, since we don't know how the event was
+        // ordered with respect to the getTree().
+        this._event_since_load = true;
+        while (this._event_since_load) {
+            this._event_since_load = false;
+
+            const tree = await browser.bookmarks.getTree();
+            const root = tree[0]!;
+            this.root_id = root.id as NodeID;
+            this.whenBookmarkCreated(root.id, root);
+        }
+    });
 
     //
     // Accessors
