@@ -32,7 +32,10 @@
 
 import browser from 'webextension-polyfill';
 
-import {filterMap, logErrors, nonReentrant, shortPoll, TaskMonitor, textMatcher, TRY_AGAIN, urlToOpen} from '../util';
+import {
+    expect, filterMap, logErrors, nonReentrant, shortPoll, TaskMonitor,
+    textMatcher, tryAgain, urlToOpen
+} from '../util';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
@@ -146,7 +149,7 @@ export class Model {
     //
 
     /** Fetch and return an item, regardless of whether it's a bookmark or tab. */
-    item(id: string | number): ModelItem {
+    item(id: string | number): ModelItem | undefined {
         if (typeof id === 'string') return this.bookmarks.node(id as Bookmarks.NodeID);
         else if (typeof id === 'number') return this.tabs.tab(id as Tabs.TabID);
         // istanbul ignore next
@@ -220,7 +223,7 @@ export class Model {
                 // Filter should pass if any of its children are not filtered
                 // (so the parent is visible in the UI)
                 const visible_child = node.children.find(id =>
-                    this.bookmarks.node(id).$visible);
+                    this.bookmarks.node(id)?.$visible);
                 if (visible_child) return true;
             }
 
@@ -241,12 +244,8 @@ export class Model {
         await this.favicons.gc(url =>
             this.bookmarks.bookmarksWithURL(url).size > 0
             || this.tabs.tabsWithURL(url).size > 0);
-        await this.bookmark_metadata.gc(id => {
-            try {
-                this.bookmarks.node(id as Bookmarks.NodeID);
-                return true;
-            } catch (e) { return false; }
-        });
+        await this.bookmark_metadata.gc(id =>
+            !! this.bookmarks.node(id as Bookmarks.NodeID));
     }
 
     /** Put the set of currently-selected items in the current window. */
@@ -390,10 +389,10 @@ export class Model {
             // folder.  So it's okay for callers to assume that we saved
             // them--that's why we use a separate /tabs_to_actually_save/ array
             // here.
-            const folder = this.bookmarks.folder(folderId);
+            const folder = this.bookmarks.folder(folderId) || {children: []};
             const existing_bms = filterMap(folder.children, id => {
                 const node = this.bookmarks.node(id);
-                if ('url' in node) return node.url;
+                if (node && 'url' in node) return node.url;
                 return undefined;
             });
 
@@ -541,7 +540,8 @@ export class Model {
         task?: TaskMonitor,
     }): Promise<Bookmarks.Node[]> {
         // First we try to find the folder we're moving to.
-        const to_folder = this.bookmarks.folder(options.toFolderId);
+        const to_folder = expect(this.bookmarks.folder(options.toFolderId),
+            () => `Destination folder does not exist: ${options.toFolderId}`);
 
         // Then we adjust our items depending on whether we're moving or
         // copying.
@@ -579,7 +579,7 @@ export class Model {
                 const pos = this.bookmarks.positionOf(model_item);
                 await this.bookmarks.move(model_item.id, to_folder.id, to_index);
                 moved_items.push(model_item);
-                if (pos.parent === to_folder && pos.index < to_index) {
+                if (pos && pos.parent === to_folder && pos.index < to_index) {
                     // Because we are moving items which appear in the list
                     // before the insertion point, the insertion point shouldn't
                     // move--the index of the moved item is actually to_index -
@@ -753,11 +753,8 @@ export class Model {
                     await browser.tabs.update(active_tab.id, {active: true});
                 }
 
-                const tab = await shortPoll(() => {
-                    try {
-                        return this.tabs.tab(t.id as Tabs.TabID);
-                    } catch (e) { throw TRY_AGAIN; }
-                });
+                const tab = await shortPoll(() =>
+                    this.tabs.tab(t.id as Tabs.TabID) || tryAgain());
                 moved_items.push(tab);
                 dont_steal_tabs.add(tab.id);
                 await this.tabs.setSelected([tab], !!item.$selected);
@@ -788,7 +785,7 @@ export class Model {
         for (const id of ids) {
             if (typeof id === 'string') {
                 // It's a bookmark
-                const node = this.bookmarks.getNode(id);
+                const node = this.bookmarks.node(id);
                 if (! node) continue;
 
                 if ('children' in node) {
@@ -814,12 +811,13 @@ export class Model {
      * and would be empty. */
     async deleteBookmarkTree(id: Bookmarks.NodeID) {
         const bm = this.bookmarks.node(id);
+        if (! bm) return; // Already deleted?
 
         const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
             if ('children' in item) return {
                 title: item.title,
-                children: filterMap(item.children, i =>
-                    i && toDelItem(this.bookmarks.node(i))),
+                children: filterMap(item.children, i => i && this.bookmarks.node(i))
+                    .map(i => toDelItem(i)),
             };
 
             if ('url' in item) return {
@@ -891,15 +889,14 @@ export class Model {
 
             if (deletion.deleted_from) {
                 const from = deletion.deleted_from;
-                try {
-                    this.bookmarks.folder(from.folder_id as Bookmarks.NodeID);
+                const folder = this.bookmarks.folder(from.folder_id as Bookmarks.NodeID);
+                if (folder) {
                     // The exact bookmark we want still exists, use it
                     folderId = from.folder_id as Bookmarks.NodeID;
-                } catch (_) {
+                } else {
                     // Search for an existing folder inside the stash root with
                     // the same name as the folder it was deleted from.
-                    const child = stash_root.children
-                        .map(id => this.bookmarks.node(id))
+                    const child = this.bookmarks.childrenOf(stash_root)
                         .find(c => 'children' in c && c.title === from.title);
                     if (child) folderId = child.id;
                 }

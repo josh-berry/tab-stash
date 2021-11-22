@@ -84,7 +84,7 @@ export default defineComponent({
             if (! stash_root) return [];
             return filterMap(stash_root.children, id => {
                 const node = bookmarks.node(id);
-                if ('children' in node) return node as Folder;
+                if (node && 'children' in node) return node as Folder;
                 return undefined;
             }).filter(node => this.filter(node.title));
         },

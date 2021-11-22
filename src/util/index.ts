@@ -91,6 +91,16 @@ export function deepEqual<T extends ToJSON>(l: T, r: T): boolean {
     return false;
 }
 
+/** Checks if its first argument is undefined.  If not, returns it.  If so,
+ * throws an error with the message returned by the (optional) second
+ * argument. */
+export function expect<T>(value: T | undefined, err: () => string): T {
+    // istanbul ignore else
+    if (value !== undefined) return value;
+    // istanbul ignore next
+    throw new Error(err());
+}
+
 export const parseVersion = (v: string): number[] =>
     v.split('.').map(x => parseInt(x));
 
@@ -235,7 +245,7 @@ export async function nextTick(): Promise<void> {
  * guaranteed to be (approximately) less than 10ms.
  *
  * If the function does not return a value within a reasonable mount of time,
- * returns `undefined`.  */
+ * throws {@link TimedOutError}.  */
 export async function shortPoll<T>(fn: () => T): Promise<T> {
     // Relies on the implicit behavior of setTimeout() being automatically
     // delayed--see "Nested timeouts" from:
@@ -251,8 +261,10 @@ export async function shortPoll<T>(fn: () => T): Promise<T> {
 }
 
 /** The exception to throw to get {@link shortPoll()} to try again. */
-export const TRY_AGAIN: unique symbol = Symbol('TRY_AGAIN');
-export type TryAgain = typeof TRY_AGAIN;
+const TRY_AGAIN: unique symbol = Symbol('TRY_AGAIN');
+
+/** Call this during {@link shortPoll()} to make shortPoll() try again. */
+export function tryAgain(): never { throw TRY_AGAIN; }
 
 /** The exception thrown by {@link shortPoll()} if we give up polling and the
  * function never returned a value. */

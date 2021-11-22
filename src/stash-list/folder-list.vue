@@ -35,9 +35,8 @@ export default defineComponent({
 
     computed: {
         accepts() { return DROP_FORMAT; },
-        children(): Node[] {
-            const bookmarks = this.model().bookmarks;
-            return this.parentFolder.children.map(id => bookmarks.node(id));
+        children(): readonly Node[] {
+            return this.model().bookmarks.childrenOf(this.parentFolder);
         },
     },
 

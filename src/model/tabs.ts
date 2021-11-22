@@ -1,6 +1,6 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {filterMap, logErrors, nonReentrant, shortPoll, TRY_AGAIN} from "../util";
+import {filterMap, logErrors, nonReentrant, shortPoll, tryAgain} from "../util";
 import {EventWiring} from "../util/wiring";
 
 export type Window = {
@@ -187,7 +187,7 @@ export class Model {
         return await shortPoll(() => {
             const tab = this.tabs.get(t.id as TabID);
             if (tab) return tab;
-            throw TRY_AGAIN;
+            tryAgain();
         });
     }
 
@@ -209,7 +209,7 @@ export class Model {
         await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
         await shortPoll(() => {
             const pos = this.positionOf(tab);
-            if (pos.window.id !== toWindow || pos.index !== toIndex) throw TRY_AGAIN;
+            if (pos.window.id !== toWindow || pos.index !== toIndex) tryAgain();
         });
     }
 
@@ -219,7 +219,7 @@ export class Model {
         await this.refocusAwayFromTabs(tabIds);
         await browser.tabs.remove(tabIds);
         await shortPoll(() => {
-            if (tabIds.find(tid => this.tabs.has(tid)) !== undefined) throw TRY_AGAIN;
+            if (tabIds.find(tid => this.tabs.has(tid)) !== undefined) tryAgain();
         });
     }
 

@@ -1,7 +1,9 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
-import {filterMap, logErrors, nonReentrant, shortPoll, TRY_AGAIN} from "../util";
+import {
+    expect, filterMap, logErrors, nonReentrant, shortPoll, tryAgain
+} from "../util";
 import {EventWiring} from '../util/wiring';
 
 /** A node in the bookmark tree. */
@@ -130,35 +132,22 @@ export class Model {
     // Accessors
     //
 
-    /** Retrieves the node with the specified ID, or throws an exception if it
-     * does not exist. */
-    node(id: NodeID): Node {
-        const node = this.by_id.get(id);
-        if (! node) throw new Error(`No such bookmark node: ${id}`);
-        return node;
-    }
+    /** Retrieves the node with the specified ID (if it exists). */
+    node(id: NodeID): Node | undefined { return this.by_id.get(id); }
 
-    /** Retrieves the node with the specified ID, or returns `undefined` if it
-     * does not exist. */
-    getNode(id: NodeID): Node | undefined {
-        return this.by_id.get(id);
-    }
-
-    /** Retrieves the bookmark with the specified ID, or throws an exception if
-     * the ID does not exist or is not a bookmark (e.g. it's a separator or
-     * folder). */
-    bookmark(id: NodeID): Bookmark {
+    /** Retrieves the bookmark with the specified ID.  Returns `undefined` if it
+     * does not exist or is not a bookmark. */
+    bookmark(id: NodeID): Bookmark | undefined {
         const node = this.node(id);
-        if ('url' in node) return node;
-        throw new Error(`Bookmark node is not a bookmark: ${id}`);
+        if (node && 'url' in node) return node;
+        return undefined;
     }
 
-    /** Retrieves the folder with the specified ID, or throws an exception if
-     * the ID does not exist or is not a folder. */
-    folder(id: NodeID): Folder {
+    /** Retrieves the folder with the specified ID.  Returns `undefined` if it does not exist or is not a folder. */
+    folder(id: NodeID): Folder | undefined {
         const node = this.node(id);
-        if ('children' in node) return node;
-        throw new Error(`Bookmark node is not a folder: ${id}`);
+        if (node && 'children' in node) return node;
+        return undefined;
     }
 
     /** Returns a (reactive) set of bookmarks with the specified URL. */
@@ -172,15 +161,23 @@ export class Model {
     }
 
     /** Given a child node, return its parent and the index of the child in the
-     * parent's children. */
-    positionOf(node: Node): NodePosition {
+     * parent's children.  Returns `undefined` if the child has no parent (i.e.
+     * its `parentId === undefined`), if the parent itself cannot be located, or
+     * if the child cannot be located inside the parent. */
+    positionOf(node: Node): NodePosition | undefined {
         const parent = this.folder(node.parentId);
-        const index = parent.children.findIndex(id => id === node.id);
+        if (! parent) return undefined;
 
+        const index = parent.children.findIndex(id => id === node.id);
         // istanbul ignore if -- internal sanity
-        if (index === -1) throw new Error(`Child not present in parent: ${node.id}`);
+        if (index === -1) return undefined;
 
         return {parent, index};
+    }
+
+    /** Given a parent folder, return all the child nodes in the parent. */
+    childrenOf(folder: Folder): Node[] {
+        return filterMap(folder.children, cid => this.node(cid));
     }
 
     /** Check if `node` is contained, directly or indirectly, by the folder with
@@ -201,7 +198,8 @@ export class Model {
     pathTo(node: Node): NodePosition[] {
         const path = [];
         while (node.parentId) {
-            const pos = this.positionOf(node);
+            const pos = expect(this.positionOf(node),
+                () => `Can't find position of node: ${node.id}`);
             path.push(pos);
             node = pos.parent;
         }
@@ -216,6 +214,7 @@ export class Model {
         const urlsInChildren = (folder: Folder) => {
             for (const c of folder.children) {
                 const node = this.node(c);
+                if (! node) continue;
                 if ('url' in node) urls.add(node.url);
                 else if ('children' in node) urlsInChildren(node);
             }
@@ -236,7 +235,7 @@ export class Model {
         const ret = await browser.bookmarks.create(bm);
         return await shortPoll(() => {
             const bm = this.by_id.get(ret.id as NodeID);
-            if (! bm) throw TRY_AGAIN;
+            if (! bm) tryAgain();
             return bm;
         });
     }
@@ -248,6 +247,8 @@ export class Model {
      */
     async remove(id: NodeID): Promise<void> {
         const node = this.node(id);
+        if (! node) return;
+
         const pos = this.positionOf(node);
 
         await browser.bookmarks.remove(id);
@@ -255,10 +256,10 @@ export class Model {
         // Wait for the model to catch up
         await shortPoll(() => {
             // Wait for the model to catch up
-            if (this.by_id.has(id)) throw TRY_AGAIN;
+            if (this.by_id.has(id)) tryAgain();
         });
 
-        await this.maybeCleanupEmptyFolder(pos.parent);
+        if (pos) await this.maybeCleanupEmptyFolder(pos.parent);
     }
 
     /** Deletes an entire tree of bookmarks and waits for the model to reflect
@@ -269,7 +270,7 @@ export class Model {
         // Wait for the model to catch up
         await shortPoll(() => {
             // Wait for the model to catch up
-            if (this.by_id.has(id)) throw TRY_AGAIN;
+            if (this.by_id.has(id)) tryAgain();
         });
     }
 
@@ -285,15 +286,18 @@ export class Model {
         // first added, then removed from its old location, so the index of the
         // item after the move will sometimes be toIndex-1 instead of toIndex;
         // we account for this below.
-        const node = this.node(id);
-        const position = this.positionOf(node);
+        const node = expect(this.node(id), () => `No such bookmark node: ${id}`);
+        const position = expect(this.positionOf(node),
+            () => `Unable to locate node ${id} in its parent`);
 
         // Clamp the destination index based on the model length, or the poll
         // below won't see the index it's expecting.  (This isn't 100%
         // reliable--we might still get an exception if multiple concurrent
         // moves are going on, but even Firefox itself has bugs in this
         // situation, soooo... *shrug*)
-        toIndex = Math.min(this.folder(toParent).children.length, Math.max(0, toIndex));
+        const toParentFolder = expect(this.folder(toParent),
+            () => `Unable to locate destination folder: ${toParent}`);
+        toIndex = Math.min(toParentFolder.children.length, Math.max(0, toIndex));
 
         // istanbul ignore else
         if (!! browser.runtime.getBrowserInfo) {
@@ -305,7 +309,8 @@ export class Model {
         await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
         await shortPoll(() => {
             const pos = this.positionOf(node);
-            if (pos.parent.id !== toParent || pos.index !== toIndex) throw TRY_AGAIN;
+            if (! pos) tryAgain();
+            if (pos.parent.id !== toParent || pos.index !== toIndex) tryAgain();
         });
 
         await this.maybeCleanupEmptyFolder(position.parent);
@@ -424,7 +429,8 @@ export class Model {
             this.by_id.set(node.id, node);
 
             if (new_bm.parentId) {
-                const parent = this.folder(parentId);
+                const parent = expect(this.folder(parentId),
+                    () => `Don't know about parent folder ${parentId}`);
                 parent.children.splice(new_bm.index!, 0, node.id);
             }
 
@@ -437,11 +443,12 @@ export class Model {
                 // Remove from old parent
                 if (node.parentId) {
                     const pos = this.positionOf(node);
-                    pos.parent.children.splice(pos.index, 1);
+                    if (pos) pos.parent.children.splice(pos.index, 1);
                 }
 
                 // Add to new parent
-                const parent = this.folder(parentId);
+                const parent = expect(this.folder(parentId),
+                    () => `Don't know about parent folder ${parentId}`);
                 parent.children.splice(new_bm.index!, 0, node.id);
             }
 
@@ -468,9 +475,8 @@ export class Model {
     }
 
     whenBookmarkChanged(id: string, info: Bookmarks.OnChangedChangeInfoType) {
-        const node = this.by_id.get(id as NodeID);
-        // istanbul ignore if
-        if (! node) return; // out-of-order event delivery?
+        const node = expect(this.by_id.get(id as NodeID),
+            () => `Got change event for unknown node ${id}: ${JSON.stringify(info)}`);
 
         if ('title' in info) {
             node.title = info.title;
@@ -494,14 +500,14 @@ export class Model {
     }
 
     whenBookmarkMoved(id: string, info: {parentId: string, index: number}) {
-        const node = this.by_id.get(id as NodeID);
-        // istanbul ignore if
-        if (! node) return; // out-of-order event delivery?
+        const node = expect(this.by_id.get(id as NodeID),
+            () => `Got move event for unknown node ${id}: ${JSON.stringify(info)}`);
 
-        const new_parent = this.folder(info.parentId as NodeID);
+        const new_parent = expect(this.folder(info.parentId as NodeID),
+            () => `Move of ${id} is going to unknown folder ${info.parentId}`);
 
         const pos = this.positionOf(node);
-        pos.parent.children.splice(pos.index, 1);
+        if (pos) pos.parent.children.splice(pos.index, 1);
 
         node.parentId = info.parentId as NodeID;
         new_parent.children.splice(info.index, 0, node.id);
@@ -522,7 +528,7 @@ export class Model {
         }
 
         const pos = this.positionOf(node);
-        pos.parent.children.splice(pos.index, 1);
+        if (pos) pos.parent.children.splice(pos.index, 1);
 
         this.by_id.delete(node.id);
         if ('url' in node) this._remove_url(node);
@@ -627,7 +633,10 @@ export class Model {
                 return;
             }
             if ('children' in bm) {
-                for (const c of bm.children) yield* walk(self.node(c));
+                for (const c of bm.children) {
+                    const node = self.node(c);
+                    if (node) yield* walk(node);
+                }
             }
         }
 
@@ -641,6 +650,7 @@ export class Model {
         let startPos = this.positionOf(start);
         let endPos = this.positionOf(end);
 
+        if (! startPos || ! endPos) return null;
         if (startPos.parent !== endPos.parent) return null;
 
         if (endPos.index < startPos.index) {
@@ -649,9 +659,10 @@ export class Model {
             startPos = tmp;
         }
 
-        return startPos.parent.children
-            .slice(startPos.index, endPos.index + 1)
-            .map(id => this.node(id))
+        return filterMap(
+                startPos.parent.children
+                    .slice(startPos.index, endPos.index + 1),
+                id => this.node(id))
             .filter(t => t.$visible);
     }
 

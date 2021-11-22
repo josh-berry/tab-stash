@@ -33,7 +33,7 @@ describe('model/bookmarks', () => {
                     });
                 }
 
-                const parent = model.folder(template.parentId!);
+                const parent = model.folder(template.parentId!)!;
                 expect(parent).to.have.property('children');
                 expect(parent.children[template.index!]).to.equal(bm!.id);
             }
@@ -44,7 +44,7 @@ describe('model/bookmarks', () => {
                 const template = bms[l as keyof typeof bms];
                 if (! template.children) continue;
 
-                const bm = model.folder(template.id);
+                const bm = model.folder(template.id)!;
                 expect(bm.id).to.equal(template.id);
                 expect(bm.children).to.deep.equal(template.children.map(c => c.id));
             }
@@ -87,7 +87,7 @@ describe('model/bookmarks', () => {
         expect(model.bookmarksWithURL('/new')).to.deep.equal(new Set([{
             ...new_bm, $visible: true, $selected: false,
         }]));
-        expect(model.folder(bms.root.id).children).to.deep.equal([
+        expect(model.folder(bms.root.id)!.children).to.deep.equal([
             bms.doug_1.id,
             bms.francis.id,
             new_bm.id,
@@ -112,7 +112,7 @@ describe('model/bookmarks', () => {
         expect(model.bookmarksWithURL(`${B}#alice`)).to.deep.equal(new Set([]));
         expect(model.bookmarksWithURL('/new_a'))
             .to.deep.equal(new Set([model.node(bms.alice.id)]));
-        expect(model.folder(bms.outside.id).children).to.deep.equal([
+        expect(model.folder(bms.outside.id)!.children).to.deep.equal([
             bms.alice.id,
             bms.separator.id,
             bms.bob.id,
@@ -129,7 +129,7 @@ describe('model/bookmarks', () => {
         expect(model.bookmarksWithURL(`${B}#alice`)).to.deep.equal(new Set());
         expect(model.bookmarksWithURL('/new_a'))
             .to.deep.equal(new Set([model.node(bms.alice.id)]));
-        expect(model.folder(bms.outside.id).children).to.deep.equal([
+        expect(model.folder(bms.outside.id)!.children).to.deep.equal([
             bms.alice.id,
             bms.separator.id,
             bms.bob.id,
@@ -150,9 +150,9 @@ describe('model/bookmarks', () => {
         events.send(browser.bookmarks.onRemoved, ...ev);
         await events.next(browser.bookmarks.onRemoved);
 
-        expect(() => model.node(bms.bob.id)).to.throw(Error);
+        expect(model.node(bms.bob.id)).to.be.undefined;
         expect(model.bookmarksWithURL(`${B}#bob`)).to.deep.equal(new Set([]));
-        expect(model.folder(bms.outside.id).children).to.deep.equal([
+        expect(model.folder(bms.outside.id)!.children).to.deep.equal([
             bms.alice.id,
             bms.separator.id,
             bms.empty.id,
@@ -167,19 +167,19 @@ describe('model/bookmarks', () => {
         events.send(browser.bookmarks.onRemoved, ...ev);
         await events.next(browser.bookmarks.onRemoved);
 
-        expect(() => model.node(bms.names.id)).to.throw(Error);
-        expect(() => model.node(bms.doug_2.id)).to.throw(Error);
-        expect(() => model.node(bms.helen.id)).to.throw(Error);
-        expect(() => model.node(bms.patricia.id)).to.throw(Error);
-        expect(() => model.node(bms.nate.id)).to.throw(Error);
+        expect(model.node(bms.names.id)).to.be.undefined;
+        expect(model.node(bms.doug_2.id)).to.be.undefined;
+        expect(model.node(bms.helen.id)).to.be.undefined;
+        expect(model.node(bms.patricia.id)).to.be.undefined;
+        expect(model.node(bms.nate.id)).to.be.undefined;
 
         expect(model.bookmarksWithURL(`${B}#helen`)).to.deep.equal(new Set([]));
         expect(model.bookmarksWithURL(`${B}#doug`)).to.deep.equal(new Set([
             model.node(bms.doug_1.id)
         ]));
 
-        expect(() => model.node(bms.names.id)).to.throw(Error);
-        expect(model.folder(bms.stash_root.id).children).to.deep.equal([
+        expect(model.node(bms.names.id)).to.be.undefined;
+        expect(model.folder(bms.stash_root.id)!.children).to.deep.equal([
             bms.unnamed.id,
             bms.big_stash.id,
         ]);
@@ -190,7 +190,7 @@ describe('model/bookmarks', () => {
         await events.next(browser.bookmarks.onMoved);
         await p;
 
-        expect(model.folder(bms.outside.id).children).to.deep.equal([
+        expect(model.folder(bms.outside.id)!.children).to.deep.equal([
             bms.separator.id,
             bms.bob.id,
             bms.empty.id,
@@ -203,7 +203,7 @@ describe('model/bookmarks', () => {
         await events.next(browser.bookmarks.onMoved);
         await p;
 
-        expect(model.folder(bms.outside.id).children).to.deep.equal([
+        expect(model.folder(bms.outside.id)!.children).to.deep.equal([
             bms.empty.id,
             bms.alice.id,
             bms.separator.id,
@@ -216,12 +216,12 @@ describe('model/bookmarks', () => {
         await events.next(browser.bookmarks.onMoved);
         await p;
 
-        expect(model.folder(bms.outside.id).children).to.deep.equal([
+        expect(model.folder(bms.outside.id)!.children).to.deep.equal([
             bms.alice.id,
             bms.separator.id,
             bms.empty.id,
         ]);
-        expect(model.folder(bms.names.id).children).to.deep.equal([
+        expect(model.folder(bms.names.id)!.children).to.deep.equal([
             bms.doug_2.id,
             bms.helen.id,
             bms.bob.id,
@@ -365,9 +365,9 @@ describe('model/bookmarks', () => {
     describe('selection model', () => {
         it('tracks selected items', async () => {
             model.setSelected([
-                model.node(bms.undyne.id),
-                model.node(bms.nate.id),
-                model.node(bms.helen.id),
+                model.node(bms.undyne.id)!,
+                model.node(bms.nate.id)!,
+                model.node(bms.helen.id)!,
             ], true);
 
             expect(Array.from(model.selectedItems())).to.deep.equal([
@@ -376,17 +376,17 @@ describe('model/bookmarks', () => {
                 model.node(bms.undyne.id),
             ]);
 
-            expect(model.isSelected(model.node(bms.helen.id))).to.be.true;
-            expect(model.isSelected(model.node(bms.nate.id))).to.be.true;
-            expect(model.isSelected(model.node(bms.undyne.id))).to.be.true;
+            expect(model.isSelected(model.node(bms.helen.id)!)).to.be.true;
+            expect(model.isSelected(model.node(bms.nate.id)!)).to.be.true;
+            expect(model.isSelected(model.node(bms.undyne.id)!)).to.be.true;
 
-            expect(model.isSelected(model.node(bms.patricia.id))).to.be.false;
-            expect(model.isSelected(model.node(bms.unnamed.id))).to.be.false;
+            expect(model.isSelected(model.node(bms.patricia.id)!)).to.be.false;
+            expect(model.isSelected(model.node(bms.unnamed.id)!)).to.be.false;
         });
 
         it('identifies items in a range within a folder', async () => {
             const range = model.itemsInRange(
-                model.node(bms.doug_2.id), model.node(bms.patricia.id));
+                model.node(bms.doug_2.id)!, model.node(bms.patricia.id)!);
             expect(range).to.deep.equal([
                 model.node(bms.doug_2.id),
                 model.node(bms.helen.id),
@@ -396,7 +396,7 @@ describe('model/bookmarks', () => {
 
         it('identifies items in a range within a folder (backwards)', async () => {
             const range = model.itemsInRange(
-                model.node(bms.patricia.id), model.node(bms.doug_2.id));
+                model.node(bms.patricia.id)!, model.node(bms.doug_2.id)!);
             expect(range).to.deep.equal([
                 model.node(bms.doug_2.id),
                 model.node(bms.helen.id),
@@ -406,7 +406,7 @@ describe('model/bookmarks', () => {
 
         it('identifies a single-item range', async () => {
             const range = model.itemsInRange(
-                model.node(bms.helen.id), model.node(bms.helen.id));
+                model.node(bms.helen.id)!, model.node(bms.helen.id)!);
             expect(range).to.deep.equal([
                 model.node(bms.helen.id),
             ]);
@@ -415,7 +415,7 @@ describe('model/bookmarks', () => {
         it('refuses to identify ranges across folders', async () => {
             // for now, anyway...
             expect(model.itemsInRange(
-                    model.node(bms.doug_2.id), model.node(bms.undyne.id)))
+                    model.node(bms.doug_2.id)!, model.node(bms.undyne.id)!))
                 .to.be.null;
         });
 
@@ -424,10 +424,10 @@ describe('model/bookmarks', () => {
                 ! ('url' in node) || ! node.url.includes('helen');
             await nextTick(); // to update the filter
 
-            expect(model.node(bms.doug_2.id).$visible).to.be.true;
-            expect(model.node(bms.helen.id).$visible).to.be.false;
+            expect(model.node(bms.doug_2.id)!.$visible).to.be.true;
+            expect(model.node(bms.helen.id)!.$visible).to.be.false;
             expect(model.itemsInRange(
-                    model.node(bms.doug_2.id), model.node(bms.nate.id)))
+                    model.node(bms.doug_2.id)!, model.node(bms.nate.id)!))
                 .to.deep.equal([
                     model.node(bms.doug_2.id),
                     model.node(bms.patricia.id),
@@ -442,8 +442,8 @@ describe('model/bookmarks', () => {
             await events.nextN(browser.bookmarks.onRemoved, 2);
             await p;
 
-            expect(model.getNode(bms.unnamed.id)).to.be.undefined;
-            expect(model.folder(bms.stash_root.id).children).to.deep.equal([
+            expect(model.node(bms.unnamed.id)).to.be.undefined;
+            expect(model.folder(bms.stash_root.id)!.children).to.deep.equal([
                 bms.names.id,
                 bms.big_stash.id,
             ]);
@@ -455,12 +455,12 @@ describe('model/bookmarks', () => {
             await events.next(browser.bookmarks.onRemoved);
             await p;
 
-            expect(model.getNode(bms.unnamed.id)).to.be.undefined;
-            expect(model.folder(bms.stash_root.id).children).to.deep.equal([
+            expect(model.node(bms.unnamed.id)).to.be.undefined;
+            expect(model.folder(bms.stash_root.id)!.children).to.deep.equal([
                 bms.names.id,
                 bms.big_stash.id,
             ]);
-            expect(model.folder(bms.names.id).children).to.deep.equal([
+            expect(model.folder(bms.names.id)!.children).to.deep.equal([
                 bms.doug_2.id,
                 bms.helen.id,
                 bms.patricia.id,
@@ -495,9 +495,9 @@ describe('model/bookmarks', () => {
                 await events.nextN(browser.bookmarks.onRemoved, 1);
                 await p;
 
-                expect(model.getNode(new_child.id)).to.be.undefined;
-                expect(model.folder(new_unnamed.id).children).to.deep.equal([]);
-                expect(model.folder(bms.outside.id).children).to.deep.equal([
+                expect(model.node(new_child.id)).to.be.undefined;
+                expect(model.folder(new_unnamed.id)!.children).to.deep.equal([]);
+                expect(model.folder(bms.outside.id)!.children).to.deep.equal([
                     bms.alice.id,
                     bms.separator.id,
                     bms.bob.id,
@@ -511,15 +511,15 @@ describe('model/bookmarks', () => {
                 await events.next(browser.bookmarks.onMoved);
                 await p;
 
-                expect(model.folder(new_unnamed.id).children).to.deep.equal([]);
-                expect(model.folder(bms.outside.id).children).to.deep.equal([
+                expect(model.folder(new_unnamed.id)!.children).to.deep.equal([]);
+                expect(model.folder(bms.outside.id)!.children).to.deep.equal([
                     bms.alice.id,
                     bms.separator.id,
                     bms.bob.id,
                     bms.empty.id,
                     new_unnamed.id,
                 ]);
-                expect(model.folder(bms.names.id).children).to.deep.equal([
+                expect(model.folder(bms.names.id)!.children).to.deep.equal([
                     bms.doug_2.id,
                     bms.helen.id,
                     bms.patricia.id,

@@ -96,7 +96,7 @@ export default defineComponent({
         accepts() { return DROP_FORMATS; },
 
         children(): readonly Node[] {
-            return this.folder.children.map(cid => this.model().bookmarks.node(cid));
+            return this.model().bookmarks.childrenOf(this.folder);
         },
 
         collapsed: {

@@ -96,8 +96,8 @@ export default defineComponent({
     computed: {
         stash(): Node[] {
             const m = this.model().bookmarks;
-            return (m.stash_root.value?.children ?? [])
-                .map(id => m.node(id));
+            if (! m.stash_root.value) return [];
+            return m.childrenOf(m.stash_root.value);
         },
         folders(): Folder[] {
             return this.stash.filter(t => 'children' in t) as Folder[];
@@ -122,7 +122,7 @@ export default defineComponent({
             const bookmarks = this.model().bookmarks;
             return filterMap(folder.children, cid => {
                 const child = bookmarks.node(cid);
-                if ('url' in child) return child;
+                if (child && 'url' in child) return child;
                 return undefined;
             });
         },
