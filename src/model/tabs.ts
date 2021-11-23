@@ -302,7 +302,7 @@ export class Model {
     // senders.)
     //
 
-    whenWindowCreated(win: Windows.Window) {
+    whenWindowCreated(win: Windows.Window): Window {
         const wid = win.id as WindowID;
         let window = this.windows.get(wid);
         if (! window) {
@@ -313,6 +313,7 @@ export class Model {
         if (win.tabs !== undefined) {
             for (const t of win.tabs) this.whenTabCreated(t);
         }
+        return window;
     }
 
     whenWindowFocusChanged(winId: number) {
@@ -415,8 +416,20 @@ export class Model {
         const oldPos = this.positionOf(t);
         if (oldPos) oldPos.window.tabs.splice(oldPos.index, 1);
 
-        const newWindow = expect(this.window(info.windowId as WindowID),
-            () => `Tab ${tabId} moved to unknown window ${info.windowId}`);
+        let newWindow = this.window(info.windowId as WindowID);
+        if (! newWindow) {
+            // Sometimes Firefox sends tabAttached (aka tabMoved) events before
+            // (or instead of) the window-creation event itself.  This usually
+            // happens when tearing a tab off of an existing window to make a
+            // new window.  Handle this by synthesizing a new window.
+            //
+            // There's unfortunately no way to synthesize this in a unit test
+            // because it would require the WebExtension API to allow us to move
+            // a tab to an invalid window...
+            newWindow = this.whenWindowCreated({
+                id: info.windowId, focused: false, incognito: false, alwaysOnTop: false,
+            });
+        }
         t.windowId = info.windowId as WindowID;
         newWindow.tabs.splice(info.toIndex, 0, t.id);
     }
