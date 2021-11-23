@@ -1053,19 +1053,20 @@ describe('model', () => {
 
         it('skips or steals duplicates when restoring tabs', async () => {
             const p = model.restoreTabs(
-                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#betty`, `${B}#paul`], {});
+                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`], {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
-            await events.next(browser.tabs.onAttached);
-            await events.next(browser.tabs.onCreated);
+            const new_betty = (await events.next(browser.tabs.onCreated))[0];
+            const new_paul = (await events.next(browser.tabs.onCreated))[0];
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
             const restored = await p;
 
-            expect(restored.slice(0, 3)).to.deep.equal([
-                    tabs.real_harry.id, tabs.real_doug_2.id, tabs.left_betty.id
+            expect(restored).to.deep.equal([
+                    tabs.real_harry.id, tabs.real_doug_2.id,
+                    new_betty.id as TabID, new_paul.id as TabID,
                 ].map(id => model.tabs.tab(id)));
 
             expect(restored.map(t => t.hidden))
@@ -1085,8 +1086,8 @@ describe('model', () => {
                 tabs.real_helen.id,
                 tabs.real_harry.id,
                 tabs.real_doug_2.id,
-                tabs.left_betty.id,
-                restored[3].id,
+                new_betty.id,
+                new_paul.id,
             ]);
         });
     });
