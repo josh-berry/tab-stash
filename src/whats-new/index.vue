@@ -8,6 +8,22 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.10.1">
+      <L v="Improved:">Added a "safety net" which reloads the browser data used
+      to display the UI if the UI detects that it's gotten out of sync with the
+      browser.</L>
+
+      <L v="Fixed">an issue which would sometimes cause Tab Stash to lose track
+      of the focused window, preventing the UI from opening.</L>
+
+      <L v="Fixed">an issue that would in some cases cause Tab Stash to lose
+      track of tabs that are moved between windows.</L>
+
+      <L v="Fixed:">Restoring a tab that's already open in another window will
+      no longer move the tab from the other window into the current one.  A new
+      tab will be created instead.</L>
+    </Version>
+
     <Version v="2.10">
       <L :issue="57" v="New:">Select and move multiple tabs at once using
       drag-and-drop or the new selection menu.  Click on a tab's icon to get

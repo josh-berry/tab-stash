@@ -9,8 +9,8 @@
     </Notification>
     <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} now allows you to select and move multiple tabs
-      at once.  See what else is new!
+      Tab Stash {{my_version}} includes several bug fixes and stability
+      improvements.  See what's new!
     </Notification>
     <Notification key="stash-root-warning" v-if="stash_root_warning"
                   @activate="stash_root_warning.help">
