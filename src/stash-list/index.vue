@@ -71,12 +71,12 @@
 
 <script lang="ts">
 import browser from 'webextension-polyfill';
-import {PropType, defineComponent} from 'vue';
+import {defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
 import {TaskMonitor, expect, parseVersion, required} from '../util';
 import {Model, DeletedItems as DI} from '../model';
-import {Tab, WindowID} from '../model/tabs';
+import {Tab} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -96,7 +96,6 @@ export default defineComponent({
     },
 
     props: {
-        window_id: required(Number as PropType<number> as PropType<WindowID>),
         my_version: required(String),
     },
 
@@ -112,7 +111,9 @@ export default defineComponent({
         },
         tabs(): readonly Tab[] {
             const m = this.model().tabs;
-            const win = expect(m.window(this.window_id), () => `Current window unknown`);
+            if (m.targetWindow.value === undefined) return [];
+            const win = m.window(m.targetWindow.value);
+            if (! win) return [];
             return m.tabsIn(win);
         },
         stash_root(): Folder | undefined {

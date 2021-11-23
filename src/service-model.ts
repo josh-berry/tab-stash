@@ -23,7 +23,7 @@ export default async function(): Promise<M.Model> {
     const sources = await resolveNamed({
         browser_settings: M.BrowserSettings.Model.live(),
         options: M.Options.Model.live(),
-        tabs: M.Tabs.Model.from_browser(),
+        tabs: M.Tabs.Model.from_browser('background'),
         bookmarks: M.Bookmarks.Model.from_browser(),
         deleted_items: new M.DeletedItems.Model(kvs.deleted_items),
     });

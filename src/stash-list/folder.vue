@@ -157,7 +157,7 @@ export default defineComponent({
 
         stash(ev: MouseEvent | KeyboardEvent) {
             const model = this.model();
-            const win_id = model.tabs.current_window;
+            const win_id = model.tabs.targetWindow.value;
             if (! win_id) return;
 
             model.attempt(() => model.stashTabsInWindow(
@@ -173,7 +173,7 @@ export default defineComponent({
 
         move(ev: MouseEvent | KeyboardEvent) {
             const model = this.model();
-            const win_id = model.tabs.current_window;
+            const win_id = model.tabs.targetWindow.value;
             if (! win_id) return;
 
             model.attempt(() => model.putSelectedInFolder({

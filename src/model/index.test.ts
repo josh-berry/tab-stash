@@ -986,7 +986,7 @@ describe('model', () => {
 
     describe('restores tabs', () => {
         beforeEach(() => {
-            expect(model.tabs.current_window).to.equal(windows.real.id);
+            expect(model.tabs.initialWindow.value).to.equal(windows.real.id);
         });
 
         it('restores a single hidden tab', async () => {

@@ -250,12 +250,8 @@ export class Model {
 
     /** Put the set of currently-selected items in the current window. */
     async putSelectedInWindow(options: {move: boolean}) {
-        if (this.tabs.current_window === undefined) {
-            throw new Error(`No current window`);
-        }
         await this.putItemsInWindow({
             items: Array.from(this.selectedItems()),
-            toWindowId: this.tabs.current_window,
             ...options,
         });
     }
@@ -459,11 +455,12 @@ export class Model {
         urls: string[],
         options: {background?: boolean}
     ): Promise<Tabs.Tab[]> {
-        if (this.tabs.current_window === undefined) {
-            throw new Error(`Not sure what the current window is`);
+        const toWindowId = this.tabs.targetWindow.value;
+        if (toWindowId === undefined) {
+            throw new Error(`No target window; not sure where to restore tabs`);
         }
-        const cur_win = expect(this.tabs.window(this.tabs.current_window),
-            () => `Current window ${this.tabs.current_window} is unknown to the model`);
+        const cur_win = expect(this.tabs.window(toWindowId),
+            () => `Target window ${toWindowId} is unknown to the model`);
 
         // As a special case, if we are restoring just a single tab, first check
         // if we already have the tab open and just switch to it.  (No need to
@@ -471,7 +468,7 @@ export class Model {
         if (! options.background && urls.length === 1 && urls[0]) {
             const t = Array.from(this.tabs.tabsWithURL(urls[0]))
                 .find(t => t.url === urls[0] && ! t.hidden
-                        && t.windowId === this.tabs.current_window);
+                        && t.windowId === toWindowId);
             if (t) {
                 await browser.tabs.update(t.id, {active: true});
                 return [t];
@@ -494,7 +491,7 @@ export class Model {
             // which items were inserted to be sure that tabs are always
             // restored in the correct order.
             items: Array.from(url_set).map(url => ({url})),
-            toWindowId: this.tabs.current_window
+            toWindowId,
         });
 
         if (! options.background) {
@@ -507,7 +504,7 @@ export class Model {
 
             // Finally, if we opened at least one tab, AND we were looking at
             // the new-tab page, close the new-tab page in the background.
-            if (tabs.length > 0
+            if (active_tab && tabs.length > 0
                 && this.browser_settings.isNewTabURL(active_tab.url ?? '')
                 && active_tab.status === 'complete')
             {
@@ -628,11 +625,14 @@ export class Model {
     async putItemsInWindow(options: {
         move?: boolean,
         items: StashItem[],
-        toWindowId: Tabs.WindowID,
+        toWindowId?: Tabs.WindowID,
         toIndex?: number,
         task?: TaskMonitor,
     }): Promise<Tabs.Tab[]> {
-        const to_win_id = options.toWindowId;
+        const to_win_id = options.toWindowId ?? this.tabs.targetWindow.value;
+        if (to_win_id === undefined) {
+            throw new Error(`No target window available: ${to_win_id}`);
+        }
         const win = expect(this.tabs.window(to_win_id),
             () => `Trying to put items in unknown window ${to_win_id}`);
 

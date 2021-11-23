@@ -9,14 +9,11 @@ import launch from '../launch-vue';
 launch(require('./index.vue').default, async() => {
     const p = await resolveNamed({
         model: ui_model(),
-        win: browser.windows.getCurrent(),
-        cur_tab: browser.tabs.getCurrent(),
         ext_info: browser.management.getSelf(),
     });
 
     return {
         propsData: {
-            window_id: p.win.id!,
             my_version: p.ext_info.version,
         },
         provide: {

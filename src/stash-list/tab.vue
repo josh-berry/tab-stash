@@ -45,11 +45,11 @@ export default defineComponent({
     computed: {
         altKey: altKeyName,
         bgKey: bgKeyName,
-        currentWindow(): number | undefined {
-            return this.model().tabs.current_window;
+        targetWindow(): number | undefined {
+            return this.model().tabs.targetWindow.value;
         },
         isActive(): boolean {
-            return this.tab.active && this.tab.windowId === this.currentWindow;
+            return this.tab.active && this.tab.windowId === this.targetWindow;
         },
     },
 

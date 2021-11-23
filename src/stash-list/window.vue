@@ -236,7 +236,6 @@ export default defineComponent({
             const model = this.model();
             await model.attempt(() => model.putItemsInWindow({
                 items,
-                toWindowId: this.model().tabs.current_window!,
                 toIndex: ev.toIndex,
                 move: true,
             }));

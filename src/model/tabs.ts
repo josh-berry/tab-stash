@@ -44,7 +44,19 @@ export class Model {
     private readonly tabs = new Map<TabID, Tab>();
     private readonly tabs_by_url = new Map<string, Set<Tab>>();
 
-    current_window: WindowID | undefined;
+    /** The initial window that this model was opened with (if it still exists). */
+    readonly initialWindow: Ref<WindowID | undefined> = ref();
+
+    /** The window that currently has the focus (if any). */
+    readonly focusedWindow: Ref<WindowID | undefined> = ref();
+
+    /** The "target" window that this model should be for.  Controls for things
+     * like which window is shown in the UI, tab selection, etc.  This isn't
+     * precisely the same as `focusedWindow`, because it accounts for the fact
+     * that the user could tear off the Tab Stash tab into a new window, and yet
+     * still want to manage the window that the tab was originally opened in. */
+    readonly targetWindow = computed(() =>
+        this.initialWindow.value ?? this.focusedWindow.value);
 
     /** Ref to a function which filters tabs--if the function returns true, the
      * tab should be visible in the UI.  Each tab's `$visible` property will be
@@ -67,16 +79,16 @@ export class Model {
 
     /** Construct a model by loading tabs from the browser.  The model will keep
      * itself updated by listening to browser events. */
-    static async from_browser(): Promise<Model> {
-        const win = await browser.windows.getCurrent();
+    static async from_browser(bg?: 'background'): Promise<Model> {
+        const win = bg ? undefined : await browser.windows.getCurrent();
 
-        const model = new Model(win.id as WindowID);
+        const model = new Model(win?.id as WindowID | undefined);
         await model.reload();
         return model;
     }
 
-    private constructor(current_window?: WindowID) {
-        this.current_window = current_window;
+    private constructor(initial_window?: WindowID) {
+        this.initialWindow.value = initial_window;
 
         const wiring = new EventWiring(this, {
             onFired: () => { this._event_since_load = true; },
@@ -86,6 +98,7 @@ export class Model {
         });
 
         wiring.listen(browser.windows.onCreated, this.whenWindowCreated);
+        wiring.listen(browser.windows.onFocusChanged, this.whenWindowFocusChanged);
         wiring.listen(browser.windows.onRemoved, this.whenWindowRemoved);
         wiring.listen(browser.tabs.onCreated, this.whenTabCreated);
         wiring.listen(browser.tabs.onUpdated, this.whenTabUpdated);
@@ -109,6 +122,10 @@ export class Model {
         this._event_since_load = true;
         while (this._event_since_load) {
             this._event_since_load = false;
+
+            const cur_win = await browser.windows.getCurrent();
+            this.focusedWindow.value = cur_win.id as WindowID;
+
             let tabs = await browser.tabs.query({});
 
             // We sort tabs by index so that they always get inserted into their
@@ -156,7 +173,7 @@ export class Model {
     /** Returns the active tab in the specified window (or in
      * `this.current_window`, if no window is specified). */
     activeTab(windowId?: WindowID): Tab | undefined {
-        if (windowId === undefined) windowId = this.current_window;
+        if (windowId === undefined) windowId = this.targetWindow.value;
         if (windowId === undefined) return undefined;
 
         const window = this.window(windowId);
@@ -298,9 +315,17 @@ export class Model {
         }
     }
 
+    whenWindowFocusChanged(winId: number) {
+        this.focusedWindow.value = winId !== browser.windows.WINDOW_ID_NONE
+            ? winId as WindowID : undefined;
+    }
+
     whenWindowRemoved(winId: number) {
         const win = this.windows.get(winId as WindowID);
         if (! win) return;
+
+        if (this.initialWindow.value === winId) this.initialWindow.value = undefined;
+        if (this.focusedWindow.value === winId) this.focusedWindow.value = undefined;
 
         // We clone the array to avoid disturbances while iterating
         for (const t of Array.from(win.tabs)) this.whenTabRemoved(t);
@@ -467,9 +492,9 @@ export class Model {
     *selectedItems(): Generator<Tab> {
         // We only allow tabs in the current window to be selected
         // istanbul ignore if -- shouldn't occur in tests
-        if (this.current_window === undefined) return;
+        if (this.targetWindow.value === undefined) return;
 
-        const win = this.window(this.current_window);
+        const win = this.window(this.targetWindow.value);
         if (! win) return;
 
         for (const t of this.tabsIn(win)) if (t.$selected) yield t;
@@ -477,11 +502,11 @@ export class Model {
 
     itemsInRange(start: Tab, end: Tab): Tab[] | null {
         // istanbul ignore if -- shouldn't occur in tests
-        if (this.current_window === undefined) return null;
-        if (start.windowId !== this.current_window) return null;
-        if (end.windowId !== this.current_window) return null;
+        if (this.targetWindow.value === undefined) return null;
+        if (start.windowId !== this.targetWindow.value) return null;
+        if (end.windowId !== this.targetWindow.value) return null;
 
-        const win = this.window(this.current_window);
+        const win = this.window(this.targetWindow.value);
         if (! win) return null;
 
         let startPos = this.positionOf(start);

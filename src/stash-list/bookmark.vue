@@ -50,8 +50,8 @@ export default defineComponent({
         altkey: altKeyName,
         bgKey: bgKeyName,
 
-        currentWindow(): number | undefined {
-            return this.model().tabs.current_window;
+        targetWindow(): number | undefined {
+            return this.model().tabs.targetWindow.value;
         },
 
         related_tabs(): Tab[] {
@@ -62,12 +62,12 @@ export default defineComponent({
 
         hasOpenTab(): boolean {
             return !! this.related_tabs.find(
-                t => ! t.hidden && t.windowId === this.currentWindow);
+                t => ! t.hidden && t.windowId === this.targetWindow);
         },
         hasActiveTab(): boolean {
             // TODO look only at the current window
             return !! this.related_tabs.find(
-                t => t.active && t.windowId === this.currentWindow);
+                t => t.active && t.windowId === this.targetWindow);
         },
 
         favicon(): FaviconEntry | null {
