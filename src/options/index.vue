@@ -192,8 +192,8 @@
 
     <p><em><b>WARNING:</b> Turning on experimental features may break Tab Stash
     or cause data loss!  They are "experimental" because they are still in
-    development and there may be known issues.  Experimental features may change
-    significantly or be removed entirely in future versions.</em></p>
+    development and/or there may be known issues.  Experimental features may
+    change significantly or be removed entirely in future versions.</em></p>
 
     <p><em>To provide feedback or report a problem with a feature, leave a
     comment on the issue linked in [brackets] below.</em></p>
