@@ -103,6 +103,10 @@ export const LOCAL_DEF = {
 
     // Feature flags
     ff_popup_view: {default: false, is: aBoolean},
+
+    /** Re-open a recently-closed tab if one can't be found.  Disabled by
+     * default because of bugs in Firefox.  See #188. */
+    ff_restore_closed_tabs: {default: false, is: aBoolean},
 } as const;
 
 export type Source = {

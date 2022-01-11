@@ -650,7 +650,11 @@ export class Model {
         // restore/un-hide tabs as appropriate.
         //
         // TODO Unit tests don't support sessions yet
+        //
+        // TODO Known to be buggy on some Firefoxen, see #188.  If nobody
+        // complains, probably this whole path should just be removed.
         const closed_tabs = !! browser.sessions?.getRecentlyClosed
+                && this.options.local.state.ff_restore_closed_tabs
             ? await browser.sessions.getRecentlyClosed()
             : [];
 
@@ -740,6 +744,7 @@ export class Model {
             // closed that we can restore.
             const closed = filterMap(closed_tabs, s => s.tab).find(tabLookingAtP(url));
             if (closed) {
+                console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
                 // Remember the active tab in this window (if any), because
                 // restoring a recently-closed tab will disturb the focus.
                 const active_tab = this.tabs.tabsIn(win).find(t => t.active);
