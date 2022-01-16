@@ -167,6 +167,43 @@ describe('model', () => {
         });
     });
 
+    describe('choosing stashable tabs in a window', () => {
+        it('throws when an invalid window is selected', () => {
+            expect(() => model.stashableTabsInWindow('asdf' as any))
+                .to.throw(Error);
+        });
+
+        it('chooses all non-hidden, non-pinned and non-privileged tabs', () => {
+            expect(model.stashableTabsInWindow(windows.real.id).map(t => t.id))
+                .to.deep.equal([
+                    tabs.real_bob.id,
+                    tabs.real_doug.id,
+                    tabs.real_estelle.id,
+                    tabs.real_francis.id
+                ]);
+        });
+
+        it('allows user selection to override the default choice', async () => {
+            await browser.tabs.update(tabs.real_bob.id, {highlighted: true});
+            await browser.tabs.update(tabs.real_doug.id, {highlighted: true});
+            await browser.tabs.update(tabs.real_paul.id, {highlighted: true});
+            await browser.tabs.update(tabs.real_harry.id, {highlighted: true});
+            await events.nextN(browser.tabs.onHighlighted, 4);
+
+            expect(model.stashableTabsInWindow(windows.real.id).map(t => t.id))
+                .to.deep.equal([
+                    // was previously active and therefore explicitly selected
+                    tabs.real_blank.id,
+                    // explicitly selected
+                    tabs.real_bob.id,
+                    // explicitly selected
+                    tabs.real_doug.id,
+                    // paul is always excluded because he's pinned
+                    // harry is always excluded because he's hidden
+                ]);
+        });
+    });
+
     describe('hides or closes stashed tabs', () => {
         describe('according to user settings', () => {
             it('hides tabs but keeps them loaded', async () => {

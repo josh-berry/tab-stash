@@ -206,6 +206,35 @@ export class Model {
         for (const item of this.bookmarks.selectedItems()) yield item;
     }
 
+    /** Returns a list of tabs in a given window which should be stashed.
+     *
+     * This will exclude things like pinned and hidden tabs, or tabs with
+     * privileged URLs.  If a window has multiple selected tabs (i.e. the user
+     * has made an explicit choice about what to stash), only the selected tabs
+     * will be returned.
+     */
+    stashableTabsInWindow(windowId: Tabs.WindowID): Tabs.Tab[] {
+        const win = expect(this.tabs.window(windowId),
+            () => `Trying to stash tabs to unknown window ${windowId}`);
+        const tabs = this.tabs.tabsIn(win).filter(t => ! t.hidden);
+
+        let selected = tabs.filter(t => t.highlighted);
+        if (selected.length <= 1) {
+            // If the user didn't specifically select a set of tabs to be
+            // stashed, we ignore tabs which should not be included in the stash
+            // for whatever reason (e.g. the new tab page).  If the user DID
+            // explicitly select such tabs, however, we should include them (and
+            // they will be restored using the privileged-tabs approach).
+            selected = tabs.filter(t => this.isURLStashable(t.url));
+        }
+
+        // We filter out pinned tabs AFTER checking how many tabs are selected
+        // because otherwise the user might have a pinned tab focused, and highlight
+        // a single specific tab they want stashed (in addition to the active
+        // pinned tab), and then ALL tabs would unexpectedly get stashed. [#61]
+        return selected.filter(t => ! t.pinned);
+    }
+
     //
     // Mutators
     //
@@ -278,25 +307,7 @@ export class Model {
             close?: boolean
         }
     ): Promise<void> {
-        const win = expect(this.tabs.window(windowId),
-            () => `Trying to stash tabs to unknown window ${windowId}`);
-        const tabs = this.tabs.tabsIn(win).filter(t => ! t.hidden);
-
-        let selected = tabs.filter(t => t.highlighted);
-        if (selected.length <= 1) {
-            // If the user didn't specifically select a set of tabs to be
-            // stashed, we ignore tabs which should not be included in the stash
-            // for whatever reason (e.g. the new tab page).
-            selected = tabs.filter(t => this.isURLStashable(t.url));
-        }
-
-        // We filter out pinned tabs AFTER checking how many tabs are selected
-        // because otherwise the user might have a pinned tab focused, and highlight
-        // a single specific tab they want stashed (in addition to the active
-        // pinned tab), and then ALL tabs would unexpectedly get stashed. [#61]
-        selected = selected.filter(t => ! t.pinned);
-
-        await this.stashTabs(selected, options);
+        await this.stashTabs(this.stashableTabsInWindow(windowId), options);
     }
 
     /** Stashes the specified tabs into a bookmark folder.
