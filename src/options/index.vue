@@ -213,7 +213,7 @@
     </FeatureFlag>
 
     <FeatureFlag name="ff_restore_closed_tabs" v-model="ff_restore_closed_tabs"
-        :default_value="local_def().ff_restore_closed_tabs.default" :issue="188">
+        :default_value="local_def().ff_restore_closed_tabs.default" :issue="200">
       <template v-slot:summary>Restore Recently-Closed Tabs</template>
       When restoring tabs, if a hidden tab isn't available, search for and
       re-open recently-closed tabs with matching URLs.  (NOTE: This is known to
