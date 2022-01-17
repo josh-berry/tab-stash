@@ -431,6 +431,14 @@ export class Model {
 
         if (options.task) options.task.max = options.items.length;
 
+        // Keep track of which bookmarks we are moving/have already stolen.  A
+        // bookmark can be "stolen" if we have a non-bookmark item with a URL
+        // that matches a bookmark in the current folder which we are not
+        // already moving--in this case, we "steal" the other bookmark so we
+        // don't create a duplicate.
+        const dont_steal_bms = new Set<Bookmarks.NodeID>(
+            filterMap(items, i => isBookmark(i) ? i.id : undefined));
+
         // Now, we move everything into the folder.  `to_index` is maintained as
         // the insertion point (i.e. the next inserted item should have index
         // `to_index`).
@@ -451,6 +459,8 @@ export class Model {
                 const pos = this.bookmarks.positionOf(model_item);
                 await this.bookmarks.move(model_item.id, to_folder.id, to_index);
                 moved_items.push(model_item);
+                dont_steal_bms.add(model_item.id);
+
                 if (pos && pos.parent === to_folder && pos.index < to_index) {
                     // Because we are moving items which appear in the list
                     // before the insertion point, the insertion point shouldn't
@@ -465,17 +475,36 @@ export class Model {
             // If it's a tab, mark the tab for closure.
             if (isTab(item)) close_tab_ids.push(item.id);
 
-            // Otherwise, we treat tabs and external items the same (i.e. just
-            // create a new bookmark).
-            //
-            // TODO fill in title/icon details if missing?
-            const node = await this.bookmarks.create({
-                title: item.title || item.url,
-                url: item.url,
-                parentId: to_folder.id,
-                index: to_index,
-            });
+            // Otherwise, check if there's a duplicate in the current folder
+            // which we can steal.  If so, we move it.  Otherwise, we just create a
+            // new bookmark.  Unlike putItemsInWindow(), we look at both title
+            // and url here since the user might have renamed the bookmark.
+            let node;
+            const already_there = this.bookmarks.childrenOf(to_folder)
+                .filter(bm => ! dont_steal_bms.has(bm.id)
+                    && 'url' in bm
+                    && (item.title ? item.title === bm.title : true)
+                    && bm.url === item.url);
+            if (already_there.length > 0) {
+                node = already_there[0];
+
+                const pos = this.bookmarks.positionOf(node);
+                await this.bookmarks.move(node.id, to_folder.id, to_index);
+                if (pos && pos.parent === to_folder && pos.index < to_index) --to_index;
+
+            } else {
+                node = await this.bookmarks.create({
+                    title: item.title || item.url,
+                    url: item.url,
+                    parentId: to_folder.id,
+                    index: to_index,
+                });
+            }
             moved_items.push(node);
+            dont_steal_bms.add(node.id);
+
+            // Update the selection state of the chosen bookmark to match the
+            // original item's selection state.
             await this.bookmarks.setSelected([node], !!item.$selected);
         }
 

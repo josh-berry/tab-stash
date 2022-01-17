@@ -20,6 +20,7 @@ import {LOCAL_DEF, SYNC_DEF} from './options';
 import {TabID} from './tabs';
 import {getDefaultFolderNameISODate} from './bookmarks';
 import {DeletedFolder} from './deleted-items';
+import {filterMap} from '../util';
 
 describe('model', () => {
     let tabs: TabFixture["tabs"];
@@ -619,6 +620,51 @@ describe('model', () => {
                     bookmarks.one.id, bookmarks.three.id, bookmarks.five.id,
                     bookmarks.six.id, bookmarks.seven.id, bookmarks.eight.id,
                 ]);
+        });
+
+        it('skips or steals duplicates when putting items in the same folder', async () => {
+            const urls = [
+                `${B}#gazebo`, `${B}#doug`, `${B}#gazebo`, `${B}#turtle`,
+                `${B}#nate`,
+            ];
+            const p = model.putItemsInFolder({
+                toFolderId: bookmarks.names.id,
+                toIndex: 2,
+                items: urls.map(url => ({url}))
+            });
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(browser.bookmarks.onMoved);
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(browser.bookmarks.onCreated);
+            await events.next(browser.bookmarks.onMoved);
+            const res = await p;
+
+            const expectedIds = [
+                bookmarks.helen.id,
+                res[0].id,
+                bookmarks.doug_2.id,
+                res[2].id,
+                res[3].id,
+                bookmarks.nate.id,
+                bookmarks.patricia.id,
+            ];
+
+            const folder = model.bookmarks.folder(bookmarks.names.id)!;
+
+            expect(filterMap(res, r => 'url' in r ? r.url : undefined))
+                .to.deep.equal(urls);
+
+            expect(folder.children).to.deep.equal(expectedIds);
+            expect(model.bookmarks.childrenOf(folder).map(b => 'url' in b && b.url))
+                .to.deep.equal([
+                    `${B}#helen`,
+                    `${B}#gazebo`, `${B}#doug`, `${B}#gazebo`, `${B}#turtle`,
+                    `${B}#nate`,
+                    `${B}#patricia`,
+                ]);
+
+            expect((await browser.bookmarks.getChildren(bookmarks.names.id)).map(b => b.id))
+                .to.deep.equal(expectedIds);
         });
     });
 
