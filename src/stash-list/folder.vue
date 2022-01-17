@@ -57,7 +57,7 @@ import {PropType, defineComponent} from 'vue';
 import {altKeyName, bgKeyName, bgKeyPressed, required} from '../util';
 import {DragAction, DropAction} from '../components/dnd-list';
 
-import {Model, StashItem} from '../model';
+import {copyIf, Model, StashItem} from '../model';
 import {
     Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, friendlyFolderName,
 } from '../model/bookmarks';
@@ -160,15 +160,19 @@ export default defineComponent({
             const win_id = model.tabs.targetWindow.value;
             if (! win_id) return;
 
-            model.attempt(() => model.stashTabsInWindow(
-                    win_id, {folderId: this.folder.id, close: ! ev.altKey}));
+            model.attempt(async () => await model.putItemsInFolder({
+                items: copyIf(ev.altKey, model.stashableTabsInWindow(win_id)),
+                toFolderId: this.folder.id,
+            }));
         },
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const tab = this.model().tabs.activeTab();
             if (! tab) return;
-            await this.model().stashTabs([tab],
-                {folderId: this.folder.id, close: ! ev.altKey});
+            await this.model().putItemsInFolder({
+                items: copyIf(ev.altKey, [tab]),
+                toFolderId: this.folder.id,
+            });
         })},
 
         move(ev: MouseEvent | KeyboardEvent) {
@@ -177,7 +181,7 @@ export default defineComponent({
             if (! win_id) return;
 
             model.attempt(() => model.putSelectedInFolder({
-                move: ! ev.altKey,
+                copy: ev.altKey,
                 toFolderId: this.folder.id,
             }));
         },
@@ -233,7 +237,6 @@ export default defineComponent({
                 items,
                 toFolderId: this.folder.id,
                 toIndex: ev.toIndex,
-                move: true,
             }));
         },
     },

@@ -1,6 +1,6 @@
 import browser from 'webextension-polyfill';
 
-import { TaskMonitor } from '../util';
+import {TaskMonitor, filterMap} from '../util';
 import {Model} from '../model';
 import { fetchInfoForSites } from './siteinfo';
 
@@ -182,16 +182,22 @@ export async function importURLs(
         for (const g of groups_rev) {
             if (tm.cancelled) break;
 
-            const res = await tm.spawn(tm => model.bookmarkTabs(
-                undefined, // Always make new folders
-                g.urls.map(url => ({url, title: "Importing..."})),
-                {newFolderTitle: g.title, taskMonitor: tm}));
+            const res = await tm.spawn(async tm => {
+                const folder = await model.bookmarks.createStashFolder(g.title);
+                const bookmarks = await model.putItemsInFolder({
+                    items: g.urls.map(url => ({url, title: "Importing..."})),
+                    toFolderId: folder.id,
+                    task: tm,
+                });
+                return {folder, bookmarks};
+            });
             bm_groups.push(res);
         }
 
         return {
-            bookmarks: flat(bm_groups.map(g => g.bookmarks)),
-            folderIds: <string[]>bm_groups.map(g => g.newFolderId).filter(id => id),
+            bookmarks: flat(bm_groups.map(g =>
+                filterMap(g.bookmarks, bm => 'url' in bm ? bm : undefined))),
+            folderIds: <string[]>bm_groups.map(g => g.folder.id).filter(id => id),
         };
     });
 

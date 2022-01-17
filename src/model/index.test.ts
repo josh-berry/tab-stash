@@ -18,7 +18,7 @@ import MemoryKVS from '../datastore/kvs/memory';
 import {_StoredObjectFactory} from '../datastore/stored-object';
 import {LOCAL_DEF, SYNC_DEF} from './options';
 import {TabID} from './tabs';
-import {getDefaultFolderNameISODate, NodeID} from './bookmarks';
+import {getDefaultFolderNameISODate} from './bookmarks';
 import {DeletedFolder} from './deleted-items';
 
 describe('model', () => {
@@ -385,7 +385,6 @@ describe('model', () => {
             finalState: (keyof typeof bookmarks)[],
         }) => async () => {
             const p = model.putItemsInFolder({
-                move: true,
                 items: options.items.map(i => ({id: bookmarks[i].id})),
                 toFolderId: bookmarks[options.toFolder].id,
                 toIndex: options.toIndex,
@@ -496,7 +495,6 @@ describe('model', () => {
 
         it('copies external items into the folder', async () => {
             const p = model.putItemsInFolder({
-                move: true,
                 items: [{url: 'foo', title: 'Foo'}, {url: 'bar', title: 'Bar'}],
                 toFolderId: bookmarks.names.id,
                 toIndex: 2,
@@ -530,7 +528,6 @@ describe('model', () => {
 
         it('moves tabs into the folder', async () => {
             const p = model.putItemsInFolder({
-                move: true,
                 items: [
                     model.tabs.tab(tabs.real_bob.id)!,
                     model.tabs.tab(tabs.real_estelle.id)!,
@@ -571,7 +568,6 @@ describe('model', () => {
 
         it('moves tabs and bookmarks into the folder', async () => {
             const p = model.putItemsInFolder({
-                move: true,
                 items: [
                     model.tabs.tab(tabs.real_bob.id)!,
                     model.tabs.tab(tabs.real_estelle.id)!,
@@ -651,7 +647,6 @@ describe('model', () => {
             finalState: (keyof typeof tabs)[],
         }) => async () => {
             const p = model.putItemsInWindow({
-                move: true,
                 items: options.items.map(i => ({id: tabs[i].id})),
                 toWindowId: windows[options.toWindow].id,
                 toIndex: options.toIndex,
@@ -799,7 +794,6 @@ describe('model', () => {
 
         it('copies external items into the window', async() => {
             const p = model.putItemsInWindow({
-                move: true,
                 items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
                 toWindowId: windows.right.id,
                 toIndex: 2,
@@ -828,7 +822,6 @@ describe('model', () => {
             });
 
             const p = model.putItemsInWindow({
-                move: true,
                 items: [
                     model.bookmarks.bookmark(bookmarks.helen.id)!, // hidden tab
                     model.bookmarks.bookmark(bookmarks.nate.id)! // not open
@@ -883,7 +876,6 @@ describe('model', () => {
 
         it('moves tabs and bookmarks into the window', async() => {
             const p = model.putItemsInWindow({
-                move: true,
                 items: [
                     model.tabs.tab(tabs.right_doug.id)!,
                     model.bookmarks.bookmark(bookmarks.nate.id)!,
@@ -919,105 +911,6 @@ describe('model', () => {
             expect(model.deleted_items.state.entries[0].item).to.deep.include({
                 url: bookmarks.nate.url,
             });
-        });
-    });
-
-    describe('stashes tabs to bookmarks', () => {
-        async function stashLeftWindow(newFolder: boolean, folderId?: NodeID) {
-            const p = model.stashTabsInWindow(windows.left.id, {
-                folderId,
-                close: true
-            });
-            await events.nextN(browser.bookmarks.onCreated, 3 + (newFolder ? 1 : 0));
-            await events.nextN(browser.tabs.onCreated, 1);
-            await events.nextN(browser.tabs.onActivated, 1);
-            await events.nextN(browser.tabs.onHighlighted, 1);
-            await events.nextN(browser.tabs.onUpdated, 3);
-            await p;
-        }
-
-        function checkLeftWindowTabs() {
-            const win = model.tabs.window(windows.left.id)!;
-            const model_tabs = model.tabs.tabsIn(win);
-
-            expect(model_tabs.map(t => t.url)).to.deep.equal([
-                `${B}#alice`, `${B}#betty`, `${B}#charlotte`, `${B}`
-            ]);
-            expect(model_tabs.map(t => t.hidden)).to.deep.equal([
-                true, true, true, false,
-            ]);
-            expect(model_tabs[3].active).to.be.true;
-        }
-
-        function checkLeftWindowBookmarks(new_stash_id: NodeID) {
-            const new_stash = model.bookmarks.folder(new_stash_id)!;
-            expect(getDefaultFolderNameISODate(new_stash.title)).not.to.be.null;
-            expect(new_stash.children.map(id => model.bookmarks.bookmark(id)!.url))
-                .to.deep.equal([`${B}#alice`, `${B}#betty`, `${B}#charlotte`]);
-        }
-
-        it('adds stashed tabs to a new unnamed bookmark folder', async () => {
-            await stashLeftWindow(true);
-
-            checkLeftWindowTabs();
-            const new_stash_id = model.bookmarks.stash_root.value!.children[0];
-            checkLeftWindowBookmarks(new_stash_id);
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
-        });
-
-        it('adds stashed tabs to a recently-created unnamed bookmark folder', async () => {
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
-            const p = model.ensureRecentUnnamedFolder();
-            await events.next(browser.bookmarks.onCreated);
-            await p;
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
-
-            await stashLeftWindow(false);
-
-            checkLeftWindowTabs();
-            const new_stash_id = model.bookmarks.stash_root.value!.children[0];
-            checkLeftWindowBookmarks(new_stash_id);
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
-        });
-
-        it('adds stashed tabs to a named bookmark folder', async () => {
-            await stashLeftWindow(false, bookmarks.names.id);
-
-            const stash = model.bookmarks.folder(bookmarks.names.id)!;
-            checkLeftWindowTabs();
-            expect(stash.children.map(id => model.bookmarks.bookmark(id)!.url))
-                .to.deep.equal([
-                    `${B}#doug`, `${B}#helen`, `${B}#patricia`, `${B}#nate`,
-                    `${B}#alice`, `${B}#betty`, `${B}#charlotte`,
-                ]);
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
-        });
-
-        it('ignores pinned, hidden and/or blank tabs in a window', async () => {
-            const p = model.stashTabsInWindow(windows.real.id, {close: true});
-            await events.nextN(browser.bookmarks.onCreated, 5);
-            await events.nextN(browser.tabs.onUpdated, 4);
-            await p;
-
-            const win = model.tabs.window(windows.real.id)!;
-            const model_tabs = model.tabs.tabsIn(win);
-
-            expect(model_tabs.map(t => t.url))
-                .to.deep.equal(windows.real.tabs!.map(t => t.url));
-            expect(model_tabs.map(t => t.hidden)).to.deep.equal([
-                false, false, false,
-                true, true, true, true, true, true, true,
-            ]);
-            expect(model_tabs[2].active).to.be.true;
-            expect(model_tabs[2].url).to.equal(`${B}`);
-
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
-
-            const new_stash_id = model.bookmarks.stash_root.value!.children[0];
-            const new_stash = model.bookmarks.folder(new_stash_id)!.children
-                .map(id => model.bookmarks.bookmark(id)!);
-            expect(new_stash.map(bm => bm.url))
-                .to.deep.equal([`${B}#bob`, `${B}#doug`, `${B}#estelle`, `${B}#francis`]);
         });
     });
 

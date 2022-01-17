@@ -26,7 +26,7 @@ import {PropType, defineComponent} from 'vue';
 import browser from 'webextension-polyfill';
 
 import {altKeyName, bgKeyName, required} from '../util';
-import {Model} from '../model';
+import {Model, copyIf} from '../model';
 import {Tab} from '../model/tabs';
 
 export default defineComponent({
@@ -64,9 +64,10 @@ export default defineComponent({
         })},
 
         stash(ev: MouseEvent) { this.attempt(async () => {
-            await this.model().stashTabs([this.tab], {
-                folderId: this.model().mostRecentUnnamedFolder()?.id,
-                close: ! ev.altKey,
+            const model = this.model();
+            await model.putItemsInFolder({
+                items: copyIf(ev.altKey, [this.tab]),
+                toFolderId: (await model.ensureRecentUnnamedFolder()).id,
             });
         })},
 

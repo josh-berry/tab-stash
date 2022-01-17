@@ -6,6 +6,7 @@ import {
     asyncEvent, urlToOpen, nonReentrant, logErrors,
 } from './util';
 import service_model from './service-model';
+import {copyIf} from './model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
 import {TabID, WindowID} from './model/tabs';
 
@@ -120,38 +121,31 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
 
     stash_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab || tab.windowId === undefined) return;
-        await model.stashTabsInWindow(tab.windowId as WindowID, {close: true});
+        await stash_something({what: 'all', copy: false, tab});
     },
 
     stash_one: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab || tab.windowId === undefined) return;
-        await model.stashTabs([tab], {
-            folderId: model.mostRecentUnnamedFolder()?.id,
-            close: true,
-        });
+        await stash_something({what: 'single', copy: false, tab});
     },
 
     stash_one_newgroup: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
         if (! tab) return;
-        await model.stashTabs([tab], {close: true});
+        await model.putItemsInFolder({
+            items: [tab],
+            toFolderId: (await model.bookmarks.createStashFolder()).id,
+        });
     },
 
     copy_all: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab || tab.windowId === undefined) return;
-        await model.stashTabsInWindow(tab.windowId as WindowID, {close: false});
+        await stash_something({what: 'all', copy: true, tab});
     },
 
     copy_one: async function(tab?: Tabs.Tab) {
         show_something(model.options.sync.state.open_stash_in);
-        if (! tab) return;
-        await model.stashTabs([tab], {
-            folderId: model.mostRecentUnnamedFolder()?.id,
-            close: false,
-        });
+        await stash_something({what: 'single', copy: true, tab});
     },
 
     options: async function() {
@@ -181,18 +175,30 @@ function show_something(show_what: ShowWhatOpt) {
     }
 }
 
-async function stash_something(stash_what: StashWhatOpt, tab: Tabs.Tab) {
-    if (tab.windowId === undefined) return;
-    switch (stash_what) {
+async function stash_something(options: {
+    what: StashWhatOpt,
+    copy?: boolean,
+    tab?: Tabs.Tab,
+}) {
+    if (! options.tab || options.tab.windowId === undefined) return;
+
+    switch (options.what) {
         case 'all':
-            await model.stashTabsInWindow(tab.windowId as WindowID, {close: true});
+            const tabs = model.stashableTabsInWindow(options.tab.windowId as WindowID);
+            if (tabs.length === 0) return;
+
+            await model.putItemsInFolder({
+                items: copyIf(!!options.copy, tabs),
+                toFolderId: (await model.bookmarks.createStashFolder()).id
+            });
             break;
 
         case 'single':
-            await model.stashTabs([tab], {
-                folderId: model.mostRecentUnnamedFolder()?.id,
-                close: true,
+            await model.putItemsInFolder({
+                items: copyIf(!!options.copy, [options.tab]),
+                toFolderId: (await model.ensureRecentUnnamedFolder()).id,
             });
+            break;
 
         case 'none':
         default:
@@ -245,7 +251,7 @@ if (browser.browserAction) {
             return;
         }
         show_something(opts.browser_action_show);
-        await stash_something(opts.browser_action_stash, tab);
+        await stash_something({what: opts.browser_action_stash, tab});
     }));
 }
 

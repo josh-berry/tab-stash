@@ -364,13 +364,14 @@ export class Model {
         return candidates[0];
     }
 
-    /** Unconditionally create a new unnamed folder at the top of the stash root
-     * (creating the stash root if it does not exist). */
-     async createUnnamedFolder(): Promise<Folder> {
+    /** Create a new folder at the top of the stash root (creating the stash
+     * root itself if it does not exist).  If the name is not specified, a
+     * default name will be assigned based on the folder's creation time. */
+     async createStashFolder(name?: string): Promise<Folder> {
         const stash_root = await this.ensureStashRoot();
         const bm = await this.create({
             parentId: stash_root.id,
-            title: genDefaultFolderName(new Date()),
+            title: name ?? genDefaultFolderName(new Date()),
             index: 0,
         });
         return bm as Folder;

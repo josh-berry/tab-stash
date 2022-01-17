@@ -278,146 +278,18 @@ export class Model {
     }
 
     /** Put the set of currently-selected items in the current window. */
-    async putSelectedInWindow(options: {move: boolean}) {
+    async putSelectedInWindow(options: {copy: boolean}) {
         await this.putItemsInWindow({
-            items: Array.from(this.selectedItems()),
-            ...options,
+            items: copyIf(options.copy, Array.from(this.selectedItems())),
         });
     }
 
     /** Put the set of currently-selected items in the specified folder. */
-    async putSelectedInFolder(options: {move: boolean, toFolderId: Bookmarks.NodeID}) {
+    async putSelectedInFolder(options: {copy: boolean, toFolderId: Bookmarks.NodeID}) {
         await this.putItemsInFolder({
-            items: Array.from(this.selectedItems()),
-            ...options,
+            items: copyIf(options.copy, Array.from(this.selectedItems())),
+            toFolderId: options.toFolderId,
         });
-    }
-
-    /** Stash either all tabs (if none are selected) or the selected tabs in the
-     * window `windowId` (or the current window, if `windowId` is undefined).
-     *
-     * If `folderId` is not specified, stashes into a new unnamed folder.
-     *
-     * If `close` is true, closes/hides the stashed tabs according to the user's
-     * preferences. */
-    async stashTabsInWindow(
-        windowId: Tabs.WindowID,
-        options: {
-            folderId?: Bookmarks.NodeID,
-            close?: boolean
-        }
-    ): Promise<void> {
-        await this.stashTabs(this.stashableTabsInWindow(windowId), options);
-    }
-
-    /** Stashes the specified tabs into a bookmark folder.
-     *
-     * If `folderId` is not specified, stashes into a new unnamed folder.
-     *
-     * If `close` is true, closes/hides the stashed tabs according to the user's
-     * preferences. */
-    async stashTabs(
-        tabs: StashItem[],
-        options: {
-            folderId?: Bookmarks.NodeID,
-            close?: boolean
-        }
-    ): Promise<void> {
-        const saved_tabs = (await this.bookmarkTabs(options.folderId, tabs)).tabs;
-
-        if (options.close) {
-            await this.hideOrCloseStashedTabs(
-                filterMap(saved_tabs, t => t.id as Tabs.TabID));
-        }
-    }
-
-    /** Saves `all_tabs` to the target bookmark folder (if specified) or creates
-     * a new folder (if not).  Returns the tabs that were actually stashed, the
-     * newly-created bookmarks, and the ID of the folder where they were
-     * created.
-     *
-     * *NOTE:* The returned tabs and bookmarks are not reactive, because in the
-     * interest of minimizing latency, we don't wait for the model to update
-     * itself. */
-    async bookmarkTabs(
-        folderId: Bookmarks.NodeID | undefined,
-        all_tabs: StashItem[],
-        options?: {newFolderTitle?: string, taskMonitor?: TaskMonitor},
-    ): Promise<BookmarkTabsResult> {
-        // Figure out which of the tabs to save.  We ignore tabs with
-        // unparseable URLs or which look like extensions and internal browser
-        // things.
-        //
-        // We filter out all tabs without URLs below. #cast
-        const tabs = <(StashItem & {url: string})[]>
-            all_tabs.filter(t => t.url && this.isURLStashable(t.url));
-
-        // If there are no tabs to save, early-exit here so we don't
-        // unnecessarily create bookmark folders we don't need.
-        if (tabs.length == 0) {
-            return {tabs: [], bookmarks: []};
-        }
-
-        // Find or create the root of the stash.
-        const root = await this.bookmarks.ensureStashRoot();
-
-        // Keep track of which tabs to actually save (we filter below based on
-        // what we already have), and where in the folder to save them (we want
-        // to append).
-        let tabs_to_actually_save = tabs;
-        let newFolderId: undefined | string = undefined;
-
-        if (folderId === undefined) {
-            // Create a new folder, if it wasn't specified.
-            if (options?.newFolderTitle) {
-                const folder = await browser.bookmarks.create({
-                    parentId: root.id,
-                    title: options?.newFolderTitle
-                        ?? Bookmarks.genDefaultFolderName(new Date()),
-                    index: 0, // Newest folders should show up on top
-                });
-                folderId = folder.id as Bookmarks.NodeID;
-            } else {
-                folderId = (await this.ensureRecentUnnamedFolder()).id;
-            }
-            newFolderId = folderId;
-
-            // When saving to this folder, we want to save all tabs we
-            // previously identified as "save-worthy", and we want to insert
-            // them at the beginning of the folder.  So, no changes to
-            // /tabs_to_actually_save/ or /index/ here.
-
-        } else {
-            // If we're adding to an existing folder, skip bookmarks which
-            // already exist in that folder.
-            //
-            // Note, however, that these tabs are still considered "saved" for
-            // the purposes of this function, because the already appear in the
-            // folder.  So it's okay for callers to assume that we saved
-            // them--that's why we use a separate /tabs_to_actually_save/ array
-            // here.
-            const folder = this.bookmarks.folder(folderId) || {children: []};
-            const existing_bms = filterMap(folder.children, id => {
-                const node = this.bookmarks.node(id);
-                if (node && 'url' in node) return node.url;
-                return undefined;
-            });
-
-            tabs_to_actually_save = tabs_to_actually_save.filter(
-                tab => ! existing_bms.includes(tab.url));
-        }
-
-        // Now save each tab as a bookmark.
-        const bookmarks = await this.putItemsInFolder({
-            items: tabs_to_actually_save,
-            toFolderId: folderId,
-            task: options?.taskMonitor,
-        });
-        return {
-            tabs: tabs.filter(t => isTab(t)) as Tabs.Tab[],
-            bookmarks: bookmarks as Bookmarks.Bookmark[],
-            newFolderId,
-        };
     }
 
     /** Hide/discard/close the specified tabs, according to the user's settings
@@ -531,7 +403,7 @@ export class Model {
     async ensureRecentUnnamedFolder(): Promise<Bookmarks.Folder> {
         const folder = this.mostRecentUnnamedFolder();
         if (folder !== undefined) return folder;
-        return await this.bookmarks.createUnnamedFolder();
+        return await this.bookmarks.createStashFolder();
     }
 
     /** Moves or copies items (bookmarks, tabs, and/or external items) to a
@@ -542,7 +414,6 @@ export class Model {
      * closed once the bookmark is created.  External items (without an ID) will
      * simply be created as new bookmarks, regardless of `move`. */
     async putItemsInFolder(options: {
-        move?: boolean,
         items: StashItem[],
         toFolderId: Bookmarks.NodeID,
         toIndex?: number,
@@ -552,15 +423,7 @@ export class Model {
         const to_folder = expect(this.bookmarks.folder(options.toFolderId),
             () => `Destination folder does not exist: ${options.toFolderId}`);
 
-        // Then we adjust our items depending on whether we're moving or
-        // copying.
-        let items = options.items;
-        if (! options.move) {
-            // NIFTY HACK: If we remove all the item IDs, putItemsInFolder()
-            // will effectively just copy, because it looks like we're "moving"
-            // items not in the stash already.
-            items = items.map(({title, url}) => ({title, url}));
-        }
+        const items = options.items;
 
         // Note: We explicitly DON'T check stashability here because the caller
         // has presumably done this for us--and has explicitly chosen what to
@@ -634,7 +497,6 @@ export class Model {
      * moved into the right place.  External items (without an ID) will simply
      * be created as new tabs, regardless of `move`. */
     async putItemsInWindow(options: {
-        move?: boolean,
         items: StashItem[],
         toWindowId?: Tabs.WindowID,
         toIndex?: number,
@@ -647,15 +509,7 @@ export class Model {
         const win = expect(this.tabs.window(to_win_id),
             () => `Trying to put items in unknown window ${to_win_id}`);
 
-        // Try to figure out where to move items from, or if new tabs need to be
-        // created fresh.  (We don't worry about restoring recently-closed tabs
-        // yet; those are handled differently.)
-        let items = options.items;
-        if (! options.move) {
-            // If we're copying instead of moving, just remove all the item IDs,
-            // which will leave the sources alone.
-            items = items.map(({title, url}) => ({title, url}));
-        }
+        const items = options.items;
 
         // We want to know what tabs were recently closed, so we can
         // restore/un-hide tabs as appropriate.
@@ -664,6 +518,8 @@ export class Model {
         //
         // TODO Known to be buggy on some Firefoxen, see #188.  If nobody
         // complains, probably this whole path should just be removed.
+        //
+        // istanbul ignore if -- as above
         const closed_tabs = !! browser.sessions?.getRecentlyClosed
                 && this.options.local.state.ff_restore_closed_tabs
             ? await browser.sessions.getRecentlyClosed()
@@ -754,6 +610,7 @@ export class Model {
             // If we don't have a tab to move, let's see if a tab was recently
             // closed that we can restore.
             const closed = filterMap(closed_tabs, s => s.tab).find(tabLookingAtP(url));
+            // istanbul ignore next - per Firefox bug noted above, see #188
             if (closed) {
                 console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
                 // Remember the active tab in this window (if any), because
@@ -924,7 +781,7 @@ export class Model {
             if (! folderId) folderId = (await this.ensureRecentUnnamedFolder()).id;
 
             // Restore the bookmark.
-            await this.bookmarkTabs(folderId, [deletion.item]);
+            await this.putItemsInFolder({items: [deletion.item], toFolderId: folderId});
 
             // Restore its favicon.
             if (deletion.item.favIconUrl) {
@@ -950,7 +807,10 @@ export class Model {
         const child = deletion.item.children[childIndex];
         if (! child) return;
 
-        await this.bookmarkTabs(this.mostRecentUnnamedFolder()?.id, [child]);
+        await this.putItemsInFolder({
+            items: [child],
+            toFolderId: (await this.ensureRecentUnnamedFolder()).id,
+        });
 
         if ('url' in child && child.favIconUrl) {
             this.favicons.maybeSet(child.url, child.favIconUrl);
@@ -961,11 +821,23 @@ export class Model {
 };
 
 export type BookmarkTabsResult = {
-    tabs: Tabs.Tab[],
-    bookmarks: Bookmarks.Bookmark[],
+    savedItems: StashItem[],
+    bookmarks: Bookmarks.Node[],
     newFolderId?: string,
 };
 
+/** Apply `copying()` to a set of stash items if `predicate` is true. */
+export function copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
+    if (predicate) return copying(items);
+    return items;
+}
+
+/** Given a set of stash items, transform them such that passing them to a
+ * put*() model method will copy them instead of moving them, leaving the
+ * original sources untouched. */
+export function copying(items: StashItem[]): StashItem[] {
+    return items.map(({title, url}) => ({title, url}));
+}
 
 
 //

@@ -62,7 +62,7 @@ import {altKeyName, filterMap, required} from '../util';
 
 import {DragAction, DropAction} from '../components/dnd-list';
 
-import {Model, StashItem} from '../model';
+import {Model, StashItem, copyIf} from '../model';
 import {Tab} from '../model/tabs';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
 
@@ -156,11 +156,15 @@ export default defineComponent({
         },
 
         async newGroup() {this.attempt(async() => {
-            await this.model().bookmarks.createUnnamedFolder();
+            await this.model().bookmarks.createStashFolder();
         })},
 
         async stash(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
-            await this.model().stashTabs(this.visibleChildren, {close: ! ev.altKey});
+            if (this.visibleChildren.length === 0) return;
+            await this.model().putItemsInFolder({
+                items: copyIf(ev.altKey, this.visibleChildren),
+                toFolderId: (await this.model().bookmarks.createStashFolder()).id,
+            });
         })},
 
         async remove() {this.attempt(async() => {
@@ -206,17 +210,17 @@ export default defineComponent({
         })},
 
         copyToWindow() {
-            this.attempt(() => this.model().putSelectedInWindow({move: false}));
+            this.attempt(() => this.model().putSelectedInWindow({copy: true}));
         },
 
         moveToWindow() {
-            this.attempt(() => this.model().putSelectedInWindow({move: true}));
+            this.attempt(() => this.model().putSelectedInWindow({copy: false}));
         },
 
         moveToNewGroup(ev: MouseEvent | KeyboardEvent) { this.attempt(async () => {
-            const folder = await this.model().bookmarks.createUnnamedFolder();
+            const folder = await this.model().bookmarks.createStashFolder();
             await this.model().putSelectedInFolder({
-                move: ! ev.altKey,
+                copy: ev.altKey,
                 toFolderId: folder.id,
             });
         })},
@@ -237,7 +241,6 @@ export default defineComponent({
             await model.attempt(() => model.putItemsInWindow({
                 items,
                 toIndex: ev.toIndex,
-                move: true,
             }));
         },
     },

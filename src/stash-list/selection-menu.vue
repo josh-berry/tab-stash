@@ -122,7 +122,7 @@ export default defineComponent({
             const model = this.model();
             let folder;
             if (! this.searchText) {
-                folder = await model.bookmarks.createUnnamedFolder();
+                folder = await model.bookmarks.createStashFolder();
             } else {
                 const stash_root = await model.bookmarks.ensureStashRoot();
                 folder = await model.bookmarks.create({
@@ -145,17 +145,17 @@ export default defineComponent({
 
         moveTo(ev: MouseEvent | KeyboardEvent, id: NodeID) {
             this.attempt(() => this.model().putSelectedInFolder({
-                move: ! ev.altKey,
+                copy: ev.altKey,
                 toFolderId: id,
             }));
         },
 
         copyToWindow() {
-            this.attempt(() => this.model().putSelectedInWindow({move: false}));
+            this.attempt(() => this.model().putSelectedInWindow({copy: true}));
         },
 
         moveToWindow() {
-            this.attempt(() => this.model().putSelectedInWindow({move: true}));
+            this.attempt(() => this.model().putSelectedInWindow({copy: false}));
         },
 
         remove() { this.attempt(async() => {
