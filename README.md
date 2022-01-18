@@ -15,7 +15,7 @@ the tabs or groups you want.
 
 Install Tab Stash from [Mozilla Add-Ons][amo]!
 
-[amo]: https://addons.mozilla.org/en-US/firefox/addon/tab-stash/
+[amo]: https://addons.mozilla.org/firefox/addon/tab-stash/
 
 ## Want to help out?
 
