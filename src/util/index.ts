@@ -184,15 +184,6 @@ export function asyncEvent<
     } as T;
 }
 
-export async function logErrors<R>(f: () => Promise<R>): Promise<R> {
-    try {
-        return await f();
-    } catch (e) {
-        console.error(e);
-        throw e;
-    }
-}
-
 // Waits for a bunch of named promises.  The advantage to using this is it
 // allows you to fire off a bunch of stuff in parallel and then wait for it all
 // at once, which should in theory minimize overall latency.

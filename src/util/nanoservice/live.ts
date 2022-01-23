@@ -1,6 +1,6 @@
 import browser, {Runtime} from 'webextension-polyfill';
 
-import {logErrors} from '..';
+import {logErrorsFrom} from "../oops";
 import {NanoPort, NanoService, NanoTimeoutError, RemoteNanoError} from '.';
 import {
     Envelope, NotifyEnvelope, RequestEnvelope, ResponseEnvelope, Response, Send,
@@ -109,7 +109,7 @@ export class Port<S extends Send, R extends Send>
 
             if ('tag' in msg) {
                 if ('request' in msg) {
-                    logErrors(() => this._handleRequest(msg));
+                    logErrorsFrom(() => this._handleRequest(msg));
 
                 } else if ('response' in msg || 'error' in msg) {
                     this._handleResponse(msg);

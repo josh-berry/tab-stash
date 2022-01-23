@@ -2,8 +2,9 @@ import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {
-    backingOff, expect, filterMap, logErrors, shortPoll, tryAgain
+    backingOff, expect, filterMap, shortPoll, tryAgain
 } from "../util";
+import {logErrorsFrom} from '../util/oops';
 import {EventWiring} from '../util/wiring';
 
 /** A node in the bookmark tree. */
@@ -99,7 +100,7 @@ export class Model {
             onFired: () => { this._event_since_load = true; },
             // istanbul ignore next -- safety net; reload the model in the event
             // of an unexpected exception.
-            onError: () => { logErrors(() => this.reload()); },
+            onError: () => { logErrorsFrom(() => this.reload()); },
         });
 
         wiring.listen(browser.bookmarks.onCreated, this.whenBookmarkCreated);

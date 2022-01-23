@@ -3,14 +3,15 @@
 import browser, {Tabs, Menus} from 'webextension-polyfill';
 
 import {
-    asyncEvent, urlToOpen, nonReentrant, logErrors, backingOff,
+    asyncEvent, urlToOpen, nonReentrant, backingOff,
 } from './util';
+import {logErrorsFrom} from './util/oops';
 import service_model from './service-model';
 import {copyIf} from './model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
 import {TabID, WindowID} from './model/tabs';
 
-logErrors(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
+logErrorsFrom(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
 //
 // Migrations -- these are old DBs which are in the wrong format
@@ -316,7 +317,7 @@ model.options.sync.onChanged.addListener(opts => model.attempt(async () => {
 // pile up, which will cause browser slowdowns over time.
 //
 
-logErrors(async () => {
+logErrorsFrom(async () => {
     let managed_urls = model.bookmarks.urlsInStash();
 
     const close_removed_bookmarks = backingOff(() => model.attempt(async () => {

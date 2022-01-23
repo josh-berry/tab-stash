@@ -1,6 +1,7 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {backingOff, expect, filterMap, logErrors, shortPoll, tryAgain} from "../util";
+import {backingOff, expect, filterMap, shortPoll, tryAgain} from "../util";
+import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
 
 export type Window = {
@@ -94,7 +95,7 @@ export class Model {
             onFired: () => { this._event_since_load = true; },
             // istanbul ignore next -- safety net; reload the model in the event
             // of an unexpected exception.
-            onError: () => { logErrors(() => this.reload()); },
+            onError: () => { logErrorsFrom(() => this.reload()); },
         });
 
         wiring.listen(browser.windows.onCreated, this.whenWindowCreated);

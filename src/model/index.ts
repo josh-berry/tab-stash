@@ -33,9 +33,10 @@
 import browser from 'webextension-polyfill';
 
 import {
-    backingOff, expect, filterMap, logErrors, shortPoll, TaskMonitor,
+    backingOff, expect, filterMap, shortPoll, TaskMonitor,
     textMatcher, tryAgain, urlToOpen
 } from '../util';
+import {errorLog, logError, logErrorsFrom} from '../util/oops';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
@@ -47,6 +48,7 @@ import * as DeletedItems from './deleted-items';
 import * as Favicons from './favicons';
 import * as BookmarkMetadata from './bookmark-metadata';
 import * as Selection from './selection';
+import {computed, ref} from 'vue';
 
 export {
     BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons,
@@ -138,8 +140,8 @@ export class Model {
         try {
             return await fn();
         } catch (e) {
-            console.error(e);
-            logErrors(async () => this.reload());
+            logError(e);
+            logErrorsFrom(async () => this.reload());
             throw e;
         }
     }
@@ -147,6 +149,18 @@ export class Model {
     //
     // Accessors
     //
+
+    private _now = ref(Date.now());
+
+    /** Do we need to show a crash-report notification to the user? */
+    showCrashReport = computed(() => {
+        const until = this.options.local.state.hide_crash_reports_until || 0;
+        if (this._now.value < until) {
+            setTimeout(() => { this._now.value = Date.now(); }, until - this._now.value + 1);
+            return false;
+        }
+        return errorLog.length > 0;
+    });
 
     /** Fetch and return an item, regardless of whether it's a bookmark or tab. */
     item(id: string | number): ModelItem | undefined {

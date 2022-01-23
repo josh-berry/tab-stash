@@ -105,10 +105,17 @@ input[type="search"] {
     border-radius: var(--ctrl-border-radius);
     box-shadow: var(--shadow-heavy);
 
-    &:hover { background-color: var(--userlink-hover-fg); }
-    &:active { background-color: var(--userlink-active-fg); }
+    &.has-action:hover { background-color: var(--userlink-hover-fg); }
+    &.has-action:active { background-color: var(--userlink-active-fg); }
 
     & > .contents { margin: var(--ctrl-mh) var(--ctrl-mw); }
+
+    & button {
+        background-color: var(--userlink-hover-fg);
+        color: var(--page-bg);
+        &:hover { background-color: var(--userlink-active-fg); }
+        &:active { background-color: var(--userlink-fg); }
+    }
 }
 
 .notification-enter-active { transition: all var(--notification-fade-time) ease-out; }
