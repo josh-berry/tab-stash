@@ -78,8 +78,19 @@ button, input, select {
     vertical-align: middle;
     white-space: nowrap;
 }
-input, textarea {
+output { cursor: auto; }
+.input { cursor: text; }
+output, .input {
+    display: block;
+
+    user-select: text;
+    -moz-user-select: text;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+}
+input, textarea, .input, output {
     background-color: var(--ctrl-bg);
+    color: var(--page-fg);
     padding: var(--input-text-ph) var(--input-text-pw);
     border: var(--ctrl-border);
     border-radius: var(--input-text-border-radius);

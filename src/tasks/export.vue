@@ -191,16 +191,6 @@ export default defineComponent({
     .dlg > form > label.format { display: none; }
 }
 
-.dlg output {
-    display: block;
-    overflow-y: auto;
-    overflow-wrap: anywhere;
-    user-select: text;
-    -moz-user-select: text;
-    cursor: auto;
-    padding: 4px;
-}
-
 .plaintext {
     font-family: monospace;
 }
