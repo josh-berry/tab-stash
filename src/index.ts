@@ -3,7 +3,7 @@
 import browser, {Tabs, Menus} from 'webextension-polyfill';
 
 import {
-    asyncEvent, urlToOpen, nonReentrant, logErrors,
+    asyncEvent, urlToOpen, nonReentrant, logErrors, backingOff,
 } from './util';
 import service_model from './service-model';
 import {copyIf} from './model';
@@ -319,7 +319,7 @@ model.options.sync.onChanged.addListener(opts => model.attempt(async () => {
 logErrors(async () => {
     let managed_urls = model.bookmarks.urlsInStash();
 
-    const close_removed_bookmarks = nonReentrant(() => model.attempt(async () => {
+    const close_removed_bookmarks = backingOff(() => model.attempt(async () => {
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
         const new_urls = model.bookmarks.urlsInStash();
@@ -460,6 +460,6 @@ const gc = nonReentrant(() => model.attempt(async () => {
 
 // Here we call gc() on browser restart to ensure it happens
 // at least once.
-model.attempt(gc);
+gc();
 
 }); // END FILE-WIDE ASYNC BLOCK

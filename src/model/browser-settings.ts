@@ -1,7 +1,7 @@
 import {reactive} from "vue";
 import browser from "webextension-polyfill";
 
-import {logErrors, nonReentrant, resolveNamed} from "../util";
+import {backingOff, logErrors, resolveNamed} from "../util";
 import {EventWiring} from "../util/wiring";
 
 export type State = {
@@ -47,7 +47,7 @@ export class Model {
             this.whenHomepageChanged);
     }
 
-    readonly reload = nonReentrant(async () => {
+    readonly reload = backingOff(async () => {
         // Chrome does not report browser settings, so we fallback to defaults.
         if (! browser.browserSettings) return;
 

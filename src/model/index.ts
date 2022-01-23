@@ -33,7 +33,7 @@
 import browser from 'webextension-polyfill';
 
 import {
-    expect, filterMap, logErrors, nonReentrant, shortPoll, TaskMonitor,
+    backingOff, expect, filterMap, logErrors, shortPoll, TaskMonitor,
     textMatcher, tryAgain, urlToOpen
 } from '../util';
 
@@ -124,7 +124,7 @@ export class Model {
 
     /** Reload model data (where possible) in the event of an unexpected issue.
      * This should be used sparingly as it's quite expensive. */
-    readonly reload = nonReentrant(async () => {
+    readonly reload = backingOff(async () => {
         await Promise.all([
             this.tabs.reload(),
             this.bookmarks.reload(),

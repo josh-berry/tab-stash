@@ -2,7 +2,7 @@ import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {
-    expect, filterMap, logErrors, nonReentrant, shortPoll, tryAgain
+    backingOff, expect, filterMap, logErrors, shortPoll, tryAgain
 } from "../util";
 import {EventWiring} from '../util/wiring';
 
@@ -112,7 +112,7 @@ export class Model {
      * understanding of the world with the browser's data.  Use this if it looks
      * like the model has gotten out of sync with the browser (e.g. for crash
      * recovery). */
-    readonly reload = nonReentrant(async () => {
+    readonly reload = backingOff(async () => {
         function mark(marked: Set<string>, root: Bookmarks.BookmarkTreeNode) {
             marked.add(root.id);
             if (root.children) for (const c of root.children) mark(marked, c);

@@ -1,6 +1,6 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {expect, filterMap, logErrors, nonReentrant, shortPoll, tryAgain} from "../util";
+import {backingOff, expect, filterMap, logErrors, shortPoll, tryAgain} from "../util";
 import {EventWiring} from "../util/wiring";
 
 export type Window = {
@@ -114,7 +114,7 @@ export class Model {
      * understanding of the world with the browser's data.  Use this if it looks
      * like the model has gotten out of sync with the browser (e.g. for crash
      * recovery). */
-    readonly reload = nonReentrant(async () => {
+    readonly reload = backingOff(async () => {
         // We loop until we can complete a reload without receiving any
         // concurrent events from the browser--if we get a concurrent event, we
         // need to try loading again, since we don't know how the event was
