@@ -48,7 +48,7 @@ body:
         2. The "Edit Widget" dialog appeared
         3. I clicked on "Encabulate"
         4. The crash happened
-     validations:
+    validations:
        required: true
 
   - type: textarea
