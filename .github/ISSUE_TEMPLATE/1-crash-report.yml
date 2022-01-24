@@ -35,7 +35,6 @@ body:
       label: Describe the Crash
       description: |
         Describe what you were doing before the crash in as much detail as possible.  If you can, list any steps you followed which may have led to the crash.
-      render: text
       placeholder: |
         1. I clicked the widget
         2. The "Edit Widget" dialog appeared
