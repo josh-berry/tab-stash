@@ -78,13 +78,7 @@ export default defineComponent({
 }
 
 .dlg .input {
-    display: block;
-    overflow-y: auto;
-    overflow-wrap: anywhere;
-    user-select: text;
-    -moz-user-select: text;
     cursor: text;
-    padding: 4px;
 }
 
 .split_mode {

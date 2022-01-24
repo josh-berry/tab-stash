@@ -1,10 +1,10 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Report a Bug
+about: I found a problem in Tab Stash, but I don't have any crash details.
 
 ---
 
-<!-- NOTE: Please put only ONE problem per bug report.  If you're not sure whether you have one problem or multiple problems, please err on the side of filing more bug reports.  It's much easier to close duplicates than split a single issue into multiple issues. -->
+<!-- NOTE: Please put only ONE problem per report.  If you're not sure whether you have one problem or multiple problems, please err on the side of filing more reports.  It's much easier to close duplicates than split a single issue into multiple issues. -->
 
 ### System Details
 <!-- THIS SECTION IS REQUIRED.  If you leave it out, I will just have to ask you for this information, and your bug will take longer to resolve. :) -->
@@ -16,15 +16,11 @@ about: Create a report to help us improve
 **Installed Browser Extensions:**
 <!-- This part is optional, but please check to make sure you don't have one of these extensions installed:
      https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions -->
-- 
-- 
+-
+-
 
 ### Describe the Bug
 <!-- A short description of what the problem is and/or what happened. -->
-
-
-### Expected Behavior
-<!-- A short description of what you expected to happen instead. -->
 
 
 ### Steps to Reproduce
@@ -34,12 +30,16 @@ about: Create a report to help us improve
 3. Scroll down to '....'
 4. See error
 
+### Expected Behavior
+<!-- A short description of what you expected to happen instead. -->
+
+
 ### Impact
 <!-- [optional] If you tried anything to work around or recover from the bug, or if the bug caused additional problems, discuss it here.  Be as concrete, specific and detailed as possible.  For example, "I spent an hour trying to restart the encabulator to retrieve my data after the crash" clearly illustrates the scale and scope of the problem.  Whereas, "This is a huge problem and should be fixed ASAP" is likely to be ignored because it doesn't provide any detail about WHY the problem is huge. -->
 
 
 ### Additional Details
-<!-- [optional] Any other context that might be helpful. -->
+<!-- [optional] Any other context that might be helpful.  If possible, please share any error logs that you think might be relevant. Here's how to collect them: https://github.com/josh-berry/tab-stash/wiki/Collect-Error-Logs -->
 
 
 

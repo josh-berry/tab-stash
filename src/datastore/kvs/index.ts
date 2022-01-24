@@ -1,7 +1,8 @@
 import {Events} from 'webextension-polyfill';
 import {reactive} from 'vue';
 
-import {logErrors, later} from '../../util';
+import {later} from '../../util';
+import {logErrorsFrom} from "../../util/oops";
 
 import {Entry, Key, Value} from './proto';
 import Client from './client';
@@ -142,7 +143,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     private _io() {
         if (this._pending_io) return;
         this._pending_io = new Promise(resolve => later(() =>
-            logErrors(async () => {
+            logErrorsFrom(async () => {
                 while (this._needs_fetch.size > 0 || this._needs_flush.size > 0) {
                     await this._fetch();
                     await this._flush();

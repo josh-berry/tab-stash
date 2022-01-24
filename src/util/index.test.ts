@@ -1,5 +1,8 @@
 import {expect} from 'chai';
+import FakeTimers from '@sinonjs/fake-timers';
+
 import * as M from '../util';
+import {BackingOffOptions} from '../util';
 
 const REDIR_URL = M.REDIR_URL_TESTONLY;
 
@@ -210,6 +213,118 @@ describe('util', function() {
                await end2;
                expect(callCount, 'callCount post').to.equal(2);
            });
+    });
+
+    describe('backingOff()', () => {
+        const options: BackingOffOptions = {
+            max_delay_ms: 2500, first_delay_ms: 100, exponent: 2,
+            reset_after_idle_ms: 1600
+        };
+
+        let clock: FakeTimers.InstalledClock;
+        beforeEach(() => { clock = FakeTimers.install(); });
+        afterEach(() => { clock.uninstall(); });
+
+        let call_count = 0;
+        let running_calls = 0;
+        beforeEach(() => { call_count = 0; });
+        afterEach(() => { expect(running_calls).to.equal(0); });
+
+        let promises: Promise<void>[] = [];
+        beforeEach(() => { promises = []; });
+
+        let fn: () => Promise<void>;
+        beforeEach(() => {
+            fn = M.backingOff(async () => {
+                ++running_calls;
+                expect(running_calls).to.equal(1);
+                await promises.shift();
+                expect(running_calls).to.equal(1);
+                --running_calls;
+                ++call_count;
+            }, options);
+        });
+
+        function mk_promise(): [Promise<void>, () => void] {
+            let r: () => void;
+            const p = new Promise<void>(resolve => { r = resolve; });
+            return [p, r!];
+        }
+
+        it('calls immediately the first time', async() => {
+            await fn();
+            expect(call_count).to.equal(1);
+        });
+
+        it('runs concurrent calls consecutively', async() => {
+            const [p, r] = mk_promise();
+            promises.push(p, p);
+
+            const call1 = fn();
+            const call2 = fn();
+            expect(running_calls).to.equal(1);
+            r();
+            await clock.runAllAsync();
+            await call1;
+            await clock.runAllAsync();
+            await call2;
+            expect(call_count).to.equal(2);
+        });
+
+        it('backs off slightly after two consecutive calls', async() => {
+            const [p, r] = mk_promise();
+            promises.push(p, p);
+            r();
+
+            await fn();
+            const call2 = fn();
+            await clock.tickAsync(100);
+            await call2;
+        });
+
+        it('backs off progressively', async() => {
+            const [p, r] = mk_promise();
+            promises.push(p, p, p);
+            r();
+
+            await fn();
+            const call2 = fn();
+            await clock.tickAsync(100);
+            await call2;
+            const call3 = fn();
+            await clock.tickAsync(400);
+            await call3;
+        });
+
+        it('caps the delay at the maximum', async() => {
+            const [p, r] = mk_promise();
+            promises.push(p, p, p, p, p, p);
+            r();
+
+            for (let i = 0; i < 5; ++i) {
+                const call = fn();
+                await clock.tickAsync(100*(i+1)**2);
+                await call;
+            }
+
+            const last_call = fn();
+            await clock.tickAsync(2500);
+            await last_call;
+        });
+
+        it('resets the delay after the idle time has passed', async() => {
+            const [p, r] = mk_promise();
+            promises.push(p, p, p);
+            r();
+
+            await fn();
+            const call2 = fn();
+            await clock.tickAsync(100);
+            await call2;
+
+            await clock.tickAsync(1600);
+            await fn();
+        });
     });
 
     describe('DeferQueue', function() {

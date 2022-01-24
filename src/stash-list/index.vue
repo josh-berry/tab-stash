@@ -2,6 +2,7 @@
 <main :class="{'selection-active': selection_active}" tabindex="0"
       @click="deselectAll" @keydown.esc.prevent.stop="onEscape">
   <transition-group tag="aside" class="notification-overlay" appear name="notification">
+    <OopsNotification key="oops" v-if="showCrashReport" />
     <Notification key="new-features" v-if="recently_updated === 'features'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
       Tab Stash {{my_version}} now allows you to select and move multiple tabs
@@ -74,7 +75,7 @@ import browser from 'webextension-polyfill';
 import {defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
-import {TaskMonitor, expect, parseVersion, required} from '../util';
+import {TaskMonitor, parseVersion, required} from '../util';
 import {Model, DeletedItems as DI} from '../model';
 import {Tab} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
@@ -91,6 +92,7 @@ export default defineComponent({
         ImportDialog: require('../tasks/import.vue').default,
         Menu: require('../components/menu.vue').default,
         Notification: require('../components/notification.vue').default,
+        OopsNotification: require('../components/oops-notification.vue').default,
         ProgressDialog: require('../components/progress-dialog.vue').default,
         Window: require('./window.vue').default,
     },
@@ -159,6 +161,8 @@ export default defineComponent({
             const tabs = counts.tabs == 1 ? 'tab' : 'tabs';
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
+
+        showCrashReport(): boolean { return this.model().showCrashReport.value; },
     },
 
     mounted() {
@@ -273,6 +277,3 @@ export default defineComponent({
     },
 });
 </script>
-
-<style>
-</style>

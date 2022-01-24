@@ -1,5 +1,5 @@
 <template>
-<aside class="notification" v-if="! dismissed">
+<aside :class="{'notification': true, 'has-action': !inactive}" v-if="! dismissed">
     <div class="contents" @click.prevent.stop="activate">
         <slot></slot>
     </div>
@@ -22,8 +22,7 @@ export default defineComponent({
     emits: ['activate', 'dismiss'],
 
     props: {
-        onActivate: Function,
-        onDismiss: Function,
+        inactive: Boolean,
     },
 
     data: () => ({

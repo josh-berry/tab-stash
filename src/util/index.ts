@@ -184,15 +184,6 @@ export function asyncEvent<
     } as T;
 }
 
-export async function logErrors<R>(f: () => Promise<R>): Promise<R> {
-    try {
-        return await f();
-    } catch (e) {
-        console.error(e);
-        throw e;
-    }
-}
-
 // Waits for a bunch of named promises.  The advantage to using this is it
 // allows you to fire off a bunch of stuff in parallel and then wait for it all
 // at once, which should in theory minimize overall latency.
@@ -311,6 +302,56 @@ export function nonReentrant(fn: () => Promise<any>): () => Promise<void> {
 
     return inner;
 }
+
+/** Wraps the passed-in async function so that only one call can be running at a
+ * time, and if multiple calls are made within a short time, later calls are
+ * deferred for some exponentially-increasing delay.  The delay is (by default)
+ * reset after no calls have been made for some idle period.
+ *
+ * This is useful in situations such as expensive event-handling code, where the
+ * event handler can make good use of batching/processing of multiple changes at
+ * once, but events are delivered one at a time. */
+export function backingOff(
+    fn: () => Promise<void>,
+    options: BackingOffOptions = {
+        max_delay_ms: 60000, first_delay_ms: 100, exponent: 2,
+        reset_after_idle_ms: 300000
+    },
+): () => Promise<void> {
+    let last_finished = Date.now();
+    let retry_count = 0;
+
+    return nonReentrant(async() => {
+        const now = Date.now();
+        const elapsed = now - last_finished;
+
+        if (options.reset_after_idle_ms !== undefined
+                && elapsed > options.reset_after_idle_ms) {
+            retry_count = 0;
+        }
+
+        const delay = Math.min(options.max_delay_ms,
+            options.first_delay_ms * retry_count ** options.exponent);
+
+        if (elapsed < delay) {
+            await new Promise(r => setTimeout(r, delay - elapsed));
+        }
+
+        try {
+            return await fn();
+        } finally {
+            ++retry_count;
+            last_finished = Date.now();
+        }
+    });
+}
+
+export type BackingOffOptions = {
+    max_delay_ms: number,
+    first_delay_ms: number,
+    exponent: number,
+    reset_after_idle_ms?: number,
+};
 
 
 

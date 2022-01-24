@@ -8,6 +8,10 @@
     </label>
   </section>
 
+  <section><button v-if="hide_crash_reports_until > Date.now()" @click.stop="showCrashReports">
+    Stop Hiding Crash Reports
+  </button></section>
+
   <hr>
 
   <h4>Tab Stash Behavior (All Synced Browsers)</h4>
@@ -213,7 +217,7 @@
     </FeatureFlag>
 
     <FeatureFlag name="ff_restore_closed_tabs" v-model="ff_restore_closed_tabs"
-        :default_value="local_def().ff_restore_closed_tabs.default" :issue="188">
+        :default_value="local_def().ff_restore_closed_tabs.default" :issue="200">
       <template v-slot:summary>Restore Recently-Closed Tabs</template>
       When restoring tabs, if a hidden tab isn't available, search for and
       re-open recently-closed tabs with matching URLs.  (NOTE: This is known to
@@ -227,12 +231,13 @@
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
 
+import {logErrorsFrom} from '../util/oops';
 import * as Options from '../model/options';
 
 const prop = (area: string, name: string) => ({
     get: function(this: any) { return this[area][name]; },
     set: function(this: any, v: any) {
-        this.model()[area].set({[name]: v}).catch(console.error);
+        logErrorsFrom(() => this.model()[area].set({[name]: v}));
     },
 });
 
@@ -264,13 +269,11 @@ export default defineComponent({
         browser_action_show(val: Options.ShowWhatOpt) {
             switch (val) {
                 case 'popup':
-                    this.model().sync.set({browser_action_stash: 'none'})
-                        .catch(console.error);
+                    logErrorsFrom(() => this.model().sync.set({browser_action_stash: 'none'}));
                     break;
                 case 'none':
                     if (this.model().sync.state.browser_action_stash === 'none') {
-                        this.model().sync.set({browser_action_stash: 'single'})
-                            .catch(console.error);
+                        logErrorsFrom(() => this.model().sync.set({browser_action_stash: 'single'}));
                     }
                     break;
             }
@@ -280,14 +283,12 @@ export default defineComponent({
             switch (val) {
                 case 'none':
                     if (this.model().sync.state.browser_action_show === 'none') {
-                        this.model().sync.set({browser_action_show: 'tab'})
-                            .catch(console.error);
+                        logErrorsFrom(() => this.model().sync.set({browser_action_show: 'tab'}));
                     }
                     break;
                 default:
                     if (this.model().sync.state.browser_action_show === 'popup') {
-                        this.model().sync.set({browser_action_show: 'tab'})
-                            .catch(console.error);
+                        logErrorsFrom(() => this.model().sync.set({browser_action_show: 'tab'}));
                     }
                     break;
             }
@@ -295,9 +296,14 @@ export default defineComponent({
     },
 
     methods: {
-        model(): Options.Model { throw new Error("dummy method overridden below"); },
+        model(): Options.Model { throw new Error("dummy overridden method"); },
         local_def() { return Options.LOCAL_DEF; },
         sync_def() { return Options.SYNC_DEF; },
+
+        showCrashReports() {
+            logErrorsFrom(() =>
+                this.model().local.set({hide_crash_reports_until: undefined}));
+        },
     },
 });
 </script>

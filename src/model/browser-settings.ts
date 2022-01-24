@@ -1,7 +1,8 @@
 import {reactive} from "vue";
 import browser from "webextension-polyfill";
 
-import {logErrors, nonReentrant, resolveNamed} from "../util";
+import {backingOff, resolveNamed} from "../util";
+import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
 
 export type State = {
@@ -38,7 +39,7 @@ export class Model {
 
         const wiring = new EventWiring(this, {
             onFired: () => { this._event_since_load = true; },
-            onError: () => { logErrors(() => this.reload()); }
+            onError: () => { logErrorsFrom(() => this.reload()); }
         });
 
         wiring.listen(browser.browserSettings.newTabPageOverride.onChange,
@@ -47,7 +48,7 @@ export class Model {
             this.whenHomepageChanged);
     }
 
-    readonly reload = nonReentrant(async () => {
+    readonly reload = backingOff(async () => {
         // Chrome does not report browser settings, so we fallback to defaults.
         if (! browser.browserSettings) return;
 

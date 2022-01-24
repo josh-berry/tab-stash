@@ -1,6 +1,7 @@
 import browser, {Tabs} from 'webextension-polyfill';
 
-import {logErrors, urlToOpen} from '../util';
+import {urlToOpen} from '../util';
+import {logErrorsFrom} from "../util/oops";
 
 import {KVSCache, Entry} from '../datastore/kvs';
 
@@ -32,7 +33,7 @@ export class Model {
         browser.tabs.onCreated.addListener(tab => this._updateFavicon(tab));
         browser.tabs.onUpdated.addListener((_id, _info, tab) => this._updateFavicon(tab));
 
-        logErrors(async () => {
+        logErrorsFrom(async () => {
             for (const tab of await browser.tabs.query({})) {
                 this._updateFavicon(tab);
             }

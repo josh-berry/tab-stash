@@ -2,8 +2,9 @@ import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {
-    expect, filterMap, logErrors, nonReentrant, shortPoll, tryAgain
+    backingOff, expect, filterMap, shortPoll, tryAgain
 } from "../util";
+import {logErrorsFrom} from '../util/oops';
 import {EventWiring} from '../util/wiring';
 
 /** A node in the bookmark tree. */
@@ -99,7 +100,7 @@ export class Model {
             onFired: () => { this._event_since_load = true; },
             // istanbul ignore next -- safety net; reload the model in the event
             // of an unexpected exception.
-            onError: () => { logErrors(() => this.reload()); },
+            onError: () => { logErrorsFrom(() => this.reload()); },
         });
 
         wiring.listen(browser.bookmarks.onCreated, this.whenBookmarkCreated);
@@ -112,7 +113,7 @@ export class Model {
      * understanding of the world with the browser's data.  Use this if it looks
      * like the model has gotten out of sync with the browser (e.g. for crash
      * recovery). */
-    readonly reload = nonReentrant(async () => {
+    readonly reload = backingOff(async () => {
         function mark(marked: Set<string>, root: Bookmarks.BookmarkTreeNode) {
             marked.add(root.id);
             if (root.children) for (const c of root.children) mark(marked, c);
