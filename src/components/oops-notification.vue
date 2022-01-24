@@ -83,8 +83,16 @@ const showTroubleshooting = () =>
     logErrorsFrom(() => browser.tabs.create({url: TROUBLESHOOTING_URL}));
 
 const searchGitHub = () => {
+    // Some heuristics to widen the search (and hopefully return better results)
+    // by excluding things that look like unique identifiers.
+    const terms = errorLog[0].summary
+        .replace(/[0-9]+/g, '')
+        .replace(/:\s+\S+$/, '')
+        .replace(/\S+:\S+/g, '')
+        .replace(/\S+\.\S+/g, '')
+        .replace(/\S+\@\S+/g, '');
     const url = `https://github.com/josh-berry/tab-stash/issues?q=is%3Aissue+${
-        encodeURIComponent(errorLog[0].summary)}`;
+        encodeURIComponent(terms)}`;
     logErrorsFrom(() => browser.tabs.create({url}));
 };
 
