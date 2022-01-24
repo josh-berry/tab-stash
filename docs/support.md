@@ -23,7 +23,7 @@ If none of the above helps, or if your problem keeps recurring, you have a coupl
 1. [Check GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
    to see if someone else has run into your problem, and if it's been solved
    already.
-2. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new?template=bug_report.md)
+2. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new/choose)
    on GitHub.  While I can't promise to get to your issue in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
    like they may be more serious.
@@ -48,7 +48,7 @@ When I'm planning future releases, I look at which issues have seen the most
 up-votes to help me learn what people are most interested in.
 
 If you don't see your idea in the list,
-[file a new feature request](https://github.com/josh-berry/tab-stash/issues/new?template=feature_request.md).
+[file a new feature request](https://github.com/josh-berry/tab-stash/issues/new/choose).
 
 ## I Have a Question
 
@@ -60,7 +60,7 @@ Here are a few ways to get your question answered:
 3. [Check GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
    to see if someone else has asked your question, and if it's been solved
    already.
-4. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new?template=question.md)
+4. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new/choose)
    on GitHub.  While I can't promise to get to your issue in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
    like they may be more serious.

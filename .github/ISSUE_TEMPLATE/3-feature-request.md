@@ -1,6 +1,6 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Request a Feature
+about: Suggest an idea for improving Tab Stash.
 
 ---
 

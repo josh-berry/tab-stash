@@ -1,6 +1,6 @@
 ---
-name: Question
-about: Ask a question.  Use this if no other template seems to fit.
+name: Ask a Question
+about: Use this if no other template seems to fit.
 
 ---
 
