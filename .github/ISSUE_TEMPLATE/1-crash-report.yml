@@ -2,13 +2,14 @@ name: Report a Crash
 description: Tab Stash notified me about a crash, and I have the crash details.
 body:
   - type: markdown
-    value: |
-      Thanks for taking the time to report a crash!
+    attributes:
+      value: |
+        Thanks for taking the time to report a crash!
 
-      If you're not sure whether you have one problem or multiple problems, it's
-      better to err on the side of opening separate reports for each potential
-      problem, since it's much easier to close duplicates than split a single
-      issue into multiple issues.
+        If you're not sure whether you have one problem or multiple problems, it's
+        better to err on the side of opening separate reports for each potential
+        problem, since it's much easier to close duplicates than split a single
+        issue into multiple issues.
 
   - type: textarea
     id: crash-details
@@ -24,7 +25,7 @@ body:
     validations:
       required: true
 
-  - type: markdown
+  - type: textarea
     id: installed-extensions
     attributes:
       label: Installed Extensions
