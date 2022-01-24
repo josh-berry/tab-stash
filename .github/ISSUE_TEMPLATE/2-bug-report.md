@@ -1,6 +1,6 @@
 ---
 name: Report a Bug
-about: I found a problem in Tab Stash, but I don't have any crash details.
+about: You found a problem in Tab Stash, but you don't have any crash details.
 
 ---
 

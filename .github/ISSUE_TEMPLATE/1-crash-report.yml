@@ -1,15 +1,12 @@
 name: Report a Crash
-description: Tab Stash notified me about a crash, and I have the crash details.
+description: Tab Stash notified you about a crash, and you have the crash details.
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to report a crash!
 
-        If you're not sure whether you have one problem or multiple problems, it's
-        better to err on the side of opening separate reports for each potential
-        problem, since it's much easier to close duplicates than split a single
-        issue into multiple issues.
+        If you're not sure whether you have one problem or multiple problems, it's better to err on the side of opening separate reports for each potential problem, since it's much easier to close duplicates than split a single issue into multiple issues.
 
   - type: textarea
     id: crash-details
@@ -17,8 +14,7 @@ body:
       label: Crash Details
       render: text
       description: |
-        Paste crash details from Tab Stash here.  (If you don't have crash
-        details, please use the "Report a Bug" option instead.)
+        Paste crash details from Tab Stash here.  (If you don't have crash details, please use the "Report a Bug" option instead.)
       placeholder: |
         Browser: Mozilla Firefox ...
         Extension: Tab Stash ...
@@ -30,9 +26,7 @@ body:
     attributes:
       label: Installed Extensions
       description: |
-        List all other extensions you have installed.  Also, please double-check
-        to make sure you don't have any extensions installed which are
-        [incompatible with Tab Stash](https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions).
+        List all other extensions you have installed.  Also, please double-check to make sure you don't have any extensions installed which are [incompatible with Tab Stash](https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions).
       value: "- "
 
   - type: textarea
@@ -40,9 +34,7 @@ body:
     attributes:
       label: Describe the Crash
       description: |
-        Describe what you were doing before the crash in as much detail as
-        possible.  If you can, list any steps you followed which may have led to
-        the crash.
+        Describe what you were doing before the crash in as much detail as possible.  If you can, list any steps you followed which may have led to the crash.
       render: text
       placeholder: |
         1. I clicked the widget
@@ -64,15 +56,9 @@ body:
     attributes:
       label: Impact
       description: |
-        If you tried anything to work around or recover from the bug, or if the
-        bug caused additional problems, discuss it here.  Be as concrete,
-        specific and detailed as possible.
+        If you tried anything to work around or recover from the bug, or if the bug caused additional problems, discuss it here.  Be as concrete, specific and detailed as possible.
 
-        For example, "I spent an hour trying to restart the encabulator to
-        retrieve my data after the crash" clearly illustrates the scale and
-        scope of the problem.  Whereas, "This is a huge problem and should be
-        fixed ASAP" is likely to be ignored because it doesn't provide any
-        detail about WHY the problem is huge.
+        For example, "I spent an hour trying to restart the encabulator to retrieve my data after the crash" clearly illustrates the scale and scope of the problem.  Whereas, "This is a huge problem and should be fixed ASAP" is likely to be ignored because it doesn't provide any detail about WHY the problem is huge.
 
   - type: textarea
     id: details
