@@ -350,11 +350,11 @@ export class Model {
     ) {
         const toWindowId = this.tabs.targetWindow.value;
         if (toWindowId === undefined) {
-            throw new Error(`No target window; not sure where to restore tabs`);
+            throw new Error(`No target window; don't want to unexpectedly close tabs`);
         }
         const cur_win = expect(this.tabs.window(toWindowId),
             () => `Target window ${toWindowId} is unknown to the model`);
-        // Remove duplicate URLs so we only try to restore each URL once.
+        // Remove duplicate URLs so we only try to close each URL once.
         const url_set = new Set(filterMap(urls, url => url));
         // Only consider the tabs in the current window
         const win_tabs = this.tabs.tabsIn(cur_win);
