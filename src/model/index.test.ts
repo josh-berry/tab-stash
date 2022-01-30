@@ -272,6 +272,18 @@ describe('model', () => {
             });
         });
 
+        it('from a specified list',  async () => {
+            expect(model.options.local.state.after_stashing_tab, "This test expects tabs to be hidden.")
+                .to.equal('hide');
+            const bms = await browser.bookmarks.getChildren(bookmarks.names.id);
+            const urls = filterMap(bms, i => i.url)
+            await model.closeTabs(urls)
+            await events.next(browser.tabs.onUpdated)
+            const win = await browser.tabs.query({windowId: windows.real.id, pinned: false})
+            expect(win.reduce((b, t) => b || (!t.hidden && t.url !== undefined && urls.includes(t.url)), false))
+                .to.equal(false)
+        });
+
         it('opens a new empty tab if needed to keep the window open', async () => {
             await model.options.local.set({after_stashing_tab: 'hide'});
             await events.next(browser.storage.onChanged);

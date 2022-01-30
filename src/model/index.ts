@@ -342,6 +342,27 @@ export class Model {
         }
     }
 
+    /** Closes all the stashed tabs with the specified urls.
+     *
+     */
+    async closeTabs(
+        urls: string[]
+    ) {
+        const toWindowId = this.tabs.targetWindow.value;
+        if (toWindowId === undefined) {
+            throw new Error(`No target window; not sure where to restore tabs`);
+        }
+        const cur_win = expect(this.tabs.window(toWindowId),
+            () => `Target window ${toWindowId} is unknown to the model`);
+        // Remove duplicate URLs so we only try to restore each URL once.
+        const url_set = new Set(filterMap(urls, url => url));
+        // Only consider the tabs in the current window
+        const win_tabs = this.tabs.tabsIn(cur_win);
+        await this.hideOrCloseStashedTabs(win_tabs
+            .filter(t => t && ! t.hidden && ! t.pinned && url_set.has(t.url))
+            .map(t => t.id));
+    }
+
     /** Restores the specified URLs as new tabs in the current window.  Returns
      * the IDs of the restored tabs.
      *

@@ -18,6 +18,8 @@
               :tooltip="`Open all tabs in the group and delete the group `
                       + `(hold ${bgKey} to open in background)`" />
       <Button class="remove" @action="remove" tooltip="Delete this group" />
+      <Button class="remove stashed" @action="closeGroup"
+              :tooltip="`Close all tabs in this group`" />
     </ButtonBox>
     <ButtonBox v-else class="folder-actions">
         <Button class="stash here" @action="move"
@@ -165,6 +167,10 @@ export default defineComponent({
                 toFolderId: this.folder.id,
             }));
         },
+
+        async closeGroup() {this.attempt(async() =>{
+            await this.model().closeTabs(this.validChildren.map(b => b.url))
+        })},
 
         async stashOne(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const tab = this.model().tabs.activeTab();
