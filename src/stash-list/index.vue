@@ -162,7 +162,7 @@ export default defineComponent({
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
 
-        showCrashReport(): boolean { return this.model().showCrashReport.value; },
+        showCrashReport(): boolean { return this.model().options.showCrashReport.value; },
     },
 
     mounted() {

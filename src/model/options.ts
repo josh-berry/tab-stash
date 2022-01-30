@@ -7,8 +7,10 @@
 // and will break if it's not true.)
 
 import browser from 'webextension-polyfill';
+import {ref, computed} from 'vue';
 
 import {resolveNamed} from '../util';
+import {errorLog} from '../util/oops';
 import stored_object, {
     StoredObject, aBoolean, anEnum, aNumber, aString, maybeUndef
 } from '../datastore/stored-object';
@@ -132,4 +134,16 @@ export class Model {
         this.sync = src.sync;
         this.local = src.local;
     }
+
+    /** Do we need to show a crash-report notification to the user? */
+    readonly showCrashReport = computed(() => {
+        const until = this.local.state.hide_crash_reports_until || 0;
+        if (this._now.value < until) {
+            setTimeout(() => { this._now.value = Date.now(); }, until - this._now.value + 1);
+            return false;
+        }
+        return errorLog.length > 0;
+    });
+
+    private _now = ref(Date.now());
 }
