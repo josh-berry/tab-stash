@@ -55,12 +55,12 @@ class Parser {
     end(): BookmarkGroup[] {
         this.endGroup();
         return this.built
-            .filter(group => group.urls.length > 0)
             .map(group => {
                 group.urls = Array.from(new Set(
                     group.urls.filter(url => this.model.isURLStashable(url))));
                 return group;
-            });
+            })
+            .filter(group => group.urls.length > 0);
     }
 
     endGroup(titleForNextGroup?: string) {

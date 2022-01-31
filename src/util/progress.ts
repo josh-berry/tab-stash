@@ -414,8 +414,8 @@ function make_progress(parent?: Progress, weight?: number): Progress {
 
     function updateParentProgress(old_value: number, old_max: number) {
         if (parent) {
-            const old_progress = (weight || 1) * old_value / old_max;
-            const new_progress = (weight || 1) * value / max;
+            const old_progress = (weight || 1) * old_value / (old_max || 1);
+            const new_progress = (weight || 1) * value / (max || 1);
             parent.value += new_progress - old_progress;
         }
     }
@@ -439,7 +439,7 @@ function make_progress(parent?: Progress, weight?: number): Progress {
 
         get max() { return max; },
         set max(m: number) {
-            if (m <= 0) throw new RangeError("max must be > 0");
+            if (m < 0) throw new RangeError("max must be >= 0");
 
             const old_max = max;
             max = m;

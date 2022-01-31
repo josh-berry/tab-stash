@@ -167,6 +167,11 @@ export class Model {
         // New-tab URLs, homepages and the like are never stashable.
         if (this.browser_settings.isNewTabURL(url_str)) return false;
 
+        // Invalid URLs are not stashable.
+        try {
+            new URL(url_str);
+        } catch (e) { return false; }
+
         // Tab Stash URLs are never stashable.
         return ! url_str.startsWith(browser.runtime.getURL(''));
     }

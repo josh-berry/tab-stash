@@ -472,7 +472,7 @@ describe('util', function() {
         it('Rejects invalid maximums', function() {
             const tm = new M.TaskMonitor();
             expect(() => tm.max = -1).to.throw(RangeError);
-            expect(() => tm.max = 0).to.throw(RangeError);
+            expect(() => tm.max = 0).to.not.throw(RangeError);
             expect(() => tm.max = 1).to.not.throw(RangeError);
         });
 
