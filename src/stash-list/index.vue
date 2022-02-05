@@ -17,15 +17,15 @@
                   @activate="stash_root_warning.help">
       {{stash_root_warning.text}}
     </Notification>
-    <Notification key="recently-deleted" v-if="recently_deleted.length > 0"
-                  @activate="recently_deleted.length === 1
-                    ? model().undelete(recently_deleted[0])
+    <Notification key="recently-deleted" v-if="recently_deleted !== 0"
+                  @activate="typeof recently_deleted === 'object'
+                    ? model().undelete(recently_deleted)
                     : go('deleted-items.html')">
-        <span v-if="recently_deleted.length === 1">
-            Deleted "{{recently_deleted[0].item.title}}".  Undo?
+        <span v-if="typeof recently_deleted === 'object'">
+            Deleted "{{recently_deleted.item.title}}".  Undo?
         </span>
         <span v-else>
-            Deleted {{recently_deleted.length}} items.  Show what was deleted?
+            Deleted {{recently_deleted}} items.  Show what was deleted?
         </span>
     </Notification>
   </transition-group>
@@ -138,7 +138,7 @@ export default defineComponent({
             return 'features';
         },
 
-        recently_deleted(): DI.Deletion[] {
+        recently_deleted() {
             return this.model().deleted_items.state.recentlyDeleted;
         },
 

@@ -28,7 +28,10 @@ export type DeleteLocation = {
 export type State = {
     fullyLoaded: boolean,
     entries: Deletion[], // entries are sorted newest first
-    recentlyDeleted: Deletion[], // items deleted just a short time ago, oldest first
+
+    /** Either a count of recently-deleted items, or info on the (single)
+     * recently-deleted item. */
+    recentlyDeleted: number | Deletion,
 };
 
 export type Deletion = {
@@ -75,7 +78,7 @@ export class Model {
     readonly state: State = reactive({
         fullyLoaded: false,
         entries: [],
-        recentlyDeleted: [],
+        recentlyDeleted: 0,
     });
 
     private _kvs: KeyValueStore<string, SourceValue>;
@@ -96,38 +99,31 @@ export class Model {
 
     onSet(records: Entry<string, SourceValue>[]) {
         for (const r of records) {
+            // If the entry already exists in the cache, just update it.
+            if (this._update(r)) continue;
+
+            // Else we don't know about this entry yet.  If it doesn't match the
+            // active filter (if any), exclude it no matter what.
             if (this._filter && ! this._filter(r.value.item)) continue;
 
-            const {key, value} = r;
-            const cached = this._entry_cache.get(key);
-            if (cached) {
-                cached.deleted_at = new Date(value.deleted_at);
-                cached.item = value.item;
-            } else {
-                const r = src2state({key, value});
-                this._entry_cache.set(key, r);
-                if (r.deleted_at > this.state.entries[0]?.deleted_at) {
-                    // This is the newest entry so it always goes first
-                    this.state.entries.unshift(r);
-                } else {
-                    // TODO this is slow but hopefully very rare
-                    this.state.entries.push(r);
-                    this.state.entries.sort((a, b) =>
-                        b.deleted_at.valueOf() - a.deleted_at.valueOf());
-                }
+            // If this is a new (to us) entry, then we only insert it if we are
+            // already partially loaded AND it's newer than our oldest item.
+            // This is done for performance reasons--if we see items older than
+            // the oldest item, that item probably won't be visible in the UI
+            // and we're bloating our memory usage for no reason.  So we tell
+            // the model it's not fully-loaded anymore and let it decide how
+            // much to load.
+            const deleted_at = new Date(r.value.deleted_at);
+            const oldest = this.state.entries.length > 0
+                ? this.state.entries[this.state.entries.length - 1]
+                : undefined;
 
-                // Keep items we just deleted in a "recently deleted" list for a
-                // short amount of time so the UI can show an "Undo"
-                // notification.
-                this.state.recentlyDeleted.push(r);
-                if (this._clear_recently_deleted_timeout) {
-                    clearTimeout(this._clear_recently_deleted_timeout);
-                }
-                this._clear_recently_deleted_timeout = setTimeout(() => {
-                    this.state.recentlyDeleted = [];
-                    this._clear_recently_deleted_timeout = undefined;
-                }, RECENT_DELETION_TIMEOUT);
+            if (! oldest || deleted_at.valueOf() < oldest.deleted_at.valueOf()) {
+                this.state.fullyLoaded = false;
+                continue;
             }
+
+            this._insert(r);
         }
     }
 
@@ -136,8 +132,14 @@ export class Model {
         const kset = new Set(keys);
         const f = ({key}: {key: string}) => ! kset.has(key);
 
+        // NOTE: This is O(N^2) if we're clearing out a large number of deleted
+        // items, but that's okay. See commits for [#172] for analysis.
         this.state.entries = this.state.entries.filter(f);
-        this.state.recentlyDeleted = this.state.recentlyDeleted.filter(f);
+
+        if (typeof this.state.recentlyDeleted === 'object'
+                && keys.includes(this.state.recentlyDeleted.key)) {
+            this.state.recentlyDeleted = 0;
+        }
     }
 
     filter(predicate?: (item: DeletedItem) => boolean) {
@@ -179,7 +181,10 @@ export class Model {
             if (starting_filter !== this._filter) break;
 
             const block = await this._kvs.getEndingAt(bound, 10);
-            this.onSet(block);
+            for (const rec of block) {
+                if (this._filter && ! this._filter(rec.value.item)) continue;
+                if (! this._update(rec)) this._insert(rec);
+            }
 
             if (block.length === 0) {
                 this.state.fullyLoaded = true;
@@ -204,8 +209,29 @@ export class Model {
         }};
 
         await this._kvs.set([entry]);
-        // We will get an event that the entry has been added, which will insert
-        // it in the model.
+        // We will get an event that the entry has been added, which may either
+        // insert it in the state directly (if it's new enough) or mark
+        // ourselves as no longer fully-loaded (prompting the UI to loadMore()
+        // if it wants).
+
+        // Keep track of items we ourselves just deleted so the UI can show an
+        // "Undo" notification.
+        if (this.state.recentlyDeleted === 0) {
+            this.state.recentlyDeleted = src2state(entry);
+        } else if (typeof this.state.recentlyDeleted === 'object') {
+            this.state.recentlyDeleted = 2;
+        } else {
+            ++this.state.recentlyDeleted;
+        }
+
+        // And we forget recently-deleted items after a timeout.
+        if (this._clear_recently_deleted_timeout) {
+            clearTimeout(this._clear_recently_deleted_timeout);
+        }
+        this._clear_recently_deleted_timeout = setTimeout(() => {
+            this.state.recentlyDeleted = 0;
+            this._clear_recently_deleted_timeout = undefined;
+        }, RECENT_DELETION_TIMEOUT);
 
         return entry;
     }
@@ -253,7 +279,52 @@ export class Model {
         }
     }
 
-    async makeFakeData_testonly(count: number) {
+    /** Insert and return a reactive entry in the model state.  This could be a
+     * completely new item we just got an event for, or it could be called as
+     * part of loading additional items on demand. */
+    private _insert(rec: Entry<string, SourceValue>): Deletion {
+        const ent = src2state(rec);
+        this._entry_cache.set(rec.key, ent);
+
+        if (ent.deleted_at > this.state.entries[0]?.deleted_at) {
+            // This is the newest entry so it always goes first.
+            this.state.entries.unshift(ent);
+
+        } else {
+            // Somehow this is a "new" entry we haven't seen before, but
+            // it's older than the newest entry in the list.  Insert it and
+            // make sure the entry list stays sorted.
+            //
+            // TODO this is slow but hopefully very rare
+            this.state.entries.push(ent);
+            this.state.entries.sort((a, b) =>
+                b.deleted_at.valueOf() - a.deleted_at.valueOf());
+        }
+
+        return ent;
+    }
+
+    /** Update an entry in the model state, if it already exists.  If the entry
+     * is found, it is returned.  Otherwise `undefined` is returned, and the
+     * caller is expected to `_insert()` the entry if desired. */
+    private _update(rec: Entry<string, SourceValue>): Deletion | undefined {
+        const cached = this._entry_cache.get(rec.key);
+        if (cached) {
+            cached.deleted_at = new Date(rec.value.deleted_at);
+            cached.item = rec.value.item;
+            return cached;
+        }
+        return undefined;
+    }
+
+    /** **FOR TEST ONLY:** Generate a lot of garbage/fake deleted items for
+     * (manual) performance and scale testing, and real-world testing of the
+     * UI's lazy-loading behavior.
+     *
+     * The `batch_size` is the number of entries to insert at once, while
+     * `count` is the total number of fake entries to generate.  A random
+     * combination of individual items and folders is generated. */
+    async makeFakeData_testonly(count: number, batch_size = 1) {
         let ts = Date.now();
         const icons = [
             'back.svg', 'cancel.svg', 'collapse-closed.svg', 'delete.svg',
@@ -270,12 +341,15 @@ export class Model {
         const genUrl = () => `https://${choose(words)}.internet/${choose(words)}/${choose(words)}/${choose(words)}.html`;
         const genIcon = () => `icons/light/${choose(icons)}`;
 
+        let items: Entry<string, SourceValue>[] = [];
+
         for (let i = 0; i < count; ++i) {
             const deleted_at = new Date(ts).toISOString();
             const key = `${deleted_at}-${makeRandomString(4)}`;
             ts -= Math.floor(Math.random() * 6*60*60*1000);
+
             if (Math.random() < 0.5) {
-                await this._kvs.set([{
+                items.push({
                     key,
                     value: {
                         deleted_at,
@@ -294,9 +368,9 @@ export class Model {
                             })(),
                         },
                     },
-                }]);
+                });
             } else {
-                await this._kvs.set([{
+                items.push({
                     key,
                     value: {
                         deleted_at,
@@ -310,8 +384,15 @@ export class Model {
                             favIconUrl: genIcon()
                         },
                     },
-                }]);
+                });
+            }
+
+            if (items.length >= batch_size) {
+                await this._kvs.set(items);
+                items = [];
             }
         }
+
+        if (items.length > 0) await this._kvs.set(items);
     }
 };

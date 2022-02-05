@@ -866,6 +866,7 @@ describe('model', () => {
 
             // We should get some deleted items since we moved bookmarks out
             await events.nextN('KVS.Memory.onSet', 2);
+            await model.deleted_items.loadMore();
             expect(model.deleted_items.state.entries[0].item).to.deep.include({
                 url: bookmarks.helen.url,
             });
@@ -908,6 +909,7 @@ describe('model', () => {
 
             // We should get some deleted items since we moved bookmarks out
             await events.nextN('KVS.Memory.onSet', 1);
+            await model.deleted_items.loadMore();
             expect(model.deleted_items.state.entries[0].item).to.deep.include({
                 url: bookmarks.nate.url,
             });
@@ -1045,6 +1047,7 @@ describe('model', () => {
                 bookmarks.big_stash.id,
             ]);
 
+            await model.deleted_items.loadMore();
             expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
             expect(model.deleted_items.state.entries[0].item).to.deep.equal({
                 title: "Names",
@@ -1070,6 +1073,7 @@ describe('model', () => {
                 bookmarks.nate.id,
             ]);
 
+            await model.deleted_items.loadMore();
             expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
             expect(model.deleted_items.state.entries[0].item).to.deep.equal({
                 title: "Helen Hidden",
@@ -1086,6 +1090,8 @@ describe('model', () => {
             await p1;
 
             expect(model.bookmarks.node(bookmarks.names.id)).to.be.undefined;
+
+            await model.deleted_items.loadMore();
             expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
 
             const p = model.undelete(model.deleted_items.state.entries[0]);
@@ -1118,6 +1124,9 @@ describe('model', () => {
                     bookmarks.patricia.id,
                     bookmarks.nate.id,
                 ]);
+
+                expect(model.deleted_items.state.entries.length).to.equal(0);
+                await model.deleted_items.loadMore();
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
             });
 
@@ -1141,6 +1150,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p1;
 
+                await model.deleted_items.loadMore();
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
                 expect(model.deleted_items.state.entries[1].item.title)
                     .to.equal('Helen Hidden');
@@ -1166,6 +1176,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p1;
 
+                await model.deleted_items.loadMore();
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
                 expect(model.deleted_items.state.entries[1].item.title)
                     .to.equal('Helen Hidden');
@@ -1195,6 +1206,8 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p;
 
+                expect(model.deleted_items.state.entries.length).to.equal(0);
+                await model.deleted_items.loadMore();
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
             });
 

@@ -51,6 +51,16 @@ describe('model/deleted-items', () => {
         expect(model.state.entries.length).to.equal(DATASET_SIZE);
     });
 
+    it('marks the model as not fully-loaded when new items appear', async() => {
+        await model.loadMore();
+        expect(model.state.fullyLoaded).to.equal(true);
+
+        await model.add({title: 'Foo', url: 'http://example.com'});
+        await events.next(source.onSet);
+        expect(model.state.entries.length).to.equal(0);
+        expect(model.state.fullyLoaded).to.equal(false);
+    });
+
     it('loads items newest-first', async() => {
         await model.makeFakeData_testonly(DATASET_SIZE);
         await events.nextN(source.onSet, DATASET_SIZE);
@@ -86,6 +96,8 @@ describe('model/deleted-items', () => {
 
         const item = await m2.add({title: 'Foo', url: 'http://foo'});
         await events.next(source.onSet);
+
+        await model.loadMore();
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({
             item: {title: "Foo", url: 'http://foo'}
@@ -105,6 +117,8 @@ describe('model/deleted-items', () => {
             {title: "Third", url: "third"},
         ]});
         await events.next(source.onSet);
+
+        await model.loadMore();
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({item: {
             title: "Folder", children: [
@@ -114,6 +128,7 @@ describe('model/deleted-items', () => {
             ]
         }});
 
+        await m2.loadMore();
         await m2.dropChildItem(item.key, 1);
         await events.next(source.onSet);
         expect(model.state.entries.length).to.equal(1);
@@ -125,30 +140,62 @@ describe('model/deleted-items', () => {
         }});
     });
 
-    it('tracks recently-deleted items for a short time', async() => {
-        clock = FakeTimers.install();
-        await model.add({title: 'Recent', url: 'recent'});
+    describe('tracks recently-deleted items', async() => {
+        it('tracks single items and clears them after a short time', async () => {
+            clock = FakeTimers.install();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
 
-        const ev = events.next(source.onSet);
-        clock.runToFrame();
-        await ev;
+            const i = await model.add({title: 'Recent', url: 'recent'});
+            const ev = events.next(source.onSet);
+            clock.runToFrame();
+            await ev;
 
-        expect(model.state.recentlyDeleted.length).to.equal(1);
-        expect(model.state.recentlyDeleted[0]).to.deep.include({
-            item: {
-                title: 'Recent',
-                url: 'recent',
-            },
+            expect(model.state.recentlyDeleted).to.deep.include({
+                key: i.key,
+                item: {title: 'Recent', url: 'recent'},
+            });
+            clock.runToLast();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
         });
-        clock.runToLast();
-        expect(model.state.recentlyDeleted).to.deep.equal([]);
+
+        it('tracks multiple items and clears them after a short time', async () => {
+            clock = FakeTimers.install();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+
+            await model.add({title: 'Recent', url: 'recent'});
+            await model.add({title: 'Recent-2', url: 'recent2'});
+            const ev = events.nextN(source.onSet, 2);
+            clock.runToFrame();
+            await ev;
+
+            expect(model.state.recentlyDeleted).to.equal(2);
+            clock.runToLast();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+        });
+
+        it('clears single deleted items which are restored from elsewhere', async() => {
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+
+            const i = await model.add({title: 'Recent', url: 'recent'});
+            const ev = events.next(source.onSet);
+            await ev;
+
+            expect(model.state.recentlyDeleted).to.deep.include({
+                key: i.key,
+                item: {title: 'Recent', url: 'recent'},
+            });
+            await model.drop(i.key);
+            await events.next(source.onDelete);
+
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+        });
     });
 
     describe('filtering', () => {
         it('resets the model when a filter is applied', async() => {
             await model.makeFakeData_testonly(50);
             await events.nextN(source.onSet, 50);
-            expect(model.state.entries.length).to.equal(50);
+            expect(model.state.entries.length).to.equal(0); // lazy-loaded
 
             model.filter(/* istanbul ignore next */ item => false);
             expect(model.state.entries.length).to.equal(0);
@@ -157,7 +204,7 @@ describe('model/deleted-items', () => {
         it('stops an in-progress load when a filter is applied', async() => {
             await model.makeFakeData_testonly(50);
             await events.nextN(source.onSet, 50);
-            expect(model.state.entries.length).to.equal(50);
+            expect(model.state.entries.length).to.equal(0);
             model = new M.Model(source);
 
             const p = model.loadMore();
@@ -174,7 +221,7 @@ describe('model/deleted-items', () => {
         it('loads only items which match the applied filter', async() => {
             await model.makeFakeData_testonly(50);
             await events.nextN(source.onSet, 50);
-            expect(model.state.entries.length).to.equal(50);
+            expect(model.state.entries.length).to.equal(0);
 
             model.filter(item => item.title.includes('cat'));
             expect(model.state.entries.length).to.equal(0);
@@ -202,6 +249,7 @@ describe('model/deleted-items', () => {
             await m2.makeFakeData_testonly(50);
             await events.nextN(source.onSet, 50);
 
+            while (! model.state.fullyLoaded) await model.loadMore();
             expect(model.state.entries.length).to.be.greaterThan(0);
             for (const c of model.state.entries) {
                 expect(c.item.title).to.include('cat');
@@ -214,7 +262,8 @@ describe('model/deleted-items', () => {
         await model.makeFakeData_testonly(100);
         await events.nextN(source.onSet, 100);
 
-        // Check that our test data has sufficiently-old entries.
+        // Load all entries (and ensure the model has old-enough entries).
+        while (! model.state.fullyLoaded) await model.loadMore();
         expect(model.state.entries[model.state.entries.length - 1].deleted_at)
             .to.be.lessThan(dropTime);
 

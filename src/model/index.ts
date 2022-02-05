@@ -739,8 +739,10 @@ export class Model {
         const di = this.deleted_items;
         // We optimistically remove immediately from recentlyDeleted to prevent
         // users from trying to un-delete the same thing multiple times.
-        di.state.recentlyDeleted = di.state.recentlyDeleted.filter(
-            ({key: k}) => k !== deletion.key);
+        if (typeof di.state.recentlyDeleted === 'object'
+                && di.state.recentlyDeleted.key === deletion.key) {
+            di.state.recentlyDeleted = 0;
+        }
 
         const stash_root = await this.bookmarks.ensureStashRoot();
 
