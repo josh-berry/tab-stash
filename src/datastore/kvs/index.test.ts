@@ -355,6 +355,23 @@ describe('datastore/kvs', () => {
         it('returns from flush() immediately if no entries are dirty', async() => {
             await cache.sync();
         });
+
+        it('re-fetches entries if it goes out of sync', async() => {
+            cache.set('a', 'b');
+            cache.set('b', 'c');
+            await cache.sync();
+            await events.next(kvs.onSet);
+
+            kvs.data.set('a', 'aaaa');
+            expect(cache.get('a')).to.deep.equal({key: 'a', value: 'b'});
+            expect(cache.get('b')).to.deep.equal({key: 'b', value: 'c'});
+            events.send(cache.kvs.onSyncLost);
+
+            await events.next(cache.kvs.onSyncLost);
+            await cache.sync();
+            expect(cache.get('a')).to.deep.equal({key: 'a', value: 'aaaa'});
+            expect(cache.get('b')).to.deep.equal({key: 'b', value: 'c'});
+        });
     });
 });
 

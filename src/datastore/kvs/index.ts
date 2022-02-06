@@ -78,6 +78,16 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         this.kvs.onDelete.addListener(keys => {
             for (const k of keys) this._update(k, null);
         });
+        this.kvs.onSyncLost.addListener(() => {
+            // If we missed any events from the KVS, we need to re-fetch
+            // everything we're currently tracking because we don't know what's
+            // changed in the meantime.
+            for (const [k, v] of this._entries) {
+                v.value = null; // In case the item was deleted
+                this._needs_fetch.set(k, v);
+            }
+            this._io();
+        });
     }
 
     /** Returns an entry from the KVS.  If the entry isn't in cache yet (or
