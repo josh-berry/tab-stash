@@ -34,6 +34,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
     describe('stores and updates entries', () => {
         it('no entries', async() => {
             await kvs.set([]);
+            expect(await kvs.get([])).to.deep.equal([]);
         });
 
         it('creates single entries', async() => {
@@ -56,6 +57,10 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
                 .to.deep.equal([[{key: 'a', value: 'alison'}]]);
             expect(await kvs.get(['a']))
                 .to.deep.equal([{key: 'a', value: 'alison'}]);
+        });
+
+        it('does not return non-existent entries', async () => {
+            expect(await kvs.get(['oops'])).to.deep.equal([]);
         });
 
         it('stores and updates multiple entries at once', async() => {
