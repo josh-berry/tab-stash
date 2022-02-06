@@ -22,28 +22,31 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         const connect = connector ?? NanoService.connect;
 
         this.name = service_name;
-        this._port = connect(service_name);
 
         this.onSet = event('KVS.Client.onSet', this.name);
         this.onDelete = event('KVS.Client.onDelete', this.name);
         this.onSyncLost = event('KVS.Client.onSyncLost', this.name);
 
-        this._port.onNotify = msg => {
-            /* istanbul ignore next */ if (! msg) return;
-            switch (msg.$type) {
-                case 'delete':
-                    this.onDelete.send(msg.keys);
-                    break;
-                case 'set':
-                    this.onSet.send(msg.entries);
-                    break;
-            }
-        };
-
-        this._port.onDisconnect = () => {
+        const reconnect = () => {
             this._port = connect(service_name);
-            this.onSyncLost.send();
+            this._port.onNotify = msg => {
+                /* istanbul ignore next */ if (! msg) return;
+                switch (msg.$type) {
+                    case 'delete':
+                        this.onDelete.send(msg.keys);
+                        break;
+                    case 'set':
+                        this.onSet.send(msg.entries);
+                        break;
+                }
+            };
+            this._port.onDisconnect = () => {
+                reconnect();
+                this.onSyncLost.send();
+            };
         };
+        this._port = undefined!; // !-cast - we properly-assign it below.
+        reconnect();
     }
 
     async get(keys: K[]): Promise<Proto.Entry<K, V>[]> {
