@@ -147,7 +147,7 @@ export class Port<S extends Send, R extends Send>
                 timeout_id: setTimeout(
                     () => {
                         this.pending.delete(tag);
-                        reject(new NanoTimeoutError(request, tag));
+                        reject(new NanoTimeoutError(this.name, request, tag));
                     },
                     options?.timeout_ms ?? this.defaultTimeoutMS),
             });
