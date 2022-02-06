@@ -140,6 +140,21 @@ describe('model/deleted-items', () => {
         }});
     });
 
+    it('reloads the model when KVS sync is lost', async () => {
+        await model.add({title: 'Foo', url: 'foo'});
+        await events.next(source.onSet);
+        await model.loadMore(); // loads the item
+        await model.loadMore(); // loads no items but sets fullyLoaded
+        expect(model.state.entries.length).to.be.greaterThan(0);
+        expect(model.state.fullyLoaded).to.equal(true);
+
+        events.send(source.onSyncLost);
+        await events.next(source.onSyncLost);
+
+        expect(model.state.entries.length).to.equal(0);
+        expect(model.state.fullyLoaded).to.equal(false);
+    });
+
     describe('tracks recently-deleted items', async() => {
         it('tracks single items and clears them after a short time', async () => {
             clock = FakeTimers.install();

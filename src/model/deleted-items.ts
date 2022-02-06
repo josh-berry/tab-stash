@@ -90,11 +90,9 @@ export class Model {
     constructor(kvs: KeyValueStore<string, SourceValue>) {
         this._kvs = kvs;
 
-        // How to update the store on KVS changes.  These events are
-        // reliable--we recieve them regardless of whether we are the one doing
-        // the mutation on the KVS.
         kvs.onSet.addListener(records => this.onSet(records));
         kvs.onDelete.addListener(keys => this.onDelete(keys));
+        kvs.onSyncLost.addListener(() => this.onSyncLost());
     }
 
     onSet(records: Entry<string, SourceValue>[]) {
@@ -140,6 +138,19 @@ export class Model {
                 && keys.includes(this.state.recentlyDeleted.key)) {
             this.state.recentlyDeleted = 0;
         }
+    }
+
+    onSyncLost() {
+        // If we lost some events from the KVS, we need to assume we are no
+        // longer fully-loaded.  The easiest way to make sure we have an
+        // accurate picture of the state is simply to (ask the UI to) reload
+        // everything.
+        //
+        // The user will lose their scroll position in the deleted-items page,
+        // but since this is a relatively rare occurrence, I don't think it will
+        // be that much of a problem.
+        this.state.entries = [];
+        this.state.fullyLoaded = false;
     }
 
     filter(predicate?: (item: DeletedItem) => boolean) {
