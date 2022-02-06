@@ -11,8 +11,20 @@ import Service from './service';
 export {Client, Service, Entry, Key, Value};
 
 export interface KeyValueStore<K extends Key, V extends Value> {
+    readonly name: string;
+
+    /** Fired whenever one or more entries in the KVS are inserted or updated,
+     * either by this KeyValueStore or another user of the same KVS. */
     readonly onSet: Events.Event<(entries: Entry<K, V>[]) => void>;
+
+    /** Fired whenever one or more entries in the KVS are deleted, either by
+     * this KeyValueStore or another user of the same KVS. */
     readonly onDelete: Events.Event<(keys: K[]) => void>;
+
+    /** Fired by a KVS client whenever it determines that it may have dropped an
+     * event (e.g. if the service was disconnected for some reason).
+     * (Reconnection is handled automatically by the client.) */
+    readonly onSyncLost: Events.Event<() => void>;
 
     get(keys: K[]): Promise<Entry<K, V>[]>;
     getStartingFrom(bound: K | undefined, limit: number): Promise<Entry<K, V>[]>;

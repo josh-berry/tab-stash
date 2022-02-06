@@ -12,12 +12,16 @@ const byKey = ([k1, v1]: [any, any], [k2, v2]: [any, any]) =>
 export default class MemoryKVS<K extends Key, V extends Value>
     implements KeyValueStore<K, V>
 {
+    readonly name: string;
     readonly onSet: Event<(entries: Entry<K, V>[]) => void>;
     readonly onDelete: Event<(keys: K[]) => void>;
+    readonly onSyncLost: Event<() => void>;
 
     constructor(name: string) {
+        this.name = name;
         this.onSet = event('KVS.Memory.onSet', name);
         this.onDelete = event('KVS.Memory.onDelete', name);
+        this.onSyncLost = event('KVS.Memory.onSyncLost', name);
     }
 
     /** The in-memory KVS data, exposed here for readers to be able to inspect
