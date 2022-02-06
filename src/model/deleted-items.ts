@@ -194,6 +194,9 @@ export class Model {
             const block = await this._kvs.getEndingAt(bound, 10);
             for (const rec of block) {
                 if (this._filter && ! this._filter(rec.value.item)) continue;
+
+                // istanbul ignore else -- We should always insert because we're
+                // loading starting at the oldest item.
                 if (! this._update(rec)) this._insert(rec);
             }
 

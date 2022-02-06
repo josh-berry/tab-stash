@@ -179,11 +179,12 @@ describe('model/deleted-items', () => {
 
             await model.add({title: 'Recent', url: 'recent'});
             await model.add({title: 'Recent-2', url: 'recent2'});
-            const ev = events.nextN(source.onSet, 2);
+            await model.add({title: 'Recent-2', url: 'recent3'});
+            const ev = events.nextN(source.onSet, 3);
             clock.runToFrame();
             await ev;
 
-            expect(model.state.recentlyDeleted).to.equal(2);
+            expect(model.state.recentlyDeleted).to.equal(3);
             clock.runToLast();
             expect(model.state.recentlyDeleted).to.deep.equal(0);
         });
@@ -208,8 +209,8 @@ describe('model/deleted-items', () => {
 
     describe('filtering', () => {
         it('resets the model when a filter is applied', async() => {
-            await model.makeFakeData_testonly(50);
-            await events.nextN(source.onSet, 50);
+            await model.makeFakeData_testonly(50, 27);
+            await events.nextN(source.onSet, 2);
             expect(model.state.entries.length).to.equal(0); // lazy-loaded
 
             model.filter(/* istanbul ignore next */ item => false);
@@ -217,8 +218,8 @@ describe('model/deleted-items', () => {
         });
 
         it('stops an in-progress load when a filter is applied', async() => {
-            await model.makeFakeData_testonly(50);
-            await events.nextN(source.onSet, 50);
+            await model.makeFakeData_testonly(50, 13);
+            await events.nextN(source.onSet, 4);
             expect(model.state.entries.length).to.equal(0);
             model = new M.Model(source);
 
@@ -234,8 +235,8 @@ describe('model/deleted-items', () => {
         });
 
         it('loads only items which match the applied filter', async() => {
-            await model.makeFakeData_testonly(50);
-            await events.nextN(source.onSet, 50);
+            await model.makeFakeData_testonly(50, 7);
+            await events.nextN(source.onSet, 8);
             expect(model.state.entries.length).to.equal(0);
 
             model.filter(item => item.title.includes('cat'));
