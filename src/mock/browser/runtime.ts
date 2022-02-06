@@ -32,9 +32,11 @@ class MockPort implements Runtime.Port {
     }
 
     disconnect() {
-        this.error = new Error('Disconnected');
-        this._peer.error = new Error('Disconnected');
-        this._peer.onDisconnect.send(this);
+        if (! this.error || this.error.message !== 'Disconnected') {
+            this.error = new Error('Disconnected');
+            this._peer.error = new Error('Disconnected');
+            this._peer.onDisconnect.send(this);
+        }
     }
 
     postMessage(msg: any) {

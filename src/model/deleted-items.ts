@@ -90,11 +90,9 @@ export class Model {
     constructor(kvs: KeyValueStore<string, SourceValue>) {
         this._kvs = kvs;
 
-        // How to update the store on KVS changes.  These events are
-        // reliable--we recieve them regardless of whether we are the one doing
-        // the mutation on the KVS.
         kvs.onSet.addListener(records => this.onSet(records));
         kvs.onDelete.addListener(keys => this.onDelete(keys));
+        kvs.onSyncLost.addListener(() => this.onSyncLost());
     }
 
     onSet(records: Entry<string, SourceValue>[]) {
@@ -142,6 +140,19 @@ export class Model {
         }
     }
 
+    onSyncLost() {
+        // If we lost some events from the KVS, we need to assume we are no
+        // longer fully-loaded.  The easiest way to make sure we have an
+        // accurate picture of the state is simply to (ask the UI to) reload
+        // everything.
+        //
+        // The user will lose their scroll position in the deleted-items page,
+        // but since this is a relatively rare occurrence, I don't think it will
+        // be that much of a problem.
+        this.state.entries = [];
+        this.state.fullyLoaded = false;
+    }
+
     filter(predicate?: (item: DeletedItem) => boolean) {
         // This resets the model to the "empty" state.  On subsequent calls to
         // loadMore(), we will load only those records whose root DeletedItems
@@ -183,6 +194,9 @@ export class Model {
             const block = await this._kvs.getEndingAt(bound, 10);
             for (const rec of block) {
                 if (this._filter && ! this._filter(rec.value.item)) continue;
+
+                // istanbul ignore else -- We should always insert because we're
+                // loading starting at the oldest item.
                 if (! this._update(rec)) this._insert(rec);
             }
 

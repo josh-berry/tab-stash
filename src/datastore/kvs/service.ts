@@ -31,6 +31,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
 
     readonly onSet: Event<(entries: Proto.Entry<K, V>[]) => void>;
     readonly onDelete: Event<(keys: K[]) => void>;
+    readonly onSyncLost: Event<() => void>;
 
     private _db: IDBPDatabase;
     private _clients = new Set<Proto.ClientPort<K, V>>();
@@ -39,6 +40,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         this.name = store_name;
         this.onSet = event('KVS.Service.onSet', this.name);
         this.onDelete = event('KVS.Service.onDelete', this.name);
+        this.onSyncLost = event('KVS.Service.onSyncLost', this.name);
         this._db = db;
     }
 

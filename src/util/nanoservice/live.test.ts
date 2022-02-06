@@ -22,10 +22,18 @@ describe('util/nanoservice', function() {
             return [port, svc_port];
         }
 
-        it('connects and disconnects', async function() {
+        it('raises disconnection events on self-disconnect', async function() {
             const [port, svc_port] = await port_pair('test');
-            await port.disconnect();
+            let onDisconnectFired = false;
+
+            port.onDisconnect = p => {
+                expect(p).to.equal(port);
+                onDisconnectFired = true;
+            };
+            port.disconnect();
+
             await events.next(svc_port.onDisconnect);
+            expect(onDisconnectFired).to.equal(true);
         });
 
         it('raises disconnection events', async function() {
@@ -327,6 +335,28 @@ describe('util/nanoservice', function() {
             await events.next('browser.runtime.onMessage');
             await events.next('browser.runtime.onDisconnect');
             await p;
+        });
+
+        it('force-disconnects if sending a request fails', async() => {
+            const [client, ] = await port_pair('test');
+            let onDisconnectFired = false;
+
+            (<any>client).port.error = new Error('oops');
+            client.onDisconnect = port => {
+                expect(client).to.equal(port);
+                onDisconnectFired = true;
+            };
+
+            try {
+                await client.request(42);
+                // istanbul ignore next
+                throw new Error('unreachable');
+            } catch (e: any) {
+                expect(e.message).to.equal('oops');
+            }
+
+            await events.next('browser.runtime.onDisconnect');
+            expect(onDisconnectFired).to.equal(true);
         });
     });
 

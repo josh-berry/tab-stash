@@ -56,10 +56,12 @@ export class RemoteNanoError extends Error {
 }
 
 export class NanoTimeoutError extends Error {
+    readonly portName: string;
     readonly request: Send;
     readonly tag: string;
-    constructor(request: Send, tag: string) {
-        super(`Request "${tag}" timed out: ${JSON.stringify(request)}`);
+    constructor(portName: string, request: Send, tag: string) {
+        super(`${portName}: Request "${tag}" timed out: \`${JSON.stringify(request)}\``);
+        this.portName = portName;
         this.name = 'NanoTimeoutError';
         this.request = request;
         this.tag = tag;
