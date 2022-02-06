@@ -94,6 +94,8 @@ const searchGitHub = () => {
         .replace(/:\s+\S+$/, '')
         .replace(/\S+:\S+/g, '')
         .replace(/\S+\.\S+/g, '')
+        .replace(/"[^"]*"/g, '')
+        .replace(/`[^`]*`/g, '')
         .replace(/\S+\@\S+/g, '');
     const url = `https://github.com/josh-berry/tab-stash/issues?q=is%3Aissue+${
         encodeURIComponent(terms)}`;
