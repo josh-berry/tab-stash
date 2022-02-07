@@ -1,115 +1,297 @@
-# Contributing to Tab Stash
+# Contributing Code to Tab Stash
 
-## For Everyone
+First of all, thanks for your interest in contributing to Tab Stash!  Tab Stash
+has been a labor of love since 2018, and I never would have expected that N
+years later [*what year is it again?*], it would have grown to where it is
+today.
 
-Tab Stash has adopted the [Contributor Covenant Code of Conduct][conduct].
-Anyone participating in the Tab Stash community, whether they are writing code,
-filing bugs, or simply posting questions, is asked to follow these standards.
+Below, I've included some information and resources to help you modify Tab Stash
+and submit your change for inclusion in future releases.  You'll have an easier
+time of it if you already know some JavaScript, but even for those who don't,
+I've included a few references to help you get started.
 
-[conduct]: https://www.contributor-covenant.org/version/2/0/code_of_conduct/
+If you plan to make a substantial change or add a new feature, it's best to
+start by discussing it on a GitHub issue *before* you write any code.  This
+helps to ensure it fits into the overall vision/direction for Tab Stash, and
+helps to identify potential issues or roadblocks ahead of time.
 
-In short, before posting please ask yourself: "If this were directed at me, how
-would it make me feel?"  If the answer is negative, think carefully about how to
-re-frame your post---try to focus on specific, observable facts, avoid
-generalizing, and replace emotional language ("this was a huge problem") with
-concrete details ("it took me an hour to recover my data because...").
+Once your change is ready, you'll need to push it to a branch on GitHub and open
+a "Pull Request".  To maximize the chances of your PR getting merged, there are
+a few things you should do before submitting:
 
-## For Developers
+1. Include some automated tests verifying your changes behave as expected (if
+   applicable).
 
-First of all, thanks for your interest in contributing to Tab Stash!  The best
-way to get your new feature or bugfix included is to open a pull request in
-GitHub.  Please make sure you've read and followed the *Code Style* section
-below, and included adequate comments and notes in your commit message for
-reviewers to understand what you're trying to do and why.
+2. Make sure your PR follows the style and other conventions listed below.
 
-Importantly, *don't expect your pull request to be merged right away*.  You will
-likely get at least one round of constructive feedback; this is to help catch
-bugs and ensure the code stays maintainable for the next person who wants to
-contribute.  I hope you will take this feedback in the spirit in which it's
-given--as reflecting our shared desire to make Tab Stash the best it can
-possibly be.
+3. Do a "self-review"---read through your own changes as if you were a code
+   reviewer, clean up any unnecessary changes (e.g. whitespace-only changes),
+   fix any typos, add comments/documentation, etc.
 
-*-- Josh*
+4. Write a detailed/clear summary and description of your PR explaining what
+   your change does and why.  If you're addressing any GitHub issues, be sure to
+   reference them by number in the summary and/or description.  Typically you
+   would put the issue number in [brackets] at the end of your summary.
 
-### Getting the Source Code
+Importantly, *don't expect your PR to be merged right away*.  You will likely
+get at least one round of constructive feedback; this is to help catch bugs and
+ensure the code stays maintainable for the next person who wants to contribute.
+I hope you will take this feedback in the spirit in which it's given---as
+reflecting our shared desire to make Tab Stash the best it can possibly be.
 
-Tab Stash's source code is available
-[on GitHub](https://github.com/josh-berry/tab-stash/).
+Again, thank you for your interest in contributing!
 
-### Building Tab Stash for Development
+*--- Josh*
 
-You'll need a UNIX-like system (e.g. Mac or Linux) to build Tab
-Stash--unfortunately, building on Windows is no longer supported due to the
-multiple build steps involved (although patches to make the build more
-cross-platform are welcome).  To build, you'll need the following installed:
+## Before You Start
 
-- GNU Make, Git, patch, and rsync
-- A recent version of Node.js
-- Inkscape must be installed such that the `inkscape` command-line tool is
-  available in your PATH (GUI version is not required unless you want to use it
-  to edit the icons)
+Before you get started, you may want to spend some time familiarizing yourself
+with the tools and technologies Tab Stash is built on.  Here are some things
+that would be useful to know (or at least references to have handy) when you
+dive into the code:
 
-To build and run tests, all you have to do is run `make` (or `make -jWHATEVER`
-on a multi-core system):
+1. If this is your first time coding, here's where to start:
+   - [How to develop for the web](https://developer.mozilla.org/en-US/docs/Learn)
 
-```sh
-$ make
-```
+2. Learn about the languages used in Tab Stash:
+   - [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+   - [TypeScript](https://www.typescriptlang.org/docs/)
+   - [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML) for building web
+     pages, and
+   - [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) for making them look
+     pretty
 
-The result will be in the `dist` directory.  You can load it into your Firefox
-by following these steps:
+3. Learn how [extensions for
+   Firefox](https://extensionworkshop.com/extension-basics/) are put together.
 
-1. Open a new tab and go to `about:debugging`
-2. Click on "*This Firefox*" in the sidebar.
-3. Click "*Load Temporary Add-on*".
-4. Browse to the `dist` directory, and select the `manifest.json` file.
+4. Learn about the major libraries and frameworks used in Tab Stash:
 
-An experimental port to Chrome is also built in `dist-chrome`.
+   - [The WebExtension APIs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API)
+     (for interacting with the browser)
+   - [Vue.js](https://v3.vuejs.org/) (for creating UI elements)
+   - [Less](https://lesscss.org/) (for styling)
+   - [Webpack](https://webpack.js.org/) (for builds)
+   - [Mocha](https://mochajs.org/) and [Chai](https://www.chaijs.com/) (for testing)
 
-### Building Tab Stash for Release
+## Getting Started
 
-Release builds may only be done in a clean tree with no uncommitted changes, and
-your HEAD commit must be pointing at a release tag (or `make` will create one
-for you with the version listed in `manifest.json`).  In the top-level
-*tab-stash* directory, run:
+Here's how to get a build with your changes loaded into Firefox so you can try
+them out:
 
-```sh
-$ make [-jWHATEVER] rel
-```
+1. Clone Tab Stash's source code from
+   [GitHub](https://github.com/josh-berry/tab-stash/).
 
-All generated files in `dist` will be rebuilt, with debugging information and
-code stripped.  Two package files will be generated, both of which can be
-uploaded to addons.mozilla.org--the first, `tab-stash-X.Y.zip`, is the actual
-extension.  The second, `tab-stash-src-X.Y.tar.gz`, is the source to go along
-with it.
+2. Follow the instructions in the [README] to build Tab Stash for development.
+   You should see that all the tests are passing.
 
-### Code Style
+3. Load your build into Firefox:
 
-- **Indentation:** Four spaces (no tabs) per indentation level.
-- **Line Length:** No lines should be longer than 80 columns.
-  - When wrapping, please line up your wrapped line with the relevant opening
-    '(' or '[' on the previous line.  (Emacs does this correctly by default.)
-  - If there's no grouping character to line up with, indent wrapped lines an
-    additional four spaces.
-- **Comments:** Where it's not immediately obvious, please write comments
-  explaining *why* your code is doing what it's doing.  Use `//` comments, not
-  `/* */` comments.
-- **Variable Names:** Use your best judgment--the larger the scope, the more
-  descriptive the name should be.  Single-letter variable names are fine if the
-  contents/usage of the variable are obvious in context and the variable's scope
-  fits on a single (small) screen.
-  - *Constants* are written `LIKE_THIS`.
-  - *Class Names* are written `LikeThis`.
-  - *Function and Argument Names* are written `likeThis` for arguments and
-    public functions or `like_this` for private functions.
-  - *Local Variable Names* are written `like_this`.  Prefer `const` for local
-    variables when possible, or `let` when necessary.  Don't use `var`.
+   1. Go to `about:debugging` and click on "This Firefox".
 
-The existing code does not always follow these guidelines consistently; if you
-find inconsistencies, please feel free to correct them (but please submit
-corrections in commits which are separate from functional changes).
+   2. Click "Load Temporary Addon..." and choose the `manifest.json` file in Tab
+      Stash's `dist` directory.
 
-### Editing Icons
+   3. The Tab Stash sidebar and toolbar button should appear.
 
-We recommend [Inkscape](https://inkscape.org/en/).  Please be sure to follow the
-Firefox [Photon Design Guide](https://design.firefox.com/photon/).
+4. Make your changes:
+
+   1. Use your favorite editor (e.g. [Visual Studio Code]) to make your changes.
+
+   2. Rebuild Tab Stash and run the unit tests (just run `make`).  Be sure the
+      tests pass before proceeding.
+
+   3. Use `about:debugging` to reload the extension, and try out your changes.
+      You can also use `about:debugging` to inspect and debug the various
+      components of Tab Stash (background page, UI pages, etc.).
+
+   4. Repeat until you're satisfied with your changes.
+
+5. Once you're happy with your changes, push them to a branch on GitHub, and
+   open a Pull Request.  (See the introduction for advice on how to submit a
+   good PR.)
+
+6. I'll review your change and work with you to address any issues.  Then,
+   if/when everything looks good, I'll merge it and it will become part of the
+   next Tab Stash release!
+
+[README]: https://github.com/josh-berry/tab-stash/blob/master/README.md
+[Visual Studio Code]: https://code.visualstudio.com/
+
+## Learning Your Way Around the Code
+
+During the build, a few different types of source files are combined to produce
+the final Tab Stash extension.  Let's go on a quick tour:
+
+1. Files in `assets/` are copied directly into the extension unchanged.
+
+   1. `manifest.json` describes the extension to the browser.  This is the place
+      to start to understand how the browser interacts with Tab Stash.
+
+   2. Each "top-level" part of the Tab Stash UI has an HTML page here as well.
+      The HTML pages are pretty minimal, just enough to get things started--most
+      of the actual UI code is in `src/`, which we'll get to later.
+
+2. `icons/` contains the SVG icons used throughout the Tab Stash UI.  Icons are
+   always expected to be monochromatic, and will be re-colored during the build
+   to work with both light and dark themes. Some icons are converted to PNG
+   images where required by the browser.
+
+3. `styles/` use CSS (as processed by [Less](https://lesscss.org/)) to define
+   how the UI looks.  In general, styles are broken down as follows:
+
+   - `index.less` is the "top-level" file which loads all the others and acts as
+     a "catch-all" for styles that don't fit anywhere else.
+
+   - `theme-*.less` files define colors as CSS variables used throughout the
+     styling and source code.  (In general, this is the ONLY place where colors
+     should be defined.)
+
+   - `metrics-*.less` files define measurements as CSS variables used throughout
+     the styling and source code.  (In general, this is the ONLY place where
+     lengths/measurements should be defined.)
+
+   - All the other `*.less` files describe how to lay out various parts of the
+     UI, referring to the colors and lengths/measurements defined in the
+     `theme-*` and `metrics-*` files.
+
+4. `src/` is where all the action is---all the TypeScript and Vue.js code that
+   makes up Tab Stash lives here.  Here are some places to check out to learn
+   your way around:
+
+   1. `src/index.ts` is the main entry point for the background page (the part
+      of Tab Stash that is always loaded in the background).  Integrations with
+      the browser (e.g. the context menu, toolbar button, etc.) are all defined
+      here, along with several background tasks Tab Stash needs to perform to
+      keep things running smoothly.
+
+   2. `src/stash-list/index.ts` is the main entry point for the Tab Stash UI.
+      (The same UI is used for all views---sidebar, full page, and popup.)  The
+      UI itself is defined in the corresponding `src/stash-list/index.vue` file.
+
+   3. Similarly there are entry points for the options page, deleted-items page,
+      etc. in the `index.{ts|vue}` files in their respective directories
+      (`src/options/`, `src/deleted-items/`, etc.).  You can find a list of such
+      entry points in the top-level file `webpack.config.js`.
+
+   4. Finally, it's worth checking out `src/ui-model.ts` and
+      `src/service-model.ts`.  `ui-model` constructs the global "model" data
+      structure for the UI, and `service-model` does the same for the background
+      page.  These two files together give an "architectural blueprint" for how
+      Tab Stash is organized and how it tracks all the data it needs to do its
+      job.
+
+      Each of these files refer to various "models" (which live in `src/model/`)
+      that track and modify specific things, such as open tabs, bookmarks,
+      deleted items, Tab Stash options, etc.  The various models are all used by
+      a "root" model (`src/model/index.ts`) which defines the core behaviors of
+      Tab Stash (e.g. stashing and unstashing tabs).
+
+There is a lot more to the codebase, but hopefully this is enough to get you
+oriented and keep you from getting lost.  Most of the rest should be easy to
+find by reading code and poking around.  And if you do get lost, feel free to
+ask a question on GitHub!
+
+## Coding Conventions
+
+*Note:* The existing code does not always follow these guidelines consistently;
+if you find inconsistencies, please feel free to correct them (but please submit
+corrections in PRs which are separate from functional changes).
+
+### Naming Things
+
+Try to use clear and descriptive names, but use your best judgment---the larger
+the scope, the more carefully you should think about the name.  A function that
+is used everywhere in the code should have a very clear and descriptive (but not
+necessarily long!) name.  By contrast, single-letter variable names are fine if
+the contents/usage of the variable are obvious in context and the variable's
+scope fits on a single (small) screen.
+
+- **Named Constants** are written `LIKE_THIS`.
+
+- **Class Names** are written `LikeThis`.
+
+- **Exported/Public Names** are written `likeThis`. (This applies to functions,
+  methods, properties, arguments, global mutable variables.)
+
+- **Private Member and Local Variable Names** are written `like_this`.  Private
+  members may also have a leading underscore (`_like_this`) to avoid confusion.
+  Prefer `const` for local variables when possible, or `let` when necessary.
+  Don't use `var`.
+
+### Documentation
+
+- **API Docs:** [JSDoc](https://jsdoc.app/)-style comments (`/** ... */`) should
+  be written for exported classes/functions.  It is not necessary to write
+  formal parameter/return-value/exception documentation unless it helps with
+  clarity.
+
+  Documentation should focus on behavior, not implementation---save any
+  discussion of the implementation for comments inside the function body.  What
+  are the *observable effects* of calling the function (or using the class),
+  assuming it is a "black box"?  Make sure to note behaviors under edge cases,
+  behaviors in the event of a failure, and similar details.
+
+  Avoid discussing the implementation, and especially avoid re-stating the
+  purpose of the function/variable/argument/etc, which should be obvious from
+  its name.  (The worst documentation is something like: `@param timeout The
+  timeout in milliseconds.`  Well, duh.  Instead, name the parameter something
+  like `timeoutMS`, skip the documentation entirely, and save everyone some
+  space and time.)
+
+- **Comments:** Comments are encouraged in function bodies, and to provide
+  general overview/design notes in modules, classes, etc.  As with API
+  documentation, avoid re-stating what the code is doing.  Instead, focus on
+  documenting *your intention*---explain *why* the code is written the way it
+  is, and explicitly state your expectations and assumptions.  Use `//`
+  comments, not `/* */` comments.
+
+### Formatting
+- **Indentation:** Four spaces (no tabs) per indentation level.  Follow the
+  conventions of the surrounding code, but in general:
+  - If you're continuing a statement onto another line, indent by an extra 4
+    spaces or wrap so the closing delimiter is on its own line:
+
+        functionCall(foo,
+            bar);
+
+        // or:
+        functionCall(
+            foo, bar
+        );
+
+  - If you're continuing the test of an `if`, `while`, `for`, etc. please make
+    sure the test is clearly distinguishable from the body, either by indenting
+    8 spaces (instead of 4), or placing the body's opening brace on its own
+    line. For example:
+
+        if (
+            test
+        ) {
+            body;
+        }
+
+        // or:
+        if (test...
+                ...test) {
+            body;
+        }
+
+- **Line Length:** No line should be longer than 80 columns unless required for
+  functional reasons (e.g. really long URLs which can't be wrapped).  A little
+  bit of spillover is occasionally acceptable if it's something trivial like
+  punctuation or a very short word that would otherwise be on a line by itself.
+
+- **Semicolons:** Use them.  Yes, they're annoying, and I know it's trendy to
+  leave them off, but there are some common and surprising cases where
+  JavaScript (and TypeScript) is ambiguous without them.
+
+## Editing Icons
+
+[Inkscape](https://inkscape.org/en/) is the recommended tool.  Please be sure to
+follow the Firefox [Photon Design Guide](https://design.firefox.com/photon/).
+
+As noted above, icons must be monochromatic or the post-processing done to
+convert icons for light/dark themes will not work well.  The post-processing is
+very dumb (it's literally just a `sed` command); only fill colors should be used
+(no line colors), or the finished result will look weird.  If in doubt, follow
+the conventions in the existing SVG files.
