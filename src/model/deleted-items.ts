@@ -211,16 +211,19 @@ export class Model {
     async add(
         item: DeletedItem,
         deleted_from?: DeleteLocation,
+        deleted_at?: Date,
     ): Promise<Entry<string, SourceValue>> {
-        // The ISO string has the advantage of being sortable...
-        const deleted_at = new Date().toISOString();
-        const key = `${deleted_at}-${makeRandomString(4)}`;
-        const entry = {key, value: {
-            deleted_at,
-            deleted_from,
-            // Get rid of reactivity (if any)
-            item: JSON.parse(JSON.stringify(item))
-        }};
+        if (! deleted_at) deleted_at = new Date();
+
+        const entry = {
+            key: genKey(deleted_at),
+            value: {
+                deleted_at: deleted_at.toISOString(),
+                deleted_from,
+                // Get rid of reactivity (if any)
+                item: JSON.parse(JSON.stringify(item))
+            },
+        };
 
         await this._kvs.set([entry]);
         // We will get an event that the entry has been added, which may either
@@ -358,15 +361,15 @@ export class Model {
         let items: Entry<string, SourceValue>[] = [];
 
         for (let i = 0; i < count; ++i) {
-            const deleted_at = new Date(ts).toISOString();
-            const key = `${deleted_at}-${makeRandomString(4)}`;
+            const deleted_at = new Date(ts);
+            const key = genKey(deleted_at);
             ts -= Math.floor(Math.random() * 6*60*60*1000);
 
             if (Math.random() < 0.5) {
                 items.push({
                     key,
                     value: {
-                        deleted_at,
+                        deleted_at: deleted_at.toISOString(),
                         item: {
                             title: genTitle(),
                             children: (() => {
@@ -387,7 +390,7 @@ export class Model {
                 items.push({
                     key,
                     value: {
-                        deleted_at,
+                        deleted_at: deleted_at.toISOString(),
                         deleted_from: {
                             folder_id: choose(words),
                             title: genTitle(),
@@ -410,3 +413,30 @@ export class Model {
         if (items.length > 0) await this._kvs.set(items);
     }
 };
+
+let key_seq_no = 0;
+let last_key_date = Date.now();
+
+/** Generates a key for a deleted item which is extremely likely to result in
+ * deleted items being sorted in the order they were deleted.  (I say "extremely
+ * likely" because for real-world scenarios, this is practically always the
+ * case, but it cannot be guaranteed without some global synchronization.)
+ *
+ * More precisely, returned keys are monotonically increasing with respect to:
+ *
+ * 1. The `deleted_at` time, and
+ * 2. The number of times this function has been called in the current
+ *    JavaScript context. (Up to a limit of 100,000 items.)
+ */
+function genKey(deleted_at: Date): string {
+    if (deleted_at.valueOf() !== last_key_date) {
+        key_seq_no = 0;
+        last_key_date = deleted_at.valueOf();
+    }
+
+    key_seq_no++;
+
+    return `${deleted_at.toISOString()
+        }-${(1000000 - key_seq_no).toString().padStart(6, '0')
+        }-${makeRandomString(4)}`;
+}

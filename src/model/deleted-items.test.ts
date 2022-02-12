@@ -273,6 +273,43 @@ describe('model/deleted-items', () => {
         });
     });
 
+    it('sorts newly-added items in a user-friendly way', async() => {
+        const first = new Date();
+        const second = new Date(first.valueOf() + 1);
+
+        // We do 15 items to test what happens when the item sequence number in
+        // the key changes from one to two digits.  Items should still be sorted
+        // in the correct order...
+        const first_items = [];
+        const second_items = [];
+        for (let i = 0; i < 15; ++i) {
+            first_items.push(`First-${i}`);
+            second_items.push(`Second-${i}`);
+        }
+
+        for (const i of first_items) {
+            await model.add({title: i, url: i}, undefined, first);
+        }
+        for (const i of second_items) {
+            await model.add({title: i, url: i}, undefined, second);
+        }
+        await events.nextN(source.onSet, 30);
+
+        while (! model.state.fullyLoaded) await model.loadMore();
+
+        console.log(model.state.entries.map(i => i.key));
+        console.log(model.state.entries.map(i => i.item.title));
+
+        // Entries must be sorted newest-first, except that entries deleted
+        // together should be sorted in the same order in which they were
+        // deleted (presumably, the same order in which they appeared in the
+        // model).
+        expect(model.state.entries.map(e => e.item.title)).to.deep.equal([
+            ...second_items,
+            ...first_items,
+        ]);
+    });
+
     it('drops items older than a certain timestamp', async() => {
         const dropTime = new Date(Date.now() - 3*24*60*60*1000);
         await model.makeFakeData_testonly(100);
