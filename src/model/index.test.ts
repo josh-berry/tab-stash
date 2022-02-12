@@ -20,6 +20,7 @@ import {LOCAL_DEF, SYNC_DEF} from './options';
 import {TabID} from './tabs';
 import {getDefaultFolderNameISODate} from './bookmarks';
 import {DeletedFolder} from './deleted-items';
+import {CUR_WINDOW_MD_ID} from './bookmark-metadata';
 
 describe('model', () => {
     let tabs: TabFixture["tabs"];
@@ -80,6 +81,16 @@ describe('model', () => {
 
         beforeEach(() => {
             events.ignore(undefined);
+        });
+
+        it('remembers metadata for the current window', async() => {
+            const entry = {key: CUR_WINDOW_MD_ID, value: {collapsed: true}};
+            await bookmark_metadata.set([entry]);
+
+            await model.gc();
+
+            expect(await bookmark_metadata.get([CUR_WINDOW_MD_ID]))
+                .to.deep.equal([entry])
         });
 
         it('deletes bookmark metadata for deleted bookmarks', async () => {

@@ -280,7 +280,8 @@ export class Model {
             this.bookmarks.bookmarksWithURL(url).size > 0
             || this.tabs.tabsWithURL(url).size > 0);
         await this.bookmark_metadata.gc(id =>
-            !! this.bookmarks.node(id as Bookmarks.NodeID));
+            id === BookmarkMetadata.CUR_WINDOW_MD_ID
+            || !! this.bookmarks.node(id as Bookmarks.NodeID));
     }
 
     /** Put the set of currently-selected items in the current window. */

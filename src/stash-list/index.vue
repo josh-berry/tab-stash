@@ -54,7 +54,7 @@
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <window :tabs="tabs" :metadata="model().bookmark_metadata.get('')" />
+    <window :tabs="tabs" :metadata="curWindowMetadata" />
   </div>
   <folder-list ref="stashed" v-if="stash_root"
                :parentFolder="stash_root" />
@@ -76,9 +76,10 @@ import {defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
 import {TaskMonitor, parseVersion, required} from '../util';
-import {Model, DeletedItems as DI} from '../model';
+import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
+import {BookmarkMetadataEntry, CUR_WINDOW_MD_ID} from '../model/bookmark-metadata';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
 export default defineComponent({
@@ -162,6 +163,10 @@ export default defineComponent({
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
 
+        curWindowMetadata(): BookmarkMetadataEntry {
+            return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
+        },
+
         showCrashReport(): boolean { return this.model().options.showCrashReport.value; },
     },
 
@@ -215,7 +220,7 @@ export default defineComponent({
         collapseAll() {
             this.collapsed = ! this.collapsed;
             const metadata = this.model().bookmark_metadata;
-            metadata.setCollapsed('', this.collapsed);
+            metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
             for (const f of this.stash_groups) {
                 metadata.setCollapsed(f.id, this.collapsed);
             }

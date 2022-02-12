@@ -9,6 +9,10 @@ export type BookmarkMetadata = {
     collapsed?: boolean;
 };
 
+/** The ID we use for storing metadata about the current window (i.e. not a
+ * bookmark at all). */
+export const CUR_WINDOW_MD_ID = '';
+
 /** Keeps track of bookmark metadata in local storage.  Right now this just
  * tracks whether folders should be shown as collapsed or expanded, but more
  * could be added later if needed. */
