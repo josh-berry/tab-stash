@@ -34,6 +34,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
     describe('stores and updates entries', () => {
         it('no entries', async() => {
             await kvs.set([]);
+            expect(await kvs.get([])).to.deep.equal([]);
         });
 
         it('creates single entries', async() => {
@@ -56,6 +57,10 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
                 .to.deep.equal([[{key: 'a', value: 'alison'}]]);
             expect(await kvs.get(['a']))
                 .to.deep.equal([{key: 'a', value: 'alison'}]);
+        });
+
+        it('does not return non-existent entries', async () => {
+            expect(await kvs.get(['oops'])).to.deep.equal([]);
         });
 
         it('stores and updates multiple entries at once', async() => {
@@ -349,6 +354,23 @@ describe('datastore/kvs', () => {
 
         it('returns from flush() immediately if no entries are dirty', async() => {
             await cache.sync();
+        });
+
+        it('re-fetches entries if it goes out of sync', async() => {
+            cache.set('a', 'b');
+            cache.set('b', 'c');
+            await cache.sync();
+            await events.next(kvs.onSet);
+
+            kvs.data.set('a', 'aaaa');
+            expect(cache.get('a')).to.deep.equal({key: 'a', value: 'b'});
+            expect(cache.get('b')).to.deep.equal({key: 'b', value: 'c'});
+            events.send(cache.kvs.onSyncLost);
+
+            await events.next(cache.kvs.onSyncLost);
+            await cache.sync();
+            expect(cache.get('a')).to.deep.equal({key: 'a', value: 'aaaa'});
+            expect(cache.get('b')).to.deep.equal({key: 'b', value: 'c'});
         });
     });
 });

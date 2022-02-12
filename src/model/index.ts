@@ -36,7 +36,7 @@ import {
     backingOff, expect, filterMap, shortPoll, TaskMonitor,
     textMatcher, tryAgain, urlToOpen
 } from '../util';
-import {errorLog, logError, logErrorsFrom} from '../util/oops';
+import {logError, logErrorsFrom} from '../util/oops';
 
 import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
@@ -48,7 +48,6 @@ import * as DeletedItems from './deleted-items';
 import * as Favicons from './favicons';
 import * as BookmarkMetadata from './bookmark-metadata';
 import * as Selection from './selection';
-import {computed, ref} from 'vue';
 
 export {
     BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons,
@@ -150,18 +149,6 @@ export class Model {
     // Accessors
     //
 
-    private _now = ref(Date.now());
-
-    /** Do we need to show a crash-report notification to the user? */
-    showCrashReport = computed(() => {
-        const until = this.options.local.state.hide_crash_reports_until || 0;
-        if (this._now.value < until) {
-            setTimeout(() => { this._now.value = Date.now(); }, until - this._now.value + 1);
-            return false;
-        }
-        return errorLog.length > 0;
-    });
-
     /** Fetch and return an item, regardless of whether it's a bookmark or tab. */
     item(id: string | number): ModelItem | undefined {
         if (typeof id === 'string') return this.bookmarks.node(id as Bookmarks.NodeID);
@@ -179,6 +166,11 @@ export class Model {
 
         // New-tab URLs, homepages and the like are never stashable.
         if (this.browser_settings.isNewTabURL(url_str)) return false;
+
+        // Invalid URLs are not stashable.
+        try {
+            new URL(url_str);
+        } catch (e) { return false; }
 
         // Tab Stash URLs are never stashable.
         return ! url_str.startsWith(browser.runtime.getURL(''));
@@ -288,7 +280,8 @@ export class Model {
             this.bookmarks.bookmarksWithURL(url).size > 0
             || this.tabs.tabsWithURL(url).size > 0);
         await this.bookmark_metadata.gc(id =>
-            !! this.bookmarks.node(id as Bookmarks.NodeID));
+            id === BookmarkMetadata.CUR_WINDOW_MD_ID
+            || !! this.bookmarks.node(id as Bookmarks.NodeID));
     }
 
     /** Put the set of currently-selected items in the current window. */
@@ -688,8 +681,12 @@ export class Model {
             await this.tabs.setSelected([tab], !!item.$selected);
         }
 
-        // Delete bookmarks for all the tabs we restored.
-        await Promise.all(delete_bm_ids.map(bm => this.deleteBookmark(bm)));
+        // Delete bookmarks for all the tabs we restored.  We use the same
+        // timestamp for each deleted item so that we can guarantee the deleted
+        // items are sorted in the same order they were listed in the stash
+        // (which makes it easier for users to find things).
+        const now = new Date();
+        await Promise.all(delete_bm_ids.map(bm => this.deleteBookmark(bm, now)));
         if (options.task) ++options.task.value;
 
         return moved_items;
@@ -698,6 +695,7 @@ export class Model {
     /** Deletes the specified items (bookmark nodes or tabs), saving any deleted
      * bookmarks to the deleted-items model. */
     async deleteItems(ids: Iterable<Bookmarks.NodeID | Tabs.TabID>) {
+        const now = new Date();
         const tabs = [];
         for (const id of ids) {
             if (typeof id === 'string') {
@@ -706,9 +704,9 @@ export class Model {
                 if (! node) continue;
 
                 if ('children' in node) {
-                    await this.deleteBookmarkTree(id);
+                    await this.deleteBookmarkTree(id, now);
                 } else if ('url' in node) {
-                    await this.deleteBookmark(node);
+                    await this.deleteBookmark(node, now);
                 } else {
                     // separator
                     await this.bookmarks.remove(id);
@@ -726,7 +724,7 @@ export class Model {
      * should use {@link deleteBookmark()} for individual bookmarks, because it
      * will cleanup the parent folder if the parent folder has a "default" name
      * and would be empty. */
-    async deleteBookmarkTree(id: Bookmarks.NodeID) {
+    async deleteBookmarkTree(id: Bookmarks.NodeID, deleted_at?: Date) {
         const bm = this.bookmarks.node(id);
         if (! bm) return; // Already deleted?
 
@@ -747,14 +745,14 @@ export class Model {
             return {title: '', url: ''};
         };
 
-        await this.deleted_items.add(toDelItem(bm));
+        await this.deleted_items.add(toDelItem(bm), undefined, deleted_at);
         await this.bookmarks.removeTree(bm.id);
     }
 
     /** Deletes the specified bookmark, saving it to deleted items.  If it was
      * the last bookmark in its parent folder, AND the parent folder has a
      * "default" name, removes the parent folder as well. */
-    async deleteBookmark(bm: Bookmarks.Bookmark) {
+    async deleteBookmark(bm: Bookmarks.Bookmark, deleted_at?: Date) {
         const parent = this.bookmarks.folder(bm.parentId!);
 
         await this.deleted_items.add({
@@ -764,7 +762,7 @@ export class Model {
         }, parent ? {
             folder_id: parent.id,
             title: parent.title!,
-        } : undefined);
+        } : undefined, deleted_at);
 
         await this.bookmarks.remove(bm.id);
     }
@@ -776,8 +774,10 @@ export class Model {
         const di = this.deleted_items;
         // We optimistically remove immediately from recentlyDeleted to prevent
         // users from trying to un-delete the same thing multiple times.
-        di.state.recentlyDeleted = di.state.recentlyDeleted.filter(
-            ({key: k}) => k !== deletion.key);
+        if (typeof di.state.recentlyDeleted === 'object'
+                && di.state.recentlyDeleted.key === deletion.key) {
+            di.state.recentlyDeleted = 0;
+        }
 
         const stash_root = await this.bookmarks.ensureStashRoot();
 

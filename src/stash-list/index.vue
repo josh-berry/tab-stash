@@ -10,22 +10,22 @@
     </Notification>
     <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} includes several bug fixes and stability
-      improvements.  See what's new!
+      Tab Stash {{my_version}} includes bug fixes and performance improvements.
+      See what's new!
     </Notification>
     <Notification key="stash-root-warning" v-if="stash_root_warning"
                   @activate="stash_root_warning.help">
       {{stash_root_warning.text}}
     </Notification>
-    <Notification key="recently-deleted" v-if="recently_deleted.length > 0"
-                  @activate="recently_deleted.length === 1
-                    ? model().undelete(recently_deleted[0])
+    <Notification key="recently-deleted" v-if="recently_deleted !== 0"
+                  @activate="typeof recently_deleted === 'object'
+                    ? model().undelete(recently_deleted)
                     : go('deleted-items.html')">
-        <span v-if="recently_deleted.length === 1">
-            Deleted "{{recently_deleted[0].item.title}}".  Undo?
+        <span v-if="typeof recently_deleted === 'object'">
+            Deleted "{{recently_deleted.item.title}}".  Undo?
         </span>
         <span v-else>
-            Deleted {{recently_deleted.length}} items.  Show what was deleted?
+            Deleted {{recently_deleted}} items.  Show what was deleted?
         </span>
     </Notification>
   </transition-group>
@@ -54,7 +54,7 @@
             @action="collapseAll" />
   </header>
   <div class="folder-list">
-    <window :tabs="tabs" :metadata="model().bookmark_metadata.get('')" />
+    <window :tabs="tabs" :metadata="curWindowMetadata" />
   </div>
   <folder-list ref="stashed" v-if="stash_root"
                :parentFolder="stash_root" />
@@ -76,9 +76,10 @@ import {defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
 import {TaskMonitor, parseVersion, required} from '../util';
-import {Model, DeletedItems as DI} from '../model';
+import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
+import {BookmarkMetadataEntry, CUR_WINDOW_MD_ID} from '../model/bookmark-metadata';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
 export default defineComponent({
@@ -138,7 +139,7 @@ export default defineComponent({
             return 'features';
         },
 
-        recently_deleted(): DI.Deletion[] {
+        recently_deleted() {
             return this.model().deleted_items.state.recentlyDeleted;
         },
 
@@ -162,7 +163,11 @@ export default defineComponent({
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
 
-        showCrashReport(): boolean { return this.model().showCrashReport.value; },
+        curWindowMetadata(): BookmarkMetadataEntry {
+            return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
+        },
+
+        showCrashReport(): boolean { return this.model().options.showCrashReport.value; },
     },
 
     mounted() {
@@ -215,7 +220,7 @@ export default defineComponent({
         collapseAll() {
             this.collapsed = ! this.collapsed;
             const metadata = this.model().bookmark_metadata;
-            metadata.setCollapsed('', this.collapsed);
+            metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
             for (const f of this.stash_groups) {
                 metadata.setCollapsed(f.id, this.collapsed);
             }

@@ -1,43 +1,52 @@
 import {KeyValueStore, genericList} from '.';
 import * as Proto from './proto';
-import {connect} from '../../util/nanoservice';
+import * as NanoService from '../../util/nanoservice';
 import event, {Event} from '../../util/event';
 
 export default class Client<K extends Proto.Key, V extends Proto.Value>
     implements KeyValueStore<K, V>
 {
+    readonly name: string;
+
     readonly onSet: Event<(entries: Proto.Entry<K, V>[]) => void>;
     readonly onDelete: Event<(keys: K[]) => void>;
+    readonly onSyncLost: Event<() => void>;
 
     private _port: Proto.ServicePort<K, V>;
 
-    constructor(name_or_port: string | Proto.ServicePort<K, V>) {
-        let name;
-        let port: Proto.ServicePort<K, V>;
-        // istanbul ignore next
-        if (typeof name_or_port === 'string') {
-            name = name_or_port;
-            port = connect(name_or_port);
-        } else {
-            name = name_or_port.name;
-            port = name_or_port;
-        }
+    constructor(
+        service_name: string,
+        connector?: (name: string) => Proto.ServicePort<K, V>)
+    {
+        // istanbul ignore next -- we always pass `connector` for tests
+        const connect = connector ?? NanoService.connect;
 
-        this.onSet = event('KVS.Client.onSet', name);
-        this.onDelete = event('KVS.Client.onDelete', name);
+        this.name = service_name;
 
-        this._port = port;
-        this._port.onNotify = msg => {
-            /* istanbul ignore next */ if (! msg) return;
-            switch (msg.$type) {
-                case 'delete':
-                    this.onDelete.send(msg.keys);
-                    break;
-                case 'set':
-                    this.onSet.send(msg.entries);
-                    break;
-            }
+        this.onSet = event('KVS.Client.onSet', this.name);
+        this.onDelete = event('KVS.Client.onDelete', this.name);
+        this.onSyncLost = event('KVS.Client.onSyncLost', this.name);
+
+        const reconnect = () => {
+            this._port = connect(service_name);
+            this._port.onNotify = msg => {
+                /* istanbul ignore next */ if (! msg) return;
+                switch (msg.$type) {
+                    case 'delete':
+                        this.onDelete.send(msg.keys);
+                        break;
+                    case 'set':
+                        this.onSet.send(msg.entries);
+                        break;
+                }
+            };
+            this._port.onDisconnect = () => {
+                reconnect();
+                this.onSyncLost.send();
+            };
         };
+        this._port = undefined!; // !-cast - we properly-assign it below.
+        reconnect();
     }
 
     async get(keys: K[]): Promise<Proto.Entry<K, V>[]> {

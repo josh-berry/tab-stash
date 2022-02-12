@@ -51,6 +51,16 @@ describe('model/deleted-items', () => {
         expect(model.state.entries.length).to.equal(DATASET_SIZE);
     });
 
+    it('marks the model as not fully-loaded when new items appear', async() => {
+        await model.loadMore();
+        expect(model.state.fullyLoaded).to.equal(true);
+
+        await model.add({title: 'Foo', url: 'http://example.com'});
+        await events.next(source.onSet);
+        expect(model.state.entries.length).to.equal(0);
+        expect(model.state.fullyLoaded).to.equal(false);
+    });
+
     it('loads items newest-first', async() => {
         await model.makeFakeData_testonly(DATASET_SIZE);
         await events.nextN(source.onSet, DATASET_SIZE);
@@ -86,6 +96,8 @@ describe('model/deleted-items', () => {
 
         const item = await m2.add({title: 'Foo', url: 'http://foo'});
         await events.next(source.onSet);
+
+        await model.loadMore();
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({
             item: {title: "Foo", url: 'http://foo'}
@@ -105,6 +117,8 @@ describe('model/deleted-items', () => {
             {title: "Third", url: "third"},
         ]});
         await events.next(source.onSet);
+
+        await model.loadMore();
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({item: {
             title: "Folder", children: [
@@ -114,6 +128,7 @@ describe('model/deleted-items', () => {
             ]
         }});
 
+        await m2.loadMore();
         await m2.dropChildItem(item.key, 1);
         await events.next(source.onSet);
         expect(model.state.entries.length).to.equal(1);
@@ -125,39 +140,87 @@ describe('model/deleted-items', () => {
         }});
     });
 
-    it('tracks recently-deleted items for a short time', async() => {
-        clock = FakeTimers.install();
-        await model.add({title: 'Recent', url: 'recent'});
+    it('reloads the model when KVS sync is lost', async () => {
+        await model.add({title: 'Foo', url: 'foo'});
+        await events.next(source.onSet);
+        await model.loadMore(); // loads the item
+        await model.loadMore(); // loads no items but sets fullyLoaded
+        expect(model.state.entries.length).to.be.greaterThan(0);
+        expect(model.state.fullyLoaded).to.equal(true);
 
-        const ev = events.next(source.onSet);
-        clock.runToFrame();
-        await ev;
+        events.send(source.onSyncLost);
+        await events.next(source.onSyncLost);
 
-        expect(model.state.recentlyDeleted.length).to.equal(1);
-        expect(model.state.recentlyDeleted[0]).to.deep.include({
-            item: {
-                title: 'Recent',
-                url: 'recent',
-            },
+        expect(model.state.entries.length).to.equal(0);
+        expect(model.state.fullyLoaded).to.equal(false);
+    });
+
+    describe('tracks recently-deleted items', async() => {
+        it('tracks single items and clears them after a short time', async () => {
+            clock = FakeTimers.install();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+
+            const i = await model.add({title: 'Recent', url: 'recent'});
+            const ev = events.next(source.onSet);
+            clock.runToFrame();
+            await ev;
+
+            expect(model.state.recentlyDeleted).to.deep.include({
+                key: i.key,
+                item: {title: 'Recent', url: 'recent'},
+            });
+            clock.runToLast();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
         });
-        clock.runToLast();
-        expect(model.state.recentlyDeleted).to.deep.equal([]);
+
+        it('tracks multiple items and clears them after a short time', async () => {
+            clock = FakeTimers.install();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+
+            await model.add({title: 'Recent', url: 'recent'});
+            await model.add({title: 'Recent-2', url: 'recent2'});
+            await model.add({title: 'Recent-2', url: 'recent3'});
+            const ev = events.nextN(source.onSet, 3);
+            clock.runToFrame();
+            await ev;
+
+            expect(model.state.recentlyDeleted).to.equal(3);
+            clock.runToLast();
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+        });
+
+        it('clears single deleted items which are restored from elsewhere', async() => {
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+
+            const i = await model.add({title: 'Recent', url: 'recent'});
+            const ev = events.next(source.onSet);
+            await ev;
+
+            expect(model.state.recentlyDeleted).to.deep.include({
+                key: i.key,
+                item: {title: 'Recent', url: 'recent'},
+            });
+            await model.drop(i.key);
+            await events.next(source.onDelete);
+
+            expect(model.state.recentlyDeleted).to.deep.equal(0);
+        });
     });
 
     describe('filtering', () => {
         it('resets the model when a filter is applied', async() => {
-            await model.makeFakeData_testonly(50);
-            await events.nextN(source.onSet, 50);
-            expect(model.state.entries.length).to.equal(50);
+            await model.makeFakeData_testonly(50, 27);
+            await events.nextN(source.onSet, 2);
+            expect(model.state.entries.length).to.equal(0); // lazy-loaded
 
             model.filter(/* istanbul ignore next */ item => false);
             expect(model.state.entries.length).to.equal(0);
         });
 
         it('stops an in-progress load when a filter is applied', async() => {
-            await model.makeFakeData_testonly(50);
-            await events.nextN(source.onSet, 50);
-            expect(model.state.entries.length).to.equal(50);
+            await model.makeFakeData_testonly(50, 13);
+            await events.nextN(source.onSet, 4);
+            expect(model.state.entries.length).to.equal(0);
             model = new M.Model(source);
 
             const p = model.loadMore();
@@ -172,9 +235,9 @@ describe('model/deleted-items', () => {
         });
 
         it('loads only items which match the applied filter', async() => {
-            await model.makeFakeData_testonly(50);
-            await events.nextN(source.onSet, 50);
-            expect(model.state.entries.length).to.equal(50);
+            await model.makeFakeData_testonly(50, 7);
+            await events.nextN(source.onSet, 8);
+            expect(model.state.entries.length).to.equal(0);
 
             model.filter(item => item.title.includes('cat'));
             expect(model.state.entries.length).to.equal(0);
@@ -202,6 +265,7 @@ describe('model/deleted-items', () => {
             await m2.makeFakeData_testonly(50);
             await events.nextN(source.onSet, 50);
 
+            while (! model.state.fullyLoaded) await model.loadMore();
             expect(model.state.entries.length).to.be.greaterThan(0);
             for (const c of model.state.entries) {
                 expect(c.item.title).to.include('cat');
@@ -209,12 +273,50 @@ describe('model/deleted-items', () => {
         });
     });
 
+    it('sorts newly-added items in a user-friendly way', async() => {
+        const first = new Date();
+        const second = new Date(first.valueOf() + 1);
+
+        // We do 15 items to test what happens when the item sequence number in
+        // the key changes from one to two digits.  Items should still be sorted
+        // in the correct order...
+        const first_items = [];
+        const second_items = [];
+        for (let i = 0; i < 15; ++i) {
+            first_items.push(`First-${i}`);
+            second_items.push(`Second-${i}`);
+        }
+
+        for (const i of first_items) {
+            await model.add({title: i, url: i}, undefined, first);
+        }
+        for (const i of second_items) {
+            await model.add({title: i, url: i}, undefined, second);
+        }
+        await events.nextN(source.onSet, 30);
+
+        while (! model.state.fullyLoaded) await model.loadMore();
+
+        console.log(model.state.entries.map(i => i.key));
+        console.log(model.state.entries.map(i => i.item.title));
+
+        // Entries must be sorted newest-first, except that entries deleted
+        // together should be sorted in the same order in which they were
+        // deleted (presumably, the same order in which they appeared in the
+        // model).
+        expect(model.state.entries.map(e => e.item.title)).to.deep.equal([
+            ...second_items,
+            ...first_items,
+        ]);
+    });
+
     it('drops items older than a certain timestamp', async() => {
         const dropTime = new Date(Date.now() - 3*24*60*60*1000);
         await model.makeFakeData_testonly(100);
         await events.nextN(source.onSet, 100);
 
-        // Check that our test data has sufficiently-old entries.
+        // Load all entries (and ensure the model has old-enough entries).
+        while (! model.state.fullyLoaded) await model.loadMore();
         expect(model.state.entries[model.state.entries.length - 1].deleted_at)
             .to.be.lessThan(dropTime);
 

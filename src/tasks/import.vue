@@ -50,17 +50,23 @@ export default defineComponent({
     methods: {
         model(): Model { return (<any>this).$model as Model },
 
-        start() {
+        start() { this.model().attempt(async () => {
             const groups = parse(
                 this.$refs.data as Element, this.model(), {splitOn: this.splitOn});
 
-            const task = TaskMonitor.run(tm =>
-                importURLs(this.model(), groups, tm)
-                    .finally(() => this.$emit('close')));
+            try {
+                const task = TaskMonitor.run(tm => importURLs(this.model(), groups, tm));
 
-            (<any>this).cancel = () => task.cancel();
-            (<any>this).progress = task.progress;
-        }
+                (<any>this).cancel = () => task.cancel();
+                (<any>this).progress = task.progress;
+                await task;
+
+            } finally {
+                (<any>this).cancel = undefined;
+                (<any>this).progress = undefined;
+                this.$emit('close');
+            }
+        }); }
     }
 });
 </script>

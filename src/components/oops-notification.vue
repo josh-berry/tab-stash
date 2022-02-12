@@ -1,18 +1,22 @@
 <template>
 <Notification inactive @dismiss="clearErrorLog">
-    <div>Oops!  Something went wrong.  Tab Stash will try to recover
-    automatically, but if this keeps happening, here are some options that might
-    help:</div>
+    <div :class="$style.msg">Oops!  Something went wrong.  Tab Stash will try to
+    recover automatically.</div>
 
-    <p>
-        <button @click.stop="showTroubleshooting">Show Troubleshooting Guide</button>
-        <button @click.stop="searchGitHub">Search for Known Issues</button>
-        <button @click.stop="copyErrorLog">Copy Crash Details</button>
-    </p>
+    <details :class="$style.details" @click.stop="">
+        <summary>Get Help With This Crash</summary>
 
-    <details :class="$style.details" ref="err_details_el" @click.stop="">
-        <summary>Show Crash Details</summary>
-        <output ref="err_log_el" :class="$style.err_details_list">
+        <p>Here are a few options that might help.  Crash details are shown
+        below for easy reference&mdash;they will be cleared once you close this
+        notification.</p>
+
+        <p>
+            <button @click.stop="showTroubleshooting">Show Troubleshooting Guide</button>
+            <button @click.stop="searchGitHub">Search for Similar Issues</button>
+            <button @click.stop="copyErrorLog">Copy Crash Details</button>
+        </p>
+
+        <p><output ref="err_log_el" :class="$style.err_details_list">
             <p :class="$style.environment">
                 <div>Browser: {{aboutBrowser}} ({{aboutPlatform}})</div>
                 <div>Extension: {{aboutExtension}}</div>
@@ -21,13 +25,14 @@
                 <div :class="$style.err_summary">{{err.summary}}</div>
                 <div :class="$style.err_details">{{err.details}}</div>
             </p>
-        </output>
+        </output></p>
     </details>
+
     <details :class="$style.details" @click.stop="">
         <summary>Hide Crash Reports</summary>
 
-        <p>If you're seeing too many crash reports and don't want to be
-        disturbed, you can temporarily hide them:</p>
+        <p>If you're seeing too many crash reports, you can temporarily hide
+        them:</p>
 
         <p>
             <button @click.stop="hideCrashReports(5*60*1000)">for 5 minutes</button>
@@ -36,7 +41,7 @@
             <button @click.stop="hideCrashReports(7*24*60*60*1000)">for 1 week</button>
         </p>
 
-        <p>Crash reports can be turned back on again in settings.</p>
+        <p>Crash reports can be turned on again in settings.</p>
     </details>
 </Notification>
 </template>
@@ -77,21 +82,27 @@ const Notification = require('./notification.vue').default;
 const model = inject<Model>('$model')!;
 
 const err_log_el: Ref<object | null> = ref(null);
-const err_details_el: Ref<object | null> = ref(null);
 
 const showTroubleshooting = () =>
     logErrorsFrom(() => browser.tabs.create({url: TROUBLESHOOTING_URL}));
 
 const searchGitHub = () => {
+    // Some heuristics to widen the search (and hopefully return better results)
+    // by excluding things that look like unique identifiers.
+    const terms = errorLog[0].summary
+        .replace(/[0-9]+/g, '')
+        .replace(/:\s+\S+$/, '')
+        .replace(/\S+:\S+/g, '')
+        .replace(/\S+\.\S+/g, '')
+        .replace(/"[^"]*"/g, '')
+        .replace(/`[^`]*`/g, '')
+        .replace(/\S+\@\S+/g, '');
     const url = `https://github.com/josh-berry/tab-stash/issues?q=is%3Aissue+${
-        encodeURIComponent(errorLog[0].summary)}`;
+        encodeURIComponent(terms)}`;
     logErrorsFrom(() => browser.tabs.create({url}));
 };
 
 const copyErrorLog = async () => {
-    const details_el = <HTMLDetailsElement>err_details_el.value;
-    details_el.open = true;
-
     const el = <HTMLElement>err_log_el.value;
 
     el.focus();
@@ -106,8 +117,24 @@ const hideCrashReports = (ms: number) => logErrorsFrom(async () => {
 </script>
 
 <style module>
+.msg {
+    margin-bottom: 1em;
+}
+
 .details > *:not(summary) {
     margin-left: var(--ctrl-mw);
+}
+
+.details > summary {
+    border-radius: var(--ctrl-border-radius);
+}
+
+.details > summary:hover {
+    background-color: var(--userlink-hover-fg);
+}
+
+.details > summary:active {
+    background-color: var(--userlink-active-fg);
 }
 
 .err_details_list {

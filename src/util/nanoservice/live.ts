@@ -131,6 +131,7 @@ export class Port<S extends Send, R extends Send>
         this._trace('disconnect');
         this.port.disconnect();
         this._flushPendingOnDisconnect();
+        if (this.onDisconnect) this.onDisconnect(this);
     }
 
     request(request: S, options?: {timeout_ms?: number}): Promise<R> {
@@ -140,14 +141,21 @@ export class Port<S extends Send, R extends Send>
             while (this.pending.has(tag)) tag = makeRandomString(4);
 
             this._trace('send', {tag, request});
-            this.port.postMessage({tag, request} as RequestEnvelope<S>);
+            try {
+                this.port.postMessage({tag, request} as RequestEnvelope<S>);
+            } catch (e) {
+                // Force-disconnect the port because it's probably in an invalid
+                // state, and the caller needs to recover.
+                this.disconnect();
+                throw e;
+            }
 
             this.pending.set(tag, {
                 resolve, reject,
                 timeout_id: setTimeout(
                     () => {
                         this.pending.delete(tag);
-                        reject(new NanoTimeoutError(request, tag));
+                        reject(new NanoTimeoutError(this.name, request, tag));
                     },
                     options?.timeout_ms ?? this.defaultTimeoutMS),
             });
@@ -159,8 +167,12 @@ export class Port<S extends Send, R extends Send>
             this._trace('send', {notify});
             this.port.postMessage({notify} as NotifyEnvelope<S>);
         } catch (e) {
-            // If we are unable to send due to a disconnected port, the message
-            // is simply dropped.
+            // Force-disconnect the port because it's probably in an invalid
+            // state, and the caller needs to recover.
+            this.disconnect();
+
+            // We swallow the exception here because the caller isn't expecting
+            // a response--so the notification need not actually be sent.
         }
     }
 

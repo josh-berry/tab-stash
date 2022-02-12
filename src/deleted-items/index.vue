@@ -1,5 +1,8 @@
 <template>
 <main>
+    <transition-group tag="aside" class="notification-overlay" appear name="notification">
+        <OopsNotification key="oops" v-if="showCrashReport" />
+    </transition-group>
     <header class="page action-container">
         <a class="action back" title="Back to Tab Stash"
            :href="pageref('stash-list.html')"></a>
@@ -67,6 +70,7 @@ export default defineComponent({
         ButtonBox: require('../components/button-box.vue').default,
         Folder: require('./folder.vue').default,
         ItemIcon: require('../components/item-icon.vue').default,
+        OopsNotification: require('../components/oops-notification.vue').default,
     },
 
     props: {
@@ -166,6 +170,8 @@ export default defineComponent({
                 };
             });
         },
+
+        showCrashReport(): boolean { return this.model().options.showCrashReport.value; },
     },
 
     methods: {

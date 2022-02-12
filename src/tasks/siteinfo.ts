@@ -64,6 +64,11 @@ export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):
         })));
     }
 
+    // If there are no sites to fetch / no fibers created, close the channel
+    // immediately.  Otherwise the channel will remain open and the caller will
+    // block forever (since the `chan.close()` above will never run).
+    if (fibers.length === 0) chan.close();
+
     tm.onCancel = () => fibers.forEach(f => f.cancel());
 
     return chan;

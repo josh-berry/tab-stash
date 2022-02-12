@@ -1,5 +1,8 @@
 <template>
 <main :class="{'show-advanced': meta_show_advanced}">
+  <transition-group tag="aside" class="notification-overlay" appear name="notification">
+    <OopsNotification key="oops" v-if="showCrashReport" />
+  </transition-group>
   <section class="advanced show-advanced">
     <label for="meta_show_advanced">
         <input type="checkbox" id="meta_show_advanced"
@@ -255,6 +258,7 @@ function options() {
 export default defineComponent({
     components: {
         FeatureFlag: require('./feature-flag').default,
+        OopsNotification: require('../components/oops-notification.vue').default,
     },
 
     props: {
@@ -263,7 +267,11 @@ export default defineComponent({
       local: Object as PropType<Options.LocalState>,
     },
 
-    computed: options(),
+    computed: {
+        ...options(),
+
+        showCrashReport(): boolean { return this.model().showCrashReport.value; },
+    },
 
     watch: {
         browser_action_show(val: Options.ShowWhatOpt) {

@@ -2,15 +2,36 @@
 // before trying to load the "live" code.
 import {tests} from './index.test';
 
+import {expect} from 'chai';
+
 import Client from './client';
 import * as Proto from './proto';
+import * as events from '../../mock/events';
 
 async function kvs_factory(): Promise<Client<string, string>> {
-    return new Client(new MockServicePort());
+    return new Client('kvs-test', () => new MockServicePort());
 }
 
 describe('datastore/kvs/client', function() {
     describe('implements KeyValueStore', () => tests(kvs_factory));
+
+    it('notifies users and tries to reconnect when sync is lost', async() => {
+        const kvs = await kvs_factory();
+        const port: MockServicePort = (<any>kvs)._port;
+
+        await kvs.set([{key: 'a', value: 'b'}]);
+        await events.next(kvs.onSet);
+        expect(await kvs.get(['a'])).to.deep.equal([{key: 'a', value: 'b'}]);
+        expect(port.entries.get('a')).to.deep.equal('b');
+
+        port.disconnect();
+        await events.next(kvs.onSyncLost);
+
+        // After the disconnection, KVSClient should try to reconnect using the
+        // factory, which results in a new MockServicePort being created.
+        expect((<any>kvs)._port).not.to.equal(port);
+        expect(await kvs.get(['a'])).to.deep.equal([]);
+    });
 });
 
 // XXX Refactor me into something that just composes MemoryKVS (which was added
@@ -22,6 +43,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
 
     // istanbul ignore next
     onNotify = (_: Proto.ServiceMsg<string, string>) => undefined;
+    onDisconnect?: ((port: Proto.ServicePort<string, string>) => void) = undefined;
 
     entries = new Map<string, string>();
 
@@ -92,7 +114,7 @@ class MockServicePort implements Proto.ServicePort<string, string> {
     notify(msg: Proto.ClientMsg<string, string>) {}
 
     // istanbul ignore next
-    disconnect() {}
+    disconnect() { this.onDisconnect && this.onDisconnect(this); }
 }
 
 const copy = (x: any) => JSON.parse(JSON.stringify(x));
