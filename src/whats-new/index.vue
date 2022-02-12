@@ -8,6 +8,42 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.10.2">
+      <L :subtext="`If you find that your laptop isn't keeping your lap as `
+            + `warm as it used to after this update, may I recommend `
+            + `a cat instead?  Replacing your laptop with a cat can reduce `
+            + `your power bill, since cats are solar-powered.  Cats also send `
+            + `fewer notifications and are easier to pet.`"
+         :issue="172" v="Improved:">Processing and cleanup of deleted items now
+      uses much less CPU.</L>
+
+      <L :issue="201" v="Improved:">The "safety net" added in v2.10.1 will now
+      use much less CPU if it is invoked repeatedly.  Also, if a crash occurs, a
+      (hopefully) helpful error message will be displayed to help with
+      troubleshooting.</L>
+
+      <L :subtext="`Are you REALLY SURE you wanted to delete those tabs?  You `
+            + `are?  Well, I don't believe you.`"
+         :issue="181" v="Fixed">an issue that could prevent loading website
+      icons or deleting stashed tabs in some situations.</L>
+
+      <L :issue="[179, 190]" v="Fixed">an issue causing stashed or imported tabs
+      to be added to a recently-created group by mistake.  Stashing or importing
+      multiple tabs at once will now create a new group as expected.</L>
+
+      <L :issue="204" v="Fixed:">Import will now ignore invalid URLs and empty
+      groups without crashing.</L>
+
+      <L :issue="210" v="Fixed:">The collapsed state of "Unstashed Tabs" will no
+      longer be forgotten on browser restart (or once a day).</L>
+
+      <L :issue="188" v="Removed:">Tab Stash will no longer restore tabs that
+      were recently-closed.  Recent versions of Firefox introduced a bug which
+      made this functionality restore the wrong tab at times.  (This feature is
+      still available as an experimental feature for those who want to continue
+      using it.)</L>
+    </Version>
+
     <Version v="2.10.1">
       <L v="Improved:">Added a "safety net" which reloads the browser data used
       to display the UI if the UI detects that it's gotten out of sync with the
