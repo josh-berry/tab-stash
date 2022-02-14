@@ -9,6 +9,7 @@ module.exports = {
         "deleted-items": "./src/deleted-items/index.ts",
         "restore": "./src/restore/index.ts",
         "stash-list": "./src/stash-list/index.ts",
+        "new-tab": "./src/stash-list/index.ts",
         "options": "./src/options/index.ts",
         "whats-new": "./src/whats-new/index.ts",
     },

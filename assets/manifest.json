@@ -28,7 +28,7 @@
     "content_security_policy":
         "script-src 'self'; object-src 'self';",
     "chrome_url_overrides" : {
-        "newtab": "stash-list.html"
+        "newtab": "new-tab.html"
     },
     "background": {
         "scripts": ["lib.js", "index.js"]
