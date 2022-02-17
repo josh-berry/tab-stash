@@ -12,7 +12,8 @@
                               'icon-tab-selected-inverse': tab.$selected}"
              @click.prevent.stop="select" />
   <a class="text" :href="tab.url" target="_blank" draggable="false" ref="a"
-     @click.prevent.stop="open">{{tab.title}}</a>
+     @click.left.prevent.stop="open"
+     @auxclick.middle.exact.prevent.stop="remove">{{tab.title}}</a>
   <ButtonBox>
     <Button class="stash one" @action="stash"
             :tooltip="`Stash this tab (hold ${altKey} to keep tab open)`" />

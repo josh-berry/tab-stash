@@ -13,7 +13,8 @@
                               'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
   <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="a"
-     @click.prevent.stop="open">{{bookmark.title}}</a>
+     @click.left.prevent.stop="open"
+     @auxclick.middle.exact.prevent.stop="closeTabs">{{bookmark.title}}</a>
   <ButtonBox>
     <Button class="restore-remove" @action="openRemove"
             :tooltip="`Open this tab and delete it from the group `
@@ -100,6 +101,12 @@ export default defineComponent({
 
         remove() { this.model().attempt(async () => {
             await this.model().deleteBookmark(this.bookmark);
+        })},
+
+        closeTabs(ev: MouseEvent) { this.model().attempt(async () => {
+            await this.model().tabs.remove(this.related_tabs
+                .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
+                .map((t) => t.id))
         })},
 
         openRemove(ev: MouseEvent) { this.model().attempt(async () => {
