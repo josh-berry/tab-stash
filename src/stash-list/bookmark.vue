@@ -112,6 +112,7 @@ export default defineComponent({
 
             // If bookmark has no open tabs, open a new one in the background.
             if (openTabs.length < 1) {
+                if (! this.bookmark.url) return;
                 return await this.model().restoreTabs(
                     [this.bookmark.url], { background: true });
             }
