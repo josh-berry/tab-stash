@@ -84,7 +84,7 @@ export class Port<S extends Send, R extends Send>
     }
 
     readonly name: string;
-    defaultTimeoutMS = 2000;
+    defaultTimeoutMS = 10000;
 
     onDisconnect?: (port: NanoPort<S, R>) => void;
     onRequest?: (msg: R) => Promise<S>;
