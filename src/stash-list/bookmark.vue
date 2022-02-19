@@ -14,7 +14,9 @@
              @click.prevent.stop="select" />
   <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="a"
      @click.left.prevent.stop="open"
-     @auxclick.middle.exact.prevent.stop="closeTabs">{{bookmark.title}}</a>
+     @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
+     {{bookmark.title}}
+  </a>
   <ButtonBox>
     <Button class="restore-remove" @action="openRemove"
             :tooltip="`Open this tab and delete it from the group `
@@ -103,10 +105,19 @@ export default defineComponent({
             await this.model().deleteBookmark(this.bookmark);
         })},
 
-        closeTabs(ev: MouseEvent) { this.model().attempt(async () => {
-            await this.model().tabs.remove(this.related_tabs
+        closeOrHideOrOpen(ev: MouseEvent) { this.model().attempt(async () => {
+            const openTabs = this.related_tabs
                 .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
-                .map((t) => t.id))
+                .map((t) => t.id);
+
+            // If bookmark has no open tabs, open a new one in the background.
+            if (openTabs.length < 1) {
+                return await this.model().restoreTabs(
+                    [this.bookmark.url], { background: true });
+            }
+
+            // Otherwise hide or close open tabs related to this bookmark.
+            await this.model().hideOrCloseStashedTabs(openTabs)
         })},
 
         openRemove(ev: MouseEvent) { this.model().attempt(async () => {
