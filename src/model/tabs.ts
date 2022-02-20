@@ -15,6 +15,7 @@ export type Tab = {
     title: string,
     url: string,
     favIconUrl: string,
+    cookieStoreId: string,
     pinned: boolean,
     hidden: boolean,
     active: boolean,
@@ -345,6 +346,7 @@ export class Model {
                 title: tab.title ?? '',
                 url: tab.url ?? '',
                 favIconUrl: tab.favIconUrl ?? '',
+                cookieStoreId: tab.cookieStoreId ?? '',
                 pinned: tab.pinned,
                 hidden: tab.hidden ?? false,
                 active: tab.active,
@@ -368,6 +370,7 @@ export class Model {
             t.title = tab.title ?? '';
             t.url = tab.url ?? '';
             t.favIconUrl = tab.favIconUrl ?? '';
+            t.cookieStoreId = tab.cookieStoreId ?? '';
             t.pinned = tab.pinned;
             t.hidden = tab.hidden ?? false;
             t.active = tab.active;

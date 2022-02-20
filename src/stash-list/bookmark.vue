@@ -7,6 +7,7 @@
               'discarded': discarded,
               'selected': bookmark.$selected}"
      :title="bookmark.title" :data-id="bookmark.id"
+     :data-container-color="related_container_color"
      @click.prevent.stop="select">
   <item-icon class="action select"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
@@ -68,6 +69,27 @@ export default defineComponent({
         discarded(): boolean {
             return this.related_tabs.length > 0 && 
                 this.related_tabs.every(t => !t.hidden && t.discarded);
+        },
+
+        related_container_color(): string | undefined {
+            if (!this.model().options.local.state.ff_container_indicators) return;
+            const containers = this.model().containers;
+
+            // Reduce here has three states:
+            //   undefined: We'll set the state if the tab isn't hidden and there's
+            //     a container color associated with this tab.
+            //   null: We had a container color in the state, but then we saw
+            //     a different one.
+            //   string: One or more tabs with a container color, and all
+            //     set to the same color.
+            const container_color = this.related_tabs
+                .reduce((prev: string | undefined | null, t: Tab) => {
+                    if (t.hidden || prev === null) return prev;
+                    const cc = containers.container(t.cookieStoreId)?.color;
+                    if (! cc) return prev;
+                    return prev === undefined || cc === prev ? cc : null;
+                }, undefined);
+            return container_color ?? undefined;
         },
 
         hasOpenTab(): boolean {

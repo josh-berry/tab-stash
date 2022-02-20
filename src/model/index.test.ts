@@ -62,6 +62,7 @@ describe('model', () => {
                 local: await stored_object_factory.get('local', 'test_options', LOCAL_DEF),
             }),
             tabs: tab_model,
+            containers: await M.Containers.Model.from_browser(),
             bookmarks: bm_model,
             deleted_items: new M.DeletedItems.Model(deleted_items),
             favicons: new M.Favicons.Model(new KVSCache(favicons)),

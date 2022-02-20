@@ -126,7 +126,48 @@
     &.disabled { color: var(--disabled-fg); }
 }
 
+[data-container-color="blue"] {
+    --container-indicator-color: var(--container-color-blue);
+}
+
+[data-container-color="turquoise"] {
+    --container-indicator-color: var(--container-color-teal);
+}
+
+[data-container-color="green"] {
+    --container-indicator-color: var(--container-color-green);
+}
+
+[data-container-color="yellow"] {
+    --container-indicator-color: var(--container-color-yellow);
+}
+
+[data-container-color="orange"] {
+    --container-indicator-color: var(--container-color-orange);
+}
+
+[data-container-color="red"] {
+    --container-indicator-color: var(--container-color-red);
+}
+
+[data-container-color="pink"] {
+    --container-indicator-color: var(--container-color-magenta);
+}
+
+[data-container-color="purple"] {
+    --container-indicator-color: var(--container-color-purple);
+}
+
+[data-container-color="toolbar"] {
+    --container-indicator-color: var(--container-color-toolbar);
+}
+
+
 // Tab entries and other folder contents (e.g. count of hidden tabs)
+.folder-item[data-container-color] {
+    box-shadow: var(--container-indicator-shadow-style) var(--container-indicator-color);
+}
+
 .folder-item {
     display: grid;
     grid-template-columns: 0fr 0fr 1fr 0fr; // indentation, icon, title, actions
