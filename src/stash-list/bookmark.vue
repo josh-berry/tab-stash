@@ -49,6 +49,7 @@ export default defineComponent({
 
     props: {
         bookmark: required(Object as PropType<Bookmark>),
+        relatedTabs: required(Object as PropType<Tab[]>),
     },
 
     computed: {
@@ -57,13 +58,6 @@ export default defineComponent({
 
         targetWindow(): number | undefined {
             return this.model().tabs.targetWindow.value;
-        },
-
-        related_tabs(): Tab[] {
-            if (! this.bookmark.url) return [];
-            const related = this.model().tabs.tabsWithURL(this.bookmark.url);
-            return Array.from(related)
-                .filter(t => t.windowId === this.targetWindow);
         },
 
         discarded(): boolean {
@@ -92,14 +86,17 @@ export default defineComponent({
                 }, undefined);
             return container_color ?? undefined;
         },
+        related_tabs(): readonly Tab[] { return this.relatedTabs; },
 
         hasOpenTab(): boolean {
-            return !! this.related_tabs.find(t => ! t.hidden);
+            return !! this.relatedTabs.find(
+                t => ! t.hidden && t.windowId === this.targetWindow);
         },
 
         hasActiveTab(): boolean {
             // TODO look only at the current window
-            return !! this.related_tabs.find(t => t.active);
+            return !! this.relatedTabs.find(
+                t => t.active && t.windowId === this.targetWindow);
         },
 
         favicon(): FaviconEntry | null {
@@ -135,7 +132,7 @@ export default defineComponent({
         })},
 
         closeOrHideOrOpen(ev: MouseEvent) { this.model().attempt(async () => {
-            const openTabs = this.related_tabs
+            const openTabs = this.relatedTabs
                 .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
                 .map((t) => t.id);
 

@@ -122,7 +122,6 @@
 
     // So that descenders and ascenders don't get clipped (much... :/)
     padding: var(--input-text-ph) var(--input-text-pw);
-
     &.disabled { color: var(--disabled-fg); }
 }
 
@@ -162,6 +161,13 @@
     --container-indicator-color: var(--container-color-toolbar);
 }
 
+
+// This matches the text of an editable-label component that is not
+// currently being edited.
+&.has-open-tabs span.folder-name {
+    color: var(--userlink-fg);
+    filter: saturate(0.7);
+}
 
 // Tab entries and other folder contents (e.g. count of hidden tabs)
 .folder-item[data-container-color] {

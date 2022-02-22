@@ -48,6 +48,7 @@
     </Menu>
     <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
+           :title="tooltip"
            :placeholder="search_placeholder" v-model="searchText">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
@@ -163,6 +164,30 @@ export default defineComponent({
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
         },
 
+        tabStats(): { open: number, discarded: number, hidden: number } {
+            let open = 0, discarded = 0, hidden = 0;
+            for (const tab of this.tabs) {
+                if (tab.hidden) {
+                    hidden += 1;
+                } else if (tab.discarded) {
+                    discarded += 1;
+                } else {
+                    open += 1;
+                }
+            }
+            return { open, discarded, hidden };
+        },
+
+        tooltip(): string {
+            const st = this.tabStats;
+            const tabs_sum = st.open + st.discarded + st.hidden;
+            return `${this.counts.groups} group${
+                this.plural(this.counts.groups)}, ${
+                this.counts.tabs} stashed tab${this.plural(this.counts.tabs)}\n${
+                tabs_sum} tab${this.plural(tabs_sum)} (${
+                st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
+        },
+
         curWindowMetadata(): BookmarkMetadataEntry {
             return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
         },
@@ -251,6 +276,10 @@ export default defineComponent({
 
         showExportDialog() {
             this.dialog = {class: 'ExportDialog', props: {}};
+        },
+
+        plural(n: number): string {
+            return n == 1 ? '' : 's';
         },
 
         async fetchMissingFavicons() { this.model().attempt(async() => {
