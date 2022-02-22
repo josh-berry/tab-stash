@@ -4,6 +4,7 @@
               'saved': true,
               'open': hasOpenTab,
               'active': hasActiveTab,
+              'discarded': discarded,
               'selected': bookmark.$selected}"
      :title="bookmark.title" :data-id="bookmark.id"
      @click.prevent.stop="select">
@@ -61,6 +62,11 @@ export default defineComponent({
             if (! this.bookmark.url) return [];
             const related = this.model().tabs.tabsWithURL(this.bookmark.url);
             return Array.from(related);
+        },
+
+        discarded(): boolean {
+            return this.related_tabs.length > 0 && 
+                this.related_tabs.every(t => t.discarded);
         },
 
         hasOpenTab(): boolean {
