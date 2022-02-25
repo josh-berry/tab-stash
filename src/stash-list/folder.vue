@@ -3,7 +3,7 @@
          'has-open-tabs': openTabsCount > 0,
          collapsed: collapsed}"
          :data-id="folder.id">
-  <header>
+  <header @auxclick.middle.exact.prevent.stop="collapsed = ! collapsed">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
             @action="collapsed = ! collapsed" />

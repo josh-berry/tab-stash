@@ -4,7 +4,7 @@
               'action-container': true,
               collapsed: collapsed,
               }">
-  <header>
+  <header @auxclick.middle.exact.prevent.stop="collapsed = ! collapsed">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             tooltip="Hide the tabs for this group"
             @action="collapsed = ! collapsed" />
