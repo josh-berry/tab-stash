@@ -118,7 +118,7 @@ export default defineComponent({
             }
 
             // Otherwise hide or close open tabs related to this bookmark.
-            await this.model().hideOrCloseStashedTabs(openTabs)
+            await this.model().hideOrCloseStashedTabs(openTabs);
         })},
 
         openRemove(ev: MouseEvent) { this.model().attempt(async () => {
