@@ -12,7 +12,7 @@
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
-  <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="a"
+  <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
@@ -109,6 +109,10 @@ export default defineComponent({
             const openTabs = this.related_tabs
                 .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
                 .map((t) => t.id);
+
+            // Remove keyboard focus after a middle click, otherwise focus will
+            // remain within the element and it will appear to be highlighted.
+            (<HTMLAnchorElement>this.$refs.link).blur();
 
             // If bookmark has no open tabs, open a new one in the background.
             if (openTabs.length < 1) {
