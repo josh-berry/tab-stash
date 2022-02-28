@@ -223,9 +223,11 @@ html.metrics-compact { @import "metrics-compact"; }
         }
     }
 
-    &.discarded :not(.selected) {
-        opacity: 0.75;
-        filter: saturate(0.7);
+    &.discarded {
+        & .text, .action.select, .icon-tab, .icon-tab-selected-inverse {
+            opacity: 0.75;
+            filter: saturate(0.7);
+        }
     }
 }
 
