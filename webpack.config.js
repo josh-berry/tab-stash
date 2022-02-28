@@ -14,6 +14,10 @@ module.exports = {
     },
     mode: "production",
     devtool: "source-map",
+    cache: { 
+        type: 'filesystem', 
+        buildDependencies: { config: [__filename] },
+    },
     module: {
         rules: [
             {test: /\.vue$/, loader: 'vue-loader'},
