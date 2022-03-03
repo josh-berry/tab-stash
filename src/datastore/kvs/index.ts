@@ -105,6 +105,12 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         return e;
     }
 
+    /** Returns an entry from the KVS, but only if it already
+     * exists in the store. */
+    getIfExists(key: K): Entry<K, V | null> | undefined {
+        return this._entries.get(key);
+    }
+
     /** Updates an entry in the KVS.  The cache is updated immediately, but
      * entries will be flushed in the background. */
     set(key: K, value: V): Entry<K, V | null> {

@@ -8,7 +8,7 @@
      :title="tab.title" :data-id="tab.id"
      @click.prevent.stop="select">
   <item-icon class="action select"
-             :src="! tab.$selected ? tab.favIconUrl : ''"
+             :src="favIcon"
              :default-class="{'icon-tab': ! tab.$selected,
                               'icon-tab-selected-inverse': tab.$selected}"
              @click.prevent.stop="select" />
@@ -49,6 +49,15 @@ export default defineComponent({
         bgKey: bgKeyName,
         targetWindow(): number | undefined {
             return this.model().tabs.targetWindow.value;
+        },
+        favIcon(): string {
+            if (this.tab.$selected) {
+                return '';
+            } else if (this.tab.favIconUrl) {
+                return this.tab.favIconUrl;
+            }
+            return this.model().favicons
+                .getIfExists(this.tab.url)?.value?.favIconUrl ?? '';
         },
         isActive(): boolean {
             return this.tab.active && this.tab.windowId === this.targetWindow;
