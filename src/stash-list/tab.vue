@@ -16,7 +16,7 @@
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="remove">{{tab.title}}</a>
   <ButtonBox>
-    <Button class="stash one" @action="stash"
+    <Button v-if="isStashable" class="stash one" @action="stash"
             :tooltip="`Stash this tab (hold ${altKey} to keep tab open)`" />
     <Button class="remove" @action="remove" tooltip="Close this tab" />
   </ButtonBox>
@@ -49,6 +49,10 @@ export default defineComponent({
         bgKey: bgKeyName,
         targetWindow(): number | undefined {
             return this.model().tabs.targetWindow.value;
+        },
+        isStashable(): boolean {
+            const t = this.tab;
+            return ! t.hidden && ! t.pinned && this.model().isURLStashable(t.url);
         },
         isActive(): boolean {
             return this.tab.active && this.tab.windowId === this.targetWindow;

@@ -139,9 +139,9 @@ export default defineComponent({
 
         isValidChild(t: Tab): boolean {
             const model = this.model();
-            return ! t.hidden && ! t.pinned && model.isURLStashable(t.url)
-                && (model.options.sync.state.show_all_open_tabs
-                    || ! this.isItemStashed(t));
+            if (t.hidden || t.pinned) return false;
+            return model.options.sync.state.show_all_open_tabs ||
+                (model.isURLStashable(t.url) && ! this.isItemStashed(t));
         },
 
         isItemStashed(i: Tab): boolean {
