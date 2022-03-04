@@ -55,15 +55,28 @@ export class RemoteNanoError extends Error {
     get data(): Send | undefined { return this.remote.data; }
 }
 
-export class NanoTimeoutError extends Error {
+export class NanoPortError extends Error {}
+
+export class NanoTimeoutError extends NanoPortError {
     readonly portName: string;
     readonly request: Send;
     readonly tag: string;
     constructor(portName: string, request: Send, tag: string) {
-        super(`${portName}: Request "${tag}" timed out: \`${JSON.stringify(request)}\``);
+        super(`${portName}: Request timed out`);
         this.portName = portName;
         this.name = 'NanoTimeoutError';
         this.request = request;
+        this.tag = tag;
+    }
+}
+
+export class NanoDisconnectedError extends NanoPortError {
+    readonly portName: string;
+    readonly tag: string;
+    constructor(portName: string, tag: string) {
+        super(`${portName}: Port was disconnected while waiting for response`);
+        this.portName = portName;
+        this.name = 'NanoDisconnectedError';
         this.tag = tag;
     }
 }

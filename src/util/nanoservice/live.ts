@@ -1,7 +1,10 @@
 import browser, {Runtime} from 'webextension-polyfill';
 
 import {logErrorsFrom} from "../oops";
-import {NanoPort, NanoService, NanoTimeoutError, RemoteNanoError} from '.';
+import {
+    NanoPort, NanoService,
+    NanoDisconnectedError, NanoTimeoutError, RemoteNanoError
+} from '.';
 import {
     Envelope, NotifyEnvelope, RequestEnvelope, ResponseEnvelope, Response, Send,
 } from './proto';
@@ -179,7 +182,7 @@ export class Port<S extends Send, R extends Send>
     private _flushPendingOnDisconnect() {
         for (const [tag, pending] of this.pending) {
             this._trace('flush on disconnect', tag);
-            pending.reject(new Error("Disconnected"));
+            pending.reject(new NanoDisconnectedError(this.name, tag));
         }
         this.pending.clear();
     }
