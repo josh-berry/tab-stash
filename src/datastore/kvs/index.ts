@@ -70,6 +70,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     private _needs_fetch = new Map<K, Entry<K, V | null>>();
 
     private _pending_io: Promise<void> | null = null;
+    private _crash_count: number = 0;
 
     constructor(kvs: KeyValueStore<K, V>) {
         this.kvs = kvs;
@@ -166,12 +167,24 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 
     private _io() {
         if (this._pending_io) return;
+
+        // If we crash 3 or more times while doing I/O, something is very wrong.
+        // Stop doing I/O and just be an in-memory cache.  Lots of crashes are
+        // likely to be annoying to users.
+        if (this._crash_count >= 3) return;
+
         this._pending_io = new Promise(resolve => later(() =>
             logErrorsFrom(async () => {
                 while (this._needs_fetch.size > 0 || this._needs_flush.size > 0) {
                     await this._fetch();
                     await this._flush();
                 }
+            }).catch(e => {
+                ++this._crash_count;
+                if (this._crash_count >= 3) {
+                    console.warn(`KVC[${this.kvs.name}]: Crashed too many times during I/O; stopping.`);
+                }
+                throw e;
             }).finally(() => {
                 this._pending_io = null;
                 resolve();
