@@ -139,9 +139,9 @@ export default defineComponent({
 
         isValidChild(t: Tab): boolean {
             const model = this.model();
-            return ! t.hidden && ! t.pinned && model.isURLStashable(t.url)
-                && (model.options.sync.state.show_all_open_tabs
-                    || ! this.isItemStashed(t));
+            if (t.hidden || t.pinned) return false;
+            return model.options.sync.state.show_all_open_tabs ||
+                (model.isURLStashable(t.url) && ! this.isItemStashed(t));
         },
 
         isItemStashed(i: Tab): boolean {
@@ -160,10 +160,14 @@ export default defineComponent({
         })},
 
         async stash(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
-            if (this.visibleChildren.length === 0) return;
-            await this.model().putItemsInFolder({
-                items: copyIf(ev.altKey, this.visibleChildren),
-                toFolderId: (await this.model().bookmarks.createStashFolder()).id,
+            const model = this.model();
+            const stashable_visible_children = this.visibleChildren
+                .filter(t => model.isURLStashable(t.url));
+
+            if (stashable_visible_children.length === 0) return;
+            await model.putItemsInFolder({
+                items: copyIf(ev.altKey, stashable_visible_children),
+                toFolderId: (await model.bookmarks.createStashFolder()).id,
             });
         })},
 
