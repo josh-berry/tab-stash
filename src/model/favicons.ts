@@ -61,7 +61,7 @@ export class Model {
      */
     get(url: string): FaviconEntry { return this._kvc.get(urlToOpen(url)); }
 
-    /** Retrieves a favicon from the catch, but won't trigger loading
+    /** Retrieves a favicon from the cache, but won't trigger loading
      * if the icon is not already present in the store. */
     getIfExists(url: string): FaviconEntry | undefined {
         return this._kvc.getIfExists(urlToOpen(url));
