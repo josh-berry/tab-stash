@@ -302,6 +302,17 @@ describe('datastore/kvs', () => {
             expect(a.value).to.deep.equal('b');
         });
 
+        it('does not keep state for non-existent entries fetched from getIfExists()', async () => {
+            expect(cache.getIfExists('a')).to.be.undefined;
+            expect((<Map<string, string>>(<any>cache)._entries).size).to.equal(0);
+
+            const ent = cache.get('a');
+            expect(ent).to.deep.equal({key: 'a', value: null});
+            expect(cache.get('a')).to.equal(ent);
+            expect(cache.getIfExists('a')).to.equal(ent);
+            expect((<Map<string, string>>(<any>cache)._entries).size).to.equal(1);
+        });
+
         it('applies updates from the KVS to objects in the cache', async () => {
             const a = cache.get('a');
             expect(a.value).to.be.null;
