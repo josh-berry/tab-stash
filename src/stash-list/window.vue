@@ -160,12 +160,11 @@ export default defineComponent({
         })},
 
         async stash(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
-            if (this.visibleChildren.length === 0) return;
-
             const model = this.model();
             const stashable_visible_children = this.visibleChildren
                 .filter(t => model.isURLStashable(t.url));
 
+            if (stashable_visible_children.length === 0) return;
             await model.putItemsInFolder({
                 items: copyIf(ev.altKey, stashable_visible_children),
                 toFolderId: (await model.bookmarks.createStashFolder()).id,
