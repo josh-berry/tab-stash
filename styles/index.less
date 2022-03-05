@@ -222,6 +222,13 @@ html.metrics-compact { @import "metrics-compact"; }
                 var(--item-hover-bg) var(--active-marker-bw));
         }
     }
+
+    &.discarded {
+        & .text, .action.select, .icon-tab, .icon-tab-selected-inverse {
+            opacity: 0.75;
+            filter: saturate(0.7);
+        }
+    }
 }
 
 // Icons (which aren't toolbar buttons)

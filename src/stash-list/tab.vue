@@ -3,6 +3,7 @@
               'tab': true,
               'open': ! tab.hidden,
               'active': !!tab.active,
+              'discarded': tab.discarded,
               'selected': tab.$selected}"
      :title="tab.title" :data-id="tab.id"
      @click.prevent.stop="select">

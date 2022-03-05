@@ -4,6 +4,7 @@
               'saved': true,
               'open': hasOpenTab,
               'active': hasActiveTab,
+              'discarded': discarded,
               'selected': bookmark.$selected}"
      :title="bookmark.title" :data-id="bookmark.id"
      @click.prevent.stop="select">
@@ -60,17 +61,22 @@ export default defineComponent({
         related_tabs(): Tab[] {
             if (! this.bookmark.url) return [];
             const related = this.model().tabs.tabsWithURL(this.bookmark.url);
-            return Array.from(related);
+            return Array.from(related)
+                .filter(t => t.windowId === this.targetWindow);
+        },
+
+        discarded(): boolean {
+            return this.related_tabs.length > 0 && 
+                this.related_tabs.every(t => !t.hidden && t.discarded);
         },
 
         hasOpenTab(): boolean {
-            return !! this.related_tabs.find(
-                t => ! t.hidden && t.windowId === this.targetWindow);
+            return !! this.related_tabs.find(t => ! t.hidden);
         },
+
         hasActiveTab(): boolean {
             // TODO look only at the current window
-            return !! this.related_tabs.find(
-                t => t.active && t.windowId === this.targetWindow);
+            return !! this.related_tabs.find(t => t.active);
         },
 
         favicon(): FaviconEntry | null {
