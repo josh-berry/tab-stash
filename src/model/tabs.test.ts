@@ -36,7 +36,7 @@ describe('model/tabs', () => {
                 active: !!tab.active,
                 highlighted: !!tab.highlighted,
                 discarded: !!tab.discarded,
-                cookieStoreId: tab.cookieStoreId ?? '',
+                cookieStoreId: tab.cookieStoreId,
                 $visible: true,
                 $selected: false,
             });
@@ -69,7 +69,7 @@ describe('model/tabs', () => {
             pinned: false,
             highlighted: false,
             discarded: false,
-            cookieStoreId: '',
+            cookieStoreId: undefined,
             $visible: true,
             $selected: false,
         });
@@ -167,7 +167,7 @@ describe('model/tabs', () => {
             active: false,
             highlighted: false,
             discarded: false,
-            cookieStoreId: tab.cookieStoreId ?? '',
+            cookieStoreId: tab.cookieStoreId,
             $visible: true,
             $selected: false,
         });
@@ -211,7 +211,7 @@ describe('model/tabs', () => {
             active: !!tab.active,
             highlighted: !!tab.highlighted,
             discarded: !!tab.discarded,
-            cookieStoreId: tab.cookieStoreId ?? '',
+            cookieStoreId: tab.cookieStoreId,
             $visible: true,
             $selected: false,
         });

@@ -67,7 +67,7 @@ export default defineComponent({
         },
 
         discarded(): boolean {
-            return this.related_tabs.length > 0 && 
+            return this.related_tabs.length > 0 &&
                 this.related_tabs.every(t => !t.hidden && t.discarded);
         },
 
@@ -84,7 +84,8 @@ export default defineComponent({
             //     set to the same color.
             const container_color = this.related_tabs
                 .reduce((prev: string | undefined | null, t: Tab) => {
-                    if (t.hidden || prev === null) return prev;
+                    if (t.hidden || prev === null || t.cookieStoreId === undefined)
+                        return prev;
                     const cc = containers.container(t.cookieStoreId)?.color;
                     if (! cc) return prev;
                     return prev === undefined || cc === prev ? cc : null;

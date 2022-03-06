@@ -69,8 +69,10 @@ export default defineComponent({
             return this.tab.active && this.tab.windowId === this.targetWindow;
         },
         container(): Container | undefined {
-            if (!this.model().options.local.state.ff_container_indicators) return;
-            return this.model().containers.container(this.tab.cookieStoreId);
+            if (this.model().options.local.state.ff_container_indicators &&
+                this.tab.cookieStoreId !== undefined) {
+                    return this.model().containers.container(this.tab.cookieStoreId);
+                }
         },
         containerColor(): string | undefined {
             return this.container?.color;

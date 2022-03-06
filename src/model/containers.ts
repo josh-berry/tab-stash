@@ -91,8 +91,7 @@ export class Model {
 
     // Accessors
     container(key: string): Container | undefined {
-        // Something like a blank string should never be valid.
-        return key ? this.containers.get(key) : undefined;
+        return this.containers.get(key);
     }
 
     // Event handlers
@@ -101,12 +100,10 @@ export class Model {
         ContextualIdentities.OnUpdatedChangeInfoType) {
 
         const container = evt.contextualIdentity;
-        const key = container?.cookieStoreId;
-        if (!key) return;
-        let c = this.containers.get(key) as Container;
+        const key = container.cookieStoreId;
+        let c = this.containers.get(key);
         if (!c) {
-            c = this.makeContainerReactive(c);
-            this.containers.set(key, c);
+            this.containers.set(key, this.makeContainerReactive(container));
             return;
         }
         c.name = container.name;
@@ -118,8 +115,7 @@ export class Model {
     }
 
     private whenRemoved(evt: ContextualIdentities.OnRemovedChangeInfoType) {
-        const key = evt.contextualIdentity?.cookieStoreId;
-        if (!key) return;
+        const key = evt.contextualIdentity.cookieStoreId;
         this.containers.delete(key);
     }
 }
