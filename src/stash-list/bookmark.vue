@@ -61,8 +61,8 @@ export default defineComponent({
         },
 
         discarded(): boolean {
-            return this.related_tabs.length > 0 &&
-                this.related_tabs.every(t => !t.hidden && t.discarded);
+            return this.relatedTabs.length > 0 &&
+                this.relatedTabs.every(t => !t.hidden && t.discarded);
         },
 
         related_container_color(): string | undefined {
@@ -89,14 +89,11 @@ export default defineComponent({
         related_tabs(): readonly Tab[] { return this.relatedTabs; },
 
         hasOpenTab(): boolean {
-            return !! this.relatedTabs.find(
-                t => ! t.hidden && t.windowId === this.targetWindow);
+            return !! this.relatedTabs.find(t => ! t.hidden);
         },
 
         hasActiveTab(): boolean {
-            // TODO look only at the current window
-            return !! this.relatedTabs.find(
-                t => t.active && t.windowId === this.targetWindow);
+            return !! this.relatedTabs.find(t => t.active);
         },
 
         favicon(): FaviconEntry | null {
@@ -133,8 +130,8 @@ export default defineComponent({
 
         closeOrHideOrOpen(ev: MouseEvent) { this.model().attempt(async () => {
             const openTabs = this.relatedTabs
-                .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
-                .map((t) => t.id);
+                .filter(t => ! t.hidden)
+                .map(t => t.id);
 
             // Remove keyboard focus after a middle click, otherwise focus will
             // remain within the element and it will appear to be highlighted.
