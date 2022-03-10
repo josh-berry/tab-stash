@@ -289,19 +289,40 @@ export class Model {
             || !! this.bookmarks.node(id as Bookmarks.NodeID));
     }
 
+    /** Put the set of currently-selected items in the specified folder
+     * when the toFolderId option is set, otherwise the current window.
+     *
+     * Note: When copying is disabled, the source items will be deselected. */
+    async putSelectedIn(
+        options?: { copy?: boolean, toFolderId?: Bookmarks.NodeID, }
+    ) {
+        const from_items = Array.from(this.selectedItems());
+        const items = copyIf(options?.copy === true, from_items);
+
+        let affected_items: StashItem[];
+        if (options?.toFolderId === undefined) {
+            affected_items = await this.putItemsInWindow({items});
+        } else {
+            affected_items = await this.putItemsInFolder({
+                items,
+                toFolderId: options.toFolderId,
+            });
+        }
+        if (!options?.copy) {
+            affected_items.forEach(i => i.$selected = false);
+        }
+    }
+
     /** Put the set of currently-selected items in the current window. */
     async putSelectedInWindow(options: {copy: boolean}) {
-        await this.putItemsInWindow({
-            items: copyIf(options.copy, Array.from(this.selectedItems())),
-        });
+        await this.putSelectedIn(options);
     }
 
     /** Put the set of currently-selected items in the specified folder. */
-    async putSelectedInFolder(options: {copy: boolean, toFolderId: Bookmarks.NodeID}) {
-        await this.putItemsInFolder({
-            items: copyIf(options.copy, Array.from(this.selectedItems())),
-            toFolderId: options.toFolderId,
-        });
+    async putSelectedInFolder(
+        options: { copy: boolean, toFolderId: Bookmarks.NodeID, }
+    ) {
+        await this.putSelectedIn(options)
     }
 
     /** Hide/discard/close the specified tabs, according to the user's settings
