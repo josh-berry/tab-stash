@@ -51,5 +51,9 @@ Here's why we need each of them:
   data so the cache can hold all the icons.  Icons are removed from the cache
   automatically once they're no longer needed.
 
+- **Containers (contextual identities)** and **Cookies**: If you use Firefox's
+  containers feature, these permissions are used to identify which container
+  each tab belongs to and show an indicator in the Tab Stash UI.
+
 - **Menus**: Used to provide additional options for Tab Stash in the right-click
   menu of a page and the tab bar.
