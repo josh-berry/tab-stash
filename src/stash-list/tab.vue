@@ -6,6 +6,7 @@
               'discarded': tab.discarded,
               'selected': tab.$selected}"
      :title="tab.title" :data-id="tab.id"
+     :data-container-color="containerColor"
      @click.prevent.stop="select">
   <item-icon class="action select"
              :src="favIcon"
@@ -30,6 +31,7 @@ import browser from 'webextension-polyfill';
 import {altKeyName, bgKeyName, required} from '../util';
 import {Model, copyIf} from '../model';
 import {Tab} from '../model/tabs';
+import {Container} from '../model/containers';
 
 export default defineComponent({
     components: {
@@ -65,6 +67,15 @@ export default defineComponent({
         },
         isActive(): boolean {
             return this.tab.active && this.tab.windowId === this.targetWindow;
+        },
+        container(): Container | undefined {
+            if (this.model().options.local.state.ff_container_indicators &&
+                this.tab.cookieStoreId !== undefined) {
+                    return this.model().containers.container(this.tab.cookieStoreId);
+                }
+        },
+        containerColor(): string | undefined {
+            return this.container?.color;
         },
     },
 

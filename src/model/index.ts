@@ -42,6 +42,7 @@ import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
 
 import * as Tabs from './tabs';
+import * as Containers from './containers';
 import * as Bookmarks from './bookmarks';
 import * as DeletedItems from './deleted-items';
 
@@ -51,7 +52,7 @@ import * as Selection from './selection';
 
 export {
     BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons,
-    BookmarkMetadata,
+    BookmarkMetadata, Containers,
 };
 
 /** The StashItem is anything that can be placed in the stash.  It could already
@@ -83,6 +84,7 @@ export type Source = {
     readonly options: Options.Model,
 
     readonly tabs: Tabs.Model;
+    readonly containers: Containers.Model;
     readonly bookmarks: Bookmarks.Model;
     readonly deleted_items: DeletedItems.Model,
 
@@ -103,6 +105,7 @@ export class Model {
     readonly options: Options.Model;
 
     readonly tabs: Tabs.Model;
+    readonly containers: Containers.Model;
     readonly bookmarks: Bookmarks.Model;
     readonly deleted_items: DeletedItems.Model;
 
@@ -115,6 +118,7 @@ export class Model {
         this.options = src.options;
 
         this.tabs = src.tabs;
+        this.containers = src.containers;
         this.bookmarks = src.bookmarks;
         this.deleted_items = src.deleted_items;
 
@@ -128,6 +132,7 @@ export class Model {
     readonly reload = backingOff(async () => {
         await Promise.all([
             this.tabs.reload(),
+            this.containers.reload(),
             this.bookmarks.reload(),
             this.browser_settings.reload(),
         ]);

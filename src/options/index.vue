@@ -227,6 +227,15 @@
       occasionally restore incorrect tabs on certain versions of Firefox, check
       the linked issue for more details.)
     </FeatureFlag>
+
+    <FeatureFlag name="ff_container_indicators" v-model="ff_container_indicators"
+        :default_value="local_def().ff_container_indicators.default" :issue="125">
+      <template v-slot:summary>Container Indicators</template>
+      Displays color-coded indicators for container tabs and bookmarks
+      with open container tabs. <b>Note:</b> Tab Stash itself does not manage
+      containers or ensure that bookmarks are opened in a specific container.
+      This feature only shows what container a tab belongs to.
+    </FeatureFlag>
   </section>
 </main>
 </template>

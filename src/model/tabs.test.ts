@@ -36,6 +36,7 @@ describe('model/tabs', () => {
                 active: !!tab.active,
                 highlighted: !!tab.highlighted,
                 discarded: !!tab.discarded,
+                cookieStoreId: tab.cookieStoreId,
                 $visible: true,
                 $selected: false,
             });
@@ -68,6 +69,7 @@ describe('model/tabs', () => {
             pinned: false,
             highlighted: false,
             discarded: false,
+            cookieStoreId: undefined,
             $visible: true,
             $selected: false,
         });
@@ -148,6 +150,7 @@ describe('model/tabs', () => {
         const tab = {
             id: 16384, windowId: 16590, index: 0, url: 'hi',
             highlighted: false, active: false, pinned: false, incognito: false,
+            cookieStoreId: undefined,
         };
         events.send(browser.tabs.onCreated, tab);
         await events.next(browser.tabs.onCreated);
@@ -164,6 +167,7 @@ describe('model/tabs', () => {
             active: false,
             highlighted: false,
             discarded: false,
+            cookieStoreId: tab.cookieStoreId,
             $visible: true,
             $selected: false,
         });
@@ -207,6 +211,7 @@ describe('model/tabs', () => {
             active: !!tab.active,
             highlighted: !!tab.highlighted,
             discarded: !!tab.discarded,
+            cookieStoreId: tab.cookieStoreId,
             $visible: true,
             $selected: false,
         });
