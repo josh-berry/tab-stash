@@ -13,7 +13,12 @@ html.theme-system {
     @media (prefers-color-scheme: dark) { @import (multiple) "theme-dark"; }
 }
 html.theme-light { @import (multiple) "theme-light"; }
-html.theme-dark { @import (multiple) "theme-dark"; }
+html.theme-dark {
+    // We import BOTH themes here so that dark variables override light
+    // variables, just like in theme-system.
+    @import (multiple) "theme-light";
+    @import (multiple) "theme-dark";
+}
 
 // Colors common to both themes (mainly accents like shadows/dividers):
 html {
