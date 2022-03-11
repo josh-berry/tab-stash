@@ -2,9 +2,10 @@
 <div :class="{'action-container': true,
               'tab': true, // TODO fix the CSS classes...
               'saved': true,
-              'open': hasOpenTab,
-              'active': hasActiveTab,
-              'discarded': discarded,
+              'discarded': tabState.discarded,
+              'open': tabState.open,
+              'active': tabState.active,
+              'loading': tabState.loading,
               'selected': bookmark.$selected}"
      :title="bookmark.title" :data-id="bookmark.id"
      :data-container-color="related_container_color"
@@ -56,15 +57,6 @@ export default defineComponent({
         altkey: altKeyName,
         bgKey: bgKeyName,
 
-        targetWindow(): number | undefined {
-            return this.model().tabs.targetWindow.value;
-        },
-
-        discarded(): boolean {
-            return this.relatedTabs.length > 0 &&
-                this.relatedTabs.every(t => !t.hidden && t.discarded);
-        },
-
         related_container_color(): string | undefined {
             if (!this.model().options.local.state.ff_container_indicators) return;
             const containers = this.model().containers;
@@ -87,12 +79,18 @@ export default defineComponent({
             return container_color ?? undefined;
         },
 
-        hasOpenTab(): boolean {
-            return !! this.relatedTabs.find(t => ! t.hidden);
-        },
-
-        hasActiveTab(): boolean {
-            return !! this.relatedTabs.find(t => t.active);
+        tabState(): { open: boolean, active: boolean, loading: boolean, discarded: boolean } {
+            let open: boolean = false, active: boolean = false, loading: boolean = false;
+            let discarded = 0;
+            for (const t of this.relatedTabs) {
+                if (!t.hidden && t.discarded) discarded++;
+                open = open || !t.hidden;
+                active = active || t.active;
+                loading = loading || t.status === 'loading';
+            }
+            const tl = this.relatedTabs.length;
+            return { open: !!open, active: !!active, loading: !!loading,
+                     discarded: tl > 0 && discarded === tl };
         },
 
         favicon(): FaviconEntry | null {
