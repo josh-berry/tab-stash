@@ -327,6 +327,18 @@ describe('util', function() {
         });
     });
 
+    describe('batchesOf()', () => {
+        function test<T>(input: T[], size: number, expected: T[][]) {
+            const actual = Array.from(M.batchesOf(size, input[Symbol.iterator]()));
+            expect(actual).to.deep.equal(expected);
+        }
+        it('size == 0', () => test([1, 2, 3], 0, []));
+        it('size == 1', () => test([1, 2, 3], 1, [[1], [2], [3]]));
+        it('input < size', () => test([1, 2, 3], 5, [[1, 2, 3]]));
+        it('input == size', () => test([1, 2, 3], 3, [[1, 2, 3]]));
+        it('input > size', () => test([1, 2, 3, 4, 5], 3, [[1, 2, 3], [4, 5]]));
+    });
+
     describe('DeferQueue', function() {
         it('holds events until unplugged', function() {
             const dq = new M.DeferQueue();

@@ -8,6 +8,14 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.10.3">
+      <L :issue="214" v="Fixed">a crash that may occur if website icons take too
+      long to load when first opening the UI. ("NanoTimeoutError")</L>
+
+      <L :issue="223" v="Fixed">a crash that may occur if the Tab Stash UI loses
+      contact with the Tab Stash background page. ("Disconnected" error)</L>
+    </Version>
+
     <Version v="2.10.2">
       <L :subtext="`If you find that your laptop isn't keeping your lap as `
             + `warm as it used to after this update, may I recommend `

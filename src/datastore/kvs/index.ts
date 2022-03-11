@@ -1,7 +1,7 @@
 import {Events} from 'webextension-polyfill';
 import {reactive} from 'vue';
 
-import {later} from '../../util';
+import {later, batchesOf} from '../../util';
 import {logErrorsFrom} from "../../util/oops";
 
 import {Entry, Key, Value} from './proto';
@@ -55,6 +55,8 @@ export interface KeyValueStore<K extends Key, V extends Value> {
  *   received before the background flush can be done.
  * - There is no delete() or list operations; use the regular KeyValueStore
  *   interface if you need those.
+ * - If background I/O fails, dirty entries are dropped, and stale entries will
+ *   remain stale.  At present there is no way to recover from this.
  */
  export class KVSCache<K extends Key, V extends Value> {
     /** The underlying KVS which is backing the KVSCache.  If is perfectly fine
@@ -68,6 +70,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     private _needs_fetch = new Map<K, Entry<K, V | null>>();
 
     private _pending_io: Promise<void> | null = null;
+    private _crash_count: number = 0;
 
     constructor(kvs: KeyValueStore<K, V>) {
         this.kvs = kvs;
@@ -170,12 +173,24 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 
     private _io() {
         if (this._pending_io) return;
+
+        // If we crash 3 or more times while doing I/O, something is very wrong.
+        // Stop doing I/O and just be an in-memory cache.  Lots of crashes are
+        // likely to be annoying to users.
+        if (this._crash_count >= 3) return;
+
         this._pending_io = new Promise(resolve => later(() =>
             logErrorsFrom(async () => {
                 while (this._needs_fetch.size > 0 || this._needs_flush.size > 0) {
                     await this._fetch();
                     await this._flush();
                 }
+            }).catch(e => {
+                ++this._crash_count;
+                if (this._crash_count >= 3) {
+                    console.warn(`KVC[${this.kvs.name}]: Crashed too many times during I/O; stopping.`);
+                }
+                throw e;
             }).finally(() => {
                 this._pending_io = null;
                 resolve();
@@ -184,23 +199,22 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     }
 
     private async _fetch() {
-        while (this._needs_fetch.size > 0) {
-            const keys = Array.from(this._needs_fetch.keys());
-            this._needs_fetch = new Map();
-
-            const entries = await this.kvs.get(keys);
+        const map = this._needs_fetch;
+        this._needs_fetch = new Map();
+        for (const batch of batchesOf(100, map.keys())) {
+            const entries = await this.kvs.get(batch);
             for (const e of entries) this._update(e.key, e.value);
         }
     }
 
     private async _flush() {
-        while (this._needs_flush.size > 0) {
+        const map = this._needs_flush;
+        this._needs_flush = new Map();
+        for (const batch of batchesOf(100, map.values())) {
             // Capture all values to write and strip off any reactivity.  If we
             // don't strip the reactivity, we will not be able to send the
             // values via IPC (if this.kvs is a KVSClient, for example).
-            const dirty = JSON.parse(JSON.stringify(Array.from(
-                this._needs_flush.values())));
-            this._needs_flush = new Map();
+            const dirty = JSON.parse(JSON.stringify(batch));
 
             await this.kvs.set(dirty as Entry<K, V>[]);
         }
