@@ -113,6 +113,7 @@ export default defineComponent({
         stash_root_warning(): {text: string, help: () => void} | undefined {
             return this.model().bookmarks.stash_root_warning.value;
         },
+        targetWindow() { return this.model().tabs.targetWindow.value; },
         tabs(): readonly Tab[] {
             const m = this.model().tabs;
             if (m.targetWindow.value === undefined) return [];
@@ -167,6 +168,7 @@ export default defineComponent({
         tabStats(): { open: number, discarded: number, hidden: number } {
             let open = 0, discarded = 0, hidden = 0;
             for (const tab of this.tabs) {
+                if (tab.windowId !== this.targetWindow) continue;
                 if (tab.hidden) {
                     hidden += 1;
                 } else if (tab.discarded) {
@@ -184,7 +186,7 @@ export default defineComponent({
             return `${this.counts.groups} group${
                 this.plural(this.counts.groups)}, ${
                 this.counts.tabs} stashed tab${this.plural(this.counts.tabs)}\n${
-                tabs_sum} tab${this.plural(tabs_sum)} (${
+                tabs_sum} tab${this.plural(tabs_sum)} in this window (${
                 st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
         },
 

@@ -178,8 +178,8 @@ export default defineComponent({
             const st = this.childTabStats;
             const child_count = this.validChildren.length;
             const statstip = `${child_count} stashed tab${
-                child_count != 1 ? 's' : ''}; ${st.open} open, ${
-                st.discarded} discarded, ${st.hidden} hidden`;
+                child_count != 1 ? 's' : ''} (${st.open} open, ${
+                st.discarded} unloaded, ${st.hidden} hidden)`;
             return `${this.nonDefaultTitle ?? this.defaultTitle}\n${statstip}`;
         },
 
