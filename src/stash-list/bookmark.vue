@@ -76,7 +76,7 @@ export default defineComponent({
             //     a different one.
             //   string: One or more tabs with a container color, and all
             //     set to the same color.
-            const container_color = this.related_tabs
+            const container_color = this.relatedTabs
                 .reduce((prev: string | undefined | null, t: Tab) => {
                     if (t.hidden || prev === null || t.cookieStoreId === undefined)
                         return prev;
@@ -86,7 +86,6 @@ export default defineComponent({
                 }, undefined);
             return container_color ?? undefined;
         },
-        related_tabs(): readonly Tab[] { return this.relatedTabs; },
 
         hasOpenTab(): boolean {
             return !! this.relatedTabs.find(t => ! t.hidden);

@@ -109,15 +109,14 @@ export default defineComponent({
         childrenWithTabs(): readonly NodeWithTabs[] {
             const mtabs = this.model().tabs;
             return this.children
-                .map(n => {
-                    return {
-                        node: n, id: n.id,
-                        tabs: 'url' in n && n.url
-                            ? Array.from(mtabs.tabsWithURL(n.url))
-                                .filter(t => t.windowId === this.targetWindow)
-                            : []
-                    };
-                });
+                .map(n => ({
+                    id: n.id,
+                    node: n,
+                    tabs: 'url' in n && n.url
+                        ? Array.from(mtabs.tabsWithURL(n.url))
+                            .filter(t => t.windowId === this.targetWindow)
+                        : []
+                }));
         },
 
         childTabStats(): { open: number, discarded: number, hidden: number } {

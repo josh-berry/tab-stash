@@ -48,7 +48,7 @@
     </Menu>
     <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
-           :title="tooltip"
+           :title="searchTooltip"
            :placeholder="search_placeholder" v-model="searchText">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
@@ -178,7 +178,7 @@ export default defineComponent({
             return { open, discarded, hidden };
         },
 
-        tooltip(): string {
+        searchTooltip(): string {
             const st = this.tabStats;
             const tabs_sum = st.open + st.discarded + st.hidden;
             return `${this.counts.groups} group${
