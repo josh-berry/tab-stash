@@ -48,6 +48,7 @@
     </Menu>
     <SelectionMenu v-if="selection_active" />
     <input type="search" ref="search" class="ephemeral" aria-label="Search"
+           :title="searchTooltip"
            :placeholder="search_placeholder" v-model="searchText">
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
             title="Hide all tabs so only group names are showing"
@@ -112,6 +113,7 @@ export default defineComponent({
         stash_root_warning(): {text: string, help: () => void} | undefined {
             return this.model().bookmarks.stash_root_warning.value;
         },
+        targetWindow() { return this.model().tabs.targetWindow.value; },
         tabs(): readonly Tab[] {
             const m = this.model().tabs;
             if (m.targetWindow.value === undefined) return [];
@@ -161,6 +163,31 @@ export default defineComponent({
             const groups = counts.groups == 1 ? 'group' : 'groups';
             const tabs = counts.tabs == 1 ? 'tab' : 'tabs';
             return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
+        },
+
+        tabStats(): { open: number, discarded: number, hidden: number } {
+            let open = 0, discarded = 0, hidden = 0;
+            for (const tab of this.tabs) {
+                if (tab.windowId !== this.targetWindow) continue;
+                if (tab.hidden) {
+                    hidden += 1;
+                } else if (tab.discarded) {
+                    discarded += 1;
+                } else {
+                    open += 1;
+                }
+            }
+            return { open, discarded, hidden };
+        },
+
+        searchTooltip(): string {
+            const st = this.tabStats;
+            const tabs_sum = st.open + st.discarded + st.hidden;
+            return `${this.counts.groups} group${
+                this.plural(this.counts.groups)}, ${
+                this.counts.tabs} stashed tab${this.plural(this.counts.tabs)}\n${
+                tabs_sum} tab${this.plural(tabs_sum)} in this window (${
+                st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
         },
 
         curWindowMetadata(): BookmarkMetadataEntry {
@@ -251,6 +278,10 @@ export default defineComponent({
 
         showExportDialog() {
             this.dialog = {class: 'ExportDialog', props: {}};
+        },
+
+        plural(n: number): string {
+            return n == 1 ? '' : 's';
         },
 
         async fetchMissingFavicons() { this.model().attempt(async() => {

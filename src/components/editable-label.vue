@@ -4,7 +4,9 @@
        @mousedown.stop="; /* prevent parent from starting a drag */"
        @blur="commit" @keyup.enter.prevent="commit"
        @keyup.esc.prevent="cancel">
-<span v-else :title="displayValue" @click.prevent.stop="begin">{{displayValue}}</span>
+<span v-else :title="tooltipOrDisplayValue" @click.prevent.stop="begin">
+    {{displayValue}}
+</span>
 </template>
 
 <script lang="ts">
@@ -20,6 +22,7 @@ export default defineComponent({
 
         /** The value to show */
         value: String,
+        tooltip: String,
 
         /** The value to show if no value is provided */
         defaultValue: required(String),
@@ -36,6 +39,9 @@ export default defineComponent({
         },
         editableValue(): string {
             return this.dirtyValue ?? this.value ?? '';
+        },
+        tooltipOrDisplayValue(): string {
+            return this.tooltip ?? this.displayValue;
         },
     },
 

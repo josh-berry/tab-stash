@@ -1,5 +1,7 @@
 <template>
-<section :class="{folder: true, 'action-container': true, collapsed: collapsed}"
+<section :class="{folder: true, 'action-container': true,
+         'has-open-tabs': openTabsCount > 0,
+         collapsed: collapsed}"
          :data-id="folder.id">
   <header>
     <Button :class="{collapse: ! collapsed, expand: collapsed}"
@@ -26,17 +28,19 @@
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label :class="{'folder-name': true, 'ephemeral': true}"
-                    :value="nonDefaultTitle"
-                    :defaultValue="defaultTitle"
-                    :edit="rename"></editable-label>
+    <editable-label
+        class="folder-name ephemeral"
+        :value="nonDefaultTitle"
+        :defaultValue="defaultTitle"
+        :tooltip="tooltip"
+        :edit="rename"></editable-label>
   </header>
   <div class="contents">
-    <dnd-list class="tabs" v-model="children" item-key="id" :item-class="childClasses"
+    <dnd-list class="tabs" v-model="childrenWithTabs" item-key="id" :item-class="childClasses"
               :accepts="accepts" :drag="drag" :drop="drop" :mimic-height="true">
       <template #item="{item}">
-        <bookmark v-if="isValidChild(item)" :bookmark="item"
-                  :class="{'folder-item': true, 'no-match': ! item.$visible}" />
+        <bookmark v-if="isValidChild(item.node)" :bookmark="item.node" :relatedTabs="item.tabs"
+                  :class="{'folder-item': true, 'no-match': ! item.node.$visible}" />
       </template>
     </dnd-list>
     <div class="folder-item" v-if="filterCount > 0"
@@ -59,9 +63,12 @@ import {DragAction, DropAction} from '../components/dnd-list';
 
 import {copyIf, Model, StashItem} from '../model';
 import {
-    Node, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, friendlyFolderName,
+    Node, NodeID, Bookmark, Folder, genDefaultFolderName, getDefaultFolderNameISODate, friendlyFolderName,
 } from '../model/bookmarks';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
+import {Tab} from '../model/tabs';
+
+type NodeWithTabs = { node: Node, id: NodeID, tabs: Tab[]};
 
 const DROP_FORMATS = [
     'application/x-tab-stash-items',
@@ -95,6 +102,46 @@ export default defineComponent({
 
         accepts() { return DROP_FORMATS; },
 
+        targetWindow(): number | undefined {
+            return this.model().tabs.targetWindow.value;
+        },
+
+        childrenWithTabs(): readonly NodeWithTabs[] {
+            const mtabs = this.model().tabs;
+            return this.children
+                .map(n => ({
+                    id: n.id,
+                    node: n,
+                    tabs: 'url' in n && n.url
+                        ? Array.from(mtabs.tabsWithURL(n.url))
+                            .filter(t => t.windowId === this.targetWindow)
+                        : []
+                }));
+        },
+
+        childTabStats(): { open: number, discarded: number, hidden: number } {
+            let open = 0, discarded = 0, hidden = 0;
+            for (const nwt of this.childrenWithTabs) {
+                for (const tab of nwt.tabs) {
+                    if (tab.windowId !== this.targetWindow) {
+                        continue;
+                    }
+                    if (tab.hidden) {
+                        hidden += 1;
+                    } else if (tab.discarded) {
+                        discarded += 1;
+                    } else {
+                        open += 1;
+                    }
+                }
+            }
+            return { open, discarded, hidden };
+        },
+
+        openTabsCount(): number {
+            return this.childTabStats.open + this.childTabStats.discarded;
+        },
+
         children(): readonly Node[] {
             return this.model().bookmarks.childrenOf(this.folder);
         },
@@ -127,6 +174,14 @@ export default defineComponent({
             return getDefaultFolderNameISODate(this.folder.title) !== null
                 ? undefined : this.folder.title;
         },
+        tooltip(): string {
+            const st = this.childTabStats;
+            const child_count = this.validChildren.length;
+            const statstip = `${child_count} stashed tab${
+                child_count != 1 ? 's' : ''} (${st.open} open, ${
+                st.discarded} unloaded, ${st.hidden} hidden)`;
+            return `${this.nonDefaultTitle ?? this.defaultTitle}\n${statstip}`;
+        },
 
         validChildren(): Bookmark[] {
             return this.children.filter(c => this.isValidChild(c)) as Bookmark[];
@@ -148,7 +203,8 @@ export default defineComponent({
         model() { return (<any>this).$model as Model; },
         attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
 
-        childClasses(node: Node): Record<string, boolean> {
+        childClasses(nodet: NodeWithTabs): Record<string, boolean> {
+            const node = nodet.node;
             return {hidden: ! (
                 this.isValidChild(node) && (this.showFiltered || node.$visible))};
         },

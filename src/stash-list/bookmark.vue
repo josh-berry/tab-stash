@@ -49,6 +49,7 @@ export default defineComponent({
 
     props: {
         bookmark: required(Object as PropType<Bookmark>),
+        relatedTabs: required(Object as PropType<Tab[]>),
     },
 
     computed: {
@@ -59,16 +60,9 @@ export default defineComponent({
             return this.model().tabs.targetWindow.value;
         },
 
-        related_tabs(): Tab[] {
-            if (! this.bookmark.url) return [];
-            const related = this.model().tabs.tabsWithURL(this.bookmark.url);
-            return Array.from(related)
-                .filter(t => t.windowId === this.targetWindow);
-        },
-
         discarded(): boolean {
-            return this.related_tabs.length > 0 &&
-                this.related_tabs.every(t => !t.hidden && t.discarded);
+            return this.relatedTabs.length > 0 &&
+                this.relatedTabs.every(t => !t.hidden && t.discarded);
         },
 
         related_container_color(): string | undefined {
@@ -82,7 +76,7 @@ export default defineComponent({
             //     a different one.
             //   string: One or more tabs with a container color, and all
             //     set to the same color.
-            const container_color = this.related_tabs
+            const container_color = this.relatedTabs
                 .reduce((prev: string | undefined | null, t: Tab) => {
                     if (t.hidden || prev === null || t.cookieStoreId === undefined)
                         return prev;
@@ -94,12 +88,11 @@ export default defineComponent({
         },
 
         hasOpenTab(): boolean {
-            return !! this.related_tabs.find(t => ! t.hidden);
+            return !! this.relatedTabs.find(t => ! t.hidden);
         },
 
         hasActiveTab(): boolean {
-            // TODO look only at the current window
-            return !! this.related_tabs.find(t => t.active);
+            return !! this.relatedTabs.find(t => t.active);
         },
 
         favicon(): FaviconEntry | null {
@@ -135,9 +128,9 @@ export default defineComponent({
         })},
 
         closeOrHideOrOpen(ev: MouseEvent) { this.model().attempt(async () => {
-            const openTabs = this.related_tabs
-                .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
-                .map((t) => t.id);
+            const openTabs = this.relatedTabs
+                .filter(t => ! t.hidden)
+                .map(t => t.id);
 
             // Remove keyboard focus after a middle click, otherwise focus will
             // remain within the element and it will appear to be highlighted.
