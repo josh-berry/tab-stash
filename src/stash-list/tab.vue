@@ -4,11 +4,12 @@
               'open': ! tab.hidden,
               'active': !!tab.active,
               'discarded': tab.discarded,
+              'loading': isLoading,
               'selected': tab.$selected}"
      :title="tab.title" :data-id="tab.id"
      :data-container-color="containerColor"
      @click.prevent.stop="select">
-  <item-icon class="action select"
+  <item-icon :class="{'action': true,  'select': true, 'loading': isLoading }"
              :src="favIcon"
              :default-class="{'icon-tab': ! tab.$selected,
                               'icon-tab-selected-inverse': tab.$selected}"
@@ -64,6 +65,9 @@ export default defineComponent({
         isStashable(): boolean {
             const t = this.tab;
             return ! t.hidden && ! t.pinned && this.model().isURLStashable(t.url);
+        },
+        isLoading(): boolean {
+            return this.tab.status === 'loading'
         },
         isActive(): boolean {
             return this.tab.active && this.tab.windowId === this.targetWindow;
