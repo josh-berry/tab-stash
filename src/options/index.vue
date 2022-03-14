@@ -192,6 +192,20 @@
     </ul>
   </section>
 
+  <section class="advanced">
+  <p><em><b>WARNING! EXTREME DANGER!</b>
+    Oh no! Oh no! Oh no! Oh no! Don't do it!
+  </em></p>
+    <label>User CSS override (not synced)</label>
+    <ul><li>
+      <label for="user_style_override"
+                  title="Custom CSS overrides">
+        Note: Deselecting the text area will commit changes.<br/>
+        <textarea v-model.lazy="user_style_override" rows="10" cols="80"></textarea>
+      </label>
+    </li></ul>
+  </section>
+
   <hr v-if="meta_show_advanced">
 
   <section class="advanced">

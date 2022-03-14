@@ -106,6 +106,9 @@ export const LOCAL_DEF = {
     /** Disable crash reports for a certain amount of time. */
     hide_crash_reports_until: {default: undefined, is: maybeUndef(aNumber)},
 
+    /** Custom CSS to be injected into the stash-list page. */
+    user_style_override: {default: undefined, is: maybeUndef(aString)},
+
     // Feature flags
     ff_popup_view: {default: false, is: aBoolean},
 

@@ -10,6 +10,17 @@
     <link rel="stylesheet" type="text/css" href="tab-stash.css">
     <script type="text/javascript" src="lib.js"></script>
     <script type="text/javascript" src="stash-list.js"></script>
+    <meta
+        http-equiv="Content-Security-Policy"
+        content="
+            default-src 'none';
+            style-src 'self' 'unsafe-inline';
+            base-uri 'self';
+            img-src 'self' data:
+                chrome://global/skin/icons/
+                chrome://browser/skin/
+                chrome://branding/content/
+                chrome://mozapps/skin/ ;">
   </head>
 
   <body>
