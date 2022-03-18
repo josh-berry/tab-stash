@@ -78,7 +78,7 @@ export default defineComponent({
         DndList: require('../components/dnd-list.vue').default,
         EditableLabel: require('../components/editable-label.vue').default,
         Tab: require('./tab.vue').default,
-        Bookmark: require('./bookmark.vue').default,
+        // Bookmark: require('./bookmark.vue').default,
     },
 
     inject: ['$model'],
@@ -110,7 +110,7 @@ export default defineComponent({
         },
 
         collapsed: {
-            get(): boolean { return !! this.metadata.value?.collapsed; },
+            get(): boolean { return this.metadata.value?.collapsed === true; },
             set(collapsed: boolean) {
                 this.model().bookmark_metadata.setCollapsed(
                     this.metadata.key, collapsed);
@@ -135,7 +135,7 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
-        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+        attempt(fn: () => Promise<void>) { void this.model().attempt(fn); },
 
         childClasses(t: Tab): Record<string, boolean> {
             return {hidden: ! (
@@ -181,22 +181,23 @@ export default defineComponent({
         })},
 
         async removeStashed() {this.attempt(async() => {
-            if (! this.isItemStashed) throw new Error(
+            if (this.isItemStashed === undefined) throw new Error(
                 "isItemStashed not provided to tab folder");
 
             await this.model().hideOrCloseStashedTabs(this.tabs
-                .filter(t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t))
+                .filter(t => t !== undefined && ! t.hidden &&
+                    ! t.pinned && this.isItemStashed(t))
                 .map(t => t.id));
         })},
 
         async removeOpen(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
-            if (! this.isItemStashed) throw new Error(
+            if (this.isItemStashed == undefined) throw new Error(
                 "isItemStashed not provided to tab folder");
 
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
                 const tabs = this.tabs.filter(
-                    t => t && t.hidden && this.isItemStashed(t));
+                    t => t !== undefined && t.hidden && this.isItemStashed(t));
                 await this.model().tabs.remove(filterMap(tabs, t => t?.id));
             } else {
                 // Closes ALL open tabs (stashed and unstashed).

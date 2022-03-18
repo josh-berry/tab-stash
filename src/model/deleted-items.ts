@@ -283,7 +283,7 @@ export class Model {
     // because that way we are guaranteed to see everything, and we don't want
     // to pollute the model with stuff we're about to delete.
     async dropOlderThan(timestamp: number): Promise<void> {
-        while (true) {
+        for (; ;) {
             const to_delete = [];
             for (const rec of await this._kvs.getStartingFrom(undefined, 50)) {
                 if (Date.parse(rec.value.deleted_at) < timestamp) {
@@ -412,7 +412,7 @@ export class Model {
 
         if (items.length > 0) await this._kvs.set(items);
     }
-};
+}
 
 let key_seq_no = 0;
 let last_key_date = Date.now();

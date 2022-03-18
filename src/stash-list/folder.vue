@@ -147,7 +147,7 @@ export default defineComponent({
         },
 
         collapsed: {
-            get(): boolean { return !! this.metadata.value?.collapsed; },
+            get(): boolean { return this.metadata.value?.collapsed === true; },
             set(collapsed: boolean) {
                 this.model().bookmark_metadata.setCollapsed(
                     this.metadata.key, collapsed);
@@ -167,7 +167,7 @@ export default defineComponent({
             if (getDefaultFolderNameISODate(this.folder.title) !== null) {
                 return friendlyFolderName(this.folder.title);
             } else {
-                return `Saved ${(new Date(this.folder.dateAdded || 0)).toLocaleString()}`;
+                return `Saved ${(new Date(this.folder.dateAdded ?? 0)).toLocaleString()}`;
             }
         },
         nonDefaultTitle(): string | undefined {
@@ -201,7 +201,7 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
-        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+        attempt(fn: () => Promise<void>) { void this.model().attempt(fn); },
 
         childClasses(nodet: NodeWithTabs): Record<string, boolean> {
             const node = nodet.node;
@@ -216,7 +216,7 @@ export default defineComponent({
             const win_id = model.tabs.targetWindow.value;
             if (! win_id) return;
 
-            model.attempt(async () => await model.putItemsInFolder({
+            void model.attempt(async () => await model.putItemsInFolder({
                 items: copyIf(ev.altKey, model.stashableTabsInWindow(win_id)),
                 toFolderId: this.folder.id,
             }));
@@ -236,7 +236,7 @@ export default defineComponent({
             const win_id = model.tabs.targetWindow.value;
             if (! win_id) return;
 
-            model.attempt(() => model.putSelectedInFolder({
+            void model.attempt(() => model.putSelectedInFolder({
                 copy: ev.altKey,
                 toFolderId: this.folder.id,
             }));
@@ -270,7 +270,7 @@ export default defineComponent({
                 }
 
                 // Else give it a default name based on the creation time
-                title = genDefaultFolderName(new Date(this.folder.dateAdded || 0));
+                title = genDefaultFolderName(new Date(this.folder.dateAdded ?? 0));
             }
 
             await browser.bookmarks.update(this.folder.id, {title});

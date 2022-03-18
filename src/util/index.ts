@@ -7,6 +7,9 @@ export {
     TaskMonitor, Progress, TaskCancelled,
 } from './progress';
 
+import {MaybeValuable, Valuable, valuable} from './valuable';
+export {MaybeValuable, Valuable, valuable};
+
 export type Atom = null | boolean | number | string;
 
 /** A value that's convertible to JSON without losing information. */
@@ -15,7 +18,8 @@ export type ToJSON = Atom
                  | [...ToJSON[]] | ToJSON[];
 
 // Args is the arguments of a function
-export type Args<F extends Function> =
+type AnyFunction = (...args: any[]) => any;
+export type Args<F extends AnyFunction> =
     F extends (...args: infer A) => any ? A : never;
 
 // AsyncReturnTypeOf is the return type of an `async function` (or Promise). So:
@@ -42,6 +46,10 @@ export type OpenableURL = string & { __openable_url_marker__: undefined };
 const REDIR_PAGE = browser.runtime.getURL('restore.html');
 export const REDIR_URL_TESTONLY = REDIR_PAGE;
 
+export const BROWSER_IS_FIREFOX =
+    browser.runtime.getBrowserInfo !== undefined &&
+    browser.runtime.getBrowserInfo !== null;
+
 // Ugh, stupid hack for the fact that getting stuff from the browser that should
 // be a compiled-in set of constants is actually done through an async API...
 //
@@ -53,7 +61,7 @@ let PLATFORM_INFO = {
     'os': 'unknown',
     'arch': 'unknown',
 };
-browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
+void browser.runtime.getPlatformInfo().then(x => {PLATFORM_INFO = x});
 // istanbul ignore next
 export const altKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Option' : 'Alt';
 // istanbul ignore next
@@ -80,8 +88,8 @@ export function deepEqual<T extends ToJSON>(l: T, r: T): boolean {
         // un-narrowed type of /l/ or /r/ and tries to match against a prototype
         // of Object.keys(), rather than taking the narrowed type (which is
         // guaranteed to be an object).)
-        const lk = Object.keys(l as {}).sort();
-        const rk = Object.keys(r as {}).sort();
+        // eslint-disable-next-line @typescript-eslint/ban-types
+        const lk = Object.keys(l as {}).sort(), rk = Object.keys(r as {}).sort();
         if (! deepEqual(lk, rk)) return false;
         for (const k of lk) {
             if (! deepEqual(l[k], r[k])) return false;
@@ -138,9 +146,12 @@ export function urlToOpen(urlstr: string): OpenableURL {
                     case 'blank':
                     case 'logo':
                         break;
-                    case 'reader':
-                        const res = url.searchParams.get('url');
-                        if (res) return (res + url.hash) as OpenableURL;
+                    case 'reader': {
+                        const res = new Valuable(url.searchParams.get('url'))
+                            .map(sp_url => (sp_url + url.hash) as OpenableURL);
+                        if (res) return res;
+                    }
+                    // eslint-disable-next-line no-fallthrough
                     default:
                         return redirUrl(urlstr);
                 }
@@ -151,7 +162,7 @@ export function urlToOpen(urlstr: string): OpenableURL {
                 // they're internal browser URLs). getBrowserInfo is a handy way
                 // of checking if we're on Firefox (where it's present) or
                 // Chromium (where it isn't).
-                if (! browser.runtime.getBrowserInfo) break;
+                if (! BROWSER_IS_FIREFOX) break;
                 return redirUrl(urlstr);
 
             case 'javascript:':
@@ -371,9 +382,9 @@ export type BackingOffOptions = {
 // and not delivered.  When the queue is "unplugged", any queued events will be
 // delivered in order, and future events will be delivered immediately.
 export class DeferQueue {
-    _events: [Function, any[]][] | null = [];
+    _events: [AnyFunction, any[]][] | null = [];
 
-    push(fn: Function, ...args: any[]) {
+    push(fn: AnyFunction, ...args: any[]) {
         if (this._events !== null) {
             this._events.push([fn, args]);
         } else {
@@ -410,11 +421,13 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
     // the same time.
     private _queue: V[] = [];
     private _waiters: ((res: IteratorResult<V>) => void)[] = [];
-    private _done: boolean = false;
+    private _done = false;
 
     onClose?: () => void;
 
-    constructor() {}
+    constructor() {
+        return;
+    }
 
     // Sending
     send(value: V) {
@@ -439,7 +452,7 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
     [Symbol.asyncIterator]() { return this; }
 
     next(): Promise<IteratorResult<V>> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             if (this._queue.length > 0) {
                 resolve({done: false, value: this._queue.shift()!});
                 return;
@@ -474,7 +487,7 @@ export function batchesOf<I>(size: number, iter: Iterator<I>): IterableIterator<
             const value = [];
             while (value.length < size) {
                 const r = iter.next();
-                if (r.done) break;
+                if (r.done === true) break;
                 value.push(r.value);
             }
             return {done: value.length === 0, value};
@@ -485,7 +498,7 @@ export function batchesOf<I>(size: number, iter: Iterator<I>): IterableIterator<
 // Returns a text-matcher function, taking a user search string as input (which
 // may or may not be a regex, and is generally case-insensitive).
 export function textMatcher(query: string): (txt: string) => boolean {
-    if (query === '') return txt => true;
+    if (query === '') return _txt => true;
     try {
         const re = new RegExp(query, 'iu');
         return txt => re.test(txt);

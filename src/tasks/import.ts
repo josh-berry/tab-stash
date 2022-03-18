@@ -1,6 +1,6 @@
 import browser from 'webextension-polyfill';
 
-import {TaskMonitor, filterMap} from '../util';
+import {TaskMonitor, filterMap, Valuable} from '../util';
 import {Model} from '../model';
 import { fetchInfoForSites } from './siteinfo';
 
@@ -16,7 +16,7 @@ import { fetchInfoForSites } from './siteinfo';
 // followed by "://", we just take everything after the "://" as part of the
 // URL, up to a set of commonly-used terminator characters (e.g. quotes, closing
 // brackets/parens, or whitespace).
-const URL_RE = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>]+/g;
+const URL_RE = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]) \t\n\r"'>]+/g;
 
 const MARKDOWN_HEADER_RE = /^#+ (.*)$/;
 
@@ -45,7 +45,7 @@ class Parser {
 
     building: BookmarkGroup = {urls: []};
     built: BookmarkGroup[] = [];
-    afterBR: boolean = false;
+    afterBR = false;
 
     constructor(model: Model, options?: Partial<ParseOptions>) {
         this.model = model;
@@ -74,14 +74,14 @@ class Parser {
     parseChildren(node: Node) {
         for (const child of node.childNodes) {
             switch (child.nodeType) {
-                case Node.ELEMENT_NODE:
+                case Node.ELEMENT_NODE: {
                     const el = child as Element;
                     this.parseElement(el);
                     break;
-
-                case Node.TEXT_NODE:
+                }
+                case Node.TEXT_NODE: {
                     const text = child.nodeValue?.trim();
-                    if (! text) continue;
+                    if (text === undefined || text == '') continue;
 
                     this.afterBR = false;
 
@@ -94,7 +94,7 @@ class Parser {
                         this.building.urls.push(url);
                     }
                     break;
-
+                }
                 default:
                     // TODO
                     break;
@@ -127,14 +127,14 @@ class Parser {
                 this.parseChildren(el);
                 break;
 
-            case 'a':
+            case 'a': {
                 const a = el as HTMLAnchorElement;
                 if (a.href) {
                     this.building.urls.push(a.href);
                 }
                 this.parseChildren(el);
                 break;
-
+            }
             default:
                 this.parseChildren(el);
                 break;
@@ -214,16 +214,16 @@ export async function importURLs(
 
         tm.max = bookmarks.length;
         for (const bm of bookmarks) {
-            const v = bms_by_url.get(bm.url!);
+            const v = bms_by_url.get(bm.url);
             if (v) {
                 v.push(bm);
             } else {
-                bms_by_url.set(bm.url!, [bm]);
+                bms_by_url.set(bm.url, [bm]);
             }
         }
 
         for await (const siteinfo of siteinfo_aiter) {
-            if (siteinfo.error) {
+            if (siteinfo.error !== undefined && siteinfo.error !== null) {
                 top_tm.cancel();
                 tm.cancel();
 
@@ -241,10 +241,11 @@ export async function importURLs(
 
             if (tm.cancelled) break;
 
-            const url = siteinfo.finalUrl || siteinfo.originalUrl;
+            const url = Valuable.extract(siteinfo.finalUrl) ?? siteinfo.originalUrl;
 
-            if (siteinfo.title || siteinfo.finalUrl) {
-                const title = siteinfo.title || siteinfo.originalUrl;
+            const title =
+                Valuable.extract(siteinfo.title) ?? Valuable.extract(siteinfo.originalUrl);
+            if (title !== undefined) {
                 const bms = bms_by_url.get(siteinfo.originalUrl);
                 if (! bms) continue;
                 for (const bm of bms) {
@@ -252,7 +253,8 @@ export async function importURLs(
                 }
             }
 
-            if (siteinfo.favIconUrl) model.favicons.set(url, siteinfo.favIconUrl);
+            if (siteinfo.favIconUrl !== undefined && siteinfo.favIconUrl !== '')
+                model.favicons.set(url, siteinfo.favIconUrl);
 
             ++tm.value;
         }
@@ -260,7 +262,7 @@ export async function importURLs(
         if (tm.cancelled) {
             // If we were cancelled at any point in this process, delete
             // whatever we just created. :/
-            for (const fid of folderIds) browser.bookmarks.removeTree(fid);
+            for (const fid of folderIds) void browser.bookmarks.removeTree(fid);
         }
     });
 

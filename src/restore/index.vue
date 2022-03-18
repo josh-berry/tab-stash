@@ -54,10 +54,10 @@ export default defineComponent({
         copy() {
             const r = document.createRange();
             r.selectNodeContents(<Element>this.$refs.url);
-            window.getSelection()!.removeAllRanges();
-            window.getSelection()!.addRange(r);
+            window.getSelection()?.removeAllRanges();
+            window.getSelection()?.addRange(r);
             document.execCommand('copy');
-            window.getSelection()!.removeAllRanges();
+            window.getSelection()?.removeAllRanges();
 
             this.copied = true;
             setTimeout(() => { this.copied = false; }, 3000);

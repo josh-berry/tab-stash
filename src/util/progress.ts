@@ -266,6 +266,7 @@ async function onCancelHandler(data: any[], tm: TaskMonitor) {
 
 import {reactive} from "vue";
 
+import {Valuable} from '.';
 
 
 export interface TaskHandle {
@@ -300,13 +301,13 @@ function _spawn_iter<R>(
         [Symbol.asyncIterator](): TaskIterator<R> { return this; },
         async next(): Promise<IteratorResult<R>> {
             const res = await iter.next();
-            if (tm && res.done) {
+            if (tm && res.done === true) {
                 tm.detach();
                 tm = undefined;
             }
             return res;
         },
-        progress: tm!.progress,
+        progress: tm.progress,
         cancel() { tm?.cancel(); },
     };
 }
@@ -315,7 +316,7 @@ export class TaskMonitor {
     readonly progress: Progress;
     onCancel?: () => void = undefined;
 
-    private _cancelled: boolean = false;
+    private _cancelled = false;
 
     private _parent: TaskMonitor | undefined;
     private _children: TaskMonitor[] = [];
@@ -408,14 +409,15 @@ export interface Progress {
     _detach(): void;
 }
 
-function make_progress(parent?: Progress, weight?: number): Progress {
+function make_progress(parent?: Progress, weight_in?: number): Progress {
+    const weight = Math.max(1, Valuable.extract(weight_in) ?? 1);
     let value = 0;
     let max = 1;
 
     function updateParentProgress(old_value: number, old_max: number) {
         if (parent) {
-            const old_progress = (weight || 1) * old_value / (old_max || 1);
-            const new_progress = (weight || 1) * value / (max || 1);
+            const old_progress = weight * old_value / (old_max || 1);
+            const new_progress = weight * value / (max || 1);
             parent.value += new_progress - old_progress;
         }
     }

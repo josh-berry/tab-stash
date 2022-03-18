@@ -2,7 +2,8 @@ import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {
-    backingOff, expect, filterMap, shortPoll, tryAgain
+    backingOff, expect, filterMap, shortPoll, tryAgain,
+    BROWSER_IS_FIREFOX, Valuable,
 } from "../util";
 import {logErrorsFrom} from '../util/oops';
 import {EventWiring} from '../util/wiring';
@@ -76,7 +77,7 @@ export class Model {
     private _stash_root_watch = new Set<Folder>();
 
     /** Did we receive an event since the last (re)load of the model? */
-    private _event_since_load: boolean = false;
+    private _event_since_load = false;
 
     //
     // Loading data and wiring up events
@@ -86,9 +87,11 @@ export class Model {
      * It will listen for bookmark events to keep itself updated. */
     static async from_browser(stash_root_name_test_only?: string): Promise<Model> {
         // istanbul ignore if
-        if (! stash_root_name_test_only) stash_root_name_test_only = STASH_ROOT;
+        const stash_root: string = stash_root_name_test_only !== undefined &&
+            stash_root_name_test_only !== ''
+                ? stash_root_name_test_only : STASH_ROOT;
 
-        const model = new Model(stash_root_name_test_only);
+        const model = new Model(stash_root);
         await model.reload();
         return model;
     }
@@ -100,13 +103,17 @@ export class Model {
             onFired: () => { this._event_since_load = true; },
             // istanbul ignore next -- safety net; reload the model in the event
             // of an unexpected exception.
-            onError: () => { logErrorsFrom(() => this.reload()); },
+            onError: () => { void logErrorsFrom(() => this.reload()); },
         });
 
-        wiring.listen(browser.bookmarks.onCreated, this.whenBookmarkCreated);
-        wiring.listen(browser.bookmarks.onChanged, this.whenBookmarkChanged);
-        wiring.listen(browser.bookmarks.onMoved, this.whenBookmarkMoved);
-        wiring.listen(browser.bookmarks.onRemoved, this.whenBookmarkRemoved);
+        wiring.listen(browser.bookmarks.onCreated,
+            this.whenBookmarkCreated.bind(this));
+        wiring.listen(browser.bookmarks.onChanged,
+            this.whenBookmarkChanged.bind(this));
+        wiring.listen(browser.bookmarks.onMoved,
+            this.whenBookmarkMoved.bind(this));
+        wiring.listen(browser.bookmarks.onRemoved,
+            this.whenBookmarkRemoved.bind(this));
     }
 
     /** Fetch bookmarks from the browser again and update the model's
@@ -128,7 +135,7 @@ export class Model {
             this._event_since_load = false;
 
             const tree = await browser.bookmarks.getTree();
-            const root = tree[0]!;
+            const root = tree[0];
             this.root_id = root.id as NodeID;
             this.whenBookmarkCreated(root.id, root);
 
@@ -199,7 +206,7 @@ export class Model {
         let item: Node | undefined = node;
         while (item) {
             if (item.id === folder_id) return true;
-            if (! item.parentId) break;
+            if (Valuable.no(item.parentId)) break;
             item = this.by_id.get(item.parentId);
         }
         return false;
@@ -210,7 +217,7 @@ export class Model {
      * an exception. */
     pathTo(node: Node): NodePosition[] {
         const path = [];
-        while (node.parentId) {
+        while (Valuable.yes(node.parentId)) {
             const pos = expect(this.positionOf(node),
                 () => `Can't find position of node: ${node.id}`);
             path.push(pos);
@@ -313,7 +320,7 @@ export class Model {
         toIndex = Math.min(toParentFolder.children.length, Math.max(0, toIndex));
 
         // istanbul ignore else
-        if (!! browser.runtime.getBrowserInfo) {
+        if (BROWSER_IS_FIREFOX) {
             // We're using Firefox
             if (node.parentId === toParent) {
                 if (toIndex > position.index) toIndex--;
@@ -354,7 +361,7 @@ export class Model {
                 // threads see the same ordering of candidate folders (and thus
                 // will all choose the same folder to save) because the
                 // candidate list is sorted deterministically.
-                await this.remove(candidates[1].id).catch(() => {});
+                await this.remove(candidates[1].id).catch(() => undefined);
                 delay += 10;
             }
             await new Promise(r => setTimeout(r, 5*Math.random()));
@@ -411,11 +418,11 @@ export class Model {
         const parentId = (new_bm.parentId ?? '') as NodeID;
 
         // The parent must already exist and be a folder
-        if (parentId) this.folder(parentId);
+        if (Valuable.yes(parentId)) this.folder(parentId);
 
         let node = this.by_id.get(nodeId);
         if (! node) {
-            const $visible = computed(() => this.filter.value(node!));
+            const $visible = computed(() => this.filter.value(node as Node));
 
             if (isFolder(new_bm)) {
                 node = reactive({
@@ -427,7 +434,7 @@ export class Model {
             } else if (new_bm.type === 'separator') {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
-                    type: 'separator' as 'separator', title: '' as '',
+                    type: 'separator' as const, title: '' as const,
                     $visible, $selected: false,
                 });
 
@@ -442,7 +449,7 @@ export class Model {
 
             this.by_id.set(node.id, node);
 
-            if (new_bm.parentId) {
+            if (Valuable.yes(new_bm.parentId)) {
                 const parent = expect(this.folder(parentId),
                     () => `Don't know about parent folder ${parentId}`);
                 parent.children.splice(new_bm.index!, 0, node.id);
@@ -453,9 +460,9 @@ export class Model {
             // info we got with the existing record.
 
             // See if we have a parent, and insert/move ourselves there
-            if (parentId) {
+            if (Valuable.yes(parentId)) {
                 // Remove from old parent
-                if (node.parentId) {
+                if (Valuable.yes(node.parentId)) {
                     const pos = this.positionOf(node);
                     if (pos) pos.parent.children.splice(pos.index, 1);
                 }
@@ -566,7 +573,8 @@ export class Model {
         // Collect the current candidate set from the watch, limiting ourselves
         // only to actual candidates (folders with the right name).
         let candidates = Array.from(this._stash_root_watch)
-            .filter(bm => bm.children && bm.title === this.stash_root_name);
+            .filter(bm =>
+                Valuable.yes(bm.children) && bm.title === this.stash_root_name);
 
         // Find the path from each candidate to the root, and make sure we're
         // watching the whole path (so if a parent gets moved, we get called
@@ -608,7 +616,7 @@ export class Model {
                     + `folders, and Tab Stash isn't sure which one to use.  `
                     + `Click here to find out how to resolve the issue.`,
                 help: /* istanbul ignore next */
-                    () => browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
+                    () => void browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
             };
         } else {
             this.stash_root_warning.value = undefined;
@@ -635,8 +643,7 @@ export class Model {
     }
 
     *selectedItems(): Generator<Node> {
-        const self = this;
-        function* walk(bm: Node): Generator<Node> {
+        function* walk(self: Model, bm: Node): Generator<Node> {
             if (bm.$selected) {
                 yield bm;
                 // If a parent is selected, we don't want to return every single
@@ -649,7 +656,7 @@ export class Model {
             if ('children' in bm) {
                 for (const c of bm.children) {
                     const node = self.node(c);
-                    if (node) yield* walk(node);
+                    if (node) yield* walk(self, node);
                 }
             }
         }
@@ -657,7 +664,7 @@ export class Model {
         // We only consider items inside the stash root, since those are the
         // only items that show up in the UI.
         // istanbul ignore else -- when testing we should always have a root
-        if (this.stash_root.value) yield* walk(this.stash_root.value);
+        if (this.stash_root.value) yield* walk(this, this.stash_root.value);
     }
 
     itemsInRange(start: Node, end: Node): Node[] | null {
@@ -716,7 +723,8 @@ export function genDefaultFolderName(date: Date): string {
  * "default"-shaped folder name into a user-friendly string, if applicable. */
 export function friendlyFolderName(name: string): string {
     const folderDate = getDefaultFolderNameISODate(name);
-    if (folderDate) return `Saved ${new Date(folderDate).toLocaleString()}`;
+    if (folderDate !== null && folderDate !== '')
+        return `Saved ${new Date(folderDate).toLocaleString()}`;
     return name;
 }
 

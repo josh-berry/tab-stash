@@ -20,7 +20,7 @@ export class Model {
     readonly state: State;
 
     /** Did we receive an event since the last (re)load of the model? */
-    private _event_since_load: boolean = false;
+    private _event_since_load = false;
 
     static async live(): Promise<Model> {
         const model = new Model();
@@ -35,22 +35,22 @@ export class Model {
         });
 
         // Chrome does not report browser settings, so we fallback to defaults.
-        if (! browser.browserSettings) return;
+        if (browser.browserSettings == undefined) return;
 
         const wiring = new EventWiring(this, {
             onFired: () => { this._event_since_load = true; },
-            onError: () => { logErrorsFrom(() => this.reload()); }
+            onError: () => { void logErrorsFrom(() => this.reload()); }
         });
 
         wiring.listen(browser.browserSettings.newTabPageOverride.onChange,
-            this.whenNewTabPageChanged);
+            this.whenNewTabPageChanged.bind(this));
         wiring.listen(browser.browserSettings.homepageOverride.onChange,
-            this.whenHomepageChanged);
+            this.whenHomepageChanged.bind(this));
     }
 
     readonly reload = backingOff(async () => {
         // Chrome does not report browser settings, so we fallback to defaults.
-        if (! browser.browserSettings) return;
+        if (browser.browserSettings === undefined) return;
 
         // Loop if we receive events while loading settings, so that we always
         // exit this function with the browser and the model in sync.

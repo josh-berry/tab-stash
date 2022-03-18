@@ -30,11 +30,11 @@ export default defineComponent({
     }),
 
     methods: {
-        activate(ev: MouseEvent) {
+        activate(_ev: MouseEvent) {
             this.$emit('activate');
         },
 
-        dismiss(ev: MouseEvent) {
+        dismiss(_ev: MouseEvent) {
             this.$emit('dismiss');
             this.dismissed = true;
         },

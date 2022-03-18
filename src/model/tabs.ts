@@ -73,7 +73,7 @@ export class Model {
     });
 
     /** Did we receive an event since the last (re)load of the model? */
-    private _event_since_load: boolean = false;
+    private _event_since_load = false;
 
     //
     // Loading data and wiring up events
@@ -96,20 +96,31 @@ export class Model {
             onFired: () => { this._event_since_load = true; },
             // istanbul ignore next -- safety net; reload the model in the event
             // of an unexpected exception.
-            onError: () => { logErrorsFrom(() => this.reload()); },
+            onError: () => { void logErrorsFrom(() => this.reload()); },
         });
 
-        wiring.listen(browser.windows.onCreated, this.whenWindowCreated);
-        wiring.listen(browser.windows.onFocusChanged, this.whenWindowFocusChanged);
-        wiring.listen(browser.windows.onRemoved, this.whenWindowRemoved);
-        wiring.listen(browser.tabs.onCreated, this.whenTabCreated);
-        wiring.listen(browser.tabs.onUpdated, this.whenTabUpdated);
-        wiring.listen(browser.tabs.onAttached, this.whenTabAttached);
-        wiring.listen(browser.tabs.onMoved, this.whenTabMoved);
-        wiring.listen(browser.tabs.onReplaced, this.whenTabReplaced);
-        wiring.listen(browser.tabs.onActivated, this.whenTabActivated);
-        wiring.listen(browser.tabs.onHighlighted, this.whenTabsHighlighted);
-        wiring.listen(browser.tabs.onRemoved, this.whenTabRemoved);
+        wiring.listen(browser.windows.onCreated,
+            this.whenWindowCreated.bind(this));
+        wiring.listen(browser.windows.onFocusChanged,
+            this.whenWindowFocusChanged.bind(this));
+        wiring.listen(browser.windows.onRemoved,
+            this.whenWindowRemoved.bind(this));
+        wiring.listen(browser.tabs.onCreated,
+            this.whenTabCreated.bind(this));
+        wiring.listen(browser.tabs.onUpdated,
+            this.whenTabUpdated.bind(this));
+        wiring.listen(browser.tabs.onAttached,
+            this.whenTabAttached.bind(this));
+        wiring.listen(browser.tabs.onMoved,
+            this.whenTabMoved.bind(this));
+        wiring.listen(browser.tabs.onReplaced,
+            this.whenTabReplaced.bind(this));
+        wiring.listen(browser.tabs.onActivated,
+            this.whenTabActivated.bind(this));
+        wiring.listen(browser.tabs.onHighlighted,
+            this.whenTabsHighlighted.bind(this));
+        wiring.listen(browser.tabs.onRemoved,
+            this.whenTabRemoved.bind(this));
     }
 
     /** Fetch tabs/windows from the browser again and update the model's
@@ -291,7 +302,7 @@ export class Model {
                 // don't, it's better to fail gracefully by doing nothing.
                 console.assert(focus_tab);
                 // We filter out tabs with undefined IDs above #undef
-                if (focus_tab) await browser.tabs.update(focus_tab.id!, {active: true});
+                if (focus_tab) await browser.tabs.update(focus_tab.id, {active: true});
             }
         }
     }
@@ -540,4 +551,4 @@ export class Model {
             .slice(startPos.index, endPos.index + 1)
             .filter(t => ! t.hidden && ! t.pinned && t.$visible);
     }
-};
+}

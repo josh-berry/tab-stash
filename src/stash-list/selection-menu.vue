@@ -84,7 +84,7 @@ export default defineComponent({
             if (! stash_root) return [];
             return filterMap(stash_root.children, id => {
                 const node = bookmarks.node(id);
-                if (node && 'children' in node) return node as Folder;
+                if (node && 'children' in node) return node;
                 return undefined;
             }).filter(node => this.filter(node.title));
         },
@@ -107,7 +107,7 @@ export default defineComponent({
 
     methods: {
         model(): Model { return (<any>this).$model as Model; },
-        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+        attempt(fn: () => Promise<void>) { void this.model().attempt(fn); },
 
         friendlyFolderName,
 

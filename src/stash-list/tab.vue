@@ -76,7 +76,8 @@ export default defineComponent({
             if (this.model().options.local.state.ff_container_indicators &&
                 this.tab.cookieStoreId !== undefined) {
                     return this.model().containers.container(this.tab.cookieStoreId);
-                }
+            }
+            return undefined;
         },
         containerColor(): string | undefined {
             return this.container?.color;
@@ -86,7 +87,7 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
-        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+        attempt(fn: () => Promise<void>) { void this.model().attempt(fn); },
 
         select(ev: MouseEvent) { this.attempt(async () => {
             await this.model().selection.toggleSelectFromEvent(

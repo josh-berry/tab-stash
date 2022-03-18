@@ -40,4 +40,4 @@ export default async function(): Promise<M.Model> {
     });
     (<any>globalThis).model = model;
     return model;
-};
+}

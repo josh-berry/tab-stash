@@ -34,7 +34,7 @@ import browser from 'webextension-polyfill';
 
 import {
     backingOff, expect, filterMap, shortPoll, TaskMonitor,
-    textMatcher, tryAgain, urlToOpen
+    textMatcher, tryAgain, urlToOpen, Valuable, valuable,
 } from '../util';
 import {logError, logErrorsFrom} from '../util/oops';
 
@@ -145,7 +145,7 @@ export class Model {
             return await fn();
         } catch (e) {
             logError(e);
-            logErrorsFrom(async () => this.reload());
+            void logErrorsFrom(async () => this.reload());
             throw e;
         }
     }
@@ -167,7 +167,7 @@ export class Model {
      * ourselves). */
     isURLStashable(url_str?: string): boolean {
         // Things without URLs are not stashable.
-        if (! url_str) return false;
+        if (Valuable.no(url_str)) return false;
 
         // New-tab URLs, homepages and the like are never stashable.
         if (this.browser_settings.isNewTabURL(url_str)) return false;
@@ -189,19 +189,21 @@ export class Model {
         const root = this.bookmarks.stash_root.value;
         if (! root) return undefined;
 
-        const topmost = root.children && root.children[0] !== undefined
+        const topmost = root.children !== null && root.children[0] !== undefined
             ? this.bookmarks.node(root.children[0]) : undefined;
 
         // Is there a top-most item under the root folder, and is it a folder?
         if (! topmost || ! ('children' in topmost)) return undefined;
 
         // Does the folder have a name which looks like a default name?
-        if (! Bookmarks.getDefaultFolderNameISODate(topmost.title)) return undefined;
+        if (valuable(topmost.title)
+            .chain([s => Bookmarks.getDefaultFolderNameISODate(s)]) === undefined)
+            return undefined;
 
         // Did something create/update this folder recently?
         // #cast dateAdded is always present on folders
         const age_cutoff = Date.now() - this.options.sync.state.new_folder_timeout_min *60*1000;
-        if (topmost.dateAdded! < age_cutoff) {
+        if (topmost.dateAdded as number < age_cutoff) {
             return undefined;
         }
 
@@ -308,7 +310,7 @@ export class Model {
                 toFolderId: options.toFolderId,
             });
         }
-        if (!options?.copy) {
+        if (options?.copy !== true) {
             affected_items.forEach(i => i.$selected = false);
         }
     }
@@ -337,7 +339,7 @@ export class Model {
         await this.tabs.setSelected(filterMap(tabIds, id => this.tabs.tab(id)), false);
 
         // istanbul ignore else -- hide() is always available in tests
-        if (browser.tabs.hide) {
+        if (browser.tabs.hide !== undefined) {
             // If the browser supports hiding tabs, then hide or close them
             // according to the user's preference.
             switch (this.options.local.state.after_stashing_tab) {
@@ -372,6 +374,7 @@ export class Model {
         options: {background?: boolean}
     ): Promise<Tabs.Tab[]> {
         const toWindowId = this.tabs.targetWindow.value;
+        const background = options.background === true;
         if (toWindowId === undefined) {
             throw new Error(`No target window; not sure where to restore tabs`);
         }
@@ -381,7 +384,7 @@ export class Model {
         // As a special case, if we are restoring just a single tab, first check
         // if we already have the tab open and just switch to it.  (No need to
         // disturb the ordering of tabs in the browser window.)
-        if (! options.background && urls.length === 1 && urls[0]) {
+        if (! background && urls.length === 1 && urls[0]) {
             const t = Array.from(this.tabs.tabsWithURL(urls[0]))
                 .find(t => t.url === urls[0] && ! t.hidden
                         && t.windowId === toWindowId);
@@ -410,7 +413,7 @@ export class Model {
             toWindowId,
         });
 
-        if (! options.background) {
+        if (! background) {
             // Switch to the last tab that we restored (if desired).  We choose
             // the LAST tab to behave similarly to the user having just opened a
             // bunch of tabs.
@@ -420,7 +423,7 @@ export class Model {
 
             // Finally, if we opened at least one tab, AND we were looking at
             // the new-tab page, close the new-tab page in the background.
-            if (active_tab && tabs.length > 0
+            if (active_tab !== undefined && tabs.length > 0
                 && this.browser_settings.isNewTabURL(active_tab.url ?? '')
                 && active_tab.status === 'complete')
             {
@@ -516,7 +519,7 @@ export class Model {
             const already_there = this.bookmarks.childrenOf(to_folder)
                 .filter(bm => ! dont_steal_bms.has(bm.id)
                     && 'url' in bm
-                    && (item.title ? item.title === bm.title : true)
+                    && (Valuable.yes(item.title) ? item.title === bm.title : true)
                     && bm.url === item.url);
             if (already_there.length > 0) {
                 node = already_there[0];
@@ -527,7 +530,7 @@ export class Model {
 
             } else {
                 node = await this.bookmarks.create({
-                    title: item.title || item.url,
+                    title: Valuable.extract(item.title) ?? item.url,
                     url: item.url,
                     parentId: to_folder.id,
                     index: to_index,
@@ -538,7 +541,7 @@ export class Model {
 
             // Update the selection state of the chosen bookmark to match the
             // original item's selection state.
-            await this.bookmarks.setSelected([node], !!item.$selected);
+            await this.bookmarks.setSelected([node], item.$selected === true);
         }
 
         // Hide/close any tabs which were moved from, since they are now
@@ -582,7 +585,7 @@ export class Model {
         // complains, probably this whole path should just be removed.
         //
         // istanbul ignore if -- as above
-        const closed_tabs = !! browser.sessions?.getRecentlyClosed
+        const closed_tabs = browser.sessions?.getRecentlyClosed !== undefined
                 && this.options.local.state.ff_restore_closed_tabs
             ? await browser.sessions.getRecentlyClosed()
             : [];
@@ -638,7 +641,7 @@ export class Model {
             // will fall over.
 
             const url = item.url;
-            if (! url) {
+            if (Valuable.no(url)) {
                 // No URL? Don't bother restoring anything.
                 --to_index;
                 continue;
@@ -659,13 +662,14 @@ export class Model {
                 const t = already_open[0];
                 const pos = this.tabs.positionOf(t);
 
-                if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
+                if (t.hidden && browser.tabs.show !== undefined)
+                    await browser.tabs.show(t.id);
 
                 await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
                 if (pos && pos.window === win && pos.index < to_index) --to_index;
                 moved_items.push(t);
                 dont_steal_tabs.add(t.id);
-                await this.tabs.setSelected([t], !!item.$selected);
+                await this.tabs.setSelected([t], item.$selected === true);
                 continue;
             }
 
@@ -679,7 +683,7 @@ export class Model {
                 // restoring a recently-closed tab will disturb the focus.
                 const active_tab = this.tabs.tabsIn(win).find(t => t.active);
 
-                const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
+                const t = (await browser.sessions.restore(closed.sessionId)).tab!;
                 await browser.tabs.move(t.id!, {windowId: to_win_id, index: to_index});
 
                 // Reset the focus to the previously-active tab. (We do this
@@ -693,7 +697,7 @@ export class Model {
                     this.tabs.tab(t.id as Tabs.TabID) || tryAgain());
                 moved_items.push(tab);
                 dont_steal_tabs.add(tab.id);
-                await this.tabs.setSelected([tab], !!item.$selected);
+                await this.tabs.setSelected([tab], item.$selected === true);
                 continue;
             }
 
@@ -704,7 +708,7 @@ export class Model {
             });
             moved_items.push(tab);
             dont_steal_tabs.add(tab.id);
-            await this.tabs.setSelected([tab], !!item.$selected);
+            await this.tabs.setSelected([tab], item.$selected === true);
         }
 
         // Delete bookmarks for all the tabs we restored.  We use the same
@@ -764,8 +768,8 @@ export class Model {
             if ('url' in item) return {
                 title: item.title,
                 url: item.url,
-                favIconUrl: this.favicons.get(item.url!).value?.favIconUrl
-                    || undefined,
+                favIconUrl:
+                    Valuable.extract(this.favicons.get(item.url).value?.favIconUrl),
             };
 
             return {title: '', url: ''};
@@ -779,15 +783,16 @@ export class Model {
      * the last bookmark in its parent folder, AND the parent folder has a
      * "default" name, removes the parent folder as well. */
     async deleteBookmark(bm: Bookmarks.Bookmark, deleted_at?: Date) {
-        const parent = this.bookmarks.folder(bm.parentId!);
+        const parent = this.bookmarks.folder(bm.parentId);
 
         await this.deleted_items.add({
             title: bm.title ?? '<no title>',
             url: bm.url ?? 'about:blank',
-            favIconUrl: this.favicons.get(bm.url!)?.value?.favIconUrl || undefined,
+            favIconUrl:
+                Valuable.extract(this.favicons.get(bm.url)?.value?.favIconUrl),
         }, parent ? {
             folder_id: parent.id,
-            title: parent.title!,
+            title: parent.title,
         } : undefined, deleted_at);
 
         await this.bookmarks.remove(bm.id);
@@ -821,7 +826,7 @@ export class Model {
 
             // Restore their favicons.
             for (const c of deletion.item.children) {
-                if (! ('url' in c && c.favIconUrl)) continue;
+                if (! ('url' in c && Valuable.yes(c.favIconUrl))) continue;
                 this.favicons.maybeSet(c.url, c.favIconUrl);
             }
 
@@ -853,7 +858,7 @@ export class Model {
             await this.putItemsInFolder({items: [deletion.item], toFolderId: folderId});
 
             // Restore its favicon.
-            if (deletion.item.favIconUrl) {
+            if (Valuable.yes(deletion.item.favIconUrl)) {
                 this.favicons.maybeSet(deletion.item.url, deletion.item.favIconUrl);
             }
         }
@@ -881,13 +886,13 @@ export class Model {
             toFolderId: (await this.ensureRecentUnnamedFolder()).id,
         });
 
-        if ('url' in child && child.favIconUrl) {
+        if ('url' in child && Valuable.yes(child.favIconUrl)) {
             this.favicons.maybeSet(child.url, child.favIconUrl);
         }
 
         await this.deleted_items.dropChildItem(deletion.key, childIndex);
     }
-};
+}
 
 export type BookmarkTabsResult = {
     savedItems: StashItem[],
@@ -917,8 +922,8 @@ export function copying(items: StashItem[]): StashItem[] {
  * URL, taking into account any transformations done by urlToOpen(). */
 function tabLookingAtP(url: string): (t?: {url?: string}) => boolean {
     const open_url = urlToOpen(url);
-    return (t?: {url?: string}) => {
-        if (! t || ! t.url) return false;
+    return (t?: {url?: string;}) => {
+        if (t === undefined || Valuable.no(t.url)) return false;
         const to_url = urlToOpen(t.url);
         return t.url === url || t.url === open_url
             || to_url === url || to_url === open_url;

@@ -32,7 +32,7 @@
 <script lang="ts">
 import {PropType, defineComponent, reactive, nextTick} from 'vue';
 
-import {required} from '../util';
+import {required, Valuable} from '../util';
 import {DragAction, DropAction} from './dnd-list';
 
 type DragLocation = {
@@ -243,9 +243,10 @@ export default defineComponent({
         allowDropHere(ev: DragEvent): boolean {
             if (! ev.dataTransfer) return false;
             const types = ev.dataTransfer.types;
-            if (this.accepts instanceof Array) {
-                if (! types.find(t => this.accepts!.includes(t))) return false;
-            } else if (this.accepts) {
+            if (this.accepts instanceof Array && this.accepts) {
+                if (Valuable.no(types.find(t => this.accepts!.includes(t))))
+                    return false;
+            } else if (Valuable.yes(this.accepts)) {
                 if (! types.includes(this.accepts)) return false;
             } else {
                 return false;
@@ -292,7 +293,7 @@ export default defineComponent({
             ev.stopPropagation();
 
             const offset = DND.dragging?.parent === DND.dropping.parent
-                    && (DND.dragging?.index || 0) < DND.dropping.index
+                    && (DND.dragging?.index ?? 0) < DND.dropping.index
                 ? 0 : 0;
 
             // Here we start the (async) drop task, and freeze the model in both

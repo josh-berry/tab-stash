@@ -70,7 +70,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     private _needs_fetch = new Map<K, Entry<K, V | null>>();
 
     private _pending_io: Promise<void> | null = null;
-    private _crash_count: number = 0;
+    private _crash_count = 0;
 
     constructor(kvs: KeyValueStore<K, V>) {
         this.kvs = kvs;

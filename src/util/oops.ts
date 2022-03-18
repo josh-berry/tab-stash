@@ -1,5 +1,7 @@
 import {shallowReactive} from 'vue';
 
+import {Valuable} from './';
+
 export type LoggedError = {
     summary: string,
     details: string,
@@ -33,7 +35,7 @@ export function logError(error: unknown) {
         errorLog.push({
             error,
             summary: error.message,
-            details: error.stack || error.message
+            details: Valuable.extract(error.stack) ?? error.message
         });
 
     } else if (typeof error === 'object') {

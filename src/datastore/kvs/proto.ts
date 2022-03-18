@@ -22,7 +22,7 @@ export type ServiceMsg<K extends Key, V extends Value> =
 
 // Request for one or more values with known keys.  Only sent from client to
 // service.  Response is a SetMessage with all the entries that were found.
-export type GetMessage<K extends Key, V extends Value> = {
+export type GetMessage<K extends Key, _V extends Value> = {
     $type: 'get',
     keys: K[],
 };
@@ -32,7 +32,7 @@ export type GetMessage<K extends Key, V extends Value> = {
 // to service.  Response is a SetMessage with the requested key/value pairs.
 //
 // Entries are returned in ascending key order.
-export type GetStartingFromMessage<K extends Key, V extends Value> = {
+export type GetStartingFromMessage<K extends Key, _V extends Value> = {
     $type: 'getStartingFrom',
 
     // If bound is undefined, returns entries starting from the smallest key.
@@ -48,7 +48,7 @@ export type GetStartingFromMessage<K extends Key, V extends Value> = {
 // to service.  Response is a SetMessage with the requested key/value pairs.
 //
 // Entries are returned in descending key order.
-export type GetEndingAtMessage<K extends Key, V extends Value> = {
+export type GetEndingAtMessage<K extends Key, _V extends Value> = {
     $type: 'getEndingAt',
 
     // If bound is undefined, returns entries starting from the smallest key.
@@ -70,7 +70,7 @@ export type SetMessage<K extends Key, V extends Value> = {
 // Sent by a client to delete one or more values.  Sent by the service in
 // response to a Delete or in the event of a delete by another client.  Response
 // is `undefined`--clients will be sent separate notifications for deleted keys.
-export type DeleteMessage<K extends Key, V extends Value> = {
+export type DeleteMessage<K extends Key, _V extends Value> = {
     $type: 'delete',
     keys: K[],
 };
@@ -79,6 +79,6 @@ export type DeleteMessage<K extends Key, V extends Value> = {
 // `undefined`--clients will be sent separate notifications for specific keys
 // that
 // are deleted.
-export type DeleteAllMessage<K extends Key, V extends Value> = {
+export type DeleteAllMessage<_K extends Key, _V extends Value> = {
     $type: 'deleteAll',
 };

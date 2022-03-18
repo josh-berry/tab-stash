@@ -5,7 +5,7 @@ import event, {Event} from '../../util/event';
 const copy = (x: any) => JSON.parse(JSON.stringify(x));
 
 // istanbul ignore next (because k1 != k2 always)
-const byKey = ([k1, v1]: [any, any], [k2, v2]: [any, any]) =>
+const byKey = ([k1, _v1]: [any, any], [k2, _v2]: [any, any]) =>
     k1 < k2 ? -1 : (k1 > k2 ? 1 : 0);
 
 // XXX optimize me if performance ever becomes important
@@ -39,13 +39,13 @@ export default class MemoryKVS<K extends Key, V extends Value>
 
     async getStartingFrom(bound: K | undefined, limit: number): Promise<Entry<K, V>[]> {
         let keys = Array.from(this.data.keys()).sort();
-        if (bound !== undefined) keys = keys.filter(x => x > bound!);
+        if (bound !== undefined) keys = keys.filter(x => x > bound);
         return keys.slice(0, limit).map(key => ({key, value: copy(this.data.get(key))}))
     }
 
     async getEndingAt(bound: K | undefined, limit: number): Promise<Entry<K, V>[]> {
         let rkeys = Array.from(this.data.keys()).sort().reverse();
-        if (bound !== undefined) rkeys = rkeys.filter(x => x < bound!);
+        if (bound !== undefined) rkeys = rkeys.filter(x => x < bound);
         return rkeys.slice(0, limit).map(key => ({key, value: copy(this.data.get(key))}));
     }
 

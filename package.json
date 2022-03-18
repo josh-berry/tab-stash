@@ -13,10 +13,14 @@
     "@types/sinonjs__fake-timers": "^6.0.4",
     "@types/sortablejs": "^1.10",
     "@types/webextension-polyfill": "^0.8.0",
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
     "@vue/compiler-sfc": "^3.2",
     "chai": "^4.2",
     "copyfiles": "^2.4",
     "css-loader": "^5.2",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.5.0",
     "fake-indexeddb": "^3.1",
     "glob": "^7.1",
     "idb": "^6.1",
@@ -25,7 +29,7 @@
     "nyc": "^15.1.0",
     "ts-loader": "^9.2",
     "ts-node": "^9.0.0",
-    "typescript": "^4.4",
+    "typescript": "^4.6.2",
     "vue": "^3.2",
     "vue-loader": "^16.1.2",
     "vue-style-loader": "^4.1.2",
@@ -38,6 +42,7 @@
     "build": "webpack && copyfiles -u 1 'assets/**/*' dist",
     "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 'assets/**/*' dist",
     "build-styles": "lessc --math=strict --source-map styles/index.less dist/tab-stash.css",
-    "test": "nyc --reporter=text --reporter=lcov --reporter=html mocha"
+    "test": "nyc --reporter=text --reporter=lcov --reporter=html mocha",
+    "lint": "eslint --ignore-pattern 'mock/' --ignore-pattern '*.test.ts' --ext .vue,.ts src/"
   }
 }

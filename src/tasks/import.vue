@@ -50,7 +50,7 @@ export default defineComponent({
     methods: {
         model(): Model { return (<any>this).$model as Model },
 
-        start() { this.model().attempt(async () => {
+        start() { void this.model().attempt(async () => {
             const groups = parse(
                 this.$refs.data as Element, this.model(), {splitOn: this.splitOn});
 

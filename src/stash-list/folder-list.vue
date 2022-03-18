@@ -1,6 +1,8 @@
 <template>
 <dnd-list class="folder-list" v-model="children" item-key="id"
-         :item-class="(f: Node) => ({hidden: ! ('children' in f) || ! f.$visible})"
+         :item-class="
+            (f: Node & { $visible: boolean }) =>
+            ({hidden: ! ('children' in f) || ! f.$visible})"
          :accepts="accepts" :drag="drag" :drop="drop"
          :mimic-height="true">
   <template #item="{item: f}">

@@ -11,7 +11,7 @@ import {copyIf} from './model';
 import {StashWhatOpt, ShowWhatOpt} from './model/options';
 import {TabID, WindowID} from './model/tabs';
 
-logErrorsFrom(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
+void logErrorsFrom(async() => { // BEGIN FILE-WIDE ASYNC BLOCK
 
 //
 // Migrations -- these are old DBs which are in the wrong format
@@ -51,13 +51,15 @@ function menu(idprefix: string, contexts: Menus.ContextType[],
     }
 }
 
-const SHOW_TAB_NAME = browser.sidebarAction
+const HAVE_SIDEBAR_ACTION = browser.sidebarAction !== undefined;
+
+const SHOW_TAB_NAME = HAVE_SIDEBAR_ACTION
     ? 'Show Stashed Tabs in a Tab'
     : 'Show Stashed Tabs';
 
 menu('1:', ['tab', 'page', 'tools_menu'], [
     ['show_tab', SHOW_TAB_NAME],
-    ...(browser.sidebarAction
+    ...(HAVE_SIDEBAR_ACTION
         ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_all', 'Stash Tabs'],
@@ -73,7 +75,7 @@ menu('1:', ['tab', 'page', 'tools_menu'], [
 // These should only have like 6 items each
 menu('2:', ['browser_action'], [
     ['show_tab', SHOW_TAB_NAME],
-    ...(browser.sidebarAction
+    ...(HAVE_SIDEBAR_ACTION
         ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_all', 'Stash Tabs'],
@@ -82,7 +84,7 @@ menu('2:', ['browser_action'], [
 
 menu('3:', ['page_action'], [
     ['show_tab', SHOW_TAB_NAME],
-    ...(browser.sidebarAction
+    ...(HAVE_SIDEBAR_ACTION
         ? [['show_sidebar_or_tab', 'Show Stashed Tabs in Sidebar']] : []),
     ['', ''],
     ['stash_one', 'Stash This Tab'],
@@ -98,7 +100,7 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     // Also note that some browsers don't support the sidebar at all; in these
     // cases, we open the tab instead.
 
-    show_sidebar_or_tab: () => browser.sidebarAction
+    show_sidebar_or_tab: () => HAVE_SIDEBAR_ACTION
         ? browser.sidebarAction.open().catch(console.log)
         : commands.show_tab(),
 
@@ -163,15 +165,16 @@ function show_something(show_what: ShowWhatOpt) {
             break;
 
         case 'tab':
-            model.attempt(commands.show_tab);
+            void model.attempt(commands.show_tab);
             break;
 
         case 'popup':
-            model.attempt(commands.show_popup);
+            void model.attempt(commands.show_popup);
+            break;
 
         case 'sidebar':
         default:
-            model.attempt(commands.show_sidebar_or_tab);
+            void model.attempt(commands.show_sidebar_or_tab);
             break;
     }
 }
@@ -184,19 +187,19 @@ async function stash_something(options: {
     if (! options.tab || options.tab.windowId === undefined) return;
 
     switch (options.what) {
-        case 'all':
+        case 'all': {
             const tabs = model.stashableTabsInWindow(options.tab.windowId as WindowID);
             if (tabs.length === 0) return;
 
             await model.putItemsInFolder({
-                items: copyIf(!!options.copy, tabs),
+                items: copyIf(options.copy === true, tabs),
                 toFolderId: (await model.bookmarks.createStashFolder()).id
             });
             break;
-
+        }
         case 'single':
             await model.putItemsInFolder({
-                items: copyIf(!!options.copy, [options.tab]),
+                items: copyIf(options.copy === true, [options.tab]),
                 toFolderId: (await model.ensureRecentUnnamedFolder()).id,
             });
             break;
@@ -227,7 +230,7 @@ if (browser.browserAction) {
     // doesn't allow us to then show the popup after the async call
     // returns--because we're no longer in a user event context.
     function setupPopup() {
-        model.attempt(async() => {
+        void model.attempt(async() => {
             if (model.options.sync.state.browser_action_show === 'popup') {
                 // As soon as we configure a popup, the onClicked handler below
                 // will no longer run (the popup will be shown instead).  This
@@ -256,7 +259,7 @@ if (browser.browserAction) {
     }));
 }
 
-if (browser.pageAction) {
+if (browser.pageAction !== undefined) {
     browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
 }
 
@@ -273,14 +276,14 @@ if (model.options.local.state.last_notified_version === undefined) {
     // just assume it's a fresh install).  Record our current version number
     // here so we can detect upgrades in the future and show the user a
     // whats-new notification.
-    model.attempt(async() => model.options.local.set({
+    void model.attempt(async() => model.options.local.set({
         last_notified_version: (await browser.management.getSelf()).version
     }));
 }
 
 // Check which options are selected for the browser and page actions, and change
 // their icons accordingly.
-model.options.sync.onChanged.addListener(opts => model.attempt(async () => {
+model.options.sync.onChanged.addListener(opts => void model.attempt(async () => {
     function getTitle(stash: StashWhatOpt): string {
         switch (stash) {
             case 'all': return "Stash all (or selected) tabs";
@@ -291,7 +294,7 @@ model.options.sync.onChanged.addListener(opts => model.attempt(async () => {
         }
     }
 
-    if (browser.browserAction) {
+    if (browser.browserAction !== undefined) {
         await browser.browserAction.setTitle({
             title: getTitle(opts.state.browser_action_stash)});
     }
@@ -317,7 +320,7 @@ model.options.sync.onChanged.addListener(opts => model.attempt(async () => {
 // pile up, which will cause browser slowdowns over time.
 //
 
-logErrorsFrom(async () => {
+void logErrorsFrom(async () => {
     let managed_urls = model.bookmarks.urlsInStash();
 
     const close_removed_bookmarks = backingOff(() => model.attempt(async () => {
@@ -337,8 +340,8 @@ logErrorsFrom(async () => {
         let tids = [];
         for (let w of windows) {
             // #undef We only asked for 'normal' windows, which have tabs
-            for (let t of w.tabs!) {
-                if (! t.hidden) continue;
+            for (let t of w.tabs ?? []) {
+                if (t.hidden !== true) continue;
                 if (t.id === undefined) continue;
                 if (! removed_urls.has(urlToOpen(t.url!))) continue;
                 tids.push(t.id as TabID);
@@ -400,7 +403,7 @@ const discard_old_hidden_tabs = nonReentrant(async function() {
     let now = Date.now();
     let tabs = await browser.tabs.query({discarded: false});
     let tab_count = tabs.length;
-    let candidate_tabs = tabs.filter(t => t.hidden && t.id !== undefined)
+    let candidate_tabs = tabs.filter(t => t.hidden === true && t.id !== undefined)
         .sort((a, b) => (a.lastAccessed ?? 0) - (b.lastAccessed ?? 0));
 
     const min_keep_tabs = model.options.local.state.autodiscard_min_keep_tabs;
@@ -461,6 +464,6 @@ const gc = nonReentrant(() => model.attempt(async () => {
 
 // Here we call gc() on browser restart to ensure it happens
 // at least once.
-gc();
+void gc();
 
 }); // END FILE-WIDE ASYNC BLOCK

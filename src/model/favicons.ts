@@ -33,7 +33,7 @@ export class Model {
         browser.tabs.onCreated.addListener(tab => this._updateFavicon(tab));
         browser.tabs.onUpdated.addListener((_id, _info, tab) => this._updateFavicon(tab));
 
-        logErrorsFrom(async () => {
+        void logErrorsFrom(async () => {
             for (const tab of await browser.tabs.query({})) {
                 this._updateFavicon(tab);
             }
@@ -82,7 +82,10 @@ export class Model {
         // We ignore favicons when the tab is still loading, because Firefox may
         // send us events where a tab has a new URL, but an old favicon which is
         // for the URL the tab is navigating away from.
-        if (tab.url && tab.favIconUrl && tab.status === 'complete') {
+        if (tab.url !== undefined && tab.url !== '' &&
+            tab.favIconUrl !== '' && tab.favIconUrl !== undefined &&
+            tab.status === 'complete'
+        ) {
             this.set(tab.url, tab.favIconUrl);
         }
     }

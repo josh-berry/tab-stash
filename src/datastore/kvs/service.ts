@@ -21,7 +21,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         }
 
         return new Service(await openDB(db_name, 1, {
-            upgrade(db, oldVersion, newVersion, txn) {
+            upgrade(db, _oldVersion, _newVersion, _txn) {
                 db.createObjectStore(store_name);
             }
         }), store_name);
@@ -126,7 +126,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         const deleted: K[] = [];
         const txn = this._db.transaction(this.name, 'readwrite');
         for (const k of keys) {
-            if (await txn.store.get(k)) deleted.push(k);
+            if (await txn.store.get(k) !== undefined) deleted.push(k);
             await txn.store.delete(k);
         }
         await txn.done;
@@ -142,7 +142,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         // We delete in batches of 100 so as to report incremental progress to
         // any clients that might be listening (and avoid sending any one
         // message that's too big).
-        while (true) {
+        for (; ;) {
             const deleted_keys: K[] = [];
             const txn = this._db.transaction(this.name, 'readwrite');
             let cursor = await txn.store.openCursor();
@@ -150,7 +150,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
             while (cursor) {
                 // Same cast as in set() above
                 deleted_keys.push(cursor.primaryKey as K);
-                cursor.delete();
+                void cursor.delete();
                 cursor = await cursor.continue();
                 if (deleted_keys.length > 100) break;
             }

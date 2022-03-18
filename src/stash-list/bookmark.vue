@@ -33,7 +33,7 @@
 <script lang="ts">
 import {PropType, defineComponent} from 'vue';
 
-import {altKeyName, bgKeyName, bgKeyPressed, required} from '../util';
+import {altKeyName, bgKeyName, bgKeyPressed, required, Valuable} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
@@ -73,14 +73,14 @@ export default defineComponent({
                     if (t.hidden || prev === null || t.cookieStoreId === undefined)
                         return prev;
                     const cc = containers.container(t.cookieStoreId)?.color;
-                    if (! cc) return prev;
+                    if (Valuable.no(cc)) return prev;
                     return prev === undefined || cc === prev ? cc : null;
                 }, undefined);
             return container_color ?? undefined;
         },
 
         tabState(): { open: boolean, active: boolean, loading: boolean, discarded: boolean } {
-            let open: boolean = false, active: boolean = false, loading: boolean = false;
+            let open = false, active = false, loading = false;
             let discarded = 0;
             for (const t of this.relatedTabs) {
                 if (!t.hidden && t.discarded) discarded++;
@@ -103,12 +103,12 @@ export default defineComponent({
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
 
-        select(ev: MouseEvent) { this.model().attempt(async () => {
+        select(ev: MouseEvent) { void this.model().attempt(async () => {
             await this.model().selection.toggleSelectFromEvent(
                 ev, this.model().bookmarks, this.bookmark);
         })},
 
-        open(ev: MouseEvent) { this.model().attempt(async () => {
+        open(ev: MouseEvent) { void this.model().attempt(async () => {
             (<HTMLElement>this.$refs.link).blur();
             if (this.model().selection.selectedCount.value > 0) {
                 this.select(ev);
@@ -121,11 +121,11 @@ export default defineComponent({
             await this.model().restoreTabs([this.bookmark.url], {background: bg});
         })},
 
-        remove() { this.model().attempt(async () => {
+        remove() { void this.model().attempt(async () => {
             await this.model().deleteBookmark(this.bookmark);
         })},
 
-        closeOrHideOrOpen(ev: MouseEvent) { this.model().attempt(async () => {
+        closeOrHideOrOpen(_ev: MouseEvent) { void this.model().attempt(async () => {
             const openTabs = this.relatedTabs
                 .filter(t => ! t.hidden)
                 .map(t => t.id);
@@ -145,7 +145,7 @@ export default defineComponent({
             await this.model().hideOrCloseStashedTabs(openTabs);
         })},
 
-        openRemove(ev: MouseEvent) { this.model().attempt(async () => {
+        openRemove(ev: MouseEvent) { void this.model().attempt(async () => {
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
             await this.model().restoreTabs([this.bookmark.url], {background: bg});

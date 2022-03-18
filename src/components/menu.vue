@@ -4,14 +4,14 @@
          }"
          @toggle="onToggle" @click.prevent.stop="open">
 
-  <summary ref="summary" :class="{[$style.summary]: true, [summaryClass]: true}"
+  <summary ref="summary" :class="{[$style.summary]: true, [summaryClass as string]: true}"
            tabindex="0">
     <slot name="summary">{{name}}</slot>
   </summary>
 
   <component v-if="isOpen || persist" :is="inPlace ? 'div' : 'teleport'" to="body">
     <div :style="isOpen ? '' : 'display: none'"
-         :class="{[$style.modal]: true, 'menu-modal': true, [modalClass]: true}"
+         :class="{[$style.modal]: true, 'menu-modal': true, [modalClass as string]: true}"
          tabindex="-1"
          @keydown.esc.prevent.stop="close" @click.prevent.stop="close">
       <div ref="bounds" :style="bounds" :class="{
@@ -56,7 +56,7 @@ export default defineComponent({
     computed: {
         vertical_bound(): string {
             if (this.vertical === 'below') {
-                return `padding-top: ${this.origin?.bottom || 0}px;`;
+                return `padding-top: ${this.origin?.bottom ?? 0}px;`;
             } else {
                 return `padding-bottom: ${this.viewport!.height - this.origin!.top}px;`;
             }
@@ -93,7 +93,7 @@ export default defineComponent({
             // Do this first to avoid flickering
             this.updatePosition();
             this.isOpen = true;
-            this.$nextTick(() => {
+            void this.$nextTick(() => {
                 // Make sure the focus is within the menu so we can detect when
                 // focus leaves the menu, and close it automatically.
                 (<HTMLElement>this.$refs.menu).focus();
@@ -107,7 +107,7 @@ export default defineComponent({
             // forget to turn off :focus-within attributes on some parent
             // elements... (this seems to be a Firefox bug)
             (<HTMLElement>this.$refs.summary).focus();
-            this.$nextTick(() => {
+            void this.$nextTick(() => {
                 this.isOpen = false;
                 this.$emit('close');
                 (<HTMLElement>this.$refs.summary).blur();

@@ -42,7 +42,7 @@ export class SvcRegistry {
         };
         nport.onNotify = msg => {
             if (svc.onNotify) svc.onNotify(nport, msg);
-            else /* istanbul ignore else */ if (svc.onRequest) svc.onRequest(nport, msg);
+            else /* istanbul ignore else */ if (svc.onRequest) void svc.onRequest(nport, msg);
         };
 
         trace(`[listener] Accepted connection for ${port.name} as ${nport.name}`);
@@ -112,17 +112,17 @@ export class Port<S extends Send, R extends Send>
 
             if ('tag' in msg) {
                 if ('request' in msg) {
-                    logErrorsFrom(() => this._handleRequest(msg));
+                    void logErrorsFrom(() => this._handleRequest(msg));
 
                 } else if ('response' in msg || 'error' in msg) {
                     this._handleResponse(msg);
                 }
 
             } else if ('notify' in msg) {
-                if (this.onNotify) this.onNotify(msg.notify as R);
+                if (this.onNotify) this.onNotify(msg.notify);
                 else {
                     // istanbul ignore else
-                    if (this.onRequest) this.onRequest(msg.notify as R);
+                    if (this.onRequest) void this.onRequest(msg.notify);
                 }
             }
         }) as (msg: object) => void);
@@ -192,7 +192,7 @@ export class Port<S extends Send, R extends Send>
 
         try {
             if (! this.onRequest) await not_implemented();
-            res = {response: await this.onRequest!(msg.request as R)};
+            res = {response: await this.onRequest!(msg.request)};
 
         } catch (e) {
             let data: Send;

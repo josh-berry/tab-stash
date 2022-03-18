@@ -17,7 +17,8 @@ export interface Event<L extends (...args: any[]) => any> extends EventSource<L>
 
 let eventClass: {new(name: string, instance?: string): Event<any>};
 
-if ((<any>globalThis).mock?.events) {
+const mock_events = (<any>globalThis).mock?.events;
+if (mock_events !== undefined && mock_events !== null) {
     // We are running in a mock environment.  Use the MockEventDispatcher
     // instead, which allows for snooping on events.
     eventClass = require('../mock/events').MockEvent;
@@ -44,7 +45,7 @@ if ((<any>globalThis).mock?.events) {
             // want since setTimeout() is often used to wait for events to be
             // delivered (and immediate timeouts are not always run in the order
             // they are scheduled...).
-            Promise.resolve().then(() => this.sendSync(...args));
+            void Promise.resolve().then(() => this.sendSync(...args));
         }
 
         private sendSync(...args: Args<L>) {
@@ -65,4 +66,4 @@ export default function <L extends (...args: any[]) => any>(
     name: string, instance?: string
 ): Event<L> {
     return new eventClass(name, instance);
-};
+}

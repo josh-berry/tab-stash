@@ -62,7 +62,7 @@ export default defineComponent({
         begin() {
             if (! this.edit) return;
             this.state = 'editing';
-            nextTick().then(() => { (this.$refs.input as HTMLInputElement).focus(); });
+            void nextTick().then(() => { (this.$refs.input as HTMLInputElement).focus(); });
         },
         cancel() {
             if (this.state !== 'editing') return;

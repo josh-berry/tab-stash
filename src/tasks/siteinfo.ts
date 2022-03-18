@@ -1,6 +1,6 @@
 import browser, {Tabs} from 'webextension-polyfill';
 
-import {AsyncChannel, TaskMonitor, Task} from '../util';
+import {AsyncChannel, TaskMonitor, Task, valuable, Valuable} from '../util';
 
 // How long do we wait for initial loading of the tab to complete?
 const LOADING_TIMEOUT = 30000; /* ms */
@@ -96,17 +96,19 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
     };
 
     const capture_info = (tab: Tabs.Tab) => {
+        const favIconUrl = valuable(tab.favIconUrl);
         trace('capturing', {
             status: tab.status,
             title: tab.title,
             url: tab.url,
-            favicon: tab.favIconUrl ? tab.favIconUrl.substr(0, 10) : undefined,
+            favicon: favIconUrl.with(s => s.substr(0, 10)),
         });
 
-        if (tab.url && tab.url !== 'about:blank') info.finalUrl = tab.url;
-        if (info.finalUrl) {
-            if (tab.title) info.title = tab.title;
-            if (tab.favIconUrl) info.favIconUrl = tab.favIconUrl;
+        if (tab.url !== 'about:blank')
+            valuable(tab.url).map(s => { info.finalUrl = s; });
+        if (info.finalUrl !== undefined) {
+            valuable(tab.title).map(s => { info.title = s; });
+            favIconUrl.map(s => { info.favIconUrl = s; });
             if (tab.status === 'complete') {
                 info.complete = true;
                 if (timeout) clearTimeout(timeout);
@@ -116,12 +118,14 @@ export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
         trace('current best', info);
     };
 
-    const has_complete_info = () => info.finalUrl && info.title && info.favIconUrl;
+    const has_complete_info = () =>
+        Valuable.yes(info.finalUrl) && Valuable.yes(info.title) &&
+        Valuable.yes(info.favIconUrl);
 
     try {
         events = watchForTabEvents();
         tab = await browser.tabs.create({active: false, url});
-        if (browser.tabs.hide) await browser.tabs.hide(tab.id!);
+        if (browser.tabs.hide !== undefined) await browser.tabs.hide(tab.id!);
         timeout = setTimeout(onTimeout, LOADING_TIMEOUT);
 
         // Watch for tab events until the timeout above fires or we get a
@@ -235,7 +239,7 @@ function watchForTabEvents(): AsyncChannel<TabEvent> {
 
     const onCreated = (tab: Tabs.Tab) =>
         chan.send({$type: 'create', id: tab.id!, tab});
-    const onUpdated = (id: number, info: {}, tab: Tabs.Tab) =>
+    const onUpdated = (id: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) =>
         chan.send({$type: 'update', id, tab});
     const onReplaced = (replacedWith: number, id: number) =>
         chan.send({$type: 'replace', replacedWith, id});

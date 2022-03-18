@@ -54,21 +54,21 @@ const TROUBLESHOOTING_URL = "https://josh-berry.github.io/tab-stash/support.html
 
 const aboutBrowser = ref('<Unknown Browser>');
 if (browser.runtime.getBrowserInfo) {
-    browser.runtime.getBrowserInfo().then(info => {
+    void browser.runtime.getBrowserInfo().then(info => {
         aboutBrowser.value = `${info.vendor} ${info.name} ${info.version} ${info.buildID}`;
     });
 }
 
 const aboutPlatform = ref('<Unknown Platform>');
 if (browser.runtime.getPlatformInfo) {
-    browser.runtime.getPlatformInfo().then(info => {
+    void browser.runtime.getPlatformInfo().then(info => {
         aboutPlatform.value = `${info.os} ${info.arch}`;
     });
 }
 
 const aboutExtension = ref('<Unknown Extension>');
 if (browser.management.getSelf) {
-    browser.management.getSelf().then(info => {
+    void browser.management.getSelf().then(info => {
         aboutExtension.value = `${info.name} ${info.version} (${info.installType})`;
     });
 }
@@ -96,17 +96,17 @@ const searchGitHub = () => {
         .replace(/\S+\.\S+/g, '')
         .replace(/"[^"]*"/g, '')
         .replace(/`[^`]*`/g, '')
-        .replace(/\S+\@\S+/g, '');
+        .replace(/\S+@\S+/g, '');
     const url = `https://github.com/josh-berry/tab-stash/issues?q=is%3Aissue+${
         encodeURIComponent(terms)}`;
-    logErrorsFrom(() => browser.tabs.create({url}));
+    void logErrorsFrom(() => browser.tabs.create({url}));
 };
 
 const copyErrorLog = async () => {
     const el = <HTMLElement>err_log_el.value;
 
     el.focus();
-    window.getSelection()!.selectAllChildren(el);
+    window.getSelection()?.selectAllChildren(el);
     document.execCommand('copy');
 };
 

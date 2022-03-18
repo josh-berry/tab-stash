@@ -27,6 +27,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         this.onDelete = event('KVS.Client.onDelete', this.name);
         this.onSyncLost = event('KVS.Client.onSyncLost', this.name);
 
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this._port = undefined!; // !-cast - we properly-assign it below.
         this._reconnect();
     }
@@ -99,7 +100,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
 
     private async _request_with_retry(msg: Proto.ClientMsg<K, V>): Promise<Proto.ServiceMsg<K, V>> {
         let retries = 10;
-        while (true) {
+        for (; ;) {
             try {
                 return await this._port.request(msg);
             } catch (e) {

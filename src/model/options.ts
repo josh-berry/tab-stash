@@ -9,7 +9,7 @@
 import browser from 'webextension-polyfill';
 import {ref, computed} from 'vue';
 
-import {resolveNamed} from '../util';
+import {resolveNamed, Valuable} from '../util';
 import {errorLog} from '../util/oops';
 import stored_object, {
     StoredObject, aBoolean, anEnum, aNumber, aString, maybeUndef
@@ -20,7 +20,8 @@ export const STASH_WHAT_OPT = anEnum('all', 'single', 'none');
 export type ShowWhatOpt = ReturnType<typeof SHOW_WHAT_OPT>;
 export type StashWhatOpt = ReturnType<typeof STASH_WHAT_OPT>;
 
-export const SHOW_WHAT_DEFAULT = browser.sidebarAction ? 'sidebar' : 'tab';
+export const SHOW_WHAT_DEFAULT =
+    browser.sidebarAction !== undefined ? 'sidebar' : 'tab';
 
 export type SyncModel = StoredObject<typeof SYNC_DEF>;
 export type SyncState = SyncModel['state'];
@@ -140,7 +141,7 @@ export class Model {
 
     /** Do we need to show a crash-report notification to the user? */
     readonly showCrashReport = computed(() => {
-        const until = this.local.state.hide_crash_reports_until || 0;
+        const until = Valuable.extract(this.local.state.hide_crash_reports_until) ?? 0;
         if (this._now.value < until) {
             setTimeout(() => { this._now.value = Date.now(); }, until - this._now.value + 1);
             return false;

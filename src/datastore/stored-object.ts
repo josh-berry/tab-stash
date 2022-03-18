@@ -35,7 +35,7 @@ import event, {Event} from '../util/event';
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {
     [k: string]: StorableDefEntry<any>,
-};
+}
 
 export type StorableDefEntry<T extends StorableValue> = {
         // Each property has a default value...
@@ -78,10 +78,11 @@ export function aBoolean(value: any, fallback: boolean): boolean {
 
 export function aNumber(value: any, fallback: number): number {
     switch (typeof value) {
-        case 'boolean': case 'number': case 'string':
+        case 'boolean': case 'number': case 'string': {
             const res = Number(value);
             if (Number.isNaN(res)) return fallback;
             return res;
+        }
         default:
             return fallback;
     }
@@ -202,7 +203,7 @@ export class _StoredObjectFactory {
             // istanbul ignore if -- browser sanity
             if (area !== 'sync' && area !== 'local') return;
 
-            const area_live = this._live[area as 'sync' | 'local'];
+            const area_live = this._live[area];
 
             for (const key in changes) {
                 const obj = area_live.get(key);
@@ -361,4 +362,4 @@ class StoredObjectImpl<D extends StorableDef> implements StoredObject<D> {
             }
         }
     }
-};
+}

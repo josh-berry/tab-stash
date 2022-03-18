@@ -75,11 +75,11 @@
 <script lang="ts">
 import {defineComponent, nextTick} from 'vue';
 
-import {filterMap} from '../util';
+import {filterMap, Valuable} from '../util';
 import {Model} from '../model';
 import {Node, Folder, friendlyFolderName, Bookmark} from '../model/bookmarks';
 
-const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
+const MD_LINK_QUOTABLES_RE = /\\|\[\]|!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
 export default defineComponent({
@@ -111,7 +111,7 @@ export default defineComponent({
     mounted(this: any) { this.select_all(); },
 
     watch: {
-        format(this: any, val: string) { this.select_all(); },
+        format(this: any, _val: string) { this.select_all(); },
     },
 
     methods: {
@@ -129,7 +129,7 @@ export default defineComponent({
 
         faviconFor(bm: Bookmark): string | undefined {
             if (! bm.url) return undefined;
-            return this.model().favicons.get(bm.url)?.value?.favIconUrl || undefined;
+            return Valuable.extract(this.model().favicons.get(bm.url)?.value?.favIconUrl);
         },
 
         quote_emphasis_md(text: string): string {
@@ -149,7 +149,7 @@ export default defineComponent({
 
         copy() { document.execCommand('copy'); },
         select_all() {
-            nextTick(() => {
+            void nextTick(() => {
                 (<HTMLElement>this.$refs.output).focus();
                 window.getSelection()!
                     .selectAllChildren(<Element>this.$refs.output);

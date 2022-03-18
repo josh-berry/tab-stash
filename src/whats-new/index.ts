@@ -16,7 +16,7 @@ launch(require('./index.vue').default, async() => {
     const version = r.options.local.state.last_notified_version == r.extn.version
         ? undefined : r.options.local.state.last_notified_version;
 
-    r.options.local.set({last_notified_version: r.extn.version});
+    void r.options.local.set({last_notified_version: r.extn.version});
 
     return {
         provide: {

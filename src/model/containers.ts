@@ -13,7 +13,7 @@ export class Model {
     enabled: boolean;
 
     // Did we receive an event since the last (re)load of the model?
-    private _event_since_load: boolean = false;
+    private _event_since_load = false;
 
     constructor() {
         const supports_containers = [
@@ -33,12 +33,12 @@ export class Model {
             onFired: () => {this._event_since_load = true;},
             // istanbul ignore next -- safety net; reload the model in the event
             // of an unexpected exception.
-            onError: () => {logErrorsFrom(() => this.reload());},
+            onError: () => {void logErrorsFrom(() => this.reload());},
         });
 
-        wiring.listen(contextualIdentities.onCreated, this.whenChanged);
-        wiring.listen(contextualIdentities.onUpdated, this.whenChanged);
-        wiring.listen(contextualIdentities.onRemoved, this.whenRemoved);
+        wiring.listen(contextualIdentities.onCreated, this.whenChanged.bind(this));
+        wiring.listen(contextualIdentities.onUpdated, this.whenChanged.bind(this));
+        wiring.listen(contextualIdentities.onRemoved, this.whenRemoved.bind(this));
     }
 
     static async from_browser(): Promise<Model> {
@@ -73,6 +73,7 @@ export class Model {
                 break;
             }
         }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.containers = new Map(loaded_containers!
             .filter(c => c?.cookieStoreId)
             .map(c => [c.cookieStoreId, this.makeContainerReactive(c)]));

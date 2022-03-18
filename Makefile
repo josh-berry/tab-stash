@@ -27,6 +27,10 @@ check: # no dependencies since it must work with all types of builds
 	npm run test
 .PHONY: check
 
+lint:
+	npm run lint
+.PHONY: lint
+
 rel:
 	$(MAKE) distclean release-tag
 	$(MAKE) rel-inner

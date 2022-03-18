@@ -76,7 +76,7 @@ import browser from 'webextension-polyfill';
 import {defineComponent} from 'vue';
 
 import {pageref} from '../launch-vue';
-import {TaskMonitor, parseVersion, required} from '../util';
+import {TaskMonitor, parseVersion, required, valuable, Valuable} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Folder} from '../model/bookmarks';
@@ -135,7 +135,7 @@ export default defineComponent({
             if (last_notified === this.my_version) return undefined;
 
             const my = parseVersion(this.my_version);
-            const last = last_notified ? parseVersion(last_notified) : [];
+            const last = valuable(last_notified).map(parseVersion) ?? [];
 
             if (my[0] == last[0] && my[1] == last[1]) return 'fixes';
             return 'features';
@@ -236,7 +236,7 @@ export default defineComponent({
     },
 
     watch: {
-        searchText(text) { this.model().setFilter(text); },
+        searchText(text: string) { this.model().setFilter(text); },
     },
 
     methods: {
@@ -273,7 +273,7 @@ export default defineComponent({
             window.location.href = pageref(page);
         },
         hideWhatsNew() {
-            this.model().options.local.set({last_notified_version: this.my_version});
+            void this.model().options.local.set({last_notified_version: this.my_version});
         },
 
         showExportDialog() {
@@ -284,14 +284,14 @@ export default defineComponent({
             return n == 1 ? '' : 's';
         },
 
-        async fetchMissingFavicons() { this.model().attempt(async() => {
+        async fetchMissingFavicons() { void this.model().attempt(async() => {
             const favicons = this.model().favicons;
             const urls = this.model().bookmarks.urlsInStash();
 
             // This is just an async filter :/
             for (const url of urls) {
                 const favicon = favicons.get(url);
-                if (favicon && favicon.value) urls.delete(url);
+                if (favicon.value) urls.delete(url);
             }
 
             const iter = TaskMonitor.run_iter(tm => fetchInfoForSites(urls, tm));
@@ -302,7 +302,7 @@ export default defineComponent({
 
             try {
                 for await (const info of iter) {
-                    if (info.favIconUrl) {
+                    if (Valuable.yes(info.favIconUrl)) {
                         favicons.set(info.originalUrl, info.favIconUrl);
                     }
                 }
