@@ -49,9 +49,9 @@ export const SYNC_DEF = {
 
     // In the stash list, show all open tabs at the top instead of just the
     // unstashed tabs.
-    show_all_open_tabs: {
-        default: false,
-        is: aBoolean,
+    show_open_tabs: {
+        default: 'unstashed',
+        is: anEnum('unstashed', 'all'),
     },
 
     // How big should the spacing/fonts be?

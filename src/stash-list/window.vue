@@ -32,9 +32,8 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label :class="{'folder-name': true, 'disabled': true}"
-                    :tooltip="tooltip"
-                    :value="title" :defaultValue="title" />
+    <span :class="{'folder-name': true, 'ephemeral': true, 'disabled': true}"
+          :title="tooltip" @click.prevent.stop="toggleMode">{{title}}</span>
   </header>
   <div class="contents">
     <dnd-list class="tabs" v-model="tabs" item-key="id" :item-class="childClasses"
@@ -66,17 +65,22 @@ import {DragAction, DropAction} from '../components/dnd-list';
 import {Model, StashItem, copyIf} from '../model';
 import {Tab} from '../model/tabs';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
+import type {SyncState} from '../model/options';
 
 const DROP_FORMATS = [
     'application/x-tab-stash-items',
 ];
+
+const NEXT_SHOW_OPEN_TAB_STATE: Record<SyncState['show_open_tabs'], SyncState['show_open_tabs']> = {
+    'all': 'unstashed',
+    'unstashed': 'all',
+};
 
 export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         DndList: require('../components/dnd-list.vue').default,
-        EditableLabel: require('../components/editable-label.vue').default,
         Tab: require('./tab.vue').default,
         Bookmark: require('./bookmark.vue').default,
     },
@@ -101,7 +105,7 @@ export default defineComponent({
         accepts() { return DROP_FORMATS; },
 
         showStashedTabs(): boolean {
-            return this.model().options.sync.state.show_all_open_tabs;
+            return this.model().options.sync.state.show_open_tabs === 'all';
         },
 
         title(): string {
@@ -110,7 +114,8 @@ export default defineComponent({
         },
 
         tooltip(): string {
-            return `${this.validChildren.length} ${this.title}`;
+            return `${this.validChildren.length} ${this.title}\n`
+                + `Click to change which tabs are shown.`;
         },
 
         collapsed: {
@@ -140,6 +145,13 @@ export default defineComponent({
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
         attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+
+        toggleMode() { this.attempt(async() => {
+            const options = this.model().options;
+            await options.sync.set({
+                show_open_tabs: NEXT_SHOW_OPEN_TAB_STATE[options.sync.state.show_open_tabs],
+            });
+        })},
 
         childClasses(t: Tab): Record<string, boolean> {
             return {hidden: ! (
