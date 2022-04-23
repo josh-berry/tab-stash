@@ -86,6 +86,13 @@ const BOOKMARKS = {
                 {id: 'seven', title: 'Seven', url: `${B}#7`},
                 {id: 'eight', title: 'Eight', url: `${B}#8`},
             ]},
+            {id: 'nested', title: 'Stash with Nested Folder', children: [
+                {id: 'nested_1', title: 'Nested 1', url: `${B}#nested_1`},
+                {id: 'nested_child', title: 'Nested Child', children: [
+                    {id: 'nested_child_1', title: '1', url: `${B}#nested_child_1`},
+                ]},
+                {id: 'nested_2', title: 'Nested 2', url: `${B}#nested_2`},
+            ]},
         ]},
     ],
 } as const;

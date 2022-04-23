@@ -100,8 +100,12 @@ export default defineComponent({
 
         accepts() { return DROP_FORMATS; },
 
+        showStashedTabs(): boolean {
+            return this.model().options.sync.state.show_all_open_tabs;
+        },
+
         title(): string {
-            if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
+            if (this.showStashedTabs) return "Open Tabs";
             return "Unstashed Tabs";
         },
 
@@ -145,19 +149,8 @@ export default defineComponent({
         isValidChild(t: Tab): boolean {
             const model = this.model();
             if (t.hidden || t.pinned) return false;
-            return model.options.sync.state.show_all_open_tabs ||
-                (model.isURLStashable(t.url) && ! this.isItemStashed(t));
-        },
-
-        isItemStashed(i: Tab): boolean {
-            if (! i.url) return false;
-
-            const bookmarks = this.model().bookmarks;
-            const stash_root_id = bookmarks.stash_root.value?.id;
-            if (stash_root_id === undefined) return false;
-
-            const bms = Array.from(bookmarks.bookmarksWithURL(i.url));
-            return !!bms.find(bm => bookmarks.isNodeInFolder(bm, stash_root_id));
+            return this.showStashedTabs ||
+                (model.isURLStashable(t.url) && ! model.bookmarks.isURLStashed(t.url));
         },
 
         async newGroup() {this.attempt(async() => {
@@ -181,39 +174,39 @@ export default defineComponent({
         })},
 
         async removeStashed() {this.attempt(async() => {
-            if (! this.isItemStashed) throw new Error(
-                "isItemStashed not provided to tab folder");
-
-            await this.model().hideOrCloseStashedTabs(this.tabs
-                .filter(t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t))
+            const model = this.model();
+            await model.hideOrCloseStashedTabs(this.tabs
+                .filter(t => ! t.hidden && ! t.pinned
+                            && model.bookmarks.isURLStashed(t.url))
                 .map(t => t.id));
         })},
 
         async removeOpen(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
-            if (! this.isItemStashed) throw new Error(
-                "isItemStashed not provided to tab folder");
+            const model = this.model();
 
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
                 const tabs = this.tabs.filter(
-                    t => t && t.hidden && this.isItemStashed(t));
-                await this.model().tabs.remove(filterMap(tabs, t => t?.id));
+                    t => t.hidden && model.bookmarks.isURLStashed(t.url));
+                await model.tabs.remove(filterMap(tabs, t => t?.id));
             } else {
                 // Closes ALL open tabs (stashed and unstashed).
                 //
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
                 const hide_tabs = this.tabs
-                    .filter(t => ! t.hidden && ! t.pinned && this.isItemStashed(t))
+                    .filter(t => ! t.hidden && ! t.pinned
+                                && model.bookmarks.isURLStashed(t.url))
                     .map(t => t.id);
                 const close_tabs = this.tabs
-                    .filter(t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t))
+                    .filter(t => ! t.hidden && ! t.pinned
+                                && ! model.bookmarks.isURLStashed(t.url))
                     .map(t => t.id);
 
-                await this.model().tabs.refocusAwayFromTabs(
+                await model.tabs.refocusAwayFromTabs(
                     hide_tabs.concat(close_tabs));
 
-                this.model().hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+                model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
                 browser.tabs.remove(close_tabs).catch(console.log);
             }
         })},

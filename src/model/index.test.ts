@@ -1091,7 +1091,7 @@ describe('model', () => {
                 title: 'Empty Folder',
             });
             await events.nextN(browser.bookmarks.onCreated, 1);
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
         }
 
         it('deletes folders and remembers them as deleted items', async () => {
@@ -1104,6 +1104,7 @@ describe('model', () => {
             expect(model.bookmarks.stash_root.value!.children).to.deep.equal([
                 bookmarks.unnamed.id,
                 bookmarks.big_stash.id,
+                bookmarks.nested.id,
             ]);
 
             await model.deleted_items.loadMore();
@@ -1213,14 +1214,14 @@ describe('model', () => {
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
                 expect(model.deleted_items.state.entries[1].item.title)
                     .to.equal('Helen Hidden');
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
 
                 const p = model.undelete(model.deleted_items.state.entries[1]);
                 await events.nextN(browser.bookmarks.onCreated, 1);
                 await events.next('KVS.Memory.onDelete');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
                 const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
                 expect(restored_folder.children.map(id => model.bookmarks.bookmark(id)!.url))
                     .to.deep.equal([`${B}#undyne`, `${B}#helen`]);
@@ -1249,7 +1250,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onDelete');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
                 const restored_folder_id = model.bookmarks.stash_root.value!.children[0];
                 const restored_folder = model.bookmarks.folder(restored_folder_id)!;
                 expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be.null;
@@ -1276,7 +1277,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
                 const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
                 expect(restored_folder.children.map(id => model.bookmarks.bookmark(id)!.url))
                     .to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
@@ -1299,7 +1300,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
                 const restored_folder_id = model.bookmarks.stash_root.value!.children[0];
                 const restored_folder = model.bookmarks.folder(restored_folder_id)!;
                 expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be.null;

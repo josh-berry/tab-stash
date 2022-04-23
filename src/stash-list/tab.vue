@@ -86,9 +86,9 @@ export default defineComponent({
 
             const ret = [];
             for (const bm of bookmarks.bookmarksWithURL(this.tab.url)) {
-                const pos = bookmarks.stashGroupOf(bm);
-                if (! pos) continue;
-                ret.push(friendlyFolderName(pos.parent.title));
+                const group = bookmarks.stashGroupOf(bm);
+                if (! group) continue;
+                ret.push(friendlyFolderName(group.title));
             }
             return ret;
         },

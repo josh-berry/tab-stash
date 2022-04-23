@@ -67,6 +67,9 @@ describe('model/bookmarks', () => {
             `${B}#doug`,
             `${B}#helen`,
             `${B}#nate`,
+            `${B}#nested_1`,
+            `${B}#nested_2`,
+            `${B}#nested_child_1`,
             `${B}#patricia`,
             `${B}#undyne`,
         ]);
@@ -182,6 +185,7 @@ describe('model/bookmarks', () => {
         expect(model.folder(bms.stash_root.id)!.children).to.deep.equal([
             bms.unnamed.id,
             bms.big_stash.id,
+            bms.nested.id,
         ]);
     });
 
@@ -259,28 +263,18 @@ describe('model/bookmarks', () => {
             });
 
             it('inside the stash', async () => {
-                const pos = model.stashGroupOf(model.node(bms.five.id)!);
-                expect(pos).to.not.be.undefined;
-                expect(pos!.index).to.equal(4);
-                expect(pos!.parent).to.equal(model.node(bms.big_stash.id)!);
+                const group = model.stashGroupOf(model.node(bms.five.id)!);
+                expect(group).to.not.be.undefined;
+                expect(group).to.equal(model.node(bms.big_stash.id)!);
             });
 
             it('grandchild of the stash', async() => {
-                const ev = events.nextN(browser.bookmarks.onCreated, 2);
-                const folder = await model.create({
-                    parentId: bms.big_stash.id,
-                    title: 'Folder',
-                });
-                const bm = await model.create({
-                    parentId: folder.id,
-                    title: 'Bookmark',
-                    url: `${B}#grandchild`,
-                });
-                await ev;
+                expect(bms.nested_child_1.parentId).to.equal(bms.nested_child.id);
+                expect(bms.nested_child.parentId).to.equal(bms.nested.id);
+                expect(bms.nested.parentId).to.equal(bms.stash_root.id);
 
-                expect(bm.parentId).to.equal(folder.id);
-                expect(folder.parentId).to.equal(bms.big_stash.id);
-                expect(model.stashGroupOf(bm)).to.be.undefined;
+                expect(model.stashGroupOf(model.node(bms.nested_child_1.id)!))
+                    .to.be.undefined;
             });
 
             it('the bookmark root folder', async () => {
@@ -301,6 +295,24 @@ describe('model/bookmarks', () => {
             it('a stash group itself', async () => {
                 expect(model.stashGroupOf(model.node(bms.big_stash.id)!))
                     .to.be.undefined;
+            });
+        });
+
+        describe('lookup URL in stash', () => {
+            it('returns false for URLs not in bookmarks', async() => {
+                expect(model.isURLStashed(`${B}#not-in-bookmarks`)).to.be.false;
+            });
+            it('returns false for URLs not in the stash', async() => {
+                expect(model.bookmarksWithURL(`${B}#francis`).size).to.equal(1);
+                expect(model.isURLStashed(`${B}#francis`)).to.be.false;
+            });
+            it('returns false for URLs nested deeply in the stash', async() => {
+                expect(model.bookmarksWithURL(`${B}#nested_child_1`).size).to.equal(1);
+                expect(model.isURLStashed(`${B}#nested_child_1`)).to.be.false;
+            });
+            it('returns true for URLs nested appropriately in the stash', async() => {
+                expect(model.bookmarksWithURL(`${B}#1`).size).to.equal(1);
+                expect(model.isURLStashed(`${B}#1`)).to.be.true;
             });
         });
     });
@@ -497,6 +509,7 @@ describe('model/bookmarks', () => {
             expect(model.folder(bms.stash_root.id)!.children).to.deep.equal([
                 bms.names.id,
                 bms.big_stash.id,
+                bms.nested.id,
             ]);
         });
 
@@ -510,6 +523,7 @@ describe('model/bookmarks', () => {
             expect(model.folder(bms.stash_root.id)!.children).to.deep.equal([
                 bms.names.id,
                 bms.big_stash.id,
+                bms.nested.id,
             ]);
             expect(model.folder(bms.names.id)!.children).to.deep.equal([
                 bms.doug_2.id,
