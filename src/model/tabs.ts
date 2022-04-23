@@ -1,6 +1,8 @@
 import {computed, reactive, Ref, ref} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {backingOff, expect, filterMap, shortPoll, tryAgain} from "../util";
+import {
+    backingOff, expect, filterMap, OpenableURL, shortPoll, tryAgain, urlToOpen,
+} from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
 
@@ -44,7 +46,7 @@ export type TabPosition = {window: Window, index: number};
 export class Model {
     private readonly windows = new Map<WindowID, Window>();
     private readonly tabs = new Map<TabID, Tab>();
-    private readonly tabs_by_url = new Map<string, Set<Tab>>();
+    private readonly tabs_by_url = new Map<OpenableURL, Set<Tab>>();
 
     /** The initial window that this model was opened with (if it still exists). */
     readonly initialWindow: Ref<WindowID | undefined> = ref();
@@ -186,10 +188,10 @@ export class Model {
 
     /** Returns a reactive set of tabs with the specified URL. */
     tabsWithURL(url: string): Set<Tab> {
-        let index = this.tabs_by_url.get(url);
+        let index = this.tabs_by_url.get(urlToOpen(url));
         if (! index) {
             index = reactive(new Set<Tab>());
-            this.tabs_by_url.set(url, index);
+            this.tabs_by_url.set(urlToOpen(url), index);
         }
         return index;
     }
@@ -486,7 +488,7 @@ export class Model {
     }
 
     private _remove_url(t: Tab) {
-        const index = this.tabs_by_url.get(t.url);
+        const index = this.tabs_by_url.get(urlToOpen(t.url));
         // istanbul ignore if -- internal consistency
         if (! index) return;
         index.delete(t);

@@ -383,8 +383,7 @@ export class Model {
         // disturb the ordering of tabs in the browser window.)
         if (! options.background && urls.length === 1 && urls[0]) {
             const t = Array.from(this.tabs.tabsWithURL(urls[0]))
-                .find(t => t.url === urls[0] && ! t.hidden
-                        && t.windowId === toWindowId);
+                .find(t => ! t.hidden && t.windowId === toWindowId);
             if (t) {
                 await browser.tabs.update(t.id, {active: true});
                 return [t];

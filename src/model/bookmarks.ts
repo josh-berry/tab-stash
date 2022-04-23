@@ -2,7 +2,7 @@ import {computed, reactive, Ref, ref} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {
-    backingOff, expect, filterMap, shortPoll, tryAgain
+    backingOff, expect, filterMap, OpenableURL, shortPoll, tryAgain, urlToOpen,
 } from "../util";
 import {logErrorsFrom} from '../util/oops';
 import {EventWiring} from '../util/wiring';
@@ -42,7 +42,7 @@ const ROOT_FOLDER_HELP = 'https://github.com/josh-berry/tab-stash/wiki/Problems-
  */
 export class Model {
     private readonly by_id = new Map<NodeID, Node>();
-    private readonly by_url = new Map<string, Set<Bookmark>>();
+    private readonly by_url = new Map<OpenableURL, Set<Bookmark>>();
 
     /** The ID of the root node (set only once the model is loaded). */
     root_id: NodeID | undefined;
@@ -165,10 +165,10 @@ export class Model {
 
     /** Returns a (reactive) set of bookmarks with the specified URL. */
     bookmarksWithURL(url: string): Set<Bookmark> {
-        let index = this.by_url.get(url);
+        let index = this.by_url.get(urlToOpen(url));
         if (! index) {
             index = reactive(new Set<Bookmark>());
-            this.by_url.set(url, index);
+            this.by_url.set(urlToOpen(url), index);
         }
         return index;
     }
@@ -718,7 +718,7 @@ export class Model {
     }
 
     private _remove_url(bm: Bookmark) {
-        const index = this.by_url.get(bm.url);
+        const index = this.by_url.get(urlToOpen(bm.url));
         // istanbul ignore if -- internal consistency
         if (! index) return;
         index.delete(bm);
