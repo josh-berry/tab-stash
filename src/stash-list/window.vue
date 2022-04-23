@@ -10,7 +10,9 @@
             @action="collapsed = ! collapsed" />
     <ButtonBox v-if="selectedCount === 0" class="folder-actions">
       <Button class="stash" @action="stash"
-              :tooltip="`Stash only the unstashed tabs to a new group (hold ${altKey} to keep tabs open)`" />
+              :tooltip="`Stash all ${
+                    showStashedTabs ? 'open tabs' : 'unstashed tabs'
+                } to a new group (hold ${altKey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
       <Button class="remove" @action="remove"
