@@ -220,6 +220,23 @@ export class Model {
         return path;
     }
 
+    /** Checks if a particular bookmark is a direct child of a stash folder
+     * inside the stash root (i.e. it is visible in the UI).  If so, returns the
+     * NodePosition of the bookmark (including the parent folder). */
+    stashGroupOf(node: Node): NodePosition | undefined {
+        // istanbul ignore if -- uncommon and hard to test
+        if (! this.stash_root.value) return undefined;
+        const pos = this.positionOf(node);
+        if (! pos) return undefined;
+
+        // The node's parent folder is not the stash root, so it's not a direct
+        // child of a stash group.
+        const parentPos = this.positionOf(pos.parent);
+        if (! parentPos) return undefined;
+        if (parentPos.parent.id !== this.stash_root.value.id) return undefined;
+        return pos;
+    }
+
     /** Return all the URLs present in the stash root. */
     urlsInStash(): Set<string> {
         const urls = new Set<string>();

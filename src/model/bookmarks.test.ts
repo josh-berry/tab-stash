@@ -252,6 +252,57 @@ describe('model/bookmarks', () => {
                 {parent: model.node(bms.names.id), index: 1},
             ]);
         });
+
+        describe('stash group of a bookmark', () => {
+            it('outside of the stash', async () => {
+                expect(model.stashGroupOf(model.node(bms.bob.id)!)).to.be.undefined;
+            });
+
+            it('inside the stash', async () => {
+                const pos = model.stashGroupOf(model.node(bms.five.id)!);
+                expect(pos).to.not.be.undefined;
+                expect(pos!.index).to.equal(4);
+                expect(pos!.parent).to.equal(model.node(bms.big_stash.id)!);
+            });
+
+            it('grandchild of the stash', async() => {
+                const ev = events.nextN(browser.bookmarks.onCreated, 2);
+                const folder = await model.create({
+                    parentId: bms.big_stash.id,
+                    title: 'Folder',
+                });
+                const bm = await model.create({
+                    parentId: folder.id,
+                    title: 'Bookmark',
+                    url: `${B}#grandchild`,
+                });
+                await ev;
+
+                expect(bm.parentId).to.equal(folder.id);
+                expect(folder.parentId).to.equal(bms.big_stash.id);
+                expect(model.stashGroupOf(bm)).to.be.undefined;
+            });
+
+            it('the bookmark root folder', async () => {
+                expect(model.stashGroupOf(model.node(model.root_id!)!))
+                    .to.be.undefined;
+            });
+
+            it('a direct child of the root', async() => {
+                expect(model.stashGroupOf(model.node(bms.root.id)!))
+                    .to.be.undefined;
+            });
+
+            it('the stash root itself', async () => {
+                expect(model.stashGroupOf(model.node(bms.stash_root.id)!))
+                    .to.be.undefined;
+            });
+
+            it('a stash group itself', async () => {
+                expect(model.stashGroupOf(model.node(bms.big_stash.id)!))
+                    .to.be.undefined;
+            });
+        });
     });
 
     describe('tracks the stash root', () => {

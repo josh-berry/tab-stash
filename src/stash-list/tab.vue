@@ -5,6 +5,7 @@
               'active': !!tab.active,
               'discarded': tab.discarded,
               'loading': isLoading,
+              'stashed': stashedIn.length > 0,
               'selected': tab.$selected}"
      :title="tab.title" :data-id="tab.id"
      :data-container-color="containerColor"
@@ -17,6 +18,8 @@
   <a class="text" :href="tab.url" target="_blank" draggable="false" ref="a"
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="remove">{{tab.title}}</a>
+  <span v-if="stashedIn.length > 0" class="badge icon icon-stashed"
+        :title="`This tab is stashed in:\n${stashedIn.join('\n')}`" />
   <ButtonBox>
     <Button v-if="isStashable" class="stash one" @action="stash"
             :tooltip="`Stash this tab (hold ${altKey} to keep tab open)`" />
@@ -33,6 +36,7 @@ import {altKeyName, bgKeyName, required} from '../util';
 import {Model, copyIf} from '../model';
 import {Tab} from '../model/tabs';
 import {Container} from '../model/containers';
+import {friendlyFolderName} from '../model/bookmarks';
 
 export default defineComponent({
     components: {
@@ -71,6 +75,22 @@ export default defineComponent({
         },
         isActive(): boolean {
             return this.tab.active && this.tab.windowId === this.targetWindow;
+        },
+        stashedIn(): string[] {
+            // Micro-optimizations - if the URL changes quickly, we don't want
+            // to dig around in the bookmarks repeatedly.
+            if (this.isLoading) return [];
+            if (! this.tab.url) return [];
+
+            const bookmarks = this.model().bookmarks;
+
+            const ret = [];
+            for (const bm of bookmarks.bookmarksWithURL(this.tab.url)) {
+                const pos = bookmarks.stashGroupOf(bm);
+                if (! pos) continue;
+                ret.push(friendlyFolderName(pos.parent.title));
+            }
+            return ret;
         },
         container(): Container | undefined {
             if (this.model().options.local.state.ff_container_indicators &&

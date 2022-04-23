@@ -176,7 +176,7 @@
 
 .folder-item {
     display: grid;
-    grid-template-columns: 0fr 0fr 1fr 0fr; // indentation, icon, title, actions
+    grid-template-columns: 0fr 0fr 1fr 0fr 0fr; // indentation, icon, title, badges, actions
     align-items: center;
     padding: 0 var(--page-pw);
     height: var(--item-h);
@@ -229,10 +229,25 @@
         .text-overflow-ellipsis();
     }
 
+    & > .badge {
+        grid-row: 1;
+        grid-column: 4;
+        height: var(--item-h);
+        line-height: var(--item-h);
+        opacity: 50%;
+        &.icon {
+            /* Similar to .action... */
+            box-sizing: border-box;
+            width: var(--icon-btn-size);
+            height: var(--icon-btn-size);
+            padding: var(--icon-p);
+        }
+    }
+
     & > nav {
         display: none;
         grid-row: 1;
-        grid-column: 4;
+        grid-column: 5;
     }
     &:hover > nav, &:focus-within > nav { display: flex; }
 
