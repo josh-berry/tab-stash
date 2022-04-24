@@ -117,7 +117,10 @@ const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
     },
 
     async show_tab() {
-        await model.restoreTabs([browser.runtime.getURL('stash-list.html')], {});
+        await model.restoreTabs([{
+            title: 'Tab Stash',
+            url: browser.runtime.getURL('stash-list.html'),
+        }], {});
     },
 
     stash_all: async function(tab?: Tabs.Tab) {

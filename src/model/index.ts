@@ -368,7 +368,7 @@ export class Model {
      * since we don't want to open duplicate tabs.  Such tabs will not be
      * included in the returned list. */
     async restoreTabs(
-        urls: string[],
+        items: StashItem[],
         options: {background?: boolean}
     ): Promise<Tabs.Tab[]> {
         const toWindowId = this.tabs.targetWindow.value;
@@ -381,17 +381,14 @@ export class Model {
         // As a special case, if we are restoring just a single tab, first check
         // if we already have the tab open and just switch to it.  (No need to
         // disturb the ordering of tabs in the browser window.)
-        if (! options.background && urls.length === 1 && urls[0]) {
-            const t = Array.from(this.tabs.tabsWithURL(urls[0]))
+        if (! options.background && items.length === 1 && items[0].url) {
+            const t = Array.from(this.tabs.tabsWithURL(items[0].url))
                 .find(t => ! t.hidden && t.windowId === toWindowId);
             if (t) {
                 await browser.tabs.update(t.id, {active: true});
                 return [t];
             }
         }
-
-        // Remove duplicate URLs so we only try to restore each URL once.
-        const url_set = new Set(filterMap(urls, url => url));
 
         // We want to know what tabs are currently open in the window, so we can
         // avoid opening duplicates.
@@ -402,10 +399,7 @@ export class Model {
         const active_tab = win_tabs.filter(t => t.active)[0];
 
         const tabs = await this.putItemsInWindow({
-            // NOTE: We rely on the fact that Set always remembers the order in
-            // which items were inserted to be sure that tabs are always
-            // restored in the correct order.
-            items: Array.from(url_set).map(url => ({url})),
+            items: copying(items),
             toWindowId,
         });
 
@@ -698,8 +692,9 @@ export class Model {
 
             // Else we just need to create a completely new tab.
             const tab = await this.tabs.create({
-                active: false, url: urlToOpen(url), windowId:
-                to_win_id, index: to_index,
+                active: false, discarded: true,
+                title: item.title, url: urlToOpen(url),
+                windowId: to_win_id, index: to_index,
             });
             moved_items.push(tab);
             dont_steal_tabs.add(tab.id);

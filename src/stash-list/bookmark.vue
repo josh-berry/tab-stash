@@ -118,7 +118,7 @@ export default defineComponent({
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
 
-            await this.model().restoreTabs([this.bookmark.url], {background: bg});
+            await this.model().restoreTabs([this.bookmark], {background: bg});
         })},
 
         remove() { this.model().attempt(async () => {
@@ -138,7 +138,7 @@ export default defineComponent({
             if (openTabs.length < 1) {
                 if (! this.bookmark.url) return;
                 return await this.model().restoreTabs(
-                    [this.bookmark.url], { background: true });
+                    [this.bookmark], {background: true});
             }
 
             // Otherwise hide or close open tabs related to this bookmark.
@@ -148,7 +148,7 @@ export default defineComponent({
         openRemove(ev: MouseEvent) { this.model().attempt(async () => {
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
-            await this.model().restoreTabs([this.bookmark.url], {background: bg});
+            await this.model().restoreTabs([this.bookmark], {background: bg});
             await this.model().deleteBookmark(this.bookmark);
         })},
     },

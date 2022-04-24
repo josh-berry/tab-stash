@@ -1,7 +1,7 @@
 import {computed, reactive, Ref, ref, watch} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
 import {
-    backingOff, expect, filterMap, nonReentrant, OpenableURL, shortPoll,
+    backingOff, expect, filterMap, OpenableURL, shortPoll,
     tryAgain, urlToOpen,
 } from "../util";
 import {logErrorsFrom} from "../util/oops";
@@ -85,11 +85,6 @@ export class Model {
 
     /** Did we receive an event since the last (re)load of the model? */
     private _event_since_load: boolean = false;
-
-    /** The tab reload queue.  If too many tabs are being created at once, we
-     * will rate-limit the number of tabs we try to load at once, to prevent the
-     * user's system from locking up. */
-    private _tab_load_queue = new Set<Tab>();
 
     //
     // Loading data and wiring up events
@@ -216,21 +211,23 @@ export class Model {
 
     /** Creates a new tab and waits for the model to reflect its existence.
      *
-     * The tab will initially be created discarded, and loading will be
-     * automatically triggered later.  This is done to avoid loading too many
-     * tabs at once, which may cause significant performance problems. */
+     * Note that tab creation is rate-limited, to avoid overwhelming the user's
+     * system with a lot of concurrently-loading tabs. */
     async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
-        const t = await browser.tabs.create({
-            ...tab,
-            discarded: true,
-        });
-        const ret = await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
-
-        if (! tab.discarded) {
-            this._tab_load_queue.add(ret);
-            logErrorsFrom(async() => this._process_load_queue());
+        // Rate-limiting as noted in the docs
+        while (this.loadingCount.value >= MAX_LOADING_TABS) {
+            await new Promise<void>(resolve => {
+                const cancel = watch(this.loadingCount, () => {
+                    if (this.loadingCount.value < MAX_LOADING_TABS) {
+                        resolve();
+                        cancel();
+                    }
+                });
+            });
         }
-        return ret;
+
+        const t = await browser.tabs.create(tab);
+        return await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
     }
 
     /** Moves a tab such that it precedes the item with index `toIndex` in
@@ -515,7 +512,6 @@ export class Model {
         if (pos) pos.window.tabs.splice(pos.index, 1);
         this._remove_url(t);
         if (t.status === 'loading') --this.loadingCount.value;
-        this._tab_load_queue.delete(t);
     }
 
     private _add_url(t: Tab) {
@@ -577,34 +573,4 @@ export class Model {
             .slice(startPos.index, endPos.index + 1)
             .filter(t => ! t.hidden && ! t.pinned && t.$visible);
     }
-
-    //
-    // Private helpers
-    //
-
-    readonly _process_load_queue = nonReentrant(async() => {
-        for (const tab of this._tab_load_queue) {
-            this._tab_load_queue.delete(tab);
-
-            while (this.loadingCount.value >= MAX_LOADING_TABS) {
-                await new Promise<void>(resolve => {
-                    const cancel = watch(this.loadingCount, () => {
-                        if (this.loadingCount.value < MAX_LOADING_TABS) {
-                            resolve();
-                            cancel();
-                        }
-                    });
-                });
-            }
-
-            if (tab.discarded) {
-                await browser.tabs.reload(tab.id);
-                // We wait until the model reflects that the tab is not
-                // discarded anymore (it could be loading OR complete, if it
-                // loads fast enough).  Otherwise we might try to reload too
-                // many tabs at once.
-                await shortPoll(() => { if (tab.discarded) tryAgain(); });
-            }
-        }
-    });
 };

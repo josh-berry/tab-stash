@@ -244,8 +244,7 @@ export default defineComponent({
 
         async restoreAll(ev: MouseEvent | KeyboardEvent) {this.attempt(async () => {
             await this.model().restoreTabs(
-                this.validChildren.map(c => c.url),
-                {background: bgKeyPressed(ev)});
+                this.validChildren, {background: bgKeyPressed(ev)});
         })},
 
         async remove() {this.attempt(async() => {
@@ -255,9 +254,7 @@ export default defineComponent({
         async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const bg = bgKeyPressed(ev);
 
-            await this.model().restoreTabs(
-                this.validChildren.map(c => c.url),
-                {background: bg});
+            await this.model().restoreTabs(this.validChildren, {background: bg});
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
 

@@ -985,7 +985,7 @@ describe('model', () => {
         });
 
         it('restores a single hidden tab', async () => {
-            await model.restoreTabs([`${B}#harry`], {});
+            await model.restoreTabs([{url: `${B}#harry`}], {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onActivated);
@@ -1002,7 +1002,7 @@ describe('model', () => {
         });
 
         it('restores a single already-open tab by switching to it', async () => {
-            await model.restoreTabs([`${B}#estelle`], {});
+            await model.restoreTabs([{url: `${B}#estelle`}], {});
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
 
@@ -1018,7 +1018,7 @@ describe('model', () => {
 
         it('restores multiple tabs', async () => {
             const p = model.restoreTabs([
-                `${B}#harry`, `${B}#new-restored`], {});
+                {url: `${B}#harry`}, {url: `${B}#new-restored`}], {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onCreated);
@@ -1048,14 +1048,16 @@ describe('model', () => {
             ]);
         });
 
-        it('skips or steals duplicates when restoring tabs', async () => {
+        it('steals duplicates when restoring tabs', async () => {
             const p = model.restoreTabs(
-                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`], {});
+                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`]
+                    .map(url => ({url})), {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             const new_betty = (await events.next(browser.tabs.onCreated))[0];
+            await events.next(browser.tabs.onMoved);
             const new_paul = (await events.next(browser.tabs.onCreated))[0];
             await events.nextN(browser.tabs.onUpdated, 2);
             await events.next(browser.tabs.onActivated);
@@ -1065,26 +1067,27 @@ describe('model', () => {
 
             expect(restored).to.deep.equal([
                     tabs.real_harry.id, tabs.real_doug_2.id,
-                    new_betty.id as TabID, new_paul.id as TabID,
+                    new_betty.id as TabID, tabs.real_doug.id,
+                    new_paul.id as TabID,
                 ].map(id => model.tabs.tab(id)));
 
             expect(restored.map(t => t.hidden))
-                .to.deep.equal([false, false, false, false]);
+                .to.deep.equal([false, false, false, false, false]);
             expect(restored.map(t => t.active))
-                .to.deep.equal([false, false, false, true]);
+                .to.deep.equal([false, false, false, false, true]);
 
             const win = model.tabs.window(windows.real.id)!;
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,
                 tabs.real_bob.id,
-                tabs.real_doug.id,
                 tabs.real_estelle.id,
                 tabs.real_francis.id,
                 tabs.real_helen.id,
                 tabs.real_harry.id,
                 tabs.real_doug_2.id,
                 new_betty.id,
+                tabs.real_doug.id,
                 new_paul.id,
             ]);
         });
