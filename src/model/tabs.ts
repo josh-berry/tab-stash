@@ -211,11 +211,11 @@ export class Model {
 
     /** Creates a new tab and waits for the model to reflect its existence.
      *
-     * Note that tab creation is rate-limited, to avoid overwhelming the user's
-     * system with a lot of concurrently-loading tabs. */
+     * Note that creation of non-discarded is rate-limited, to avoid
+     * overwhelming the user's system with a lot of loading tabs. */
     async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
         // Rate-limiting as noted in the docs
-        while (this.loadingCount.value >= MAX_LOADING_TABS) {
+        while (! tab.discarded && this.loadingCount.value >= MAX_LOADING_TABS) {
             await new Promise<void>(resolve => {
                 const cancel = watch(this.loadingCount, () => {
                     if (this.loadingCount.value < MAX_LOADING_TABS) {
