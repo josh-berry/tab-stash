@@ -652,9 +652,13 @@ export class Model {
                 const t = already_open[0];
                 const pos = this.tabs.positionOf(t);
 
+                // First move the tab into place, and then show it (if hidden).
+                // If we show and then move, it will briefly appear in a random
+                // location before moving to the desired location, so doing the
+                // move first reduces flickering in the UI.
+                await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
                 if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
 
-                await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
                 if (pos && pos.window === win && pos.index < to_index) --to_index;
                 moved_items.push(t);
                 dont_steal_tabs.add(t.id);
