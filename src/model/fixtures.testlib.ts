@@ -236,6 +236,7 @@ export async function make_tabs(): Promise<TabFixture> {
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
         await events.next(browser.tabs.onHighlighted);
+        await events.next(browser.tabs.onUpdated);
 
         // istanbul ignore if -- browser compatibility and type safety
         if (! win.tabs) win.tabs = [];
@@ -247,6 +248,7 @@ export async function make_tabs(): Promise<TabFixture> {
                 active: !!t.active, pinned: !!t.pinned
             });
             await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onUpdated);
             if (t.active) {
                 await events.next(browser.tabs.onActivated);
                 await events.next(browser.tabs.onHighlighted);

@@ -300,7 +300,7 @@ describe('model', () => {
             await events.next(browser.tabs.onCreated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
-            await events.nextN(browser.tabs.onUpdated, 3);
+            await events.nextN(browser.tabs.onUpdated, 4);
 
             const win = await browser.tabs.query({windowId: windows.left.id});
             expect(win.map(({id, url, active, hidden}) => ({id, url, active, hidden})))
@@ -858,6 +858,7 @@ describe('model', () => {
                 toIndex: 2,
             });
             await events.nextN(browser.tabs.onCreated, 2);
+            await events.nextN(browser.tabs.onUpdated, 2);
             await p;
 
             const urls = [
@@ -891,6 +892,7 @@ describe('model', () => {
             await events.nextN<any>([browser.tabs.onAttached, browser.tabs.onMoved], 1);
             await events.nextN(browser.tabs.onUpdated, 1);
             await events.nextN(browser.tabs.onCreated, 1); // nate created
+            await events.nextN(browser.tabs.onUpdated, 1); // nate loaded
             await events.nextN(browser.bookmarks.onRemoved, 2);
             const res = await p;
 
@@ -945,6 +947,7 @@ describe('model', () => {
             });
             await events.nextN(browser.tabs.onMoved, 1);
             await events.nextN(browser.tabs.onCreated, 1);
+            await events.nextN(browser.tabs.onUpdated, 1);
             await events.nextN(browser.bookmarks.onRemoved, 1);
             await p;
 
@@ -978,6 +981,7 @@ describe('model', () => {
     describe('restores tabs', () => {
         beforeEach(() => {
             expect(model.tabs.initialWindow.value).to.equal(windows.real.id);
+            expect(model.tabs.activeTab()?.url).to.equal(B);
         });
 
         it('restores a single hidden tab', async () => {
@@ -986,6 +990,7 @@ describe('model', () => {
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
+            await events.next(browser.tabs.onRemoved); // closing new-tab page
 
             const restored = model.tabs.tab(tabs.real_harry.id)!;
             expect(restored.hidden).to.be.false;
@@ -1017,9 +1022,11 @@ describe('model', () => {
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
             const restored = await p;
+            await events.next(browser.tabs.onRemoved); // closing new-tab page
 
             expect(restored[0].hidden).to.be.false;
             expect(restored[0].active).to.be.false;
@@ -1030,7 +1037,6 @@ describe('model', () => {
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,
-                tabs.real_blank.id,
                 tabs.real_bob.id,
                 tabs.real_doug.id,
                 tabs.real_doug_2.id,
@@ -1051,9 +1057,11 @@ describe('model', () => {
             await events.next(browser.tabs.onMoved);
             const new_betty = (await events.next(browser.tabs.onCreated))[0];
             const new_paul = (await events.next(browser.tabs.onCreated))[0];
+            await events.nextN(browser.tabs.onUpdated, 2);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
             const restored = await p;
+            await events.next(browser.tabs.onRemoved); // closing new-tab page
 
             expect(restored).to.deep.equal([
                     tabs.real_harry.id, tabs.real_doug_2.id,
@@ -1069,7 +1077,6 @@ describe('model', () => {
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,
-                tabs.real_blank.id,
                 tabs.real_bob.id,
                 tabs.real_doug.id,
                 tabs.real_estelle.id,

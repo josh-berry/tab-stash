@@ -27,7 +27,7 @@ describe('model/tabs', () => {
             expect(model.tab(tab.id)).to.deep.equal({
                 windowId: tab.windowId,
                 id: tab.id,
-                status: tab.status ?? 'loading',
+                status: 'complete',
                 title: tab.title ?? '',
                 url: tab.url ?? '',
                 favIconUrl: tab.favIconUrl ?? '',
@@ -74,6 +74,15 @@ describe('model/tabs', () => {
             $selected: false,
         });
 
+        await events.next(browser.tabs.onUpdated);
+        expect(model.tab(t.id! as M.TabID)).to.deep.include({
+            id: t.id,
+            windowId: windows.left.id,
+            status: 'complete',
+            title: '',
+            url: 'a',
+        });
+
         expect(model.window(windows.left.id)!.tabs).to.deep.equal([
             tabs.left_alice.id,
             tabs.left_betty.id,
@@ -105,7 +114,7 @@ describe('model/tabs', () => {
     it("tracks tabs as their URLs change", async () => {
         // Initial state validated by the earlier tabs-by-url test
         await browser.tabs.update(tabs.right_blank.id, {url: `${B}#paul`});
-        await events.next(browser.tabs.onUpdated);
+        await events.nextN(browser.tabs.onUpdated, 2);
 
         expect(model.tabsWithURL(`${B}`)).to.deep.equal(new Set([
             model.tab(tabs.real_blank.id),
@@ -123,6 +132,7 @@ describe('model/tabs', () => {
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
         await events.next(browser.tabs.onHighlighted);
+        await events.next(browser.tabs.onUpdated);
 
         const tid = win.tabs![0].id as M.TabID;
 
@@ -185,6 +195,7 @@ describe('model/tabs', () => {
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
         await events.next(browser.tabs.onHighlighted);
+        await events.next(browser.tabs.onUpdated);
 
         events.send(browser.tabs.onCreated, {
             id: tab.id!,
