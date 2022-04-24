@@ -1,7 +1,8 @@
-import {computed, reactive, Ref, ref} from "vue";
+import {computed, reactive, Ref, ref, watch} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
 import {
-    backingOff, expect, filterMap, OpenableURL, shortPoll, tryAgain, urlToOpen,
+    backingOff, expect, filterMap, nonReentrant, OpenableURL, shortPoll,
+    tryAgain, urlToOpen,
 } from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
@@ -32,6 +33,11 @@ export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
 
 export type TabPosition = {window: Window, index: number};
+
+/** How many tabs do we want to allow to be loaded at once?  (NOTE: This is
+ * approximate, since it takes a while for the model to catch up--so we might
+ * actually end up loading more than this.) */
+const MAX_LOADING_TABS = 4;
 
 /** A Vue model for the state of all open browser windows and their tabs.
  *
@@ -74,8 +80,16 @@ export class Model {
         return count;
     });
 
+    /** The number of tabs being loaded. */
+    readonly loadingCount = ref(0);
+
     /** Did we receive an event since the last (re)load of the model? */
     private _event_since_load: boolean = false;
+
+    /** The tab reload queue.  If too many tabs are being created at once, we
+     * will rate-limit the number of tabs we try to load at once, to prevent the
+     * user's system from locking up. */
+    private _tab_load_queue = new Set<Tab>();
 
     //
     // Loading data and wiring up events
@@ -200,10 +214,23 @@ export class Model {
     // User-level operations on tabs
     //
 
-    /** Creates a new tab and waits for the model to reflect its existence. */
+    /** Creates a new tab and waits for the model to reflect its existence.
+     *
+     * The tab will initially be created discarded, and loading will be
+     * automatically triggered later.  This is done to avoid loading too many
+     * tabs at once, which may cause significant performance problems. */
     async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
-        const t = await browser.tabs.create(tab);
-        return await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
+        const t = await browser.tabs.create({
+            ...tab,
+            discarded: true,
+        });
+        const ret = await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
+
+        if (! tab.discarded) {
+            this._tab_load_queue.add(ret);
+            logErrorsFrom(async() => this._process_load_queue());
+        }
+        return ret;
     }
 
     /** Moves a tab such that it precedes the item with index `toIndex` in
@@ -366,6 +393,7 @@ export class Model {
                 if (pos) pos.window.tabs.splice(pos.index, 1);
             }
             this._remove_url(t);
+            if (t.status === 'loading') --this.loadingCount.value;
 
             t.windowId = tab.windowId as WindowID;
             t.status = tab.status as Tabs.TabStatus ?? 'loading';
@@ -391,13 +419,18 @@ export class Model {
 
         // Insert the tab in its index
         this._add_url(t);
+        if (t.status === 'loading') ++this.loadingCount.value;
     }
 
     whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
         const t = expect(this.tab(id as TabID),
             () => `Got change event for unknown tab ${id}`);
 
-        if (info.status !== undefined) t.status = info.status as Tabs.TabStatus;
+        if (info.status !== undefined) {
+            if (t.status === 'loading') --this.loadingCount.value;
+            t.status = info.status as Tabs.TabStatus;
+            if (t.status === 'loading') ++this.loadingCount.value;
+        }
         if (info.title !== undefined) t.title = info.title;
         if (info.url !== undefined) {
             this._remove_url(t);
@@ -481,6 +514,8 @@ export class Model {
         this.tabs.delete(t.id);
         if (pos) pos.window.tabs.splice(pos.index, 1);
         this._remove_url(t);
+        if (t.status === 'loading') --this.loadingCount.value;
+        this._tab_load_queue.delete(t);
     }
 
     private _add_url(t: Tab) {
@@ -542,4 +577,34 @@ export class Model {
             .slice(startPos.index, endPos.index + 1)
             .filter(t => ! t.hidden && ! t.pinned && t.$visible);
     }
+
+    //
+    // Private helpers
+    //
+
+    readonly _process_load_queue = nonReentrant(async() => {
+        for (const tab of this._tab_load_queue) {
+            this._tab_load_queue.delete(tab);
+
+            while (this.loadingCount.value >= MAX_LOADING_TABS) {
+                await new Promise<void>(resolve => {
+                    const cancel = watch(this.loadingCount, () => {
+                        if (this.loadingCount.value < MAX_LOADING_TABS) {
+                            resolve();
+                            cancel();
+                        }
+                    });
+                });
+            }
+
+            if (tab.discarded) {
+                await browser.tabs.reload(tab.id);
+                // We wait until the model reflects that the tab is not
+                // discarded anymore (it could be loading OR complete, if it
+                // loads fast enough).  Otherwise we might try to reload too
+                // many tabs at once.
+                await shortPoll(() => { if (tab.discarded) tryAgain(); });
+            }
+        }
+    });
 };
