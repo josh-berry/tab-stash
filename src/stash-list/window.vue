@@ -184,7 +184,12 @@ export default defineComponent({
         })},
 
         async remove() {this.attempt(async() => {
-            await this.model().tabs.remove(this.visibleChildren.map(t => t.id));
+            const model = this.model();
+            // This filter keeps the active tab if it's the Tab Stash tab, or a
+            // new tab (so we can avoid creating new tabs unnecessarily).
+            const to_remove = this.visibleChildren
+                .filter(t => ! t.active || model.isURLStashable(t.url));
+            await model.tabs.remove(to_remove.map(t => t.id));
         })},
 
         async removeStashed() {this.attempt(async() => {
@@ -208,17 +213,20 @@ export default defineComponent({
                 //
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
-                const hide_tabs = this.tabs
-                    .filter(t => ! t.hidden && ! t.pinned
-                                && model.bookmarks.isURLStashed(t.url))
+                //
+                // (Just as in remove(), we keep the active tab if it's a
+                // new-tab page or the Tab Stash page.)
+                const tabs = this.tabs.filter(t =>
+                    (! t.active || model.isURLStashable(t.url))
+                    && ! t.hidden && ! t.pinned);
+                const hide_tabs = tabs
+                    .filter(t => model.bookmarks.isURLStashed(t.url))
                     .map(t => t.id);
-                const close_tabs = this.tabs
-                    .filter(t => ! t.hidden && ! t.pinned
-                                && ! model.bookmarks.isURLStashed(t.url))
+                const close_tabs = tabs
+                    .filter(t => ! model.bookmarks.isURLStashed(t.url))
                     .map(t => t.id);
 
-                await model.tabs.refocusAwayFromTabs(
-                    hide_tabs.concat(close_tabs));
+                await model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
 
                 model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
                 browser.tabs.remove(close_tabs).catch(console.log);
