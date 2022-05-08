@@ -87,7 +87,6 @@ export default defineComponent({
     components: {
         SelectionMenu: require('./selection-menu.vue').default,
         Button: require('../components/button.vue').default,
-        ButtonBox: require('../components/button-box.vue').default,
         ExportDialog: require('../tasks/export.vue').default,
         Folder: require('./folder.vue').default,
         FolderList: require('./folder-list.vue').default,

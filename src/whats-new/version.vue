@@ -19,7 +19,6 @@ import {cmpVersions, required} from '../util';
 
 export default defineComponent({
     components: {
-        ButtonBox: require('../components/button-box.vue').default,
         Button: require('../components/button.vue').default,
     },
 
