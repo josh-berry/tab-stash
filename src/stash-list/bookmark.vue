@@ -8,7 +8,7 @@
               'selected': bookmark.$selected}"
      :title="bookmark.title" :data-id="bookmark.id"
      @click.prevent.stop="select">
-  <item-icon class="action select"
+  <item-icon class="{'action':true, select:!isEditable}"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
@@ -18,7 +18,16 @@
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
   </a>
+  <input
+    ref="newtitle"
+    v-show="isEditable"
+    v-model="bookmark.title"
+    @focusout="finishRenaming"
+    @keyup.enter="finishRenaming"
+    @focus="$event.target.select()"
+    />
   <ButtonBox>
+    <Button class="rename" @action="rename" tooltip="Rename" />
     <Button class="restore-remove" @action="openRemove"
             :tooltip="`Open this tab and delete it from the group `
                     + `(hold ${bgKey} to open in background)`" />
@@ -66,7 +75,7 @@ export default defineComponent({
         },
 
         discarded(): boolean {
-            return this.related_tabs.length > 0 && 
+            return this.related_tabs.length > 0 &&
                 this.related_tabs.every(t => !t.hidden && t.discarded);
         },
 
@@ -83,6 +92,12 @@ export default defineComponent({
             if (! this.bookmark.url) return null;
             return this.model().favicons.get(this.bookmark.url);
         },
+    },
+
+    data() {
+        return {
+            isEditable: false
+        }
     },
 
     methods: {
@@ -136,6 +151,22 @@ export default defineComponent({
             const bg = bgKeyPressed(ev);
             await this.model().restoreTabs([this.bookmark.url], {background: bg});
             await this.model().deleteBookmark(this.bookmark);
+        })},
+
+        rename(ev: MouseEvent) { this.model().attempt(async () => {
+            console.log("rename clicked for");
+            console.log(this.bookmark.title);
+            this.isEditable = true;
+            this.$nextTick( () => {
+              console.log(this.$refs.newtitle);
+              (this.$refs.newtitle as HTMLElement).focus();
+            });
+            console.log("isEditable has ${this.isEditable}");
+        })},
+
+        finishRenaming(ev: MouseEvent) { this.model().attempt(async () => {
+            this.isEditable = false;
+            console.log(this);
         })},
     },
 });
