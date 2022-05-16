@@ -168,19 +168,21 @@ export default defineComponent({
         })},
 
         rename(ev: MouseEvent) { this.model().attempt(async () => {
-            console.log("rename clicked for");
-            console.log(this.bookmark.title);
+            //console.log("rename clicked for");
+            //console.log(this.bookmark.title);
             this.isEditable = true;
             this.$nextTick( () => {
-              console.log(this.$refs.newtitle);
+              //console.log(this.$refs.newtitle);
               (this.$refs.newtitle as HTMLElement).focus();
             });
-            console.log("isEditable has ${this.isEditable}");
+            //console.log("isEditable has ${this.isEditable}");
         })},
 
         finishRenaming(ev: MouseEvent) { this.model().attempt(async () => {
             this.isEditable = false;
-            console.log(this);
+            //console.log(this);
+            //console.log(this.bookmark.title); // this has whet is was just changed to, but is not the underlying bookmark
+            await this.model().bookmarks.rename(this.bookmark.id, this.bookmark.title);
         })},
     },
 });

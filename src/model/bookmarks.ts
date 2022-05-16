@@ -286,6 +286,16 @@ export class Model {
         });
     }
 
+    /** Renames a bookmark and waits for the model to reflect the change  */
+    async rename(id: NodeID, newTitle: string): Promise<void> {
+        const node = this.node(id);
+        if (! node) return;
+        await browser.bookmarks.update(id, {
+            title: newTitle
+        });
+        // TODO: (sjl) any error handling needed here?
+    }
+
     /** Deletes a bookmark and waits for the model to reflect the deletion.
      *
      * If the node is part of the stash and belongs to an unnamed folder which
