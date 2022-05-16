@@ -246,9 +246,15 @@ class MockWindows implements W.Static {
                 active: false,
                 pinned: false,
                 incognito: false,
+                status: 'loading',
             };
             win.tabs.push(tab);
             this._state.onTabCreated.send(JSON.parse(JSON.stringify(tab)));
+            (setImmediate ?? setTimeout)(() => {
+                tab.status = 'complete';
+                this._state.onTabUpdated.send(tab.id, {status: 'complete'},
+                    JSON.parse(JSON.stringify(tab)));
+            });
         }
         this._state.activate_tab(win.tabs[win.tabs.length - 1]);
 
@@ -383,7 +389,9 @@ class MockTabs implements T.Static {
             active: false,
             pinned: options.pinned ?? false,
             incognito: false,
+            status: 'loading',
         };
+        this._finish_loading(tab);
 
         // If the tab is pinned, it must have an index before all unpinned tabs
         // istanbul ignore if
@@ -493,6 +501,9 @@ class MockTabs implements T.Static {
         if (options.url !== undefined) {
             dirty.url = options.url;
             tab.url = options.url;
+            dirty.status = 'loading';
+            tab.status = 'loading';
+            this._finish_loading(tab);
         }
         if (options.highlighted !== undefined) {
             const win = this._state.win(tab.windowId);
@@ -751,6 +762,13 @@ class MockTabs implements T.Static {
     // istanbul ignore next
     async goBack(tabId?: number): Promise<void> {
         throw new Error('Method not implemented.');
+    }
+
+    _finish_loading(t: Tab) {
+        (setImmediate ?? setTimeout)(() => {
+            t.status = 'complete';
+            this.onUpdated.send(t.id, {status: 'complete'}, JSON.parse(JSON.stringify(t)));
+        });
     }
 }
 

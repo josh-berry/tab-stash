@@ -79,7 +79,7 @@
   <h4>Appearance (All Synced Browsers)</h4>
 
   <section class="two-col">
-    <label for="ui_metrics">Spacing and Fonts:</label>
+    <label for="ui_metrics">Spacing and fonts:</label>
     <select id="ui_metrics" v-model="ui_metrics">
         <option value="normal">Normal</option>
         <option value="compact">Compact</option>
@@ -90,6 +90,15 @@
       <option value="system">Same as operating system</option>
       <option value="light">Light</option>
       <option value="dark">Dark</option>
+    </select>
+
+    <label for="show_open_tabs">Show which open tabs:</label>
+    <select id="show_open_tabs" v-model="show_open_tabs"
+        :title="`Click on the &quot;Open Tabs&quot; or `
+              + `&quot;Unstashed Tabs&quot; title to toggle between these `
+              + `options. Note that pinned tabs are never shown.`">
+      <option value="unstashed">Unstashed tabs only</option>
+      <option value="all">Stashed and unstashed tabs</option>
     </select>
   </section>
 
@@ -212,13 +221,6 @@
       in a popup panel instead of {{hasSidebar ? 'the sidebar or ' : ''}}a tab.
     </FeatureFlag>
 
-    <FeatureFlag name="show_all_open_tabs" v-model="show_all_open_tabs"
-                  :default_value="sync_def().show_all_open_tabs.default" :issue="116">
-      <template v-slot:summary>Show All Open Tabs</template>
-      In the stash list, show all open tabs at the top instead of just the
-      unstashed tabs.
-    </FeatureFlag>
-
     <FeatureFlag name="ff_restore_closed_tabs" v-model="ff_restore_closed_tabs"
         :default_value="local_def().ff_restore_closed_tabs.default" :issue="200">
       <template v-slot:summary>Restore Recently-Closed Tabs</template>
@@ -226,6 +228,15 @@
       re-open recently-closed tabs with matching URLs.  (NOTE: This is known to
       occasionally restore incorrect tabs on certain versions of Firefox, check
       the linked issue for more details.)
+    </FeatureFlag>
+
+    <FeatureFlag name="ff_container_indicators" v-model="ff_container_indicators"
+        :default_value="local_def().ff_container_indicators.default" :issue="125">
+      <template v-slot:summary>Container Indicators</template>
+      Displays color-coded indicators for container tabs and bookmarks
+      with open container tabs. <b>Note:</b> Tab Stash itself does not manage
+      containers or ensure that bookmarks are opened in a specific container.
+      This feature only shows what container a tab belongs to.
     </FeatureFlag>
   </section>
 </main>

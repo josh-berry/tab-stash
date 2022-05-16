@@ -62,6 +62,7 @@ describe('model', () => {
                 local: await stored_object_factory.get('local', 'test_options', LOCAL_DEF),
             }),
             tabs: tab_model,
+            containers: await M.Containers.Model.from_browser(),
             bookmarks: bm_model,
             deleted_items: new M.DeletedItems.Model(deleted_items),
             favicons: new M.Favicons.Model(new KVSCache(favicons)),
@@ -299,7 +300,7 @@ describe('model', () => {
             await events.next(browser.tabs.onCreated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
-            await events.nextN(browser.tabs.onUpdated, 3);
+            await events.nextN(browser.tabs.onUpdated, 4);
 
             const win = await browser.tabs.query({windowId: windows.left.id});
             expect(win.map(({id, url, active, hidden}) => ({id, url, active, hidden})))
@@ -857,6 +858,7 @@ describe('model', () => {
                 toIndex: 2,
             });
             await events.nextN(browser.tabs.onCreated, 2);
+            await events.nextN(browser.tabs.onUpdated, 2);
             await p;
 
             const urls = [
@@ -890,6 +892,7 @@ describe('model', () => {
             await events.nextN<any>([browser.tabs.onAttached, browser.tabs.onMoved], 1);
             await events.nextN(browser.tabs.onUpdated, 1);
             await events.nextN(browser.tabs.onCreated, 1); // nate created
+            await events.nextN(browser.tabs.onUpdated, 1); // nate loaded
             await events.nextN(browser.bookmarks.onRemoved, 2);
             const res = await p;
 
@@ -944,6 +947,7 @@ describe('model', () => {
             });
             await events.nextN(browser.tabs.onMoved, 1);
             await events.nextN(browser.tabs.onCreated, 1);
+            await events.nextN(browser.tabs.onUpdated, 1);
             await events.nextN(browser.bookmarks.onRemoved, 1);
             await p;
 
@@ -977,14 +981,16 @@ describe('model', () => {
     describe('restores tabs', () => {
         beforeEach(() => {
             expect(model.tabs.initialWindow.value).to.equal(windows.real.id);
+            expect(model.tabs.activeTab()?.url).to.equal(B);
         });
 
         it('restores a single hidden tab', async () => {
-            await model.restoreTabs([`${B}#harry`], {});
+            await model.restoreTabs([{url: `${B}#harry`}], {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
+            await events.next(browser.tabs.onRemoved); // closing new-tab page
 
             const restored = model.tabs.tab(tabs.real_harry.id)!;
             expect(restored.hidden).to.be.false;
@@ -996,7 +1002,7 @@ describe('model', () => {
         });
 
         it('restores a single already-open tab by switching to it', async () => {
-            await model.restoreTabs([`${B}#estelle`], {});
+            await model.restoreTabs([{url: `${B}#estelle`}], {});
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
 
@@ -1012,13 +1018,15 @@ describe('model', () => {
 
         it('restores multiple tabs', async () => {
             const p = model.restoreTabs([
-                `${B}#harry`, `${B}#new-restored`], {});
+                {url: `${B}#harry`}, {url: `${B}#new-restored`}], {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
             const restored = await p;
+            await events.next(browser.tabs.onRemoved); // closing new-tab page
 
             expect(restored[0].hidden).to.be.false;
             expect(restored[0].active).to.be.false;
@@ -1029,7 +1037,6 @@ describe('model', () => {
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,
-                tabs.real_blank.id,
                 tabs.real_bob.id,
                 tabs.real_doug.id,
                 tabs.real_doug_2.id,
@@ -1041,42 +1048,46 @@ describe('model', () => {
             ]);
         });
 
-        it('skips or steals duplicates when restoring tabs', async () => {
+        it('steals duplicates when restoring tabs', async () => {
             const p = model.restoreTabs(
-                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`], {});
+                [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`]
+                    .map(url => ({url})), {});
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             const new_betty = (await events.next(browser.tabs.onCreated))[0];
+            await events.next(browser.tabs.onMoved);
             const new_paul = (await events.next(browser.tabs.onCreated))[0];
+            await events.nextN(browser.tabs.onUpdated, 2);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
             const restored = await p;
+            await events.next(browser.tabs.onRemoved); // closing new-tab page
 
             expect(restored).to.deep.equal([
                     tabs.real_harry.id, tabs.real_doug_2.id,
-                    new_betty.id as TabID, new_paul.id as TabID,
+                    new_betty.id as TabID, tabs.real_doug.id,
+                    new_paul.id as TabID,
                 ].map(id => model.tabs.tab(id)));
 
             expect(restored.map(t => t.hidden))
-                .to.deep.equal([false, false, false, false]);
+                .to.deep.equal([false, false, false, false, false]);
             expect(restored.map(t => t.active))
-                .to.deep.equal([false, false, false, true]);
+                .to.deep.equal([false, false, false, false, true]);
 
             const win = model.tabs.window(windows.real.id)!;
             expect(win.tabs).to.deep.equal([
                 tabs.real_patricia.id,
                 tabs.real_paul.id,
-                tabs.real_blank.id,
                 tabs.real_bob.id,
-                tabs.real_doug.id,
                 tabs.real_estelle.id,
                 tabs.real_francis.id,
                 tabs.real_helen.id,
                 tabs.real_harry.id,
                 tabs.real_doug_2.id,
                 new_betty.id,
+                tabs.real_doug.id,
                 new_paul.id,
             ]);
         });
@@ -1090,7 +1101,7 @@ describe('model', () => {
                 title: 'Empty Folder',
             });
             await events.nextN(browser.bookmarks.onCreated, 1);
-            expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
+            expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
         }
 
         it('deletes folders and remembers them as deleted items', async () => {
@@ -1103,6 +1114,7 @@ describe('model', () => {
             expect(model.bookmarks.stash_root.value!.children).to.deep.equal([
                 bookmarks.unnamed.id,
                 bookmarks.big_stash.id,
+                bookmarks.nested.id,
             ]);
 
             await model.deleted_items.loadMore();
@@ -1212,14 +1224,14 @@ describe('model', () => {
                 expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
                 expect(model.deleted_items.state.entries[1].item.title)
                     .to.equal('Helen Hidden');
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
 
                 const p = model.undelete(model.deleted_items.state.entries[1]);
                 await events.nextN(browser.bookmarks.onCreated, 1);
                 await events.next('KVS.Memory.onDelete');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
                 const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
                 expect(restored_folder.children.map(id => model.bookmarks.bookmark(id)!.url))
                     .to.deep.equal([`${B}#undyne`, `${B}#helen`]);
@@ -1248,7 +1260,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onDelete');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
                 const restored_folder_id = model.bookmarks.stash_root.value!.children[0];
                 const restored_folder = model.bookmarks.folder(restored_folder_id)!;
                 expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be.null;
@@ -1275,7 +1287,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(2);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
                 const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
                 expect(restored_folder.children.map(id => model.bookmarks.bookmark(id)!.url))
                     .to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
@@ -1298,7 +1310,7 @@ describe('model', () => {
                 await events.next('KVS.Memory.onSet');
                 await p;
 
-                expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+                expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
                 const restored_folder_id = model.bookmarks.stash_root.value!.children[0];
                 const restored_folder = model.bookmarks.folder(restored_folder_id)!;
                 expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be.null;

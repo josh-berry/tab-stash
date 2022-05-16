@@ -465,6 +465,23 @@ export function filterMap<T, U>(array: readonly T[], map: (i: T) => U | undefine
     return res;
 }
 
+/** Given an iterator, return values from that iterator grouped in batches of up
+ * to `size`. */
+export function batchesOf<I>(size: number, iter: Iterator<I>): IterableIterator<I[]> {
+    return {
+        [Symbol.iterator]() { return this; },
+        next(): IteratorResult<I[]> {
+            const value = [];
+            while (value.length < size) {
+                const r = iter.next();
+                if (r.done) break;
+                value.push(r.value);
+            }
+            return {done: value.length === 0, value};
+        }
+    };
+}
+
 // Returns a text-matcher function, taking a user search string as input (which
 // may or may not be a regex, and is generally case-insensitive).
 export function textMatcher(query: string): (txt: string) => boolean {

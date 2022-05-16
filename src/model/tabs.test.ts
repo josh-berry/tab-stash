@@ -27,7 +27,7 @@ describe('model/tabs', () => {
             expect(model.tab(tab.id)).to.deep.equal({
                 windowId: tab.windowId,
                 id: tab.id,
-                status: tab.status ?? 'loading',
+                status: 'complete',
                 title: tab.title ?? '',
                 url: tab.url ?? '',
                 favIconUrl: tab.favIconUrl ?? '',
@@ -36,6 +36,7 @@ describe('model/tabs', () => {
                 active: !!tab.active,
                 highlighted: !!tab.highlighted,
                 discarded: !!tab.discarded,
+                cookieStoreId: tab.cookieStoreId,
                 $visible: true,
                 $selected: false,
             });
@@ -68,8 +69,18 @@ describe('model/tabs', () => {
             pinned: false,
             highlighted: false,
             discarded: false,
+            cookieStoreId: undefined,
             $visible: true,
             $selected: false,
+        });
+
+        await events.next(browser.tabs.onUpdated);
+        expect(model.tab(t.id! as M.TabID)).to.deep.include({
+            id: t.id,
+            windowId: windows.left.id,
+            status: 'complete',
+            title: '',
+            url: 'a',
         });
 
         expect(model.window(windows.left.id)!.tabs).to.deep.equal([
@@ -103,7 +114,7 @@ describe('model/tabs', () => {
     it("tracks tabs as their URLs change", async () => {
         // Initial state validated by the earlier tabs-by-url test
         await browser.tabs.update(tabs.right_blank.id, {url: `${B}#paul`});
-        await events.next(browser.tabs.onUpdated);
+        await events.nextN(browser.tabs.onUpdated, 2);
 
         expect(model.tabsWithURL(`${B}`)).to.deep.equal(new Set([
             model.tab(tabs.real_blank.id),
@@ -121,6 +132,7 @@ describe('model/tabs', () => {
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
         await events.next(browser.tabs.onHighlighted);
+        await events.next(browser.tabs.onUpdated);
 
         const tid = win.tabs![0].id as M.TabID;
 
@@ -148,6 +160,7 @@ describe('model/tabs', () => {
         const tab = {
             id: 16384, windowId: 16590, index: 0, url: 'hi',
             highlighted: false, active: false, pinned: false, incognito: false,
+            cookieStoreId: undefined,
         };
         events.send(browser.tabs.onCreated, tab);
         await events.next(browser.tabs.onCreated);
@@ -164,6 +177,7 @@ describe('model/tabs', () => {
             active: false,
             highlighted: false,
             discarded: false,
+            cookieStoreId: tab.cookieStoreId,
             $visible: true,
             $selected: false,
         });
@@ -181,6 +195,7 @@ describe('model/tabs', () => {
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
         await events.next(browser.tabs.onHighlighted);
+        await events.next(browser.tabs.onUpdated);
 
         events.send(browser.tabs.onCreated, {
             id: tab.id!,
@@ -207,6 +222,7 @@ describe('model/tabs', () => {
             active: !!tab.active,
             highlighted: !!tab.highlighted,
             discarded: !!tab.discarded,
+            cookieStoreId: tab.cookieStoreId,
             $visible: true,
             $selected: false,
         });

@@ -10,7 +10,9 @@
             @action="collapsed = ! collapsed" />
     <ButtonBox v-if="selectedCount === 0" class="folder-actions">
       <Button class="stash" @action="stash"
-              :tooltip="`Stash only the unstashed tabs to a new group (hold ${altKey} to keep tabs open)`" />
+              :tooltip="`Stash all ${
+                    showStashedTabs ? 'open tabs' : 'unstashed tabs'
+                } to a new group (hold ${altKey} to keep tabs open)`" />
       <Button class="stash newgroup" @action="newGroup"
               tooltip="Create a new empty group" />
       <Button class="remove" @action="remove"
@@ -32,8 +34,8 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label :class="{'folder-name': true, 'disabled': true}"
-                    :value="title" :defaultValue="title" />
+    <span :class="{'folder-name': true, 'ephemeral': true, 'disabled': true}"
+          :title="tooltip" @click.prevent.stop="toggleMode">{{title}}</span>
   </header>
   <div class="contents">
     <dnd-list class="tabs" v-model="tabs" item-key="id" :item-class="childClasses"
@@ -65,17 +67,22 @@ import {DragAction, DropAction} from '../components/dnd-list';
 import {Model, StashItem, copyIf} from '../model';
 import {Tab} from '../model/tabs';
 import {BookmarkMetadataEntry} from '../model/bookmark-metadata';
+import type {SyncState} from '../model/options';
 
 const DROP_FORMATS = [
     'application/x-tab-stash-items',
 ];
+
+const NEXT_SHOW_OPEN_TAB_STATE: Record<SyncState['show_open_tabs'], SyncState['show_open_tabs']> = {
+    'all': 'unstashed',
+    'unstashed': 'all',
+};
 
 export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         DndList: require('../components/dnd-list.vue').default,
-        EditableLabel: require('../components/editable-label.vue').default,
         Tab: require('./tab.vue').default,
         Bookmark: require('./bookmark.vue').default,
     },
@@ -99,9 +106,18 @@ export default defineComponent({
 
         accepts() { return DROP_FORMATS; },
 
+        showStashedTabs(): boolean {
+            return this.model().options.sync.state.show_open_tabs === 'all';
+        },
+
         title(): string {
-            if (this.model().options.sync.state.show_all_open_tabs) return "Open Tabs";
+            if (this.showStashedTabs) return "Open Tabs";
             return "Unstashed Tabs";
+        },
+
+        tooltip(): string {
+            return `${this.validChildren.length} ${this.title}\n`
+                + `Click to change which tabs are shown.`;
         },
 
         collapsed: {
@@ -132,6 +148,13 @@ export default defineComponent({
         model() { return (<any>this).$model as Model; },
         attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
 
+        toggleMode() { this.attempt(async() => {
+            const options = this.model().options;
+            await options.sync.set({
+                show_open_tabs: NEXT_SHOW_OPEN_TAB_STATE[options.sync.state.show_open_tabs],
+            });
+        })},
+
         childClasses(t: Tab): Record<string, boolean> {
             return {hidden: ! (
                 this.isValidChild(t) && (this.showFiltered || t.$visible))};
@@ -140,19 +163,8 @@ export default defineComponent({
         isValidChild(t: Tab): boolean {
             const model = this.model();
             if (t.hidden || t.pinned) return false;
-            return model.options.sync.state.show_all_open_tabs ||
-                (model.isURLStashable(t.url) && ! this.isItemStashed(t));
-        },
-
-        isItemStashed(i: Tab): boolean {
-            if (! i.url) return false;
-
-            const bookmarks = this.model().bookmarks;
-            const stash_root_id = bookmarks.stash_root.value?.id;
-            if (stash_root_id === undefined) return false;
-
-            const bms = Array.from(bookmarks.bookmarksWithURL(i.url));
-            return !!bms.find(bm => bookmarks.isNodeInFolder(bm, stash_root_id));
+            return this.showStashedTabs ||
+                (model.isURLStashable(t.url) && ! model.bookmarks.isURLStashed(t.url));
         },
 
         async newGroup() {this.attempt(async() => {
@@ -172,43 +184,51 @@ export default defineComponent({
         })},
 
         async remove() {this.attempt(async() => {
-            await this.model().tabs.remove(this.visibleChildren.map(t => t.id));
+            const model = this.model();
+            // This filter keeps the active tab if it's the Tab Stash tab, or a
+            // new tab (so we can avoid creating new tabs unnecessarily).
+            const to_remove = this.visibleChildren
+                .filter(t => ! t.active || model.isURLStashable(t.url));
+            await model.tabs.remove(to_remove.map(t => t.id));
         })},
 
         async removeStashed() {this.attempt(async() => {
-            if (! this.isItemStashed) throw new Error(
-                "isItemStashed not provided to tab folder");
-
-            await this.model().hideOrCloseStashedTabs(this.tabs
-                .filter(t => t && ! t.hidden && ! t.pinned && this.isItemStashed(t))
+            const model = this.model();
+            await model.hideOrCloseStashedTabs(this.tabs
+                .filter(t => ! t.hidden && ! t.pinned
+                            && model.bookmarks.isURLStashed(t.url))
                 .map(t => t.id));
         })},
 
         async removeOpen(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
-            if (! this.isItemStashed) throw new Error(
-                "isItemStashed not provided to tab folder");
+            const model = this.model();
 
             if (ev.altKey) {
                 // Discard hidden/stashed tabs to free memory.
                 const tabs = this.tabs.filter(
-                    t => t && t.hidden && this.isItemStashed(t));
-                await this.model().tabs.remove(filterMap(tabs, t => t?.id));
+                    t => t.hidden && model.bookmarks.isURLStashed(t.url));
+                await model.tabs.remove(filterMap(tabs, t => t?.id));
             } else {
                 // Closes ALL open tabs (stashed and unstashed).
                 //
                 // For performance, we will try to identify stashed tabs the
                 // user might want to keep, and hide instead of close them.
-                const hide_tabs = this.tabs
-                    .filter(t => ! t.hidden && ! t.pinned && this.isItemStashed(t))
+                //
+                // (Just as in remove(), we keep the active tab if it's a
+                // new-tab page or the Tab Stash page.)
+                const tabs = this.tabs.filter(t =>
+                    (! t.active || model.isURLStashable(t.url))
+                    && ! t.hidden && ! t.pinned);
+                const hide_tabs = tabs
+                    .filter(t => model.bookmarks.isURLStashed(t.url))
                     .map(t => t.id);
-                const close_tabs = this.tabs
-                    .filter(t => ! t.hidden && ! t.pinned && ! this.isItemStashed(t))
+                const close_tabs = tabs
+                    .filter(t => ! model.bookmarks.isURLStashed(t.url))
                     .map(t => t.id);
 
-                await this.model().tabs.refocusAwayFromTabs(
-                    hide_tabs.concat(close_tabs));
+                await model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
 
-                this.model().hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+                model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
                 browser.tabs.remove(close_tabs).catch(console.log);
             }
         })},

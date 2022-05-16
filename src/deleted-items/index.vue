@@ -67,7 +67,6 @@ export default defineComponent({
     components: {
         LoadMore: require('../components/load-more.vue').default,
         Bookmark: require('./bookmark.vue').default,
-        ButtonBox: require('../components/button-box.vue').default,
         Folder: require('./folder.vue').default,
         ItemIcon: require('../components/item-icon.vue').default,
         OopsNotification: require('../components/oops-notification.vue').default,

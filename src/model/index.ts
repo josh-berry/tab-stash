@@ -42,6 +42,7 @@ import * as BrowserSettings from './browser-settings';
 import * as Options from './options';
 
 import * as Tabs from './tabs';
+import * as Containers from './containers';
 import * as Bookmarks from './bookmarks';
 import * as DeletedItems from './deleted-items';
 
@@ -51,7 +52,7 @@ import * as Selection from './selection';
 
 export {
     BrowserSettings, Options, Tabs, Bookmarks, DeletedItems, Favicons,
-    BookmarkMetadata,
+    BookmarkMetadata, Containers,
 };
 
 /** The StashItem is anything that can be placed in the stash.  It could already
@@ -83,6 +84,7 @@ export type Source = {
     readonly options: Options.Model,
 
     readonly tabs: Tabs.Model;
+    readonly containers: Containers.Model;
     readonly bookmarks: Bookmarks.Model;
     readonly deleted_items: DeletedItems.Model,
 
@@ -103,6 +105,7 @@ export class Model {
     readonly options: Options.Model;
 
     readonly tabs: Tabs.Model;
+    readonly containers: Containers.Model;
     readonly bookmarks: Bookmarks.Model;
     readonly deleted_items: DeletedItems.Model;
 
@@ -115,6 +118,7 @@ export class Model {
         this.options = src.options;
 
         this.tabs = src.tabs;
+        this.containers = src.containers;
         this.bookmarks = src.bookmarks;
         this.deleted_items = src.deleted_items;
 
@@ -128,6 +132,7 @@ export class Model {
     readonly reload = backingOff(async () => {
         await Promise.all([
             this.tabs.reload(),
+            this.containers.reload(),
             this.bookmarks.reload(),
             this.browser_settings.reload(),
         ]);
@@ -284,19 +289,40 @@ export class Model {
             || !! this.bookmarks.node(id as Bookmarks.NodeID));
     }
 
+    /** Put the set of currently-selected items in the specified folder
+     * when the toFolderId option is set, otherwise the current window.
+     *
+     * Note: When copying is disabled, the source items will be deselected. */
+    async putSelectedIn(
+        options?: { copy?: boolean, toFolderId?: Bookmarks.NodeID, }
+    ) {
+        const from_items = Array.from(this.selectedItems());
+        const items = copyIf(options?.copy === true, from_items);
+
+        let affected_items: StashItem[];
+        if (options?.toFolderId === undefined) {
+            affected_items = await this.putItemsInWindow({items});
+        } else {
+            affected_items = await this.putItemsInFolder({
+                items,
+                toFolderId: options.toFolderId,
+            });
+        }
+        if (!options?.copy) {
+            affected_items.forEach(i => i.$selected = false);
+        }
+    }
+
     /** Put the set of currently-selected items in the current window. */
     async putSelectedInWindow(options: {copy: boolean}) {
-        await this.putItemsInWindow({
-            items: copyIf(options.copy, Array.from(this.selectedItems())),
-        });
+        await this.putSelectedIn(options);
     }
 
     /** Put the set of currently-selected items in the specified folder. */
-    async putSelectedInFolder(options: {copy: boolean, toFolderId: Bookmarks.NodeID}) {
-        await this.putItemsInFolder({
-            items: copyIf(options.copy, Array.from(this.selectedItems())),
-            toFolderId: options.toFolderId,
-        });
+    async putSelectedInFolder(
+        options: { copy: boolean, toFolderId: Bookmarks.NodeID, }
+    ) {
+        await this.putSelectedIn(options)
     }
 
     /** Hide/discard/close the specified tabs, according to the user's settings
@@ -342,7 +368,7 @@ export class Model {
      * since we don't want to open duplicate tabs.  Such tabs will not be
      * included in the returned list. */
     async restoreTabs(
-        urls: string[],
+        items: StashItem[],
         options: {background?: boolean}
     ): Promise<Tabs.Tab[]> {
         const toWindowId = this.tabs.targetWindow.value;
@@ -355,18 +381,14 @@ export class Model {
         // As a special case, if we are restoring just a single tab, first check
         // if we already have the tab open and just switch to it.  (No need to
         // disturb the ordering of tabs in the browser window.)
-        if (! options.background && urls.length === 1 && urls[0]) {
-            const t = Array.from(this.tabs.tabsWithURL(urls[0]))
-                .find(t => t.url === urls[0] && ! t.hidden
-                        && t.windowId === toWindowId);
+        if (! options.background && items.length === 1 && items[0].url) {
+            const t = Array.from(this.tabs.tabsWithURL(items[0].url))
+                .find(t => ! t.hidden && t.windowId === toWindowId);
             if (t) {
                 await browser.tabs.update(t.id, {active: true});
                 return [t];
             }
         }
-
-        // Remove duplicate URLs so we only try to restore each URL once.
-        const url_set = new Set(filterMap(urls, url => url));
 
         // We want to know what tabs are currently open in the window, so we can
         // avoid opening duplicates.
@@ -377,10 +399,7 @@ export class Model {
         const active_tab = win_tabs.filter(t => t.active)[0];
 
         const tabs = await this.putItemsInWindow({
-            // NOTE: We rely on the fact that Set always remembers the order in
-            // which items were inserted to be sure that tabs are always
-            // restored in the correct order.
-            items: Array.from(url_set).map(url => ({url})),
+            items: copying(items),
             toWindowId,
         });
 
@@ -633,9 +652,13 @@ export class Model {
                 const t = already_open[0];
                 const pos = this.tabs.positionOf(t);
 
+                // First move the tab into place, and then show it (if hidden).
+                // If we show and then move, it will briefly appear in a random
+                // location before moving to the desired location, so doing the
+                // move first reduces flickering in the UI.
+                await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
                 if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
 
-                await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
                 if (pos && pos.window === win && pos.index < to_index) --to_index;
                 moved_items.push(t);
                 dont_steal_tabs.add(t.id);
@@ -673,8 +696,9 @@ export class Model {
 
             // Else we just need to create a completely new tab.
             const tab = await this.tabs.create({
-                active: false, url: urlToOpen(url), windowId:
-                to_win_id, index: to_index,
+                active: false, discarded: true,
+                title: item.title, url: urlToOpen(url),
+                windowId: to_win_id, index: to_index,
             });
             moved_items.push(tab);
             dont_steal_tabs.add(tab.id);

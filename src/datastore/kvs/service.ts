@@ -61,7 +61,8 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     async getStartingFrom(
         bound: K | undefined, limit: number
     ): Promise<Proto.Entry<K, V>[]> {
-        const b = bound ? IDBKeyRange.lowerBound(bound, true) : undefined;
+        const b = bound !== undefined ?
+            IDBKeyRange.lowerBound(bound, true) : undefined;
 
         const txn = this._db.transaction(this.name);
         let cursor = await txn.store.openCursor(b);
@@ -82,7 +83,8 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     async getEndingAt(
         bound: K | undefined, limit: number
     ): Promise<Proto.Entry<K, V>[]> {
-        const b = bound ? IDBKeyRange.upperBound(bound, true) : undefined;
+        const b = bound !== undefined ?
+            IDBKeyRange.upperBound(bound, true) : undefined;
 
         const txn = this._db.transaction(this.name);
         let cursor = await txn.store.openCursor(b, 'prev');

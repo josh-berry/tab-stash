@@ -1,9 +1,5 @@
 <template>
-  <nav class="action-group"
-       @dragstart.stop.prevent="" @dragenter.stop="" @dragover.stop=""
-       @mousedown.stop="" @pointerdown.stop=""
-       @touchstart.stop="" @click.stop=""
-       @dblclick.stop="" @altclick.stop="">
+  <nav class="action-group">
     <slot></slot>
   </nav>
 </template>

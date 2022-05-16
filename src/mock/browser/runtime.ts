@@ -111,6 +111,8 @@ export default (() => {
                 // istanbul ignore next
                 getManifest(): Manifest.ManifestBase { throw "unimplemented"; },
                 // istanbul ignore next
+                getFrameId(_target: any): number { throw "unimplemented"; },
+                // istanbul ignore next
                 async setUninstallURL(url?: string) { throw "unimplemented"; },
                 // istanbul ignore next
                 reload() { throw "unimplemented"; },

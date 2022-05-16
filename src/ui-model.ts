@@ -13,6 +13,7 @@ export default async function(): Promise<M.Model> {
         browser_settings: M.BrowserSettings.Model.live(),
         options: M.Options.Model.live(),
         tabs: M.Tabs.Model.from_browser(), // TODO load from cache
+        containers: M.Containers.Model.from_browser(),
         bookmarks: M.Bookmarks.Model.from_browser(), // TODO load from cache
         deleted_items: new M.DeletedItems.Model(
             new KVSClient<string, M.DeletedItems.SourceValue>('deleted_items')),

@@ -24,6 +24,7 @@ export default async function(): Promise<M.Model> {
         browser_settings: M.BrowserSettings.Model.live(),
         options: M.Options.Model.live(),
         tabs: M.Tabs.Model.from_browser('background'),
+        containers: M.Containers.Model.from_browser(),
         bookmarks: M.Bookmarks.Model.from_browser(),
         deleted_items: new M.DeletedItems.Model(kvs.deleted_items),
     });

@@ -2,11 +2,13 @@
 <div :class="{'action-container': true,
               'tab': true, // TODO fix the CSS classes...
               'saved': true,
-              'open': hasOpenTab,
-              'active': hasActiveTab,
-              'discarded': discarded,
+              'discarded': tabState.discarded,
+              'open': tabState.open,
+              'active': tabState.active,
+              'loading': tabState.loading,
               'selected': bookmark.$selected}"
      :title="bookmark.title" :data-id="bookmark.id"
+     :data-container-color="related_container_color"
      @click.prevent.stop="select">
   <item-icon class="{'action':true, select:!isEditable}"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
@@ -57,35 +59,47 @@ export default defineComponent({
 
     props: {
         bookmark: required(Object as PropType<Bookmark>),
+        relatedTabs: required(Object as PropType<Tab[]>),
     },
 
     computed: {
         altkey: altKeyName,
         bgKey: bgKeyName,
 
-        targetWindow(): number | undefined {
-            return this.model().tabs.targetWindow.value;
+        related_container_color(): string | undefined {
+            if (!this.model().options.local.state.ff_container_indicators) return;
+            const containers = this.model().containers;
+
+            // Reduce here has three states:
+            //   undefined: We'll set the state if the tab isn't hidden and there's
+            //     a container color associated with this tab.
+            //   null: We had a container color in the state, but then we saw
+            //     a different one.
+            //   string: One or more tabs with a container color, and all
+            //     set to the same color.
+            const container_color = this.relatedTabs
+                .reduce((prev: string | undefined | null, t: Tab) => {
+                    if (t.hidden || prev === null || t.cookieStoreId === undefined)
+                        return prev;
+                    const cc = containers.container(t.cookieStoreId)?.color;
+                    if (! cc) return prev;
+                    return prev === undefined || cc === prev ? cc : null;
+                }, undefined);
+            return container_color ?? undefined;
         },
 
-        related_tabs(): Tab[] {
-            if (! this.bookmark.url) return [];
-            const related = this.model().tabs.tabsWithURL(this.bookmark.url);
-            return Array.from(related)
-                .filter(t => t.windowId === this.targetWindow);
-        },
-
-        discarded(): boolean {
-            return this.related_tabs.length > 0 &&
-                this.related_tabs.every(t => !t.hidden && t.discarded);
-        },
-
-        hasOpenTab(): boolean {
-            return !! this.related_tabs.find(t => ! t.hidden);
-        },
-
-        hasActiveTab(): boolean {
-            // TODO look only at the current window
-            return !! this.related_tabs.find(t => t.active);
+        tabState(): { open: boolean, active: boolean, loading: boolean, discarded: boolean } {
+            let open: boolean = false, active: boolean = false, loading: boolean = false;
+            let discarded = 0;
+            for (const t of this.relatedTabs) {
+                if (!t.hidden && t.discarded) discarded++;
+                open = open || !t.hidden;
+                active = active || t.active;
+                loading = loading || t.status === 'loading';
+            }
+            const tl = this.relatedTabs.length;
+            return { open: !!open, active: !!active, loading: !!loading,
+                     discarded: tl > 0 && discarded === tl };
         },
 
         favicon(): FaviconEntry | null {
@@ -119,7 +133,7 @@ export default defineComponent({
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
 
-            await this.model().restoreTabs([this.bookmark.url], {background: bg});
+            await this.model().restoreTabs([this.bookmark], {background: bg});
         })},
 
         remove() { this.model().attempt(async () => {
@@ -127,9 +141,9 @@ export default defineComponent({
         })},
 
         closeOrHideOrOpen(ev: MouseEvent) { this.model().attempt(async () => {
-            const openTabs = this.related_tabs
-                .filter((t) => ! t.hidden && t.windowId === this.targetWindow)
-                .map((t) => t.id);
+            const openTabs = this.relatedTabs
+                .filter(t => ! t.hidden)
+                .map(t => t.id);
 
             // Remove keyboard focus after a middle click, otherwise focus will
             // remain within the element and it will appear to be highlighted.
@@ -139,7 +153,7 @@ export default defineComponent({
             if (openTabs.length < 1) {
                 if (! this.bookmark.url) return;
                 return await this.model().restoreTabs(
-                    [this.bookmark.url], { background: true });
+                    [this.bookmark], {background: true});
             }
 
             // Otherwise hide or close open tabs related to this bookmark.
@@ -149,7 +163,7 @@ export default defineComponent({
         openRemove(ev: MouseEvent) { this.model().attempt(async () => {
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
-            await this.model().restoreTabs([this.bookmark.url], {background: bg});
+            await this.model().restoreTabs([this.bookmark], {background: bg});
             await this.model().deleteBookmark(this.bookmark);
         })},
 

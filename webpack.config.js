@@ -2,8 +2,9 @@ const path = require("path");
 const glob = require('glob').sync;
 const VueLoaderPlugin = require('vue-loader/dist/plugin').default;
 const TerserPlugin = require('terser-webpack-plugin');
+const {DefinePlugin} = require("webpack");
 
-module.exports = {
+module.exports = env => ({
     entry: {
         "index": "./src/index.ts",
         "deleted-items": "./src/deleted-items/index.ts",
@@ -12,10 +13,10 @@ module.exports = {
         "options": "./src/options/index.ts",
         "whats-new": "./src/whats-new/index.ts",
     },
-    mode: "production",
-    devtool: "source-map",
-    cache: { 
-        type: 'filesystem', 
+    mode: env,
+    devtool: "inline-source-map",
+    cache: {
+        type: 'filesystem',
         buildDependencies: { config: [__filename] },
     },
     module: {
@@ -47,6 +48,10 @@ module.exports = {
     },
     plugins: [
         new VueLoaderPlugin(),
+        new DefinePlugin({
+            __VUE_OPTIONS_API__: JSON.stringify(true),
+            __VUE_PROD_DEVTOOLS__: JSON.stringify(env === 'development'),
+        }),
     ],
 
     optimization: {
@@ -69,4 +74,4 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "dist"),
     }
-};
+});

@@ -383,6 +383,30 @@ describe('datastore/kvs', () => {
             expect(cache.get('a')).to.deep.equal({key: 'a', value: 'aaaa'});
             expect(cache.get('b')).to.deep.equal({key: 'b', value: 'c'});
         });
+
+        it('stops I/O if too many crashes occur', async() => {
+            // Ugh, this feels dirty...
+            (<any>cache)._fetch = () => {throw new Error('oops')};
+
+            for (let i = 0; i < 3; i++) {
+                try {
+                    cache.set('a', 'b');
+                    await cache.sync();
+                    // istanbul ignore next
+                    // Must throw because we haven't exceeded the limit
+                    expect(true).to.be.false;
+                } catch (e) {
+                    expect(e).to.be.instanceOf(Error);
+                }
+                expect(cache.get('a')).to.deep.equal({key: 'a', value: 'b'});
+            }
+
+            // Should not throw because we don't try to do I/O after the limit
+            // is crossed.
+            cache.set('a', 'c');
+            await cache.sync();
+            expect(cache.get('a')).to.deep.equal({key: 'a', value: 'c'});
+        });
     });
 });
 

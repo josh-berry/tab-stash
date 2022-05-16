@@ -1,6 +1,9 @@
-import {computed, reactive, Ref, ref} from "vue";
+import {computed, reactive, Ref, ref, watch} from "vue";
 import browser, {Tabs, Windows} from "webextension-polyfill";
-import {backingOff, expect, filterMap, shortPoll, tryAgain} from "../util";
+import {
+    backingOff, expect, filterMap, OpenableURL, shortPoll,
+    tryAgain, urlToOpen,
+} from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
 
@@ -15,6 +18,7 @@ export type Tab = {
     title: string,
     url: string,
     favIconUrl: string,
+    cookieStoreId: string | undefined,
     pinned: boolean,
     hidden: boolean,
     active: boolean,
@@ -30,6 +34,11 @@ export type TabID = number & {readonly __tab_id: unique symbol};
 
 export type TabPosition = {window: Window, index: number};
 
+/** How many tabs do we want to allow to be loaded at once?  (NOTE: This is
+ * approximate, since it takes a while for the model to catch up--so we might
+ * actually end up loading more than this.) */
+const MAX_LOADING_TABS = 4;
+
 /** A Vue model for the state of all open browser windows and their tabs.
  *
  * This model basically follows the WebExtension API, but some things are
@@ -43,7 +52,7 @@ export type TabPosition = {window: Window, index: number};
 export class Model {
     private readonly windows = new Map<WindowID, Window>();
     private readonly tabs = new Map<TabID, Tab>();
-    private readonly tabs_by_url = new Map<string, Set<Tab>>();
+    private readonly tabs_by_url = new Map<OpenableURL, Set<Tab>>();
 
     /** The initial window that this model was opened with (if it still exists). */
     readonly initialWindow: Ref<WindowID | undefined> = ref();
@@ -70,6 +79,9 @@ export class Model {
         for (const _ of this.selectedItems()) ++count;
         return count;
     });
+
+    /** The number of tabs being loaded. */
+    readonly loadingCount = ref(0);
 
     /** Did we receive an event since the last (re)load of the model? */
     private _event_since_load: boolean = false;
@@ -185,10 +197,10 @@ export class Model {
 
     /** Returns a reactive set of tabs with the specified URL. */
     tabsWithURL(url: string): Set<Tab> {
-        let index = this.tabs_by_url.get(url);
+        let index = this.tabs_by_url.get(urlToOpen(url));
         if (! index) {
             index = reactive(new Set<Tab>());
-            this.tabs_by_url.set(url, index);
+            this.tabs_by_url.set(urlToOpen(url), index);
         }
         return index;
     }
@@ -197,8 +209,23 @@ export class Model {
     // User-level operations on tabs
     //
 
-    /** Creates a new tab and waits for the model to reflect its existence. */
+    /** Creates a new tab and waits for the model to reflect its existence.
+     *
+     * Note that creation of non-discarded is rate-limited, to avoid
+     * overwhelming the user's system with a lot of loading tabs. */
     async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
+        // Rate-limiting as noted in the docs
+        while (! tab.discarded && this.loadingCount.value >= MAX_LOADING_TABS) {
+            await new Promise<void>(resolve => {
+                const cancel = watch(this.loadingCount, () => {
+                    if (this.loadingCount.value < MAX_LOADING_TABS) {
+                        resolve();
+                        cancel();
+                    }
+                });
+            });
+        }
+
         const t = await browser.tabs.create(tab);
         return await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
     }
@@ -345,6 +372,7 @@ export class Model {
                 title: tab.title ?? '',
                 url: tab.url ?? '',
                 favIconUrl: tab.favIconUrl ?? '',
+                cookieStoreId: tab.cookieStoreId,
                 pinned: tab.pinned,
                 hidden: tab.hidden ?? false,
                 active: tab.active,
@@ -362,12 +390,14 @@ export class Model {
                 if (pos) pos.window.tabs.splice(pos.index, 1);
             }
             this._remove_url(t);
+            if (t.status === 'loading') --this.loadingCount.value;
 
             t.windowId = tab.windowId as WindowID;
             t.status = tab.status as Tabs.TabStatus ?? 'loading';
             t.title = tab.title ?? '';
             t.url = tab.url ?? '';
             t.favIconUrl = tab.favIconUrl ?? '';
+            t.cookieStoreId = tab.cookieStoreId;
             t.pinned = tab.pinned;
             t.hidden = tab.hidden ?? false;
             t.active = tab.active;
@@ -386,13 +416,18 @@ export class Model {
 
         // Insert the tab in its index
         this._add_url(t);
+        if (t.status === 'loading') ++this.loadingCount.value;
     }
 
     whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
         const t = expect(this.tab(id as TabID),
             () => `Got change event for unknown tab ${id}`);
 
-        if (info.status !== undefined) t.status = info.status as Tabs.TabStatus;
+        if (info.status !== undefined) {
+            if (t.status === 'loading') --this.loadingCount.value;
+            t.status = info.status as Tabs.TabStatus;
+            if (t.status === 'loading') ++this.loadingCount.value;
+        }
         if (info.title !== undefined) t.title = info.title;
         if (info.url !== undefined) {
             this._remove_url(t);
@@ -476,6 +511,7 @@ export class Model {
         this.tabs.delete(t.id);
         if (pos) pos.window.tabs.splice(pos.index, 1);
         this._remove_url(t);
+        if (t.status === 'loading') --this.loadingCount.value;
     }
 
     private _add_url(t: Tab) {
@@ -483,7 +519,7 @@ export class Model {
     }
 
     private _remove_url(t: Tab) {
-        const index = this.tabs_by_url.get(t.url);
+        const index = this.tabs_by_url.get(urlToOpen(t.url));
         // istanbul ignore if -- internal consistency
         if (! index) return;
         index.delete(t);

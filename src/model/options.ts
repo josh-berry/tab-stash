@@ -49,9 +49,9 @@ export const SYNC_DEF = {
 
     // In the stash list, show all open tabs at the top instead of just the
     // unstashed tabs.
-    show_all_open_tabs: {
-        default: false,
-        is: aBoolean,
+    show_open_tabs: {
+        default: 'unstashed',
+        is: anEnum('unstashed', 'all'),
     },
 
     // How big should the spacing/fonts be?
@@ -112,6 +112,9 @@ export const LOCAL_DEF = {
     /** Re-open a recently-closed tab if one can't be found.  Disabled by
      * default because of bugs in Firefox.  See #188. */
     ff_restore_closed_tabs: {default: false, is: aBoolean},
+
+    /** Container color indicators. Related issue: #125 */
+    ff_container_indicators: {default: false, is: aBoolean},
 } as const;
 
 export type Source = {

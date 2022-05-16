@@ -260,24 +260,35 @@ export default defineComponent({
          * currently under the mouse cursor.  (The actual index of the ghost may
          * vary depending on how it's being moved.) */
         moveGhost(index: number) {
-            const candidate = {parent: this, index};
+            // NOTE: This is performance-critical code -- in particular,
+            // updating `DND` in the wrong way may cause cascading unintended
+            // updates across ALL <dnd-list> components in the page.
+
             if (this.ghostIndex !== undefined && this.ghostIndex <= index) {
                 // If we are moving the ghost forward in the list from where it
                 // currently is, we need to account for the fact that it's being
                 // removed from its previous location, or it will appear at the
                 // entry prior to where the mouse cursor actually is.
-                candidate.index++;
+                index++;
             }
-            candidate.index = Math.min(candidate.index, this.displayItems.length);
+            index = Math.min(index, this.displayItems.length);
 
             // Debouncing -- if we have chosen this as a drop target recently,
             // we should not choose it again, because we're likely to bounce
             // back and forth between the two targets.
             if (! DND.recentDropTargets.find(dt =>
-                    dt.parent === candidate.parent && dt.index === candidate.index))
+                    dt.parent === this && dt.index === index))
             {
-                DND.dropping = candidate;
-                DND.recentDropTargets.push(candidate);
+                // PERFORMANCE: If we're only switching indexes in the same
+                // parent, make sure that's the only field we touch.
+                if (DND.dropping) {
+                    if (DND.dropping.parent !== this) DND.dropping.parent = this;
+                    if (DND.dropping.index !== index) DND.dropping.index = index;
+                } else {
+                    DND.dropping = {parent: this, index};
+                }
+
+                DND.recentDropTargets.push({parent: this, index});
                 while (DND.recentDropTargets.length > 2) {
                     DND.recentDropTargets.shift();
                 }

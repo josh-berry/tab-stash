@@ -63,6 +63,24 @@ nav.action-group {
     border-bottom-right-radius: var(--ctrl-border-radius);
 }
 
+@keyframes action-loading-spinner {
+    from { transform: rotate(-0.25turn); }
+    to { transform: rotate(0.25turn); }
+}
+
+.action-container .loading {
+    & .action.select, .icon-tab, .icon-tab-selected-inverse {
+        border-radius: 50%;
+        border: 2px dotted  var(--page-fg);
+        border-top-color: var(--disabled-fg);
+        border-bottom-color: var(--disabled-fg);
+        animation-name: action-loading-spinner;
+        animation-duration: 1.5s;
+        animation-iteration-count: infinite;
+        animation-timing-function: ease-in-out;
+        animation-direction: alternate;
+    }
+}
 
 //
 // SPECIFIC ACTIONS

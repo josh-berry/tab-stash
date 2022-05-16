@@ -86,6 +86,13 @@ const BOOKMARKS = {
                 {id: 'seven', title: 'Seven', url: `${B}#7`},
                 {id: 'eight', title: 'Eight', url: `${B}#8`},
             ]},
+            {id: 'nested', title: 'Stash with Nested Folder', children: [
+                {id: 'nested_1', title: 'Nested 1', url: `${B}#nested_1`},
+                {id: 'nested_child', title: 'Nested Child', children: [
+                    {id: 'nested_child_1', title: '1', url: `${B}#nested_child_1`},
+                ]},
+                {id: 'nested_2', title: 'Nested 2', url: `${B}#nested_2`},
+            ]},
         ]},
     ],
 } as const;
@@ -229,6 +236,7 @@ export async function make_tabs(): Promise<TabFixture> {
         await events.next(browser.windows.onFocusChanged);
         await events.next(browser.tabs.onActivated);
         await events.next(browser.tabs.onHighlighted);
+        await events.next(browser.tabs.onUpdated);
 
         // istanbul ignore if -- browser compatibility and type safety
         if (! win.tabs) win.tabs = [];
@@ -240,6 +248,7 @@ export async function make_tabs(): Promise<TabFixture> {
                 active: !!t.active, pinned: !!t.pinned
             });
             await events.next(browser.tabs.onCreated);
+            await events.next(browser.tabs.onUpdated);
             if (t.active) {
                 await events.next(browser.tabs.onActivated);
                 await events.next(browser.tabs.onHighlighted);
