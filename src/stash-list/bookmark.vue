@@ -16,6 +16,7 @@
                               'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
   <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
+     v-show="!isEditable"
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
@@ -26,6 +27,7 @@
     v-model="bookmark.title"
     @focusout="finishRenaming"
     @keyup.enter="finishRenaming"
+    @keydown.esc="cancelRenaming"
     @focus="$event.target.select()"
     />
   <ButtonBox>
@@ -110,7 +112,8 @@ export default defineComponent({
 
     data() {
         return {
-            isEditable: false
+            isEditable: false,
+            oldValue: ""
         }
     },
 
@@ -168,21 +171,23 @@ export default defineComponent({
         })},
 
         rename(ev: MouseEvent) { this.model().attempt(async () => {
-            //console.log("rename clicked for");
-            //console.log(this.bookmark.title);
+            this.oldValue = this.bookmark.title;
             this.isEditable = true;
             this.$nextTick( () => {
-              //console.log(this.$refs.newtitle);
               (this.$refs.newtitle as HTMLElement).focus();
             });
-            //console.log("isEditable has ${this.isEditable}");
         })},
 
         finishRenaming(ev: MouseEvent) { this.model().attempt(async () => {
+            if (this.bookmark.title) {
+                this.isEditable = false;
+                await this.model().bookmarks.rename(this.bookmark.id, this.bookmark.title);
+            } else this.cancelRenaming(ev);
+        })},
+
+        cancelRenaming(ev: MouseEvent) { this.model().attempt(async () => {
             this.isEditable = false;
-            //console.log(this);
-            //console.log(this.bookmark.title); // this has whet is was just changed to, but is not the underlying bookmark
-            await this.model().bookmarks.rename(this.bookmark.id, this.bookmark.title);
+            this.bookmark.title = this.oldValue;
         })},
     },
 });
