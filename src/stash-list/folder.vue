@@ -273,8 +273,8 @@ export default defineComponent({
             await browser.bookmarks.update(this.folder.id, {title});
         })},
 
-        drag(ev: DragAction<Bookmark>) {
-            const items = ev.value.$selected
+        drag(ev: DragAction<NodeWithTabs>) {
+            const items = ev.value.node.$selected
                 ? Array.from(this.model().selectedItems())
                 : [ev.value];
             ev.dataTransfer.setData('application/x-tab-stash-items',
