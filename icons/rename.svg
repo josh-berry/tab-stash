@@ -35,24 +35,24 @@
       points="9.75,70 9.75,90 29.75,90 74.75,45 54.75,25 9.50,71"
       stroke="#000000"
       id="polyline1"
-      stroke-width="6px"
+      stroke-width="7px"
       fill="none"
       transform=""
   /><polygon
       points="60.5,20 80.5,40 90.5,30 70.5,10"
       stroke="#000000"
       id="polygon1"
-      stroke-width="6px"
+      stroke-width="7px"
       fill="none"
       transform=""
   /><line
       stroke="#000000"
       y1="90px"
       id="line1"
-      x1="38.25px"
+      x1="40px"
       stroke-width="6px"
       y2="89.5px"
-      x2="57px"
+      x2="60px"
       transform=""
   /></svg
 >
