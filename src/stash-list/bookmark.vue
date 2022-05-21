@@ -15,15 +15,13 @@
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
-  <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
-     v-show="!isEditable"
+  <a v-if="!isEditable" class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
   </a>
-  <input
+  <input v-else
     ref="newtitle"
-    v-show="isEditable"
     v-model="bookmark.title"
     @focusout="finishRenaming"
     @keyup.enter="finishRenaming"
