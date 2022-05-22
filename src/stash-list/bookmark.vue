@@ -108,12 +108,10 @@ export default defineComponent({
         },
     },
 
-    data() {
-        return {
-            isRenaming: false,
-            oldName: ""
-        }
-    },
+    data: () => ({
+        isRenaming: false,
+        oldName: ""
+    }),
 
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
