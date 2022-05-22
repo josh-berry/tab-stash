@@ -10,12 +10,12 @@
      :title="bookmark.title" :data-id="bookmark.id"
      :data-container-color="related_container_color"
      @click.prevent.stop="select">
-  <item-icon class="{'action':true, select:!isEditable}"
+  <item-icon :class="{'action':true, select:!isRenaming}"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
-  <a v-if="!isEditable" class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
+  <a v-if="!isRenaming" class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
@@ -110,8 +110,8 @@ export default defineComponent({
 
     data() {
         return {
-            isEditable: false,
-            oldValue: ""
+            isRenaming: false,
+            oldName: ""
         }
     },
 
@@ -169,8 +169,8 @@ export default defineComponent({
         })},
 
         rename(ev: MouseEvent) { this.model().attempt(async () => {
-            this.oldValue = this.bookmark.title;
-            this.isEditable = true;
+            this.oldName = this.bookmark.title;
+            this.isRenaming = true;
             this.$nextTick( () => {
               (this.$refs.newtitle as HTMLElement).focus();
             });
@@ -178,14 +178,14 @@ export default defineComponent({
 
         finishRenaming(ev: MouseEvent) { this.model().attempt(async () => {
             if (this.bookmark.title) {
-                this.isEditable = false;
+                this.isRenaming = false;
                 await this.model().bookmarks.rename(this.bookmark.id, this.bookmark.title);
             } else this.cancelRenaming(ev);
         })},
 
         cancelRenaming(ev: MouseEvent) { this.model().attempt(async () => {
-            this.isEditable = false;
-            this.bookmark.title = this.oldValue;
+            this.isRenaming = false;
+            this.bookmark.title = this.oldName;
         })},
     },
 });

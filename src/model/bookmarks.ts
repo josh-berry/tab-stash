@@ -288,12 +288,14 @@ export class Model {
 
     /** Renames a bookmark and waits for the model to reflect the change  */
     async rename(id: NodeID, newTitle: string): Promise<void> {
-        const node = this.node(id);
-        if (! node) return;
+        const node = expect(this.node(id), () => `No such bookmark node: ${id}`);
         await browser.bookmarks.update(id, {
             title: newTitle
         });
-        // TODO: (sjl) any error handling needed here?
+        // Wait for the model to catch up
+        await shortPoll(() => {
+            if (node.title != newTitle) tryAgain();
+        });
     }
 
     /** Deletes a bookmark and waits for the model to reflect the deletion.
