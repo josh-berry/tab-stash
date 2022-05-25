@@ -57,7 +57,7 @@
   <defs
      id="defs14" />
   <path
-     d="M 30,65 c -9,-9 -9,0 -3,6 L 40,85 c 6,6 5,0 9,-6 L 90,25 c 9,-9 -3,-12 -6,-6 L 42,76 c -6,6 -6,6 3,3 z"
+     d="M 30,60 c -9,-6 -9,5 -7,6 L 40,80 c 6,6 9,0 12,-3 L 85,30 c 9,-9 -3,-12 -6,-6 L 43,72 c -6,6 -6,6 3,3 z"
      id="path820"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="ccccccccccccc"
