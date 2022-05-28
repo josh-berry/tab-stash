@@ -28,12 +28,11 @@
     <!-- This is at the end so it gets put in front of the buttons etc.
          Important to ensure the focused box-shadow gets drawn over the buttons,
          rather than behind them. -->
-    <editable-label
-        class="folder-name ephemeral"
-        :value="nonDefaultTitle"
-        :defaultValue="defaultTitle"
-        :tooltip="tooltip"
-        :edit="rename"></editable-label>
+    <span v-if="! isRenaming" class="folder-name ephemeral" :title="tooltip"
+        @click.stop="isRenaming = true">{{title}}</span>
+    <async-text-input v-else class="folder-name ephemeral" :title="tooltip"
+        :value="nonDefaultTitle" :defaultValue="defaultTitle"
+        :save="rename" @done="isRenaming = false" />
   </header>
   <div class="contents">
     <dnd-list class="tabs" v-model="childrenWithTabs" item-key="id" :item-class="childClasses"
@@ -55,7 +54,6 @@
 </template>
 
 <script lang="ts">
-import browser from 'webextension-polyfill';
 import {PropType, defineComponent} from 'vue';
 
 import {altKeyName, bgKeyName, bgKeyPressed, required} from '../util';
@@ -79,7 +77,7 @@ export default defineComponent({
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         DndList: require('../components/dnd-list.vue').default,
-        EditableLabel: require('../components/editable-label.vue').default,
+        AsyncTextInput: require('../components/async-text-input.vue').default,
         Bookmark: require('./bookmark.vue').default,
     },
 
@@ -93,6 +91,7 @@ export default defineComponent({
     },
 
     data: () => ({
+        isRenaming: false,
         showFiltered: false,
     }),
 
@@ -170,10 +169,11 @@ export default defineComponent({
                 return `Saved ${(new Date(this.folder.dateAdded || 0)).toLocaleString()}`;
             }
         },
-        nonDefaultTitle(): string | undefined {
+        nonDefaultTitle(): string {
             return getDefaultFolderNameISODate(this.folder.title) !== null
-                ? undefined : this.folder.title;
+                ? '' : this.folder.title;
         },
+        title(): string { return friendlyFolderName(this.folder.title); },
         tooltip(): string {
             const st = this.childTabStats;
             const child_count = this.validChildren.length;
@@ -201,7 +201,9 @@ export default defineComponent({
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
         model() { return (<any>this).$model as Model; },
-        attempt(fn: () => Promise<void>) { this.model().attempt(fn); },
+        attempt(fn: () => Promise<void>): Promise<void> {
+            return this.model().attempt(fn);
+        },
 
         childClasses(nodet: NodeWithTabs): Record<string, boolean> {
             const node = nodet.node;
@@ -222,7 +224,7 @@ export default defineComponent({
             }));
         },
 
-        async stashOne(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
+        stashOne(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const tab = this.model().tabs.activeTab();
             if (! tab) return;
             await this.model().putItemsInFolder({
@@ -242,23 +244,23 @@ export default defineComponent({
             }));
         },
 
-        async restoreAll(ev: MouseEvent | KeyboardEvent) {this.attempt(async () => {
+        restoreAll(ev: MouseEvent | KeyboardEvent) {this.attempt(async () => {
             await this.model().restoreTabs(
                 this.validChildren, {background: bgKeyPressed(ev)});
         })},
 
-        async remove() {this.attempt(async() => {
+        remove() {this.attempt(async() => {
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
-        async restoreAndRemove(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
+        restoreAndRemove(ev: MouseEvent | KeyboardEvent) {this.attempt(async() => {
             const bg = bgKeyPressed(ev);
 
             await this.model().restoreTabs(this.validChildren, {background: bg});
             await this.model().deleteBookmarkTree(this.folder.id);
         })},
 
-        async rename(title: string) { this.attempt(async() => {
+        rename(title: string) { return this.attempt(async() => {
             if (title === '') {
                 if (getDefaultFolderNameISODate(this.folder.title) !== null) {
                     // It already has a default name; leave it alone so we don't
@@ -270,7 +272,7 @@ export default defineComponent({
                 title = genDefaultFolderName(new Date(this.folder.dateAdded || 0));
             }
 
-            await browser.bookmarks.update(this.folder.id, {title});
+            await this.model().bookmarks.rename(this.folder, title);
         })},
 
         drag(ev: DragAction<NodeWithTabs>) {
