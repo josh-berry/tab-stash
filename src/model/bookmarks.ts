@@ -286,6 +286,13 @@ export class Model {
         });
     }
 
+    /** Updates a bookmark's title and waits for the model to reflect the
+     * update. */
+    async rename(bm: Bookmark | Folder, title: string): Promise<void> {
+        await browser.bookmarks.update(bm.id, {title});
+        await shortPoll(() => { if (bm.title !== title) tryAgain(); });
+    }
+
     /** Deletes a bookmark and waits for the model to reflect the deletion.
      *
      * If the node is part of the stash and belongs to an unnamed folder which
