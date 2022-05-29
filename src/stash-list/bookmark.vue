@@ -181,7 +181,7 @@ export default defineComponent({
         finishRenaming(ev: MouseEvent) { this.model().attempt(async () => {
             if (this.bookmark.title) {
                 this.isRenaming = false;
-                await this.model().bookmarks.rename(this.bookmark.id, this.bookmark.title);
+                await this.model().bookmarks.rename(this.bookmark, this.bookmark.title);
             } else this.cancelRenaming(ev);
         })},
 
