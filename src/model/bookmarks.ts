@@ -286,16 +286,11 @@ export class Model {
         });
     }
 
-    /** Renames a bookmark and waits for the model to reflect the change  */
-    async rename(id: NodeID, newTitle: string): Promise<void> {
-        const node = expect(this.node(id), () => `No such bookmark node: ${id}`);
-        await browser.bookmarks.update(id, {
-            title: newTitle
-        });
-        // Wait for the model to catch up
-        await shortPoll(() => {
-            if (node.title != newTitle) tryAgain();
-        });
+    /** Updates a bookmark's title and waits for the model to reflect the
+     * update. */
+    async rename(bm: Bookmark | Folder, title: string): Promise<void> {
+        await browser.bookmarks.update(bm.id, {title});
+        await shortPoll(() => { if (bm.title !== title) tryAgain(); });
     }
 
     /** Deletes a bookmark and waits for the model to reflect the deletion.
