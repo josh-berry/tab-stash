@@ -20,25 +20,16 @@
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
   </a>
-  <input v-else
-    ref="newtitle"
-    v-model="bookmark.title"
-    @focusout="finishRenaming"
-    @keyup.enter="finishRenaming"
-    @keydown.esc="cancelRenaming"
-    @focus="$event.target.select()"
-    />
+  <async-text-input v-else
+    :value="bookmark.title" :defaultValue="bookmark.title"
+    :save="rename" @done="isRenaming = false" />
   <ButtonBox v-if="!isRenaming">
-    <Button class="rename" @action="rename" tooltip="Rename" />
+    <Button class="rename" @action="isRenaming = true" tooltip="Rename" />
     <Button class="restore-remove" @action="openRemove"
             :tooltip="`Open this tab and delete it from the group `
                     + `(hold ${bgKey} to open in background)`" />
     <Button class="remove" @action="remove"
             tooltip="Delete this tab from the group" />
-  </ButtonBox>
-  <ButtonBox v-else>
-    <Button class="tick" @action="finishRenaming" tooltip="OK" />
-    <Button class="cancel" @action="cancelRenaming" tooltip="Cancel" />
   </ButtonBox>
 </div>
 </template>
@@ -57,6 +48,7 @@ export default defineComponent({
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         ItemIcon: require('../components/item-icon').default,
+        AsyncTextInput: require('../components/async-text-input.vue').default,
     },
 
     inject: ['$model'],
@@ -114,7 +106,6 @@ export default defineComponent({
 
     data: () => ({
         isRenaming: false,
-        oldName: ""
     }),
 
     methods: {
@@ -170,24 +161,10 @@ export default defineComponent({
             await this.model().deleteBookmark(this.bookmark);
         })},
 
-        rename(ev: MouseEvent) { this.model().attempt(async () => {
-            this.oldName = this.bookmark.title;
-            this.isRenaming = true;
-            this.$nextTick( () => {
-              (this.$refs.newtitle as HTMLElement).focus();
-            });
-        })},
-
-        finishRenaming(ev: MouseEvent) { this.model().attempt(async () => {
-            if (this.bookmark.title) {
-                this.isRenaming = false;
-                await this.model().bookmarks.rename(this.bookmark, this.bookmark.title);
-            } else this.cancelRenaming(ev);
-        })},
-
-        cancelRenaming(ev: MouseEvent) { this.model().attempt(async () => {
-            this.isRenaming = false;
-            this.bookmark.title = this.oldName;
+        rename(newName: string) { return this.model().attempt(async() => {
+            if (newName) {
+                await this.model().bookmarks.rename(this.bookmark, newName);
+            } // don't rename if newName is an empty string
         })},
     },
 });
