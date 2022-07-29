@@ -13,7 +13,7 @@
                 :style="draggingIndex === index ? 'display: none' : ''"
                 :class="itemClass && itemClass(item, index)"
                 :ref="el => {listEls[index] = el}"
-                @mousedown="enableDrag(index)" @mouseup="disableDrag(index)"
+                @mousedown.stop="enableDrag(index)" @mouseup.stop="disableDrag(index)"
                 @dragstart="itemDragStart($event, index)" @dragend="itemDragEnd"
                 @dragenter="itemDragEnter($event, index)" @dragover="itemDragOver"
                 @drop="doDrop">
