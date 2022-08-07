@@ -214,6 +214,13 @@ export class Model {
      * Note that creation of non-discarded is rate-limited, to avoid
      * overwhelming the user's system with a lot of loading tabs. */
     async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
+        if (! browser.tabs.hide) {
+            // Remove fields not supported by Chrome
+            tab = Object.assign({}, tab);
+            delete tab.discarded;
+            delete tab.title;
+        }
+
         // Rate-limiting as noted in the docs
         while (! tab.discarded && this.loadingCount.value >= MAX_LOADING_TABS) {
             await new Promise<void>(resolve => {
