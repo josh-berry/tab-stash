@@ -301,9 +301,10 @@ export default defineComponent({
 
             try {
                 for await (const info of iter) {
-                    if (info.favIconUrl) {
-                        favicons.set(info.originalUrl, info.favIconUrl);
-                    }
+                    favicons.maybeSet(info.originalUrl, {
+                        favIconUrl: info.favIconUrl ?? null,
+                        title: info.title,
+                    });
                 }
             } finally {
                 this.dialog = undefined;

@@ -9,14 +9,19 @@ import {KVSCache, Entry} from '../datastore/kvs';
 export type FaviconCache = KVSCache<string, Favicon>;
 
 /** A (reactive) entry in the favicon cache.  Its value property is updated when
- * the favicon for the URL changes. */
-export type Favicon = {favIconUrl: string | null};
+ * the favicon for the URL changes.
+ *
+ * We keep both the favicon URL and the page title (so this is now technically
+ * more than a favicon cache)... the old page title can be used for things like
+ * restoring tabs with the right title without loading the page, or remembering
+ * the tab title of a renamed bookmark. */
+export type Favicon = {favIconUrl: string | null, title?: string};
 
 /** The actual entry stored in the KVS (well, sans null). */
 export type FaviconEntry = Entry<string, Favicon | null>;
 
-/** A cache of favicons, indexed by URL.  Used to locate suitable icons to show
- * alongside bookmarks.
+/** A cache of favicons and page titles, indexed by URL.  Used to locate
+ * suitable icons to show alongside bookmarks.
  *
  * URLs in the cache are stored normalized (by passing to urlToOpen()), since
  * some URLs might be "privileged" URLs which Tab Stash can't actually open as
@@ -67,23 +72,27 @@ export class Model {
         return this._kvc.getIfExists(urlToOpen(url));
     }
 
-    /** Update the icon for a URL in the cache. */
-    set(url: string, favIconUrl: string): FaviconEntry {
-        return this._kvc.set(url, {favIconUrl});
+    /** Update the icon and page title for a URL in the cache. */
+    set(url: string, entry: Favicon): FaviconEntry {
+        return this._kvc.set(url, entry);
     }
 
-    /** Set the icon for a URL in the cache, but only if it doesn't have one
-     * already. */
-    maybeSet(url: string, favIconUrl: string) {
-        this._kvc.maybeInsert(url, {favIconUrl});
+    /** Set the icon and page titlefor a URL in the cache, but only if it
+     * doesn't have one already. */
+    maybeSet(url: string, entry: Favicon) {
+        this._kvc.maybeInsert(url, entry);
     }
 
     private _updateFavicon(tab: Tabs.Tab) {
         // We ignore favicons when the tab is still loading, because Firefox may
         // send us events where a tab has a new URL, but an old favicon which is
         // for the URL the tab is navigating away from.
-        if (tab.url && tab.favIconUrl && tab.status === 'complete') {
-            this.set(tab.url, tab.favIconUrl);
+        if (tab.url && tab.status === 'complete') {
+            const entry = this.getIfExists(tab.url)?.value
+                ?? {favIconUrl: null, title: undefined};
+            if (tab.favIconUrl) entry.favIconUrl = tab.favIconUrl;
+            if (tab.title) entry.title = tab.title;
+            if (entry.favIconUrl || entry.title) this.set(tab.url, entry);
         }
     }
 }

@@ -109,7 +109,9 @@ export default defineComponent({
                      discarded: tl > 0 && discarded === tl, title };
         },
 
-        defaultTitle(): string { return this.tabState.title ?? this.bookmark.title; },
+        defaultTitle(): string {
+            return this.tabState.title ?? this.favicon?.value?.title ?? this.bookmark.title;
+        },
 
         favicon(): FaviconEntry | null {
             if (! this.bookmark.url) return null;
