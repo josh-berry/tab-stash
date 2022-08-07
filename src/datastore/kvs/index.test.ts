@@ -340,6 +340,67 @@ describe('datastore/kvs', () => {
             expect(a.value).to.equal('c');
         });
 
+        describe('merges entries that...', () => {
+            it('...do not exist yet', async() => {
+                const ent = cache.merge('a', old => {
+                    expect(old).to.equal(null);
+                    return 'b';
+                });
+                expect(ent.value).to.equal(null);
+
+                await events.nextN(kvs.onSet, 1);
+                expect(ent.value).to.equal('b');
+            });
+
+            it('...were recently set locally', async() => {
+                cache.set('a', 'b');
+                const ent = cache.merge('a', old => {
+                    expect(old).to.equal('b');
+                    return 'c';
+                });
+                expect(ent.value).to.equal('c');
+
+                // Just one event, since the set() and merge() I/Os are squashed
+                await events.nextN(kvs.onSet, 1);
+                expect(ent.value).to.equal('c');
+            });
+
+            it('...were set locally a while ago', async() => {
+                cache.set('a', 'b');
+                await events.next(kvs.onSet);
+                expect(cache.get('a')).to.deep.equal({key: 'a', value: 'b'});
+                expect(kvs.data.get('a')).to.deep.equal('b');
+
+                const ent = cache.merge('a', old => {
+                    expect(old).to.equal('b');
+                    return 'c';
+                });
+                expect(ent.value).to.equal('c');
+                expect(kvs.data.get('a')).to.deep.equal('b');
+
+                await events.nextN(kvs.onSet, 1);
+                expect(ent.value).to.equal('c');
+                expect(kvs.data.get('a')).to.deep.equal('c');
+            });
+
+            it('...were set remotely', async() => {
+                kvs.data.set('a', 'b');
+                const ent = cache.merge('a', old => {
+                    expect(old).to.equal('b');
+                    return 'c';
+                });
+
+                // Merge hasn't happened yet...
+                expect(ent.value).to.equal(null);
+                expect(kvs.data.get('a')).to.deep.equal('b');
+
+                // Merge happens after the entry is fetched from the cache
+                await events.nextN(kvs.onSet, 1);
+                expect(ent.value).to.equal('c');
+                expect(kvs.data.get('a')).to.deep.equal('c');
+            });
+        });
+
         it('maybe inserts entries that do not exist yet', async () => {
             cache.maybeInsert('a', 'b');
             await cache.sync();

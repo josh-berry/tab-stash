@@ -252,11 +252,7 @@ export async function importURLs(
                 }
             }
 
-            model.favicons.maybeSet(url, {
-                favIconUrl: siteinfo.favIconUrl ?? null,
-                title: siteinfo.title,
-            });
-
+            model.favicons.maybeSet(url, siteinfo);
             ++tm.value;
         }
 

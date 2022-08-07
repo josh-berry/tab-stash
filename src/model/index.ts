@@ -820,7 +820,7 @@ export class Model {
             // Restore their favicons.
             for (const c of deletion.item.children) {
                 if (! ('url' in c && c.favIconUrl)) continue;
-                this.favicons.maybeSet(c.url, {favIconUrl: c.favIconUrl, title: c.title});
+                this.favicons.maybeSet(c.url, c);
             }
 
         } else {
@@ -851,10 +851,7 @@ export class Model {
             await this.putItemsInFolder({items: [deletion.item], toFolderId: folderId});
 
             // Restore its favicon.
-            this.favicons.maybeSet(deletion.item.url, {
-                favIconUrl: deletion.item.favIconUrl ?? null,
-                title: deletion.item.title,
-            });
+            this.favicons.maybeSet(deletion.item.url, deletion.item);
         }
 
         await di.drop(deletion.key);

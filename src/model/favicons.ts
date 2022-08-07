@@ -45,6 +45,8 @@ export class Model {
         });
     }
 
+    sync(): Promise<void> { return this._kvc.sync(); }
+
     /** Removes favicons for whom `keep(url)` returns false. */
     async gc(keep: (url: string) => boolean) {
         const toDelete = [];
@@ -72,27 +74,38 @@ export class Model {
         return this._kvc.getIfExists(urlToOpen(url));
     }
 
-    /** Update the icon and page title for a URL in the cache. */
-    set(url: string, entry: Favicon): FaviconEntry {
-        return this._kvc.set(url, entry);
+    /** Update the icon and page title for a URL in the cache.  Note that the
+     * update may be done in the background--that is, the returned FaviconEntry
+     * may be stale. */
+    set(url: string, updates: Partial<Favicon>): FaviconEntry {
+        if (! updates.favIconUrl && ! updates.title) {
+            return this._kvc.get(urlToOpen(url));
+        }
+
+        return this._kvc.merge(urlToOpen(url), old => {
+            if (! old) old = {favIconUrl: null, title: undefined};
+            if (updates.favIconUrl) old.favIconUrl = updates.favIconUrl;
+            if (updates.title) old.title = updates.title;
+            return old;
+        });
     }
 
-    /** Set the icon and page titlefor a URL in the cache, but only if it
-     * doesn't have one already. */
-    maybeSet(url: string, entry: Favicon) {
-        this._kvc.maybeInsert(url, entry);
+    /** Set the icon and page title for a URL in the cache, but only if the URL
+     * already exists in the cache and the title/icon aren't set already. */
+    maybeSet(url: string, updates: Partial<Favicon>) {
+        url = urlToOpen(url);
+        const entry = this._kvc.getIfExists(url)?.value
+        if (! entry) return;
+        this.set(url, {
+            favIconUrl: entry.favIconUrl || updates.favIconUrl,
+            title: entry.title || updates.title,
+        });
     }
 
     private _updateFavicon(tab: Tabs.Tab) {
         // We ignore favicons when the tab is still loading, because Firefox may
         // send us events where a tab has a new URL, but an old favicon which is
         // for the URL the tab is navigating away from.
-        if (tab.url && tab.status === 'complete') {
-            const entry = this.getIfExists(tab.url)?.value
-                ?? {favIconUrl: null, title: undefined};
-            if (tab.favIconUrl) entry.favIconUrl = tab.favIconUrl;
-            if (tab.title) entry.title = tab.title;
-            if (entry.favIconUrl || entry.title) this.set(tab.url, entry);
-        }
+        if (tab.url && tab.status === 'complete') this.set(tab.url, tab);
     }
 }

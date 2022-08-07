@@ -69,6 +69,10 @@ describe('model', () => {
             bookmark_metadata: new M.BookmarkMetadata.Model(new KVSCache(bookmark_metadata)),
         });
 
+        // We also need to wait for the favicon cache to update itself
+        await model.favicons.sync();
+        await events.watch(favicons.onSet).untilNextTick();
+
         // We need the indexes in the models to be populated
         await events.watch(['EventfulMap.onInsert', 'EventfulMap.onUpdate']).untilNextTick();
         expect(tab_model.window(windows.left.id)!.tabs.length).to.equal(3);
@@ -1122,7 +1126,8 @@ describe('model', () => {
             expect(model.deleted_items.state.entries[0].item).to.deep.equal({
                 title: "Names",
                 children: [
-                    {title: "Doug Duplicate", url: `${B}#doug`},
+                    {title: "Doug Duplicate", url: `${B}#doug`,
+                     favIconUrl: `${B}#doug.favicon`},
                     {title: "Helen Hidden", url: `${B}#helen`},
                     {title: "Patricia Pinned", url: `${B}#patricia`},
                     {title: "Nate NotOpen", url: `${B}#nate`},
@@ -1168,6 +1173,7 @@ describe('model', () => {
             await events.nextN(browser.bookmarks.onCreated, 5);
             await events.next('KVS.Memory.onDelete');
             await p;
+            await events.next(favicons.onSet);
 
             const restored_id = model.bookmarks.stash_root.value!.children[0];
             const restored = model.bookmarks.folder(restored_id)!;
@@ -1204,7 +1210,6 @@ describe('model', () => {
                 const p = model.undelete(model.deleted_items.state.entries[0]);
                 await events.nextN(browser.bookmarks.onCreated, 1);
                 await events.next('KVS.Memory.onDelete');
-                await events.next('KVS.Memory.onSet'); // favicon
                 await p;
 
                 const ids = model.bookmarks.folder(bookmarks.names.id)!.children;
@@ -1230,7 +1235,6 @@ describe('model', () => {
                 const p = model.undelete(model.deleted_items.state.entries[1]);
                 await events.nextN(browser.bookmarks.onCreated, 1);
                 await events.next('KVS.Memory.onDelete');
-                await events.next('KVS.Memory.onSet'); // favicon
                 await p;
 
                 expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
@@ -1260,7 +1264,6 @@ describe('model', () => {
                 const p = model.undelete(model.deleted_items.state.entries[1]);
                 await events.nextN(browser.bookmarks.onCreated, 2);
                 await events.next('KVS.Memory.onDelete');
-                await events.next('KVS.Memory.onSet'); // favicon
                 await p;
 
                 expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
@@ -1288,7 +1291,6 @@ describe('model', () => {
                 const p = model.undeleteChild(model.deleted_items.state.entries[0], 2);
                 await events.nextN(browser.bookmarks.onCreated, 1);
                 await events.next('KVS.Memory.onSet'); // deleted-item update
-                await events.next('KVS.Memory.onSet'); // favicon
                 await p;
 
                 expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
@@ -1298,7 +1300,8 @@ describe('model', () => {
 
                 const item = model.deleted_items.state.entries[0].item as DeletedFolder;
                 expect(item.children).to.deep.equal([
-                    {title: 'Doug Duplicate', url: `${B}#doug`},
+                    {title: 'Doug Duplicate', url: `${B}#doug`,
+                     favIconUrl: `${B}#doug.favicon`},
                     {title: 'Helen Hidden', url: `${B}#helen`},
                     {title: 'Nate NotOpen', url: `${B}#nate`},
                 ]);
@@ -1312,7 +1315,6 @@ describe('model', () => {
                 const p = model.undeleteChild(model.deleted_items.state.entries[0], 2);
                 await events.nextN(browser.bookmarks.onCreated, 2);
                 await events.next('KVS.Memory.onSet'); // deleted-item update
-                await events.next('KVS.Memory.onSet'); // favicon
                 await p;
 
                 expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
@@ -1324,7 +1326,8 @@ describe('model', () => {
 
                 const item = model.deleted_items.state.entries[0].item as DeletedFolder;
                 expect(item.children).to.deep.equal([
-                    {title: 'Doug Duplicate', url: `${B}#doug`},
+                    {title: 'Doug Duplicate', url: `${B}#doug`,
+                     favIconUrl: `${B}#doug.favicon`},
                     {title: 'Helen Hidden', url: `${B}#helen`},
                     {title: 'Nate NotOpen', url: `${B}#nate`},
                 ]);

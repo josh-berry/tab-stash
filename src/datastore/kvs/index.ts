@@ -125,6 +125,39 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         return ent;
     }
 
+    /** Merges an entry in the KVS by fetching the item if it's not present in
+     * the cache already, calling merge() with the old value, and setting the
+     * result back into the cache.
+     *
+     * Note that the returned cache entry may be stale--if the entry wasn't
+     * present in the cache previously, it will be fetched and merged in the
+     * background.
+     *
+     * Also note that no attempt is made to ensure any kind of consistency--in
+     * particular, merge() itself may still be called with stale data, there
+     * could be multiple pending merges for the same entry, etc.  In general,
+     * this should not be a problem IF merge() is idempotent--eventually the
+     * cache should converge on the "right" value. */
+    merge<U extends (v: V | null) => V>(key: K, merge: U): Entry<K, V | null> {
+        const ent = this.get(key);
+
+        const doMerge = () => {
+            ent.value = merge(ent.value);
+            this._needs_flush.set(key, ent as Entry<K, V>);
+            this._needs_fetch.delete(key);
+            this._io();
+        };
+
+        if (ent.value !== null) {
+            doMerge();
+        } else {
+            this._needs_fetch.set(key, ent);
+            this._io().then(doMerge);
+        }
+
+        return ent;
+    }
+
     /** If `key` is not present in the KVS, adds `key` with `value`.  But if key
      * is already present, does nothing--that is, the `value` provided here will
      * not override any pre-existing value.
@@ -171,13 +204,13 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         this._needs_flush.delete(key);
     }
 
-    private _io() {
-        if (this._pending_io) return;
+    private _io(): Promise<void> {
+        if (this._pending_io) return this._pending_io;
 
         // If we crash 3 or more times while doing I/O, something is very wrong.
         // Stop doing I/O and just be an in-memory cache.  Lots of crashes are
         // likely to be annoying to users.
-        if (this._crash_count >= 3) return;
+        if (this._crash_count >= 3) return Promise.resolve();
 
         this._pending_io = new Promise(resolve => later(() =>
             logErrorsFrom(async () => {
@@ -196,6 +229,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
                 resolve();
             })
         ));
+        return this._pending_io;
     }
 
     private async _fetch() {
