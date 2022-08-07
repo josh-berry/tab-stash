@@ -51,7 +51,10 @@ const state = shallowReactive({
 const $input = ref<HTMLInputElement>();
 
 onMounted(() => {
-    if ($input.value) $input.value.focus();
+    if ($input.value) {
+        $input.value.focus();
+        $input.value.select();
+    }
 });
 
 function commit() {

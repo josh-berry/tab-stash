@@ -10,7 +10,7 @@
      :title="bookmark.title" :data-id="bookmark.id"
      :data-container-color="related_container_color"
      @click.prevent.stop="select">
-  <item-icon :class="{'action':true, 'item-icon': true, select:!isRenaming}"
+  <item-icon :class="{'action': true, 'item-icon': true, select: true}"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
@@ -22,7 +22,7 @@
   </a>
   <async-text-input v-else
     class="text ephemeral"
-    :value="bookmark.title" :defaultValue="bookmark.title"
+    :value="bookmark.title" :defaultValue="defaultTitle"
     :save="rename" @done="isRenaming = false" />
   <ButtonBox v-if="!isRenaming">
     <Button class="rename" @action="isRenaming = true" tooltip="Rename" />
@@ -43,6 +43,14 @@ import {Model} from '../model';
 import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
 import {FaviconEntry} from '../model/favicons';
+
+type RelatedTabState = {
+    open: boolean,
+    active: boolean,
+    loading: boolean,
+    discarded: boolean,
+    title?: string,
+};
 
 export default defineComponent({
     components: {
@@ -85,19 +93,23 @@ export default defineComponent({
             return container_color ?? undefined;
         },
 
-        tabState(): { open: boolean, active: boolean, loading: boolean, discarded: boolean } {
+        tabState(): RelatedTabState {
             let open: boolean = false, active: boolean = false, loading: boolean = false;
             let discarded = 0;
+            let title: string | undefined = undefined;
             for (const t of this.relatedTabs) {
                 if (!t.hidden && t.discarded) discarded++;
                 open = open || !t.hidden;
                 active = active || t.active;
                 loading = loading || t.status === 'loading';
+                if (t.title) title = t.title;
             }
             const tl = this.relatedTabs.length;
             return { open: !!open, active: !!active, loading: !!loading,
-                     discarded: tl > 0 && discarded === tl };
+                     discarded: tl > 0 && discarded === tl, title };
         },
+
+        defaultTitle(): string { return this.tabState.title ?? this.bookmark.title; },
 
         favicon(): FaviconEntry | null {
             if (! this.bookmark.url) return null;
@@ -163,9 +175,8 @@ export default defineComponent({
         })},
 
         rename(newName: string) { return this.model().attempt(async() => {
-            if (newName) {
-                await this.model().bookmarks.rename(this.bookmark, newName);
-            } // don't rename if newName is an empty string
+            await this.model().bookmarks.rename(
+                this.bookmark, newName || this.defaultTitle);
         })},
     },
 });
