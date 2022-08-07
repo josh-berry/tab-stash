@@ -47,13 +47,10 @@
         & > .folder-name {
             grid-row: 1;
             grid-column: 1 / 3;
-
-            padding: var(--input-text-ph) var(--input-text-pw);
-
-            // Negative left margin ensures the text of the folder-name lines up
-            // with the folder contents below, despite the padding above (which
-            // is necessary so that an outlined folder-name looks decent).
-            margin-left: calc(0px - var(--input-text-pw));
+            // Make sure the folder-name is tall enough that the header doesn't
+            // resize when toolbar buttons become visible/hidden
+            height: var(--icon-btn-size);
+            line-height: var(--icon-btn-size);
 
             .text-overflow-ellipsis();
         }
@@ -176,7 +173,8 @@
 
 .folder-item {
     display: grid;
-    grid-template-columns: 0fr 0fr 1fr 0fr 0fr; // indentation, icon, title, badges, actions
+    // 1:.indent, 2:.item-icon, 3:<padding>, 4:.text, 5:.badge, 6:nav
+    grid-template-columns: 0fr 0fr var(--ctrl-mw) 1fr 0fr 0fr;
     align-items: center;
     padding: 0 var(--page-pw);
     height: var(--item-h);
@@ -221,17 +219,16 @@
 
     & > .text {
         grid-row: 1;
-        grid-column: 3;
+        grid-column: 4;
         height: var(--item-h);
         /* to vertically center text while text-overflow: ellipsis; */
         line-height: var(--item-h);
-        margin-left: var(--ctrl-mw);
         .text-overflow-ellipsis();
     }
 
     & > .badge {
         grid-row: 1;
-        grid-column: 4;
+        grid-column: 5;
         height: var(--item-h);
         line-height: var(--item-h);
         opacity: 50%;
@@ -247,7 +244,7 @@
     & > nav {
         display: none;
         grid-row: 1;
-        grid-column: 5;
+        grid-column: 6;
     }
     &:hover > nav, &:focus-within > nav { display: flex; }
 

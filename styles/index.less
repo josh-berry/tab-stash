@@ -96,9 +96,21 @@ html.metrics-compact { @import "metrics-compact"; }
     background: transparent;
     border-radius: var(--ctrl-border-radius);
 
-    &:focus { background-color: var(--ctrl-bg); }
-    &:hover { box-shadow: var(--ephemeral-hover-shadow); }
-    &:hover:focus { box-shadow: var(--focus-shadow); }
+    padding: var(--input-text-ph) var(--input-text-pw);
+
+    // Negative margin ensures the text lines up when the border isn't visible,
+    // despite the padding (which is necessary so that the shadow looks right).
+    margin: calc(0px - var(--input-text-ph)) calc(0px - var(--input-text-pw));
+
+    &:hover {
+        z-index: 50;
+        box-shadow: var(--ephemeral-hover-shadow);
+    }
+    &:focus, &:focus-within {
+        z-index: 50;
+        background-color: var(--ctrl-bg);
+        box-shadow: var(--focus-shadow);
+    }
 }
 
 

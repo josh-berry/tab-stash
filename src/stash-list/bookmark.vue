@@ -10,17 +10,22 @@
      :title="bookmark.title" :data-id="bookmark.id"
      :data-container-color="related_container_color"
      @click.prevent.stop="select">
-  <item-icon class="action select"
+  <item-icon :class="{'action': true, 'item-icon': true, select: true}"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
              @click.prevent.stop="select" />
-  <a class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
+  <a v-if="!isRenaming" class="text" :href="bookmark.url" target="_blank" draggable="false" ref="link"
      @click.left.prevent.stop="open"
      @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen">
      {{bookmark.title}}
   </a>
-  <ButtonBox>
+  <async-text-input v-else
+    class="text ephemeral"
+    :value="bookmark.title" :defaultValue="defaultTitle"
+    :save="rename" @done="isRenaming = false" />
+  <ButtonBox v-if="!isRenaming">
+    <Button class="rename" @action="isRenaming = true" tooltip="Rename" />
     <Button class="restore-remove" @action="openRemove"
             :tooltip="`Open this tab and delete it from the group `
                     + `(hold ${bgKey} to open in background)`" />
@@ -39,11 +44,20 @@ import {Tab} from '../model/tabs';
 import {Bookmark} from '../model/bookmarks';
 import {FaviconEntry} from '../model/favicons';
 
+type RelatedTabState = {
+    open: boolean,
+    active: boolean,
+    loading: boolean,
+    discarded: boolean,
+    title?: string,
+};
+
 export default defineComponent({
     components: {
         Button: require('../components/button.vue').default,
         ButtonBox: require('../components/button-box.vue').default,
         ItemIcon: require('../components/item-icon').default,
+        AsyncTextInput: require('../components/async-text-input.vue').default,
     },
 
     inject: ['$model'],
@@ -79,18 +93,24 @@ export default defineComponent({
             return container_color ?? undefined;
         },
 
-        tabState(): { open: boolean, active: boolean, loading: boolean, discarded: boolean } {
+        tabState(): RelatedTabState {
             let open: boolean = false, active: boolean = false, loading: boolean = false;
             let discarded = 0;
+            let title: string | undefined = undefined;
             for (const t of this.relatedTabs) {
                 if (!t.hidden && t.discarded) discarded++;
                 open = open || !t.hidden;
                 active = active || t.active;
                 loading = loading || t.status === 'loading';
+                if (t.title) title = t.title;
             }
             const tl = this.relatedTabs.length;
             return { open: !!open, active: !!active, loading: !!loading,
-                     discarded: tl > 0 && discarded === tl };
+                     discarded: tl > 0 && discarded === tl, title };
+        },
+
+        defaultTitle(): string {
+            return this.tabState.title ?? this.favicon?.value?.title ?? this.bookmark.title;
         },
 
         favicon(): FaviconEntry | null {
@@ -98,6 +118,10 @@ export default defineComponent({
             return this.model().favicons.get(this.bookmark.url);
         },
     },
+
+    data: () => ({
+        isRenaming: false,
+    }),
 
     methods: {
         // TODO make Vue injection play nice with TypeScript typing...
@@ -150,6 +174,11 @@ export default defineComponent({
             const bg = bgKeyPressed(ev);
             await this.model().restoreTabs([this.bookmark], {background: bg});
             await this.model().deleteBookmark(this.bookmark);
+        })},
+
+        rename(newName: string) { return this.model().attempt(async() => {
+            await this.model().bookmarks.rename(
+                this.bookmark, newName || this.defaultTitle);
         })},
     },
 });
