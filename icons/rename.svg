@@ -1,58 +1,70 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-    xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    xmlns:dc="http://purl.org/dc/elements/1.1/"
-    xmlns:cc="http://web.resource.org/cc/"
-    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-    version="1.1"
-    baseProfile="full"
-    width="96px"
-    height="96px"
-    viewBox="0 0 96 96"
-    preserveAspectRatio="xMidYMid meet"
-    id="svg_document"
-    style="zoom: 4;"
-  ><!-- Created with macSVG - https://macsvg.org/ - https://github.com/dsward2/macsvg/ --><title
-      id="svg_document_title"
-    >Untitled.svg</title
-  ><defs
-      id="svg_document_defs"
-  /><g
-      id="main_group"
-    ><rect
-        x="0px"
-        height="96px"
-        y="0px"
-        id="background_rect"
-        width="96px"
-        fill="none"
-    /></g
-  ><polyline
-      points="9.75,70 9.75,90 29.75,90 74.75,45 54.75,25 9.50,71"
-      stroke="#000000"
-      id="polyline1"
-      stroke-width="7px"
-      fill="none"
-      transform=""
-  /><polygon
-      points="60.5,20 80.5,40 90.5,30 70.5,10"
-      stroke="#000000"
-      id="polygon1"
-      stroke-width="7px"
-      fill="none"
-      transform=""
-  /><line
-      stroke="#000000"
-      y1="90px"
-      id="line1"
-      x1="40px"
-      stroke-width="6px"
-      y2="89.5px"
-      x2="60px"
-      transform=""
-  /></svg
->
+   id="svg10"
+   version="1.1"
+   viewBox="0 0 96 96"
+   height="96"
+   width="96"
+   sodipodi:docname="rename.svg"
+   inkscape:version="1.2.1 (9c6d41e, 2022-07-14)"
+   inkscape:export-filename="/Users/des/src/tab-stash/dist/icons/logo-64.png"
+   inkscape:export-xdpi="64"
+   inkscape:export-ydpi="64"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1504"
+     inkscape:window-height="1051"
+     id="namedview9"
+     showgrid="true"
+     inkscape:zoom="8.65625"
+     inkscape:cx="47.942238"
+     inkscape:cy="48"
+     inkscape:window-x="167"
+     inkscape:window-y="50"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg10"
+     inkscape:pagecheckerboard="0"
+     inkscape:snap-grids="true"
+     inkscape:snap-to-guides="false"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid817"
+       empspacing="2"
+       spacingx="3"
+       spacingy="3" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata16">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs14" />
+  <path
+     style="color:#000000;opacity:0.994;fill:#000000;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     d="m 12,60 c -3,6 -6,24 -6,24 0,3 3,6 6,6 0,0 18,-3 24,-6 C 42,81 90,30 90,30 90,18 78,6 66,6 66,6 15,54 12,60 Z m 6,0 36,-36 c 9,0 18,9 18,18 L 36,78 C 18,81 15,78 18,60 Z"
+     id="rect480"
+     sodipodi:nodetypes="zzzzcczccccc" />
+</svg>
