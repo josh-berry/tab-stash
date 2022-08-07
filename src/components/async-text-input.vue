@@ -2,9 +2,12 @@
 <input ref="$input" type="text"
        v-model="state.dirtyValue"
        :placeholder="defaultValue" :disabled="!! state.saving"
-       @mousedown.stop="; /* prevent parent from starting a drag */"
-       @blur="commit" @keyup.enter.prevent="commit"
-       @keyup.esc.prevent="cancel">
+       @mousedown.stop="" @mouseup.stop=""
+       @click.stop="" @auxclick.stop=""
+       @keydown.stop="" @keyup.stop="" @keypress.stop=""
+       @blur="commit"
+       @keyup.enter.prevent.stop="commit"
+       @keyup.esc.prevent.stop="cancel">
 </template>
 
 <script setup lang="ts">
