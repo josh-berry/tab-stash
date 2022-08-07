@@ -10,7 +10,8 @@
      :title="tab.title" :data-id="tab.id"
      :data-container-color="containerColor"
      @click.prevent.stop="select">
-  <item-icon :class="{'action': true,  'select': true, 'loading': isLoading }"
+  <item-icon :class="{'action': true, 'item-icon': true, 'select': true,
+                      'loading': isLoading}"
              :src="favIcon"
              :default-class="{'icon-tab': ! tab.$selected,
                               'icon-tab-selected-inverse': tab.$selected}"

@@ -10,7 +10,7 @@
      :title="bookmark.title" :data-id="bookmark.id"
      :data-container-color="related_container_color"
      @click.prevent.stop="select">
-  <item-icon :class="{'action':true, select:!isRenaming}"
+  <item-icon :class="{'action':true, 'item-icon': true, select:!isRenaming}"
              :src="! bookmark.$selected ? favicon?.value?.favIconUrl : ''"
              :default-class="{'icon-tab': ! bookmark.$selected,
                               'icon-tab-selected-inverse': bookmark.$selected}"
@@ -21,6 +21,7 @@
      {{bookmark.title}}
   </a>
   <async-text-input v-else
+    class="text ephemeral"
     :value="bookmark.title" :defaultValue="bookmark.title"
     :save="rename" @done="isRenaming = false" />
   <ButtonBox v-if="!isRenaming">
