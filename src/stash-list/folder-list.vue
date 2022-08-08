@@ -3,7 +3,9 @@
     class="folder-list"
     v-model="children"
     item-key="id"
-    :item-class="(f: Node) => ({hidden: ! ('children' in f) || ! f.$visible})"
+    :item-class="(f: Node) => ({
+      hidden: ! ('children' in f) || (! f.$visible && ! f.$visibleChildren)
+    })"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"

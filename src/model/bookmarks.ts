@@ -1,5 +1,4 @@
-import type {Ref} from "vue";
-import {computed, reactive, ref, watch} from "vue";
+import {computed, reactive, ref, watch, type Ref} from "vue";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
@@ -30,6 +29,7 @@ type NodeBase = {
 
   $selected: boolean;
   readonly $visible: boolean;
+  readonly $visibleChildren: boolean;
 };
 
 export type NodeID = string & {readonly __node_id: unique symbol};
@@ -511,6 +511,11 @@ export class Model {
     let node = this.by_id.get(nodeId);
     if (!node) {
       const $visible = computed(() => this.filter.value(node!));
+      const $visibleChildren = computed(() => {
+        if (!("children" in node!)) return false;
+        for (const c of this.childrenOf(node)) if (c.$visible) return true;
+        return false;
+      });
       const $selected = ref(false);
       watch($selected, (value, oldValue) => {
         // INVARIANT: Nodes outside the stash root must not be selected.
@@ -528,6 +533,7 @@ export class Model {
           title: new_bm.title ?? "",
           children: [],
           $visible,
+          $visibleChildren,
           $selected,
         });
       } else if (new_bm.type === "separator") {
@@ -538,6 +544,7 @@ export class Model {
           type: "separator" as "separator",
           title: "" as "",
           $visible,
+          $visibleChildren,
           $selected,
         });
       } else {
@@ -548,6 +555,7 @@ export class Model {
           title: new_bm.title ?? "",
           url: new_bm.url ?? "",
           $visible,
+          $visibleChildren,
           $selected,
         });
         this._add_url(node);

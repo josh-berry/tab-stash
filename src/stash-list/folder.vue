@@ -85,13 +85,26 @@
       >
         <template #item="{item}">
           <bookmark
-            v-if="isValidChild(item.node)"
+            v-if="'url' in item.node"
             :bookmark="item.node"
             :relatedTabs="item.tabs"
             :class="{'folder-item': true, 'no-match': !item.node.$visible}"
           />
+          <child-folder
+            v-else-if="'children' in item.node"
+            :folder="item.node"
+            :metadata="model().bookmark_metadata.get(item.id)"
+            :class="{
+              hidden: !item.node.$visible && !item.node.$visibleChildren,
+            }"
+          />
         </template>
       </dnd-list>
+
+      <div class="folder-item" @click.prevent.stop="newChildFolder">
+        <span class="indent" />
+        <span class="text status-text">+ New Folder</span>
+      </div>
       <div
         class="folder-item"
         v-if="filterCount > 0"
@@ -133,11 +146,13 @@ type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
 const DROP_FORMATS = ["application/x-tab-stash-items"];
 
 export default defineComponent({
+  name: "child-folder",
+
   components: {
-    Button,
-    ButtonBox,
-    DndList,
     AsyncTextInput,
+    ButtonBox,
+    Button,
+    DndList,
     Bookmark: BookmarkVue,
   },
 
@@ -290,7 +305,7 @@ export default defineComponent({
     },
 
     isValidChild(node: Node): boolean {
-      return "url" in node;
+      return "url" in node || "children" in node;
     },
 
     stash(ev: MouseEvent | KeyboardEvent) {
@@ -368,6 +383,15 @@ export default defineComponent({
         }
 
         await this.model().bookmarks.rename(this.folder, title);
+      });
+    },
+
+    newChildFolder() {
+      return this.attempt(async () => {
+        await this.model().bookmarks.create({
+          parentId: this.folder.id,
+          title: "Untitled",
+        });
       });
     },
 

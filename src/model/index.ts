@@ -533,7 +533,7 @@ export class Model {
     // already moving--in this case, we "steal" the other bookmark so we
     // don't create a duplicate.
     const dont_steal_bms = new Set<Bookmarks.NodeID>(
-      filterMap(items, i => (isBookmark(i) ? i.id : undefined)),
+      filterMap(items, i => (isNode(i) ? i.id : undefined)),
     );
 
     // Now, we move everything into the folder.  `to_index` is maintained as
@@ -550,8 +550,8 @@ export class Model {
       const item = items[i];
       const model_item = isModelItem(item) ? this.item(item.id) : undefined;
 
-      // If it's a bookmark, just move it directly.
-      if (model_item && isBookmark(model_item)) {
+      // If it's a bookmark node, just move it directly.
+      if (model_item && isNode(model_item)) {
         const pos = this.bookmarks.positionOf(model_item);
         await this.bookmarks.move(model_item.id, to_folder.id, to_index);
         moved_items.push(model_item);

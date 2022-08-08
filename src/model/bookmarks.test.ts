@@ -97,6 +97,7 @@ describe("model/bookmarks", () => {
     expect(model.node(new_bm.id as M.NodeID)).to.deep.equal({
       ...new_bm,
       $visible: true,
+      $visibleChildren: false,
       $selected: false,
     });
     expect(model.bookmarksWithURL("/new")).to.deep.equal(
@@ -104,6 +105,7 @@ describe("model/bookmarks", () => {
         {
           ...new_bm,
           $visible: true,
+          $visibleChildren: false,
           $selected: false,
         },
       ]),
