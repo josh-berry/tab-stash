@@ -181,7 +181,7 @@
 
     &:not(.disabled) {
         // If a selection is active and this is a candidate for selection, show
-        // an outline on the select button indicating the item can be selected.
+        // a background on the select button indicating the item can be selected.
         .selection-active & .action.select {
             background-color: var(--button-bg);
         }
@@ -194,6 +194,10 @@
 
         &:hover, &:focus-within {
             background-color: var(--item-hover-bg);
+
+            .action.select {
+                box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
+            }
 
             // Special highlighting behavior for using the icon to select the tab.
             &:not(.selected) .action.select {
