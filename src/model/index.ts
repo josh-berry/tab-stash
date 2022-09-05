@@ -435,10 +435,14 @@ export class Model {
     /** Moves or copies items (bookmarks, tabs, and/or external items) to a
      * particular location in a particular bookmark folder.
      *
-     * When `move` is true, if the source item is a bookmark, it will be moved
-     * directly (so the ID remains the same).  If it's a tab, the tab will be
-     * closed once the bookmark is created.  External items (without an ID) will
-     * simply be created as new bookmarks, regardless of `move`. */
+     * If the source item contains an ID and is a bookmark, it will be moved
+     * directly (so the ID remains the same).  If it contains an ID and is a
+     * tab, the tab will be closed once the bookmark is created.  Items without
+     * an ID will always be created as new bookmarks.
+     *
+     * If a bookmark with the same title/URL already exists in the folder, it
+     * will be moved into place instead of creating a new bookmark, so as to
+     * avoid creating duplicates. */
     async putItemsInFolder(options: {
         items: StashItem[],
         toFolderId: Bookmarks.NodeID,
@@ -546,11 +550,15 @@ export class Model {
      * moved/created/restored will NOT be active (i.e. they will always be in
      * the background).
      *
-     * When `move` is true, if the source item is a tab, it will be moved
-     * directly (so the ID remains the same).  If it's a bookmark, a new tab
-     * will be created or an existing hidden/closed tab will be restored and
-     * moved into the right place.  External items (without an ID) will simply
-     * be created as new tabs, regardless of `move`. */
+     * If the source item contains an ID and is a tab, it will be moved directly
+     * (so the ID remains the same).  If it contains an ID and is a bookmark, a
+     * tab will be put into the right place (see below), and the bookmark will
+     * be deleted.  External items (without an ID) will simply have tabs put
+     * into the right place.
+     *
+     * A tab is "put into the right place" either by moving an existing tab (and
+     * restoring it if it's a hidden tab), or creating a new tab, so as to avoid
+     * opening duplicate tabs. */
     async putItemsInWindow(options: {
         items: StashItem[],
         toWindowId?: Tabs.WindowID,
@@ -626,9 +634,6 @@ export class Model {
 
             // If the item we're moving is not a tab, we need to create a
             // new tab or restore an old one from somewhere else.
-            //
-            // TODO: Don't do too many of these at once because the browser
-            // will fall over.
 
             const url = item.url;
             if (! url) {
