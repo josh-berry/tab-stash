@@ -180,7 +180,7 @@ export default defineComponent({
             const statstip = `${child_count} stashed tab${
                 child_count != 1 ? 's' : ''} (${st.open} open, ${
                 st.discarded} unloaded, ${st.hidden} hidden)`;
-            return `${this.nonDefaultTitle ?? this.defaultTitle}\n${statstip}`;
+            return `${this.title}\n${statstip}`;
         },
 
         validChildren(): Bookmark[] {
