@@ -12,6 +12,7 @@ body:
     id: os-version
     attributes:
       label: OS Version
+      description: Which operating system were you using when the problem happened?
       placeholder: e.g. Windows 11, macOS 13, ...
     validations:
       required: true
@@ -20,6 +21,7 @@ body:
     id: browser-version
     attributes:
       label: Browser Version
+      description: What browser/browser version were you using when the problem happened?
       placeholder: e.g. Firefox 104.0
     validations:
       required: true
@@ -91,7 +93,7 @@ body:
     id: voting
     attributes:
       label: Voting
-      description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include the message in the issue itself.
+      description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include this message in the issue itself.
       options:
         - label: |
             <em>Readers: If you are also experiencing this bug, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button.  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system.</em>
