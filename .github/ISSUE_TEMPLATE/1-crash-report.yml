@@ -1,5 +1,6 @@
 name: Report a Crash
 description: Tab Stash notified you about a crash, and you have the crash details.
+labels: ["i-crash"]
 body:
   - type: markdown
     attributes:
