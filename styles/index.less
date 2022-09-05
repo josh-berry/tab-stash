@@ -196,12 +196,6 @@ html.metrics-compact { @import "metrics-compact"; }
 
 // Tabs (stashed or unstashed) within the stash list
 .tab {
-    .selection-active & > a{
-        // If we're in selection mode, hint to the user that clicking will
-        // select the tab instead of opening it.
-        cursor: default;
-    }
-
     & > a, & > a:visited {
         color: var(--link-fg);
         text-decoration: none;

@@ -134,10 +134,6 @@ export default defineComponent({
 
         open(ev: MouseEvent) { this.model().attempt(async () => {
             (<HTMLElement>this.$refs.link).blur();
-            if (this.model().selection.selectedCount.value > 0) {
-                this.select(ev);
-                return;
-            }
 
             if (! this.bookmark.url) return;
             const bg = bgKeyPressed(ev);
