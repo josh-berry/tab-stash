@@ -87,14 +87,14 @@ body:
     validations:
       required: false
       
-  - type: dropdown
+  - type: checkboxes
     id: voting
     attributes:
       label: Voting
-      description: (Just ignore this, it's here so GitHub will add a message to the bottom of new issues about how to vote for them.)
-      multiple: false
+      description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include the message in the issue itself.
       options:
-        - |
-          <em>Readers: If you are also experiencing this bug, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button.  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system.</em>
+        - label: |
+            <em>Readers: If you are also experiencing this bug, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button.  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system.</em>
+          required: true
     validations:
       required: true
