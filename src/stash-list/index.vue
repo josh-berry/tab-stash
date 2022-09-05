@@ -5,8 +5,8 @@
     <OopsNotification key="oops" v-if="showCrashReport" />
     <Notification key="new-features" v-if="recently_updated === 'features'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} now allows you to select and move multiple tabs
-      at once.  See what else is new!
+      Tab Stash {{my_version}} can now rename tabs in your stash, and switch
+      between showing "Unstashed Tabs" and "Open Tabs".  See what else is new!
     </Notification>
     <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
