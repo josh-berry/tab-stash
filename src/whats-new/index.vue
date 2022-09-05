@@ -8,6 +8,43 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.11">
+      <L :issue="168" :pr="258" thanks="sleak75" v="New:">Rename stashed tabs by
+      clicking the "Edit" icon.</L>
+
+      <L :issue="185" :pr="221" thanks="KerfuffleV2" v="New:">Show stats about
+      each group of stashed tabs by hovering over the stash name.</L>
+
+      <L :issue="116" v="Experiment Released:">Click the "Unstashed Tabs"
+      heading to toggle between showing all open/unpinned tabs and just
+      unstashed tabs.</L>
+
+      <L :issue="125" :pr="219" thanks="KerfuffleV2" v="New Experiment:">Show a
+      colorized marker for tabs which belong to a container.</L>
+
+      <L :issue="215" :pr="216" thanks="KerfuffleV2"
+      v="Improved:">Middle-clicking an open tab will now close it, and
+      middle-clicking a closed tab will now open it.</L>
+
+      <L :issue="129" v="Improved">performance when unstashing large numbers of
+      tabs, by lazily loading them only when activated.</L>
+
+      <L :issue="46" v="Improved:">Tab Stash will no longer create duplicate
+      tabs in a stash if a tab already exists in that stash.</L>
+
+      <L :pr="225" thanks="KerfuffleV2" v="Improved:">Display an animation while
+      a tab is being loaded.</L>
+
+      <L :pr="220" thanks="KerfuffleV2" v="Improved:">Tabs which are unloaded
+      now appear dimmed.</L>
+
+      <L :issue="240" :pr="241" thanks="KerfuffleV2" v="Fixed">an issue that may
+      cause high CPU usage when the stash is completely empty.</L>
+
+      <L :issue="[228, 272]" :pr="[233, 237, 241]" v="Fixed">various small
+      issues related to drag-and-drop, UI styling/behavior, and performance.</L>
+    </Version>
+
     <Version v="2.10.3">
       <L :issue="214" v="Fixed">a crash that may occur if website icons take too
       long to load when first opening the UI. ("NanoTimeoutError")</L>
