@@ -14,7 +14,7 @@ module.exports = env => ({
         "whats-new": "./src/whats-new/index.ts",
     },
     mode: env,
-    devtool: "inline-source-map",
+    devtool: env === 'development' ? 'source-map' : 'nosources-source-map',
     cache: {
         type: 'filesystem',
         buildDependencies: { config: [__filename] },

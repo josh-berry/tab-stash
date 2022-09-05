@@ -36,8 +36,8 @@
   },
   "scripts": {
     "build": "webpack --mode development && copyfiles -u 1 'assets/**/*' dist",
-    "build-rel": "webpack --mode production --devtool nosources-source-map && copyfiles -u 1 'assets/**/*' dist",
-    "build-styles": "lessc --math=strict --source-map styles/index.less dist/tab-stash.css",
+    "build-rel": "webpack --mode production && copyfiles -u 1 'assets/**/*' dist",
+    "build-styles": "lessc --math=strict styles/index.less dist/tab-stash.css",
     "test": "nyc --reporter=text --reporter=lcov --reporter=html mocha"
   }
 }
