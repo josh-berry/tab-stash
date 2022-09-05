@@ -1,0 +1,57 @@
+name: Feature Request / Missing Functionality
+description: You have an idea for improving Tab Stash, or you think something is missing that should be there.
+labels: ["i-enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest an improvement to Tab Stash!
+
+        To keep things organized, please put only ONE feature per request.  If you're not sure whether your idea would be one or multiple feature requests, it's better to err on the side of opening separate requests, since it's much easier to close duplicates than split a single request into multiple requests.
+
+  - type: textarea
+    attributes:
+      id: problem-stmt
+      label: Problem Statement
+      description: |
+        What problem are you trying to solve that this feature could help with?  Why is this feature important to you?  Be as concrete, specific and detailed as possible.
+
+        For example, "I have over 1,000,000 tabs stashed across 100,000 groups, and I can never find anything because scrolling takes a long time" clearly illustrates the scale and scope of the problem.  Whereas, "Missing search feature is a huge problem" is likely to be ignored because it doesn't provide any detail about WHY the lack of a search feature is a huge problem.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      id: preferred-solution
+      label: Preferred Solution(s)
+      description: Describe your ideal solution.  What is different from today?  What would the solution look like?  How would you use it to solve your problem?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      id: alt-solution
+      label: Alternative Solution(s)
+      description: Are there any other alternatives that would also solve your problem?  What would those alternatives look like?
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      id: details
+      label: Additional Context
+      description: Provide any other context/detail you think might be useful.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: voting
+    attributes:
+      label: Vote for This Issue
+      description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include this message in the issue itself.
+      options:
+        - label: |
+            _Readers: If you are also interested in seeing this feature be developed, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button below.  You are welcome to leave comments and discuss the feature request, but "Me too!" comments are not counted by the voting system._
+          required: true
+    validations:
+      required: true

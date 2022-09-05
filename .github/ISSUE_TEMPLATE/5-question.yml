@@ -1,0 +1,12 @@
+name: Ask a Question
+description: Use this if no other template seems to fit.
+labels: ["i-support request"]
+body:
+  - type: textarea
+    attributes:
+      id: question
+      label: Question
+      description: |
+        Type your question here. The more context and detail you provide up-front, the easier it will be to respond quickly and accurately.
+
+        [**PLEASE NOTE**: If you're using this form just to avoid having to answer the more detailed questions in the other forms, that won't work. I'm just going to ask you those questions anyway, and it'll drag the whole process out.  You're not gonna upset me or anything, you can use this form if you want, I just thought you should know. :smiley:]
