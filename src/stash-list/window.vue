@@ -188,7 +188,8 @@ export default defineComponent({
             // This filter keeps the active tab if it's the Tab Stash tab, or a
             // new tab (so we can avoid creating new tabs unnecessarily).
             const to_remove = this.visibleChildren
-                .filter(t => ! t.active || model.isURLStashable(t.url));
+                .filter(t => ! t.active || model.isURLStashable(t.url))
+                .filter(t => ! model.bookmarks.isURLStashed(t.url));
             await model.tabs.remove(to_remove.map(t => t.id));
         })},
 
