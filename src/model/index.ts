@@ -306,6 +306,7 @@ export class Model {
             affected_items = await this.putItemsInFolder({
                 items,
                 toFolderId: options.toFolderId,
+                allowDuplicates: options?.copy === true,
             });
         }
         if (!options?.copy) {
@@ -447,6 +448,7 @@ export class Model {
         items: StashItem[],
         toFolderId: Bookmarks.NodeID,
         toIndex?: number,
+        allowDuplicates?: boolean,
         task?: TaskMonitor,
     }): Promise<Bookmarks.Node[]> {
         // First we try to find the folder we're moving to.
@@ -505,13 +507,15 @@ export class Model {
             // If it's a tab, mark the tab for closure.
             if (isTab(item)) close_tab_ids.push(item.id);
 
-            // Otherwise, check if there's a duplicate in the current folder
-            // which we can steal.  If so, we move it.  Otherwise, we just create a
-            // new bookmark.  Unlike putItemsInWindow(), we look at both title
-            // and url here since the user might have renamed the bookmark.
+            // Otherwise, if we're not allowing duplicates, check if there's a
+            // duplicate in the current folder which we can steal.  If so, we
+            // move it.  Otherwise, we just create a new bookmark.  Unlike
+            // putItemsInWindow(), we look at both title and url here since the
+            // user might have renamed the bookmark.
             let node;
             const already_there = this.bookmarks.childrenOf(to_folder)
-                .filter(bm => ! dont_steal_bms.has(bm.id)
+                .filter(bm => ! options.allowDuplicates
+                    && ! dont_steal_bms.has(bm.id)
                     && 'url' in bm
                     && (item.title ? item.title === bm.title : true)
                     && bm.url === item.url);

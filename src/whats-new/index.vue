@@ -30,7 +30,7 @@
       tabs, by lazily loading them only when activated.</L>
 
       <L :issue="46" v="Improved:">Tab Stash will no longer create duplicate
-      tabs in a stash if a tab already exists in that stash.</L>
+      tabs when moving into a stash if a tab already exists in that stash.</L>
 
       <L :pr="225" thanks="KerfuffleV2" v="Improved:">Display an animation while
       a tab is being loaded.</L>
