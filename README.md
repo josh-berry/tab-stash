@@ -25,14 +25,18 @@ Unfortunately, building on Windows is not supported due to the multiple build
 steps involved (although patches to make the build more cross-platform are
 welcome).  Here's what you need to do:
 
-1. Install dependencies:
+1. Install dependencies.  You can use the handy `install-deps.sh` script to do
+   it automatically on supported OSes/distros (latest macOS and Ubuntu 22.04 are
+   known to work).  Or if you prefer to do it manually, install the following:
 
-   - GNU `make`, `git`, `patch`, `rsync`, `zip` (plus the usual set of standard
-     UNIX utilities like `mkdir`, `sed`, etc.)
+   - GNU `make`, `git`, `diff`, `patch`, `rsync`, `zip` (plus the usual set of
+     standard UNIX utilities like `mkdir`, `sed`, etc.)
 
-   - Node.js and `npm` (the latest "Current" release)
+   - Node.js and `npm` (the latest "Current" or "LTS" release)
 
-   - Inkscape (the CLI must be available as `inkscape` in your PATH)
+   - Inkscape version 1.0 or newer--the CLI must be available as `inkscape` in
+     your PATH.  (Note that Inkscape is known *not* to work when installed via
+     `snap`; if you're on Ubuntu, please install it with `apt-get` instead.)
 
 2. **To build a debug/development version:** Run `make`.  (You can use `-j<...>`
    if you want for a parallel build.)
