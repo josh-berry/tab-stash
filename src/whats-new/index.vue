@@ -8,6 +8,10 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.11.0.1">
+      <L v="Fixed">a build issue identified by Mozilla during review.</L>
+    </Version>
+
     <Version v="2.11">
       <L :issue="168" :pr="258" thanks="sleak75" v="New:">Rename stashed tabs by
       clicking the "Edit" icon.</L>
