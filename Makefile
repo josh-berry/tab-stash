@@ -73,8 +73,8 @@ pkg-webext: clean-working-tree build-rel
 pkg-source: clean-working-tree
 	mkdir -p $(RELEASE_DIR)
 	rm -rf $(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG)
-	git fetch -f origin
-	git clone --depth 1 -b v$(VERSION) . $(RELEASE_DIR)/$(SRCPKG_DIR)
+	git clone -b v$(VERSION) . $(RELEASE_DIR)/$(SRCPKG_DIR)
+	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) fetch -f origin
 	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) gc --aggressive
 	tar -C $(RELEASE_DIR) -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
