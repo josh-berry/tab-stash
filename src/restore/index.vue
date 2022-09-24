@@ -1,8 +1,8 @@
 <template>
 <main>
-    <aside class="notification-overlay">
-        <Notification v-if="copied">Copied</Notification>
-    </aside>
+    <transition-group tag="aside" class="notification-overlay" appear name="notification">
+        <Notification v-if="copied" @dismiss="closeNotif">Copied</Notification>
+    </transition-group>
 
     <div class="icon-warning" />
 
@@ -39,7 +39,7 @@ export default defineComponent({
     },
 
     data: () => ({
-        copied: false,
+        copied: undefined as ReturnType<typeof setTimeout> | undefined,
     }),
 
     computed: {
@@ -59,9 +59,14 @@ export default defineComponent({
             document.execCommand('copy');
             window.getSelection()!.removeAllRanges();
 
-            this.copied = true;
-            setTimeout(() => { this.copied = false; }, 3000);
-        }
+            clearTimeout(this.copied);
+            this.copied = setTimeout(() => this.closeNotif(), 3000);
+        },
+
+        closeNotif() {
+            clearTimeout(this.copied);
+            this.copied = undefined;
+        },
     },
 });
 </script>
