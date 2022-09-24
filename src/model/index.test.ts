@@ -669,7 +669,7 @@ describe('model', () => {
 
             const folder = model.bookmarks.folder(bookmarks.names.id)!;
 
-            expect(filterMap(res, r => 'url' in r ? r.url : undefined))
+            expect(filterMap(res, r => (r as M.Bookmarks.Bookmark).url))
                 .to.deep.equal(urls);
 
             expect(folder.children).to.deep.equal(expectedIds);
@@ -1026,7 +1026,7 @@ describe('model', () => {
     describe('restores tabs', () => {
         beforeEach(() => {
             expect(model.tabs.initialWindow.value).to.equal(windows.real.id);
-            expect(model.tabs.activeTab()?.url).to.equal(B);
+            expect(model.tabs.activeTab()!.url).to.equal(B);
         });
 
         it('restores a single hidden tab', async () => {

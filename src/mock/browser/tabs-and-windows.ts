@@ -5,6 +5,9 @@ import * as events from '../events';
 type Window = Omit<W.Window, 'id' | 'tabs'> & {id: number, tabs: Tab[]};
 type Tab = Omit<T.Tab, 'id' | 'windowId'> & {id: number, windowId: number};
 
+// istanbul ignore next
+const defer = setImmediate ?? ((x: () => void) => Promise.resolve().then(x));
+
 class State {
     readonly onWindowCreated: events.MockEvent<(window: W.Window) => void>;
     readonly onWindowRemoved: events.MockEvent<(windowId: number) => void>;
@@ -250,7 +253,7 @@ class MockWindows implements W.Static {
             };
             win.tabs.push(tab);
             this._state.onTabCreated.send(JSON.parse(JSON.stringify(tab)));
-            (setImmediate ?? setTimeout)(() => {
+            defer(() => {
                 tab.status = 'complete';
                 this._state.onTabUpdated.send(tab.id, {status: 'complete'},
                     JSON.parse(JSON.stringify(tab)));
@@ -765,7 +768,7 @@ class MockTabs implements T.Static {
     }
 
     _finish_loading(t: Tab) {
-        (setImmediate ?? setTimeout)(() => {
+        defer(() => {
             t.status = 'complete';
             this.onUpdated.send(t.id, {status: 'complete'}, JSON.parse(JSON.stringify(t)));
         });
