@@ -278,7 +278,7 @@ export default defineComponent({
         drag(ev: DragAction<NodeWithTabs>) {
             const items = ev.value.node.$selected
                 ? Array.from(this.model().selectedItems())
-                : [ev.value];
+                : [ev.value.node];
             ev.dataTransfer.setData('application/x-tab-stash-items',
                 JSON.stringify(items));
         },
