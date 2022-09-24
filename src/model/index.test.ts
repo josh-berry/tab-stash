@@ -77,7 +77,7 @@ describe('model', () => {
         await events.watch(['EventfulMap.onInsert', 'EventfulMap.onUpdate']).untilNextTick();
         expect(tab_model.window(windows.left.id)!.tabs.length).to.equal(3);
         expect(tab_model.window(windows.right.id)!.tabs.length).to.equal(3);
-        expect(tab_model.window(windows.real.id)!.tabs.length).to.equal(10);
+        expect(tab_model.window(windows.real.id)!.tabs.length).to.equal(11);
         expect(bm_model.stash_root.value!.id).to.equal(bookmarks.stash_root.id);
     });
 
@@ -197,7 +197,8 @@ describe('model', () => {
                     tabs.real_bob.id,
                     tabs.real_doug.id,
                     tabs.real_estelle.id,
-                    tabs.real_francis.id
+                    tabs.real_francis.id,
+                    tabs.real_unstashed.id,
                 ]);
         });
 
@@ -697,6 +698,8 @@ describe('model', () => {
                 .to.deep.equal(children.map(c => tabs[c].id));
 
             const win = model.tabs.window(windows[windowName].id)!;
+            // console.log(win.tabs);
+            // console.log(children.map(c => ({[c]: tabs[c].id})));
             expect(win.tabs.map(c => model.tabs.tab(c)!.url), "Model tab URLs")
                 .to.deep.equal(children.map(c => tabs[c].url));
             expect(win.tabs, "Model tab IDs")
@@ -724,7 +727,7 @@ describe('model', () => {
             await check_window('real', [
                 'real_patricia', 'real_paul', 'real_blank', 'real_bob',
                 'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
-                'real_harry', 'real_helen',
+                'real_harry', 'real_unstashed', 'real_helen',
             ]);
         });
 
@@ -737,33 +740,29 @@ describe('model', () => {
                     'real_bob',
                     'real_patricia', 'real_paul', 'real_blank',
                     'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
-                    'real_harry', 'real_helen',
+                    'real_harry', 'real_unstashed', 'real_helen',
                 ],
             }));
 
             it('to almost the end', testMove({
                 items: ['real_bob'],
                 toWindow: 'real',
-                toIndex: 9,
+                toIndex: 10,
                 finalState: [
                     'real_patricia', 'real_paul', 'real_blank',
                     'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
-                    'real_harry',
-                    'real_bob',
-                    'real_helen',
+                    'real_harry', 'real_unstashed', 'real_bob', 'real_helen',
                 ],
             }));
 
             it('to the end', testMove({
                 items: ['real_bob'],
                 toWindow: 'real',
-                toIndex: 10,
+                toIndex: 11,
                 finalState: [
                     'real_patricia', 'real_paul', 'real_blank',
                     'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
-                    'real_harry',
-                    'real_helen',
-                    'real_bob',
+                    'real_harry', 'real_unstashed', 'real_helen', 'real_bob',
                 ],
             }));
 
@@ -775,7 +774,7 @@ describe('model', () => {
                     'real_patricia', 'real_paul', 'real_blank',
                     'real_doug', 'real_doug_2', 'real_estelle',
                     'real_bob',
-                    'real_francis', 'real_harry', 'real_helen',
+                    'real_francis', 'real_harry', 'real_unstashed', 'real_helen',
                 ],
             }));
 
@@ -787,7 +786,7 @@ describe('model', () => {
                     'real_patricia', 'real_paul',
                     'real_francis',
                     'real_blank', 'real_bob', 'real_doug', 'real_doug_2',
-                    'real_estelle', 'real_harry', 'real_helen',
+                    'real_estelle', 'real_harry', 'real_unstashed', 'real_helen',
                 ],
             }));
 
@@ -799,7 +798,7 @@ describe('model', () => {
                     'real_patricia', 'real_paul', 'real_blank',
                     'real_doug', 'real_estelle',
                     'real_bob', 'real_doug_2',
-                    'real_francis', 'real_harry', 'real_helen',
+                    'real_francis', 'real_harry', 'real_unstashed', 'real_helen',
                 ],
             }));
 
@@ -811,7 +810,7 @@ describe('model', () => {
                     'real_patricia', 'real_paul',
                     'real_estelle', 'real_harry',
                     'real_blank', 'real_bob', 'real_doug', 'real_doug_2',
-                    'real_francis', 'real_helen',
+                    'real_francis', 'real_unstashed', 'real_helen',
                 ],
             }));
 
@@ -822,7 +821,7 @@ describe('model', () => {
                 finalState: [
                     'real_patricia', 'real_blank', 'real_doug',
                     'real_paul', 'real_bob', 'real_francis', 'real_harry',
-                    'real_doug_2', 'real_estelle', 'real_helen',
+                    'real_doug_2', 'real_estelle', 'real_unstashed', 'real_helen',
                 ],
             }));
 
@@ -833,7 +832,7 @@ describe('model', () => {
                 finalState: [
                     'real_patricia', 'real_blank', 'real_bob',
                     'real_paul', 'real_doug', 'real_doug_2', 'real_harry',
-                    'real_estelle', 'real_francis', 'real_helen',
+                    'real_estelle', 'real_francis', 'real_unstashed', 'real_helen',
                 ],
             }));
 
@@ -844,7 +843,7 @@ describe('model', () => {
                 finalState: [
                     'real_patricia', 'real_paul', 'real_blank', 'real_bob',
                     'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
-                    'real_harry', 'real_helen',
+                    'real_harry', 'real_unstashed', 'real_helen',
                 ],
             }));
         });
@@ -980,6 +979,48 @@ describe('model', () => {
                 url: bookmarks.nate.url,
             });
         });
+
+        it('moves bookmarks with hidden tabs into the window (backward)', async() => {
+            const p = model.putItemsInWindow({
+                items: [
+                    model.bookmarks.bookmark(bookmarks.helen.id)!,
+                ],
+                toWindowId: windows.real.id,
+                toIndex: 9,
+            });
+            await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onUpdated);
+            await events.next(browser.bookmarks.onRemoved);
+            await events.next('KVS.Memory.onSet');
+            await p;
+
+            await check_window('real', [
+                'real_patricia', 'real_paul', 'real_blank', 'real_bob',
+                'real_doug', 'real_doug_2', 'real_estelle', 'real_francis',
+                'real_harry', 'real_helen', 'real_unstashed'
+            ]);
+        });
+
+        it('moves bookmarks with hidden tabs into the window (forward)', async() => {
+            const p = model.putItemsInWindow({
+                items: [
+                    model.bookmarks.bookmark(bookmarks.doug_2.id)!,
+                ],
+                toWindowId: windows.real.id,
+                toIndex: 9,
+            });
+            await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onUpdated);
+            await events.next(browser.bookmarks.onRemoved);
+            await events.next('KVS.Memory.onSet');
+            await p;
+
+            await check_window('real', [
+                'real_patricia', 'real_paul', 'real_blank', 'real_bob',
+                'real_doug', 'real_estelle', 'real_francis',
+                'real_harry', 'real_doug_2', 'real_unstashed', 'real_helen',
+            ]);
+        });
     });
 
     describe('restores tabs', () => {
@@ -989,12 +1030,13 @@ describe('model', () => {
         });
 
         it('restores a single hidden tab', async () => {
-            await model.restoreTabs([{url: `${B}#harry`}], {});
-            await events.next(browser.tabs.onUpdated);
+            const p = model.restoreTabs([{url: `${B}#harry`}], {});
             await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onActivated);
             await events.next(browser.tabs.onHighlighted);
             await events.next(browser.tabs.onRemoved); // closing new-tab page
+            await p;
 
             const restored = model.tabs.tab(tabs.real_harry.id)!;
             expect(restored.hidden).to.be.false;
@@ -1023,8 +1065,8 @@ describe('model', () => {
         it('restores multiple tabs', async () => {
             const p = model.restoreTabs([
                 {url: `${B}#harry`}, {url: `${B}#new-restored`}], {});
-            await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
+            await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onCreated);
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onActivated);
@@ -1046,6 +1088,7 @@ describe('model', () => {
                 tabs.real_doug_2.id,
                 tabs.real_estelle.id,
                 tabs.real_francis.id,
+                tabs.real_unstashed.id,
                 tabs.real_helen.id,
                 tabs.real_harry.id,
                 restored[1].id,
@@ -1056,10 +1099,10 @@ describe('model', () => {
             const p = model.restoreTabs(
                 [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`]
                     .map(url => ({url})), {});
+                await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onUpdated);
             await events.next(browser.tabs.onMoved);
             await events.next(browser.tabs.onUpdated);
-            await events.next(browser.tabs.onMoved);
             const new_betty = (await events.next(browser.tabs.onCreated))[0];
             await events.next(browser.tabs.onMoved);
             const new_paul = (await events.next(browser.tabs.onCreated))[0];
@@ -1087,6 +1130,7 @@ describe('model', () => {
                 tabs.real_bob.id,
                 tabs.real_estelle.id,
                 tabs.real_francis.id,
+                tabs.real_unstashed.id,
                 tabs.real_helen.id,
                 tabs.real_harry.id,
                 tabs.real_doug_2.id,

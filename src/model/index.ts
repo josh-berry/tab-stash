@@ -603,6 +603,9 @@ export class Model {
             return i.id;
         }));
 
+        // console.log('options', options);
+        // console.log('dont_steal_tabs', dont_steal_tabs);
+
         // Now, we move/restore tabs.
         const moved_items: Tabs.Tab[] = [];
         const delete_bm_ids: Bookmarks.Bookmark[] = [];
@@ -615,6 +618,8 @@ export class Model {
         ) {
             const item = items[i];
             const model_item = item.id !== undefined ? this.item(item.id) : undefined;
+
+            // console.log('processing', item);
 
             // If the item we're moving is a tab, just move it into place.
             if (isTab(model_item)) {
@@ -629,6 +634,7 @@ export class Model {
                     // toIndex so the moved tab ends up in the right place.
                     --to_index;
                 }
+                // console.log('moved tab', model_item, 'to position', {to_win_id, to_index});
                 continue;
             }
 
@@ -643,6 +649,7 @@ export class Model {
             if (! url) {
                 // No URL? Don't bother restoring anything.
                 --to_index;
+                // console.log('item has no URL', item);
                 continue;
             }
 
@@ -660,18 +667,23 @@ export class Model {
             if (already_open.length > 0) {
                 const t = already_open[0];
                 const pos = this.tabs.positionOf(t);
+                // console.log('already-open tab: ', t, pos);
+                // console.log('existing layout:', this.tabs.window(t.windowId)?.tabs);
 
                 // First move the tab into place, and then show it (if hidden).
                 // If we show and then move, it will briefly appear in a random
                 // location before moving to the desired location, so doing the
                 // move first reduces flickering in the UI.
-                await browser.tabs.move(t.id, {windowId: to_win_id, index: to_index});
+                await this.tabs.move(t.id, to_win_id, to_index);
                 if (t.hidden && !! browser.tabs.show) await browser.tabs.show(t.id);
+
+                // console.log('new layout:', this.tabs.window(t.windowId)?.tabs);
 
                 if (pos && pos.window === win && pos.index < to_index) --to_index;
                 moved_items.push(t);
                 dont_steal_tabs.add(t.id);
                 await this.tabs.setSelected([t], !!item.$selected);
+                // console.log('moved already-open tab', t);
                 continue;
             }
 
@@ -700,6 +712,7 @@ export class Model {
                 moved_items.push(tab);
                 dont_steal_tabs.add(tab.id);
                 await this.tabs.setSelected([tab], !!item.$selected);
+                // console.log('restored recently-closed tab', tab);
                 continue;
             }
 
@@ -712,6 +725,7 @@ export class Model {
             moved_items.push(tab);
             dont_steal_tabs.add(tab.id);
             await this.tabs.setSelected([tab], !!item.$selected);
+            // console.log('created new tab', tab);
         }
 
         // Delete bookmarks for all the tabs we restored.  We use the same

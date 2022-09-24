@@ -52,6 +52,7 @@ const WINDOWS = {
         {id: 'real_estelle', url: `${B}#estelle`},
         {id: 'real_francis', url: `${B}#francis`},
         {id: 'real_harry', url: `${B}#harry`, hidden: true},
+        {id: 'real_unstashed', url: `${B}#unstashed`},
         {id: 'real_helen', url: `${B}#helen`, hidden: true},
     ],
 } as const;
