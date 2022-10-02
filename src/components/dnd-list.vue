@@ -52,11 +52,6 @@ const DND = reactive({
     /** Where are we dragging to?  (If we have a valid drop target.) */
     dropping: undefined as undefined | DragLocation,
 
-    /** A list of recent drop targets, used to debounce DnD so we don't flicker
-     * back and forth between multiple drop targets rapidly (e.g. due to page
-     * reflowing). */
-    recentDropTargets: [] as DragLocation[],
-
     /** An in-progress drop operation--once the user releases the mouse button,
      * we start the async drop() function, and while it's running, this is set
      * to the drop action. */
@@ -176,7 +171,6 @@ export default defineComponent({
                 DND.dragging = {parent: this, index};
                 DND.dropping = {parent: this, index};
                 DND.ghostStyle = {width: rect.width, height: rect.height};
-                DND.recentDropTargets = [DND.dropping];
             });
         },
 
@@ -189,12 +183,24 @@ export default defineComponent({
             DND.dragging = undefined;
             DND.dropping = undefined;
             DND.ghostStyle = undefined;
-            DND.recentDropTargets = [];
         },
 
         /** Fired when an item that is being dragged enters an element. */
         itemDragEnter(ev: DragEvent, index: number) {
             if (! this.allowDropHere(ev)) return;
+
+            // Make the ghost mimic the size of the element it's about to enter,
+            // as a way of debouncing.  This (mostly) guarantees that the ghost
+            // will remain under the mouse cursor when it moves to its new
+            // position, avoiding constant flickering/reshuffling if the ghost
+            // enters/leaves a particular position as a result of the list being
+            // re-flowed after moving the ghost.
+            const el = this.dndElement(ev);
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                DND.ghostStyle = {width: rect.width, height: rect.height};
+            }
+
             this.moveGhost(index);
         },
 
@@ -221,13 +227,6 @@ export default defineComponent({
         ghostDragEnter(ev: DragEvent) {
             ev.preventDefault(); // allow dropping here
             ev.stopPropagation(); // consume the (potential) drop
-
-            // If the mouse pointer enters the ghost, allow moving away from the
-            // ghost back towards an earlier target.  (We shift() instead of
-            // clearing the list to allow for a phase transition--if we keep
-            // settling on one particular position, the shift() will allow us to
-            // settle on the other instead.)
-            DND.recentDropTargets.shift();
         },
 
         /** Fired on the "ghost" element repeatedly while the cursor is inside
@@ -274,25 +273,14 @@ export default defineComponent({
             }
             index = Math.min(index, this.displayItems.length);
 
-            // Debouncing -- if we have chosen this as a drop target recently,
-            // we should not choose it again, because we're likely to bounce
-            // back and forth between the two targets.
-            if (! DND.recentDropTargets.find(dt =>
-                    dt.parent === this && dt.index === index))
-            {
-                // PERFORMANCE: If we're only switching indexes in the same
-                // parent, make sure that's the only field we touch.
-                if (DND.dropping) {
-                    if (DND.dropping.parent !== this) DND.dropping.parent = this;
-                    if (DND.dropping.index !== index) DND.dropping.index = index;
-                } else {
-                    DND.dropping = {parent: this, index};
-                }
-
-                DND.recentDropTargets.push({parent: this, index});
-                while (DND.recentDropTargets.length > 2) {
-                    DND.recentDropTargets.shift();
-                }
+            // PERFORMANCE: If we're only switching indexes in the same parent,
+            // make sure that's the only field we touch.  Otherwise Vue will
+            // update every single <dnd-list> in the page.
+            if (DND.dropping) {
+                if (DND.dropping.parent !== this) DND.dropping.parent = this;
+                if (DND.dropping.index !== index) DND.dropping.index = index;
+            } else {
+                DND.dropping = {parent: this, index};
             }
         },
 
@@ -336,7 +324,6 @@ export default defineComponent({
                     DND.dragging = undefined;
                     DND.dropping = undefined;
                     DND.dropTask = undefined;
-                    DND.recentDropTargets = [];
                     DND.ghostStyle = undefined;
                     this.modelSnapshot = undefined;
                 });
