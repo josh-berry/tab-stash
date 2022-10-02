@@ -12,8 +12,8 @@
         <component :is="itemIs || 'li'"
                 :style="draggingIndex === index ? 'display: none' : ''"
                 :class="itemClass && itemClass(item, index)"
-                :ref="el => {listEls[index] = el}"
-                @mousedown.stop="enableDrag(index)" @mouseup.stop="disableDrag(index)"
+                ref="dndElements"
+                @mousedown.stop="enableDrag" @mouseup.stop="disableDrag"
                 @dragstart="itemDragStart($event, index)" @dragend="itemDragEnd"
                 @dragenter="itemDragEnter($event, index)" @dragover="itemDragOver"
                 @drop="doDrop">
@@ -85,24 +85,12 @@ export default defineComponent({
     },
 
     data: () => ({
-        /** An array of HTMLElements for each item in the list.  Used to compute
-         * the size of the ghost (which should mimic the size of the item being
-         * dragged).
-         *
-         * The `| null` is required by Vue--it can happen when a component is in
-         * the process of being unmounted (AFAICT). */
-        listEls: [] as (HTMLElement | null)[],
-
         /** A snapshot of the model saved before beginning an actual drop
          * operation, which is shown to the user until the drop operation
          * completes.  This buffering ensures the user doesn't see any
          * flickering during the drop. */
         modelSnapshot: undefined as undefined | any[],
     }),
-
-    beforeUpdate() {
-        this.listEls = [];
-    },
 
     computed: {
         draggingIndex(): number | undefined {
@@ -131,26 +119,40 @@ export default defineComponent({
     },
 
     methods: {
+        /** Given a DOM Event, locate the corresponding element in the DOM for
+         * the DnD item. */
+        dndElement(ev: Event): HTMLElement | undefined {
+            if (! (this.$refs.dndElements instanceof Array)) return;
+            let t = ev.target;
+            while (t instanceof HTMLElement) {
+                if (this.$refs.dndElements.includes(t)) return t;
+                t = t.parentElement;
+            }
+            return undefined;
+        },
+
         /** We only set `draggable="true"` on the dragged element when we
          * actually want to start dragging.  This allows for children of the
          * draggable element to intercept mousedown events to prevent dragging,
          * so that such children can be interacted with. */
-        enableDrag(index: number) {
-            const el = this.listEls[index];
+        enableDrag(ev: DragEvent) {
+            const el = this.dndElement(ev);
             if (el) el.draggable = true;
         },
 
         /** Undo the effect of enableDrag() -- see that method for details. */
-        disableDrag(index: number) {
-            const el = this.listEls[index];
+        disableDrag(ev: DragEvent) {
+            const el = this.dndElement(ev);
             if (el) el.draggable = false;
         },
 
         /** Fired on the source location at the very beginning/end of the op */
         itemDragStart(ev: DragEvent, index: number) {
+            const dndElement = this.dndElement(ev);
+
             // Now that the drag has started, undo the effect of enableDrag() as
             // explained there.
-            this.disableDrag(index);
+            this.disableDrag(ev);
             ev.stopPropagation();
 
             if (DND.dropTask) {
@@ -168,10 +170,9 @@ export default defineComponent({
             // setTimeout() to work around a Chrome bug described here:
             // https://stackoverflow.com/questions/19639969/html5-dragend-event-firing-immediately
             setTimeout(() => {
-                const el = this.listEls[index];
-                if (! el) return;
+                if (! dndElement) return;
 
-                const rect = el.getBoundingClientRect();
+                const rect = dndElement.getBoundingClientRect();
                 DND.dragging = {parent: this, index};
                 DND.dropping = {parent: this, index};
                 DND.ghostStyle = {width: rect.width, height: rect.height};
