@@ -8,6 +8,19 @@
 
   <div class="folder-list one-column">
 
+    <Version v="2.11.1">
+      <L :issue="295" v="Fixed">an issue that prevented drag-and-drop of two
+      consecutive items in the same stash.</L>
+
+      <L :issue="293" v="Fixed:">When dragging a single tab out of the stash and
+      back into the window, actually restore the tab instead of deleting it.</L>
+
+      <L v="Fixed">an issue that occasionally caused tabs to be restored in the
+      wrong position.  When dragging tabs out of the stash and back into the
+      window, they are now placed in the correct position relative to other open
+      tabs.</L>
+    </Version>
+
     <Version v="2.11.0.1">
       <L v="Fixed">a build issue identified by Mozilla during review.</L>
     </Version>

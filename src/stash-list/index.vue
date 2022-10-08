@@ -10,8 +10,8 @@
     </Notification>
     <Notification key="new-fixes" v-if="recently_updated === 'fixes'"
                   @activate="go('whats-new.html')" @dismiss="hideWhatsNew">
-      Tab Stash {{my_version}} includes bug fixes and performance improvements.
-      See what's new!
+      Tab Stash {{my_version}} includes bug fixes for issues related to
+      drag-and-drop.  See what's new!
     </Notification>
     <Notification key="stash-root-warning" v-if="stash_root_warning"
                   @activate="stash_root_warning.help">
