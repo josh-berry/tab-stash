@@ -1,4 +1,5 @@
 <template>
+<component is="style" v-if="user_style_override" v-text="user_style_override"></component>
 <main :class="{'selection-active': selection_active}" tabindex="0"
       @click="deselectAll" @keydown.esc.prevent.stop="onEscape">
   <transition-group tag="aside" class="notification-overlay" appear name="notification">
@@ -109,6 +110,9 @@ export default defineComponent({
     }),
 
     computed: {
+        user_style_override() {
+            return this.model().options.local.state.user_style_override ?? '';
+        },
         stash_root_warning(): {text: string, help: () => void} | undefined {
             return this.model().bookmarks.stash_root_warning.value;
         },
