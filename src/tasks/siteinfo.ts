@@ -2,6 +2,9 @@ import browser, {Tabs} from 'webextension-polyfill';
 
 import {AsyncChannel, TaskMonitor, Task} from '../util';
 
+// How many concurrent fetches do we want to allow?
+const MAX_CONCURRENT_FETCHES = 4;
+
 // How long do we wait for initial loading of the tab to complete?
 const LOADING_TIMEOUT = 30000; /* ms */
 
@@ -40,20 +43,26 @@ export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):
         while (urls.length > 0) {
             const url = urls.pop()!;
             tm.status = url;
-            try {
-                chan.send(await fetchSiteInfo(url));
-            } catch (e) {
-                chan.send({
-                    originalUrl: url,
-                    error: e,
-                });
+            for (let retry_count = 3; retry_count > 0; ) {
+                try {
+                    chan.send(await fetchSiteInfo(url));
+                    break;
+                } catch (e) {
+                    --retry_count;
+                    if (retry_count > 0) continue;
+                    chan.send({
+                        originalUrl: url,
+                        error: e,
+                    });
+                    break;
+                }
             }
             tm.value = max - urls.length;
             if (parent_tm.cancelled) break;
         }
     };
 
-    let fiber_count = Math.min(4, urls.length);
+    let fiber_count = Math.min(MAX_CONCURRENT_FETCHES, urls.length);
     const fiber_weight = urls.length/fiber_count;
 
     const fibers: Task<void>[] = [];
@@ -77,6 +86,12 @@ export function fetchInfoForSites(urlset: Set<string>, tm: TaskMonitor):
 // Fetch the title and favicon of a site by loading the site in a new temporary
 // tab.  The tab should not be used for anything else until this function's
 // Promise resolves.
+//
+// If the tab is closed before site info can be fetched, a TabRemovedError will
+// be thrown.  (Note: Typically this only happens if a user closes the tab by
+// mistake; tabs which are replaced e.g. by Firefox Containers re-opening the
+// tab automatically in the right container are automatically handled without
+// throwing TabRemovedError.)
 export async function fetchSiteInfo(url: string): Promise<SiteInfo> {
     let events: AsyncChannel<TabEvent> | undefined = undefined;
     let tab: Tabs.Tab | undefined = undefined;
