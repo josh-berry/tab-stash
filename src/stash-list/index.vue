@@ -290,7 +290,7 @@ export default defineComponent({
             // This is just an async filter :/
             for (const url of urls) {
                 const favicon = favicons.get(url);
-                if (favicon && favicon.value?.favIconUrl) urls.delete(url);
+                if (favicon?.value?.favIconUrl) urls.delete(url);
             }
 
             const iter = TaskMonitor.run_iter(tm => fetchInfoForSites(urls, tm));
@@ -301,7 +301,7 @@ export default defineComponent({
 
             try {
                 for await (const info of iter) {
-                    favicons.maybeSet(info.originalUrl, {
+                    favicons.set(info.originalUrl, {
                         favIconUrl: info.favIconUrl ?? null,
                         title: info.title,
                     });
