@@ -25,9 +25,6 @@
         <Button class="stash here" @action="move"
                 :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`" />
     </ButtonBox>
-    <!-- This is at the end so it gets put in front of the buttons etc.
-         Important to ensure the focused box-shadow gets drawn over the buttons,
-         rather than behind them. -->
     <span v-if="! isRenaming" class="folder-name ephemeral" :title="tooltip"
         @click.stop="isRenaming = true">{{title}}</span>
     <async-text-input v-else class="folder-name ephemeral" :title="tooltip"

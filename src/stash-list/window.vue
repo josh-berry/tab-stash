@@ -31,9 +31,6 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`" />
       <Button v-if="selectedCount > 0" class="restore-remove" @action="moveToWindow"
               :tooltip="`Unstash ${selectedCount} tab(s)`" />
     </ButtonBox>
-    <!-- This is at the end so it gets put in front of the buttons etc.
-         Important to ensure the focused box-shadow gets drawn over the buttons,
-         rather than behind them. -->
     <span :class="{'folder-name': true, 'ephemeral': true, 'disabled': true}"
           :title="tooltip" @click.prevent.stop="toggleMode">{{title}}</span>
   </header>

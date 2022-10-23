@@ -21,7 +21,6 @@
             </label>
         </form>
 
-        <!-- HTML format -->
         <output v-if="format.startsWith('html-')" ref="output" tabindex="0"
                 :for="$style.dlg">
             <div v-for="f of folders" :key="f.id">
@@ -41,7 +40,6 @@
             </div>
         </output>
 
-        <!-- Markdown format -->
         <output v-if="format == 'markdown'" ref="output" :for="$style.dlg"
                 :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
@@ -51,7 +49,6 @@
             </div>
         </output>
 
-        <!-- OneTab format -->
         <output v-if="format == 'onetab'" ref="output" :for="$style.dlg"
                 :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
@@ -60,7 +57,6 @@
             </div>
         </output>
 
-        <!-- List of URLs -->
         <output v-if="format.startsWith('urls-')" ref="output" :for="$style.dlg"
                 :class="$style.plaintext" tabindex="0">
             <div v-for="f of folders" :key="f.id">
