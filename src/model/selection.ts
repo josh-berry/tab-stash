@@ -80,6 +80,8 @@ export class Model {
         await Promise.all(this.models.map(m => m.clearSelection()));
     }
 
+    // istanbul ignore next -- This just dispatches on a DOM event, which is
+    // hard to test for without actual DOM events.
     async toggleSelectFromEvent(ev: MouseEvent, model: SelectableModel, item: any) {
         if (ev.shiftKey) return this.toggleSelectRange(model, item);
         if (ev.ctrlKey || ev.metaKey) return this.toggleSelectOne(model, item);
