@@ -165,7 +165,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         beforeEach(setDefaults);
 
         it('...no entries', async() => {
-            await kvs.delete([]);
+            await kvs.set([]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'a', value: 'alice'},
                 {key: 'b', value: 'bob'},
@@ -175,8 +175,8 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         });
 
         it('...single entries', async() => {
-            await kvs.delete(['a']);
-            expect(await events.next(kvs.onDelete)).to.deep.equal([['a']]);
+            await kvs.set([{key: 'a'}]);
+            expect(await events.next(kvs.onSet)).to.deep.equal([[{key: 'a'}]]);
             expect(await kvs.get(['a'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'b', value: 'bob'},
@@ -186,14 +186,16 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         });
 
         it('...entries which do not exist', async() => {
-            await kvs.delete(['0']);
+            await kvs.set([{key: '0'}]);
+            expect(await events.next(kvs.onSet)).to.deep.equal([[{key: '0'}]]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'a', value: 'alice'},
                 {key: 'b', value: 'bob'},
                 {key: 'c', value: 'christine'},
                 {key: 'd', value: 'derek'},
             ]);
-            await kvs.delete(['e']);
+            await kvs.set([{key: 'e'}]);
+            expect(await events.next(kvs.onSet)).to.deep.equal([[{key: 'e'}]]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'a', value: 'alice'},
                 {key: 'b', value: 'bob'},
@@ -203,8 +205,10 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
         });
 
         it('...multiple entries', async() => {
-            await kvs.delete(['a', 'b']);
-            expect(await events.next(kvs.onDelete)).to.deep.equal([['a', 'b']]);
+            await kvs.set([{key: 'a'}, {key: 'b'}]);
+            expect(await events.next(kvs.onSet)).to.deep.equal([
+                [{key: 'a'}, {key: 'b'}]
+            ]);
             expect(await kvs.get(['a', 'b'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([
                 {key: 'c', value: 'christine'},
@@ -214,7 +218,7 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
 
         it('...all entries', async() => {
             await kvs.deleteAll();
-            const deleted = (await events.next(kvs.onDelete))[0];
+            const deleted = (await events.next(kvs.onSet))[0].map(({key}) => key);
             expect(new Set(deleted)).to.deep.equal(new Set(['a', 'b', 'c', 'd']));
             expect(await kvs.get(['a'])).to.deep.equal([]);
             expect(await collect(kvs.list())).to.deep.equal([]);
@@ -229,10 +233,10 @@ export function tests(kvs_factory: () => Promise<KeyValueStore<string, string>>)
             }
             await kvs.deleteAll();
             while (items.size > 0) {
-                const deleted = await events.next(kvs.onDelete);
-                for (const k of deleted[0]) {
-                    expect(items.has(k)).to.be.true;
-                    items.delete(k);
+                const deleted = await events.next(kvs.onSet);
+                for (const {key} of deleted[0]) {
+                    expect(items.has(key)).to.be.true;
+                    items.delete(key);
                 }
             }
         });
@@ -265,8 +269,8 @@ describe('datastore/kvs', () => {
             kvs.data.set('b', 'c');
             const a = cache.get('a');
             const b = cache.get('b')
-            expect(a.value).to.be.null;
-            expect(b.value).to.be.null;
+            expect(a.value).to.be.undefined;
+            expect(b.value).to.be.undefined;
 
             await cache.sync();
             expect(a.value).to.deep.equal('b');
@@ -276,7 +280,7 @@ describe('datastore/kvs', () => {
         it('returns the same object when get() is called twice', async () => {
             kvs.data.set('a', 'b');
             const a = cache.get('a');
-            expect(a.value).to.be.null;
+            expect(a.value).to.be.undefined;
 
             await cache.sync();
             expect(a.value).to.deep.equal('b');
@@ -285,7 +289,7 @@ describe('datastore/kvs', () => {
 
         it('updates objects returned via get() previously', async () => {
             const a = cache.get('a');
-            expect(a.value).to.be.null;
+            expect(a.value).to.be.undefined;
 
             cache.set('a', 'b');
             expect(a.value).to.equal('b');
@@ -297,7 +301,7 @@ describe('datastore/kvs', () => {
             // events to fire
             kvs.data.set('a', 'b');
             const a = cache.get('a');
-            expect(a.value).to.be.null;
+            expect(a.value).to.be.undefined;
             await cache.sync();
             expect(a.value).to.deep.equal('b');
         });
@@ -307,7 +311,7 @@ describe('datastore/kvs', () => {
             expect((<Map<string, string>>(<any>cache)._entries).size).to.equal(0);
 
             const ent = cache.get('a');
-            expect(ent).to.deep.equal({key: 'a', value: null});
+            expect(ent).to.deep.equal({key: 'a', value: undefined});
             expect(cache.get('a')).to.equal(ent);
             expect(cache.getIfExists('a')).to.equal(ent);
             expect((<Map<string, string>>(<any>cache)._entries).size).to.equal(1);
@@ -315,7 +319,7 @@ describe('datastore/kvs', () => {
 
         it('applies updates from the KVS to objects in the cache', async () => {
             const a = cache.get('a');
-            expect(a.value).to.be.null;
+            expect(a.value).to.be.undefined;
 
             await kvs.set([{key: 'a', value: 'b'}]);
             await events.next(kvs.onSet);
@@ -331,9 +335,9 @@ describe('datastore/kvs', () => {
             await events.next(kvs.onSet);
             expect(kvs.data.get('a')).to.equal('b');
 
-            await kvs.delete(['a']);
-            await events.next(kvs.onDelete);
-            expect(a.value).to.be.null;
+            await kvs.set([{key: 'a'}]);
+            await events.next(kvs.onSet);
+            expect(a.value).to.be.undefined;
 
             await kvs.set([{key: 'a', value: 'c'}]);
             await events.next(kvs.onSet);
@@ -343,10 +347,10 @@ describe('datastore/kvs', () => {
         describe('merges entries that...', () => {
             it('...do not exist yet', async() => {
                 const ent = cache.merge('a', old => {
-                    expect(old).to.equal(null);
+                    expect(old).to.equal(undefined);
                     return 'b';
                 });
-                expect(ent.value).to.equal(null);
+                expect(ent.value).to.equal(undefined);
 
                 await events.nextN(kvs.onSet, 1);
                 expect(ent.value).to.equal('b');
@@ -391,7 +395,7 @@ describe('datastore/kvs', () => {
                 });
 
                 // Merge hasn't happened yet...
-                expect(ent.value).to.equal(null);
+                expect(ent.value).to.equal(undefined);
                 expect(kvs.data.get('a')).to.deep.equal('b');
 
                 // Merge happens after the entry is fetched from the cache

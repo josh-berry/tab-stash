@@ -13,10 +13,7 @@ describe('model/bookmark-metadata', () => {
     beforeEach(() => {
         kvc = new KVSCache(new MemoryKVS('bookmark_metadata'));
         model = new Model(kvc);
-        events.ignore([
-            kvc.kvs.onSet,
-            kvc.kvs.onDelete,
-        ]);
+        events.ignore([kvc.kvs.onSet]);
     });
 
     it('collapses bookmarks', () => {

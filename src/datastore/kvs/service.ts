@@ -29,8 +29,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
 
     readonly name: string;
 
-    readonly onSet: Event<(entries: Proto.Entry<K, V>[]) => void>;
-    readonly onDelete: Event<(keys: K[]) => void>;
+    readonly onSet: Event<(entries: Proto.MaybeEntry<K, V>[]) => void>;
     readonly onSyncLost: Event<() => void>;
 
     private _db: IDBPDatabase;
@@ -39,7 +38,6 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     constructor(db: IDBPDatabase, store_name: string) {
         this.name = store_name;
         this.onSet = event('KVS.Service.onSet', this.name);
-        this.onDelete = event('KVS.Service.onDelete', this.name);
         this.onSyncLost = event('KVS.Service.onSyncLost', this.name);
         this._db = db;
     }
@@ -110,32 +108,19 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         return genericList((bound, limit) => this.getEndingAt(bound, limit));
     }
 
-    async set(entries: Proto.Entry<K, V>[]): Promise<void> {
-        const txn = this._db.transaction(this.name, 'readwrite');
-        for (const {key, value} of entries) await txn.store.put(value, key);
-        await txn.done;
+    async set(entries: Proto.MaybeEntry<K, V>[]): Promise<void> {
+        // istanbul ignore if
+        if (entries.length === 0) return;
 
-        // istanbul ignore else
-        if (entries.length > 0) {
-            this._broadcast({$type: 'set', entries});
-            this.onSet.send(entries);
-        }
-    }
-
-    async delete(keys: K[]): Promise<void> {
-        const deleted: K[] = [];
         const txn = this._db.transaction(this.name, 'readwrite');
-        for (const k of keys) {
-            if (await txn.store.get(k)) deleted.push(k);
-            await txn.store.delete(k);
+        for (const {key, value} of entries) {
+            if (value !== undefined) await txn.store.put(value, key);
+            else await txn.store.delete(key);
         }
         await txn.done;
 
-        // istanbul ignore else
-        if (deleted.length > 0) {
-            this._broadcast({$type: 'delete', keys: deleted});
-            this.onDelete.send(deleted);
-        }
+        this._broadcast({$type: 'set', entries});
+        this.onSet.send(entries);
     }
 
     async deleteAll(): Promise<void> {
@@ -143,22 +128,22 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         // any clients that might be listening (and avoid sending any one
         // message that's too big).
         while (true) {
-            const deleted_keys: K[] = [];
+            const deletes: {key: K}[] = [];
             const txn = this._db.transaction(this.name, 'readwrite');
             let cursor = await txn.store.openCursor();
 
             while (cursor) {
                 // Same cast as in set() above
-                deleted_keys.push(cursor.primaryKey as K);
+                deletes.push({key: cursor.primaryKey as K});
                 cursor.delete();
                 cursor = await cursor.continue();
-                if (deleted_keys.length > 100) break;
+                if (deletes.length > 100) break;
             }
             await txn.done;
 
-            if (deleted_keys.length > 0) {
-                this._broadcast({$type: 'delete', keys: deleted_keys});
-                this.onDelete.send(deleted_keys);
+            if (deletes.length > 0) {
+                this._broadcast({$type: 'set', entries: deletes});
+                this.onSet.send(deletes);
             } else {
                 break;   // No more keys to delete
             }
@@ -181,24 +166,21 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
         switch (msg?.$type) {
             case 'get':
                 return {
-                    $type: 'set',
+                    $type: 'entries',
                     entries: await this.get(msg.keys),
                 };
             case 'getStartingFrom':
                 return {
-                    $type: 'set',
+                    $type: 'entries',
                     entries: await this.getStartingFrom(msg.bound, msg.limit),
                 };
             case 'getEndingAt':
                 return {
-                    $type: 'set',
+                    $type: 'entries',
                     entries: await this.getEndingAt(msg.bound, msg.limit),
                 };
             case 'set':
                 await this.set(msg.entries);
-                return null;
-            case 'delete':
-                await this.delete(msg.keys);
                 return null;
             case 'deleteAll':
                 await this.deleteAll();

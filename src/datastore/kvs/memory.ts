@@ -1,4 +1,4 @@
-import {KeyValueStore, Entry, Key, Value} from ".";
+import {KeyValueStore, Entry, MaybeEntry, Key, Value} from ".";
 
 import event, {Event} from '../../util/event';
 
@@ -13,14 +13,12 @@ export default class MemoryKVS<K extends Key, V extends Value>
     implements KeyValueStore<K, V>
 {
     readonly name: string;
-    readonly onSet: Event<(entries: Entry<K, V>[]) => void>;
-    readonly onDelete: Event<(keys: K[]) => void>;
+    readonly onSet: Event<(entries: MaybeEntry<K, V>[]) => void>;
     readonly onSyncLost: Event<() => void>;
 
     constructor(name: string) {
         this.name = name;
         this.onSet = event('KVS.Memory.onSet', name);
-        this.onDelete = event('KVS.Memory.onDelete', name);
         this.onSyncLost = event('KVS.Memory.onSyncLost', name);
     }
 
@@ -28,8 +26,8 @@ export default class MemoryKVS<K extends Key, V extends Value>
      * the KVS directly without having to go thru async methods.
      *
      * This should mainly be used for testing purposes; if you modify it
-     * directly, onSet and/or onDelete events will not be fired.  (You should
-     * not modify it directly under normal circumstances.) */
+     * directly, onSet events will not be fired.  (You should not modify it
+     * directly under normal circumstances.) */
     readonly data = new Map<K, V>();
 
     async get(keys: K[]): Promise<Entry<K, V>[]> {
@@ -61,26 +59,20 @@ export default class MemoryKVS<K extends Key, V extends Value>
         }
     }
 
-    async set(entries: Entry<K, V>[]): Promise<void> {
+    async set(entries: MaybeEntry<K, V>[]): Promise<void> {
         const ev = entries.map(({key, value}) => {
-            this.data.set(key, copy(value));
-            return {key, value: copy(value)};
+            if (value === undefined) {
+                this.data.delete(key);
+                return {key};
+            } else {
+                this.data.set(key, copy(value));
+                return {key, value: copy(value)};
+            }
         });
         if (ev.length > 0) this.onSet.send(ev);
     }
 
-    async delete(keys: K[]): Promise<void> {
-        const deleted: K[] = [];
-        for (const k of keys) {
-            if (this.data.has(k)) {
-                this.data.delete(k);
-                deleted.push(k);
-            }
-        }
-        if (deleted.length > 0) this.onDelete.send(deleted);
-    }
-
     async deleteAll(): Promise<void> {
-        await this.delete(Array.from(this.data.keys()));
+        await this.set(Array.from(this.data.keys()).map(key => ({key})));
     }
 }

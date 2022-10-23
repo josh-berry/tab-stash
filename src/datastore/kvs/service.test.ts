@@ -64,12 +64,12 @@ describe('datastore/kvs/service', function() {
             await svc.set([{key: 'a', value: 'a'}]);
             await events.next(svc.onSet);
 
-            await svc.delete(['a']);
-            await events.next(svc.onDelete);
+            await svc.set([{key: 'a'}]);
+            await events.next(svc.onSet);
 
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [{key: 'a', value: 'a'}]},
-                {$type: 'delete', keys: ['a']},
+                {$type: 'set', entries: [{key: 'a'}]},
             ]);
         });
 
@@ -79,12 +79,12 @@ describe('datastore/kvs/service', function() {
             await events.nextN(svc.onSet, 2);
 
             await svc.deleteAll();
-            await events.next(svc.onDelete);
+            await events.next(svc.onSet);
 
             expect(client.received).to.deep.equal([
                 {$type: 'set', entries: [{key: 'a', value: 'a'}]},
                 {$type: 'set', entries: [{key: 'b', value: 'b'}]},
-                {$type: 'delete', keys: ['a', 'b']},
+                {$type: 'set', entries: [{key: 'a'}, {key: 'b'}]},
             ]);
         });
     });
@@ -97,11 +97,11 @@ class MockPort implements P.ClientPort<string, string> {
     received: P.ClientMsg<string, string>[] = [];
 
     // istanbul ignore next
-    request(msg: P.ClientMsg<string, string>): Promise<P.ServiceMsg<string, string>> {
+    request(msg: P.ServiceMsg<string, string>): Promise<P.ClientMsg<string, string>> {
         throw new Error(`Services shouldn't make requests: ${msg}`);
     }
 
-    notify(msg: P.ClientMsg<string, string>) {
+    notify(msg: P.ServiceMsg<string, string>) {
         // We do a round-trip thru JSON to ensure nothing else is holding on to
         // references to the message we received...
         this.received.push(JSON.parse(JSON.stringify(msg)));

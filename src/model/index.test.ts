@@ -1215,7 +1215,7 @@ describe('model', () => {
 
             const p = model.undelete(model.deleted_items.state.entries[0]);
             await events.nextN(browser.bookmarks.onCreated, 5);
-            await events.next('KVS.Memory.onDelete');
+            await events.next('KVS.Memory.onSet');
             await p;
             await events.next(favicons.onSet);
 
@@ -1253,7 +1253,7 @@ describe('model', () => {
             it('into their old folder', async () => {
                 const p = model.undelete(model.deleted_items.state.entries[0]);
                 await events.nextN(browser.bookmarks.onCreated, 1);
-                await events.next('KVS.Memory.onDelete');
+                await events.next('KVS.Memory.onSet');
                 await p;
 
                 const ids = model.bookmarks.folder(bookmarks.names.id)!.children;
@@ -1278,7 +1278,7 @@ describe('model', () => {
 
                 const p = model.undelete(model.deleted_items.state.entries[1]);
                 await events.nextN(browser.bookmarks.onCreated, 1);
-                await events.next('KVS.Memory.onDelete');
+                await events.next('KVS.Memory.onSet');
                 await p;
 
                 expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
@@ -1307,7 +1307,7 @@ describe('model', () => {
 
                 const p = model.undelete(model.deleted_items.state.entries[1]);
                 await events.nextN(browser.bookmarks.onCreated, 2);
-                await events.next('KVS.Memory.onDelete');
+                await events.next('KVS.Memory.onSet');
                 await p;
 
                 expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);

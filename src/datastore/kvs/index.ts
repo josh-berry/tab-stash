@@ -4,22 +4,20 @@ import {reactive} from 'vue';
 import {later, batchesOf} from '../../util';
 import {logErrorsFrom} from "../../util/oops";
 
-import {Entry, Key, Value} from './proto';
+import {Entry, Key, MaybeEntry, Value} from './proto';
 import Client from './client';
 import Service from './service';
 
-export {Client, Service, Entry, Key, Value};
+export {Client, Service, Entry, MaybeEntry, Key, Value};
 
 export interface KeyValueStore<K extends Key, V extends Value> {
     readonly name: string;
 
-    /** Fired whenever one or more entries in the KVS are inserted or updated,
-     * either by this KeyValueStore or another user of the same KVS. */
-    readonly onSet: Events.Event<(entries: Entry<K, V>[]) => void>;
-
-    /** Fired whenever one or more entries in the KVS are deleted, either by
-     * this KeyValueStore or another user of the same KVS. */
-    readonly onDelete: Events.Event<(keys: K[]) => void>;
+    /** Fired whenever entries in the KVS are inserted, updated, or deleted,
+     * either by this KeyValueStore or another user of the same KVS.  Entries
+     * are provided in the same format in which they are passed to `set()`--that
+     * is, an entry with a `.key` but not a `.value` was deleted. */
+    readonly onSet: Events.Event<(entries: MaybeEntry<K, V>[]) => void>;
 
     /** Fired by a KVS client whenever it determines that it may have dropped an
      * event (e.g. if the service was disconnected for some reason).
@@ -33,9 +31,11 @@ export interface KeyValueStore<K extends Key, V extends Value> {
     list(): AsyncIterable<Entry<K, V>>;
     listReverse(): AsyncIterable<Entry<K, V>>;
 
-    set(entries: Entry<K, V>[]): Promise<void>;
+    /** Set (or delete) entries in the KVS.  To set an entry, pass it as a
+     * `{key, value}` pair.  To delete an entry, pass just the `{key}` without a
+     * `.value` property. */
+    set(entries: MaybeEntry<K, V>[]): Promise<void>;
 
-    delete(keys: K[]): Promise<void>;
     deleteAll(): Promise<void>;
 }
 
@@ -65,9 +65,9 @@ export interface KeyValueStore<K extends Key, V extends Value> {
      * result. */
     readonly kvs: KeyValueStore<K, V>;
 
-    private readonly _entries = new Map<K, Entry<K, V | null>>();
+    private readonly _entries = new Map<K, MaybeEntry<K, V>>();
     private _needs_flush = new Map<K, Entry<K, V>>();
-    private _needs_fetch = new Map<K, Entry<K, V | null>>();
+    private _needs_fetch = new Map<K, MaybeEntry<K, V>>();
 
     private _pending_io: Promise<void> | null = null;
     private _crash_count: number = 0;
@@ -78,15 +78,12 @@ export interface KeyValueStore<K extends Key, V extends Value> {
         this.kvs.onSet.addListener(entries => {
             for (const e of entries) this._update(e.key, e.value);
         });
-        this.kvs.onDelete.addListener(keys => {
-            for (const k of keys) this._update(k, null);
-        });
         this.kvs.onSyncLost.addListener(() => {
             // If we missed any events from the KVS, we need to re-fetch
             // everything we're currently tracking because we don't know what's
             // changed in the meantime.
             for (const [k, v] of this._entries) {
-                v.value = null; // In case the item was deleted
+                v.value = undefined; // In case the item was deleted
                 this._needs_fetch.set(k, v);
             }
             this._io();
@@ -97,10 +94,10 @@ export interface KeyValueStore<K extends Key, V extends Value> {
      * isn't in the KVS at all), the entry's value will be `null` and the entry
      * will be fetched in the background.  The returned entry is reactive, so it
      * will be updated once the value is available. */
-    get(key: K): Entry<K, V | null> {
+    get(key: K): MaybeEntry<K, V> {
         let e = this._entries.get(key);
         if (! e) {
-            e = reactive({key, value: null}) as Entry<K, V | null>;
+            e = reactive({key, value: undefined}) as MaybeEntry<K, V>;
             this._entries.set(key, e);
             this._needs_fetch.set(key, e);
             this._io();
@@ -110,13 +107,13 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 
     /** Returns an entry from the KVS, but only if it already
      * exists in the store. */
-    getIfExists(key: K): Entry<K, V | null> | undefined {
+    getIfExists(key: K): MaybeEntry<K, V> | undefined {
         return this._entries.get(key);
     }
 
     /** Updates an entry in the KVS.  The cache is updated immediately, but
      * entries will be flushed in the background. */
-    set(key: K, value: V): Entry<K, V | null> {
+    set(key: K, value: V): MaybeEntry<K, V> {
         const ent = this.get(key);
         ent.value = value;
         this._needs_flush.set(key, ent as Entry<K, V>);
@@ -138,7 +135,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
      * could be multiple pending merges for the same entry, etc.  In general,
      * this should not be a problem IF merge() is idempotent--eventually the
      * cache should converge on the "right" value. */
-    merge<U extends (v: V | null) => V>(key: K, merge: U): Entry<K, V | null> {
+    merge<U extends (v: V | undefined) => V>(key: K, merge: U): MaybeEntry<K, V> {
         const ent = this.get(key);
 
         const doMerge = () => {
@@ -148,7 +145,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
             this._io();
         };
 
-        if (ent.value !== null) {
+        if (ent.value !== undefined) {
             doMerge();
         } else {
             this._needs_fetch.set(key, ent);
@@ -167,9 +164,9 @@ export interface KeyValueStore<K extends Key, V extends Value> {
      *
      * Note that this is inherently racy; it's possible that in some situations,
      * maybeInsert() will still overwrite another recently-written value. */
-    maybeInsert(key: K, value: V): Entry<K, V | null> {
+    maybeInsert(key: K, value: V): MaybeEntry<K, V> {
         const ent = this.get(key);
-        if (ent.value !== null) return ent;
+        if (ent.value !== undefined) return ent;
 
         ent.value = value;
 
@@ -192,7 +189,7 @@ export interface KeyValueStore<K extends Key, V extends Value> {
 
     /** Apply an update to an entry that was received from the service (which
      * always overrides any pending flush for that entry). */
-    private _update(key: K, value: V | null) {
+    private _update(key: K, value: V | undefined) {
         const ent = this._entries.get(key);
 
         // istanbul ignore if -- trivial case; we don't want to update things

@@ -6,8 +6,9 @@ import {reactive} from 'vue';
 import {nonReentrant} from '../util';
 import {makeRandomString} from '../util/random';
 
-import {KeyValueStore, Entry} from '../datastore/kvs';
+import {KeyValueStore, Entry, MaybeEntry} from '../datastore/kvs';
 import {friendlyFolderName} from './bookmarks';
+import {entryHasValue} from '../datastore/kvs/proto';
 
 // The key for a deleted record should be opaque but monotonically increasing as
 // time passes, so items deleted more recently have greater keys.
@@ -91,12 +92,19 @@ export class Model {
         this._kvs = kvs;
 
         kvs.onSet.addListener(records => this.onSet(records));
-        kvs.onDelete.addListener(keys => this.onDelete(keys));
         kvs.onSyncLost.addListener(() => this.onSyncLost());
     }
 
-    onSet(records: Entry<string, SourceValue>[]) {
+    onSet(records: MaybeEntry<string, SourceValue>[]) {
+        const deleted = new Set();
+
         for (const r of records) {
+            if (! entryHasValue(r)) {
+                this._entry_cache.delete(r.key);
+                deleted.add(r.key);
+                continue;
+            }
+
             // If the entry already exists in the cache, just update it.
             if (this._update(r)) continue;
 
@@ -123,20 +131,14 @@ export class Model {
 
             this._insert(r);
         }
-    }
 
-    onDelete(keys: string[]) {
-        for (const k of keys) this._entry_cache.delete(k);
-        const kset = new Set(keys);
-        const f = ({key}: {key: string}) => ! kset.has(key);
+        if (deleted.size > 0) {
+            this.state.entries = this.state.entries.filter(({key}) => ! deleted.has(key));
 
-        // NOTE: This is O(N^2) if we're clearing out a large number of deleted
-        // items, but that's okay. See commits for [#172] for analysis.
-        this.state.entries = this.state.entries.filter(f);
-
-        if (typeof this.state.recentlyDeleted === 'object'
-                && keys.includes(this.state.recentlyDeleted.key)) {
-            this.state.recentlyDeleted = 0;
+            if (typeof this.state.recentlyDeleted === 'object'
+                   && deleted.has(this.state.recentlyDeleted.key)) {
+                this.state.recentlyDeleted = 0;
+            }
         }
     }
 
@@ -255,7 +257,7 @@ export class Model {
 
     drop(key: string): Promise<void> {
         // We will get an event for the deletion later
-        return this._kvs.delete([key]);
+        return this._kvs.set([{key}]);
     }
 
     async dropChildItem(key: string, index: number): Promise<void> {
@@ -287,11 +289,11 @@ export class Model {
             const to_delete = [];
             for (const rec of await this._kvs.getStartingFrom(undefined, 50)) {
                 if (Date.parse(rec.value.deleted_at) < timestamp) {
-                    to_delete.push(rec.key);
+                    to_delete.push({key: rec.key});
                 }
             }
 
-            if (to_delete.length > 0) await this._kvs.delete(to_delete);
+            if (to_delete.length > 0) await this._kvs.set(to_delete);
             else break;
         }
     }

@@ -104,7 +104,7 @@ describe('model/deleted-items', () => {
         });
 
         await m2.drop(item.key);
-        await events.next(source.onDelete);
+        await events.next(source.onSet);
         expect(model.state.entries).to.deep.equal([]);
     });
 
@@ -201,7 +201,7 @@ describe('model/deleted-items', () => {
                 item: {title: 'Recent', url: 'recent'},
             });
             await model.drop(i.key);
-            await events.next(source.onDelete);
+            await events.next(source.onSet);
 
             expect(model.state.recentlyDeleted).to.deep.equal(0);
         });
@@ -323,7 +323,7 @@ describe('model/deleted-items', () => {
         // dropOlderThan() should work even if the model has nothing loaded.
         model = new M.Model(source);
         await model.dropOlderThan(dropTime.valueOf());
-        expect((await events.watch(source.onDelete).untilNextTick()).length)
+        expect((await events.watch(source.onSet).untilNextTick()).length)
             .to.be.greaterThan(0);
         expect(model.state.entries.length).to.equal(0);
 

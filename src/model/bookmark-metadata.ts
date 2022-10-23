@@ -1,7 +1,7 @@
-import {KVSCache, Entry} from '../datastore/kvs';
+import {KVSCache, MaybeEntry} from '../datastore/kvs';
 
 /** The key is the bookmark ID, and the value is the metadata. */
-export type BookmarkMetadataEntry = Entry<string, BookmarkMetadata | null>;
+export type BookmarkMetadataEntry = MaybeEntry<string, BookmarkMetadata>;
 
 /** Metadata stored locally (i.e. not synced) about a particular bookmark. */
 export type BookmarkMetadata = {
@@ -38,9 +38,9 @@ export class Model {
         const toDelete = [];
         for await (const ent of this._kvc.kvs.list()) {
             if (keep(ent.key)) continue;
-            toDelete.push(ent.key);
+            toDelete.push({key: ent.key});
         }
 
-        await this._kvc.kvs.delete(toDelete);
+        await this._kvc.kvs.set(toDelete);
     }
 }

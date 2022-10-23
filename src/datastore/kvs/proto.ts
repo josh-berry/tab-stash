@@ -2,7 +2,12 @@ import {Send, NanoPort} from '../../util/nanoservice';
 
 // The protocol used to communicate between client and service.
 
+export function entryHasValue<K extends Key, V extends Value>(e: MaybeEntry<K, V>): e is Entry<K, V> {
+    return e.value !== undefined;
+}
+
 export type Entry<K extends Key, V extends Value> = {key: K, value: V};
+export type MaybeEntry<K extends Key, V extends Value> = {key: K, value?: V};
 export type Key = string | number;
 export type Value = Send;
 
@@ -14,14 +19,14 @@ export type ClientPort<K extends Key, V extends Value> =
 // All of the messages that may be sent or received by client or service.
 export type ClientMsg<K extends Key, V extends Value> =
     GetMessage<K, V> | GetStartingFromMessage<K, V> | GetEndingAtMessage<K, V> |
-    SetMessage<K, V> | DeleteMessage<K, V> | DeleteAllMessage<K, V> |
+    SetMessage<K, V> | DeleteAllMessage<K, V> |
     null;
 export type ServiceMsg<K extends Key, V extends Value> =
-    SetMessage<K, V> | DeleteMessage<K, V> |
+    SetMessage<K, V> | EntriesMessage<K, V> |
     null;
 
 // Request for one or more values with known keys.  Only sent from client to
-// service.  Response is a SetMessage with all the entries that were found.
+// service.  Response is an EntriesMessage with all the entries that were found.
 export type GetMessage<K extends Key, V extends Value> = {
     $type: 'get',
     keys: K[],
@@ -29,7 +34,7 @@ export type GetMessage<K extends Key, V extends Value> = {
 
 // Retrieve multiple values when the keys aren't known, starting with values >
 // bound (or the first value, if bound isn't specified).  Only sent from client
-// to service.  Response is a SetMessage with the requested key/value pairs.
+// to service.  Response is an EntriesMessage with the requested key/value pairs.
 //
 // Entries are returned in ascending key order.
 export type GetStartingFromMessage<K extends Key, V extends Value> = {
@@ -45,7 +50,7 @@ export type GetStartingFromMessage<K extends Key, V extends Value> = {
 
 // Retrieve multiple values when the keys aren't known, starting with values <
 // bound (or the last value, if bound isn't specified).  Only sent from client
-// to service.  Response is a SetMessage with the requested key/value pairs.
+// to service.  Response is an EntriesMessage with the requested key/value pairs.
 //
 // Entries are returned in descending key order.
 export type GetEndingAtMessage<K extends Key, V extends Value> = {
@@ -59,20 +64,20 @@ export type GetEndingAtMessage<K extends Key, V extends Value> = {
     limit: number,
 };
 
-// Sent by a client to set one or more values.  Sent by the service in response
-// to a Get, or in the event of an update by another client.  Service replies
-// with `undefined`.
-export type SetMessage<K extends Key, V extends Value> = {
-    $type: 'set',
+// Response to a Get*Message, with the returned entries.  The only real
+// difference between this and SetMessage is the type of the returned
+// value--here, the server guarantees that every returned entry has a value.
+export type EntriesMessage<K extends Key, V extends Value> = {
+    $type: 'entries',
     entries: Entry<K, V>[],
 };
 
-// Sent by a client to delete one or more values.  Sent by the service in
-// response to a Delete or in the event of a delete by another client.  Response
-// is `undefined`--clients will be sent separate notifications for deleted keys.
-export type DeleteMessage<K extends Key, V extends Value> = {
-    $type: 'delete',
-    keys: K[],
+// Sent by a client to set or delete one or more values (service always replies
+// with `null`).  Sent by the service in the event of an update by another
+// client.
+export type SetMessage<K extends Key, V extends Value> = {
+    $type: 'set',
+    entries: MaybeEntry<K, V>[],
 };
 
 // Sent by a client to request deletion of all values.  Response is

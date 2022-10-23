@@ -3,7 +3,7 @@ import browser, {Tabs} from 'webextension-polyfill';
 import {urlToOpen} from '../util';
 import {logErrorsFrom} from "../util/oops";
 
-import {KVSCache, Entry} from '../datastore/kvs';
+import {KVSCache, MaybeEntry} from '../datastore/kvs';
 
 /** The persistent cache which holds favicons, keyed by URL. */
 export type FaviconCache = KVSCache<string, Favicon>;
@@ -17,8 +17,8 @@ export type FaviconCache = KVSCache<string, Favicon>;
  * the tab title of a renamed bookmark. */
 export type Favicon = {favIconUrl: string | null, title?: string};
 
-/** The actual entry stored in the KVS (well, sans null). */
-export type FaviconEntry = Entry<string, Favicon | null>;
+/** The actual entry stored in the KVS. */
+export type FaviconEntry = MaybeEntry<string, Favicon>;
 
 /** A cache of favicons and page titles, indexed by URL.  Used to locate
  * suitable icons to show alongside bookmarks.
@@ -53,10 +53,10 @@ export class Model {
 
         for await (const entry of this._kvc.kvs.list()) {
             if (keep(entry.key)) continue;
-            toDelete.push(entry.key);
+            toDelete.push({key: entry.key});
         }
 
-        await this._kvc.kvs.delete(toDelete);
+        await this._kvc.kvs.set(toDelete);
     }
 
     /** Retrieve a favicon from the cache.

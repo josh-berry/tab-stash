@@ -9,8 +9,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     readonly name: string;
     readonly connect: (name: string) => Proto.ServicePort<K, V>;
 
-    readonly onSet: Event<(entries: Proto.Entry<K, V>[]) => void>;
-    readonly onDelete: Event<(keys: K[]) => void>;
+    readonly onSet: Event<(entries: Proto.MaybeEntry<K, V>[]) => void>;
     readonly onSyncLost: Event<() => void>;
 
     private _port: Proto.ServicePort<K, V>;
@@ -24,7 +23,6 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         this.connect = connector ?? NanoService.connect;
 
         this.onSet = event('KVS.Client.onSet', this.name);
-        this.onDelete = event('KVS.Client.onDelete', this.name);
         this.onSyncLost = event('KVS.Client.onSyncLost', this.name);
 
         this._port = undefined!; // !-cast - we properly-assign it below.
@@ -34,7 +32,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     async get(keys: K[]): Promise<Proto.Entry<K, V>[]> {
         const resp = await this._request_with_retry({$type: 'get', keys});
         // istanbul ignore next
-        if (resp?.$type !== 'set') return [];
+        if (resp?.$type !== 'entries') return [];
         return resp.entries;
     }
 
@@ -44,7 +42,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         const resp = await this._request_with_retry({
             $type: 'getStartingFrom', bound, limit});
         // istanbul ignore next
-        if (resp?.$type !== 'set') return [];
+        if (resp?.$type !== 'entries') return [];
         return resp.entries;
     }
 
@@ -54,7 +52,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         const resp = await this._request_with_retry({
             $type: 'getEndingAt', bound, limit});
         // istanbul ignore next
-        if (resp?.$type !== 'set') return [];
+        if (resp?.$type !== 'entries') return [];
         return resp.entries;
     }
 
@@ -70,10 +68,6 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         await this._request_with_retry({$type: 'set', entries: entries});
     }
 
-    async delete(keys: K[]): Promise<void> {
-        await this._request_with_retry({$type: 'delete', keys});
-    }
-
     async deleteAll(): Promise<void> {
         await this._request_with_retry({$type: 'deleteAll'});
     }
@@ -83,9 +77,6 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
         this._port.onNotify = msg => {
             /* istanbul ignore next */ if (! msg) return;
             switch (msg.$type) {
-                case 'delete':
-                    this.onDelete.send(msg.keys);
-                    break;
                 case 'set':
                     this.onSet.send(msg.entries);
                     break;

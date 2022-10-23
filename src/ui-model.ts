@@ -7,6 +7,8 @@ import KVSClient from './datastore/kvs/client';
 import {KVSCache} from './datastore/kvs';
 
 import * as M from './model';
+import {Favicon} from './model/favicons';
+import {BookmarkMetadata} from './model/bookmark-metadata';
 
 export default async function(): Promise<M.Model> {
     const sources = await resolveNamed({
@@ -22,9 +24,9 @@ export default async function(): Promise<M.Model> {
     const model = new M.Model({
         ...sources,
         favicons: new M.Favicons.Model(
-            new KVSCache(new KVSClient('favicons'))),
+            new KVSCache(new KVSClient<string, Favicon>('favicons'))),
         bookmark_metadata: new M.BookmarkMetadata.Model(
-            new KVSCache(new KVSClient('bookmark-metadata'))),
+            new KVSCache(new KVSClient<string, BookmarkMetadata>('bookmark-metadata'))),
     });
     (<any>globalThis).model = model;
     return model;
