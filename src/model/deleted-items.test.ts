@@ -297,8 +297,8 @@ describe('model/deleted-items', () => {
 
         while (! model.state.fullyLoaded) await model.loadMore();
 
-        console.log(model.state.entries.map(i => i.key));
-        console.log(model.state.entries.map(i => i.item.title));
+        // console.log(model.state.entries.map(i => i.key));
+        // console.log(model.state.entries.map(i => i.item.title));
 
         // Entries must be sorted newest-first, except that entries deleted
         // together should be sorted in the same order in which they were
