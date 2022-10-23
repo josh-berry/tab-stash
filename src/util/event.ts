@@ -17,6 +17,10 @@ export interface Event<L extends (...args: any[]) => any> extends EventSource<L>
 
 let eventClass: {new(name: string, instance?: string): Event<any>};
 
+// istanbul ignore else -- Tests are always run in a mock environment, so there
+// is literally no way to execute the `else` block while measuring code
+// coverage.  And unfortunately, that means the code in the `else` block is
+// untestable. :/  Fortunately, it's pretty trivial code.
 if ((<any>globalThis).mock?.events) {
     // We are running in a mock environment.  Use the MockEventDispatcher
     // instead, which allows for snooping on events.

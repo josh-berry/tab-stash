@@ -24,6 +24,7 @@ describe('model/tabs', () => {
     it("loads tabs correctly", async () => {
         for (const t in tabs) {
             const tab = tabs[t as keyof typeof tabs];
+            // istanbul ignore next -- the ?? operators always short-circuit
             expect(model.tab(tab.id)).to.deep.equal({
                 windowId: tab.windowId,
                 id: tab.id,
@@ -210,6 +211,7 @@ describe('model/tabs', () => {
         await events.next(browser.tabs.onCreated);
         tab.url = 'cats';
 
+        // istanbul ignore next -- the ?? operators always short-circuit
         expect(model.tab(tid)).to.deep.equal({
             windowId: tab.windowId,
             id: tid,

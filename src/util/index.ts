@@ -63,34 +63,6 @@ export const bgKeyName = () => PLATFORM_INFO.os === 'mac' ? 'Cmd' : 'Ctrl';
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
     PLATFORM_INFO.os === 'mac' ? ev.metaKey : ev.ctrlKey;
 
-/** Tests if two JSON-like values are deeply equal. */
-export function deepEqual<T extends ToJSON>(l: T, r: T): boolean {
-    if (l === r) return true;
-    if (typeof l !== 'object' || typeof r !== 'object') return false;
-    if (l === null || r === null) return false;
-    if (l instanceof Array && r instanceof Array) {
-        if (l.length !== r.length) return false;
-        for (let i = 0; i < l.length; ++i) {
-            if (! deepEqual(l[i], r[i])) return false;
-        }
-        return true;
-    }
-    if (! (l instanceof Array) && ! (r instanceof Array)) {
-        // Casts needed here to work around a TypeScript oddity... it takes the
-        // un-narrowed type of /l/ or /r/ and tries to match against a prototype
-        // of Object.keys(), rather than taking the narrowed type (which is
-        // guaranteed to be an object).)
-        const lk = Object.keys(l as {}).sort();
-        const rk = Object.keys(r as {}).sort();
-        if (! deepEqual(lk, rk)) return false;
-        for (const k of lk) {
-            if (! deepEqual(l[k], r[k])) return false;
-        }
-        return true;
-    }
-    return false;
-}
-
 /** Checks if its first argument is undefined.  If not, returns it.  If so,
  * throws an error with the message returned by the (optional) second
  * argument. */
