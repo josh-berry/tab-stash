@@ -1,4 +1,4 @@
-import {computed, reactive, Ref, ref} from "vue";
+import {computed, reactive, Ref, ref, watch} from "vue";
 import browser, {Bookmarks} from "webextension-polyfill";
 
 import {
@@ -58,12 +58,14 @@ export class Model {
      * user and a function to direct them to more information. */
     readonly stash_root_warning: Ref<{text: string, help: () => void} | undefined> = ref();
 
-    /** The number of selected bookmarks. */
-    readonly selectedCount = computed(() => {
-        let count = 0;
-        for (const _ of this.selectedItems()) ++count;
-        return count;
-    });
+    /** The number of selected bookmarks.  This is a ref() rather than a
+     * computed() because it's very expensive to compute, so we always update it
+     * incrementally.
+     *
+     * The invariant is: this should only be updated by assigning to a node's
+     * `$selected` field.  That will trigger a watch which will adjust the count
+     * up or down by one. */
+    readonly selectedCount = ref(0);
 
     /** A filter function--assign to this to filter bookmarks using the
      * function.  Each bookmark's $visible property will be updated
@@ -203,6 +205,14 @@ export class Model {
             item = this.by_id.get(item.parentId);
         }
         return false;
+    }
+
+    /** Check if `node` is contained, directly or indirectly, by the stash root.
+     * If there is no stash root, always returns `false`. */
+    isNodeInStashRoot(node: Node): boolean {
+        // istanbul ignore if -- we always have a root in tests
+        if (! this.stash_root.value) return false;
+        return this.isNodeInFolder(node, this.stash_root.value.id);
     }
 
     /** Given a bookmark node, return the path from the root to the node as an
@@ -456,26 +466,34 @@ export class Model {
         let node = this.by_id.get(nodeId);
         if (! node) {
             const $visible = computed(() => this.filter.value(node!));
+            const $selected = ref(false);
+            watch($selected, (value, oldValue) => {
+                // INVARIANT: Nodes outside the stash root must not be selected.
+                // istanbul ignore if -- probably never happens in reality
+                if (value === oldValue) return;
+                if (value) ++this.selectedCount.value;
+                else --this.selectedCount.value;
+            });
 
             if (isFolder(new_bm)) {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
                     title: new_bm.title ?? '', children: [],
-                    $visible, $selected: false,
+                    $visible, $selected,
                 });
 
             } else if (new_bm.type === 'separator') {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
                     type: 'separator' as 'separator', title: '' as '',
-                    $visible, $selected: false,
+                    $visible, $selected,
                 });
 
             } else {
                 node = reactive({
                     parentId: parentId, id: nodeId, dateAdded: new_bm.dateAdded,
                     title: new_bm.title ?? '', url: new_bm.url ?? '',
-                    $visible, $selected: false,
+                    $visible, $selected,
                 });
                 this._add_url(node);
             }
@@ -560,6 +578,8 @@ export class Model {
         const new_parent = expect(this.folder(info.parentId as NodeID),
             () => `Move of ${id} is going to unknown folder ${info.parentId}`);
 
+        const wasInRoot = this.isNodeInStashRoot(node);
+
         const pos = this.positionOf(node);
         if (pos) pos.parent.children.splice(pos.index, 1);
 
@@ -568,6 +588,17 @@ export class Model {
 
         if ('children' in node && this._stash_root_watch.has(node)) {
             this._maybeUpdateStashRoot();
+        }
+
+        const isInRoot = this.isNodeInStashRoot(node);
+
+        // Clear the selection if we moved the node out of the stash root.
+        if (wasInRoot !== isInRoot && ! isInRoot) {
+            const clear = (n: Node) => {
+                n.$selected = false;
+                if ('children' in n) for (const c of this.childrenOf(n)) clear(c);
+            };
+            clear(node);
         }
     }
 
@@ -580,6 +611,9 @@ export class Model {
         if ('children' in node) {
             for (const c of Array.from(node.children)) this.whenBookmarkRemoved(c);
         }
+
+        // Make sure the selectedCount gets updated correctly.
+        node.$selected = false;
 
         const pos = this.positionOf(node);
         if (pos) pos.parent.children.splice(pos.index, 1);
@@ -638,7 +672,13 @@ export class Model {
             });
 
         // The actual stash root is the first candidate.
-        this.stash_root.value = candidates[0];
+        if (this.stash_root.value !== candidates[0]) {
+            // If the stash root is about to change, then we need to clear the
+            // selection, because the user can't de-select items outside the
+            // stash root (and the UI will get stuck in selection mode).
+            this.clearSelection();
+            this.stash_root.value = candidates[0];
+        }
 
         // But if we have multiple candidates, we need to raise the alarm that
         // there is an ambiguity the user should resolve.

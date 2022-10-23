@@ -497,6 +497,54 @@ describe('model/bookmarks', () => {
                     model.node(bms.nate.id),
                 ]);
         });
+
+        describe('selectionCount', () => {
+            beforeEach(async () => {
+                events.ignore(undefined);
+
+                expect(model.selectedCount.value).to.equal(0);
+                model.setSelected([
+                    model.node(bms.undyne.id)!,
+                    model.node(bms.nate.id)!,
+                    model.node(bms.helen.id)!,
+                ], true);
+                await nextTick();
+                expect(model.selectedCount.value).to.equal(3);
+            });
+
+            it('increments the count on selection', async() => {
+                // nothing beyond the beforeEach()
+            });
+
+            it('decrements the count on de-selection', async() => {
+                model.setSelected([
+                    model.node(bms.undyne.id)!,
+                    model.node(bms.helen.id)!,
+                ], false);
+                await nextTick();
+                expect(model.selectedCount.value).to.equal(1);
+            });
+
+            it('decrements the count on bookmark deletion', async() => {
+                await model.remove(bms.nate.id);
+                expect(model.selectedCount.value).to.equal(2);
+            });
+
+            it('decrements the count on moving a bookmark out of the stash', async() => {
+                await model.move(bms.nate.id, bms.outside.id, 0);
+                expect(model.selectedCount.value).to.equal(2);
+            });
+
+            it('decrements the count on moving a parent folder out of the stash', async() => {
+                await model.move(bms.names.id, bms.outside.id, 0);
+                expect(model.selectedCount.value).to.equal(1);
+            });
+
+            it('resets the selection on a stash root change', async() => {
+                await model.rename(model.stash_root.value!, 'foo');
+                expect(model.selectedCount.value).to.equal(0);
+            });
+        });
     });
 
     describe('cleans up empty folders', () => {
