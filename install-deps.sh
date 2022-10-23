@@ -3,6 +3,13 @@
 set -ex
 
 deps_apt() {
+    # Check for old Ubuntus
+    if [ "$(lsb_release -i |awk '{print $3}')" = "Ubuntu" ]; then
+        if [ "$(lsb_release -r |awk '{print $2}' |cut -d. -f1)" -lt 22 ]; then
+            die "Sorry, your Ubuntu is too old.  Please use 22.04 or newer."
+        fi
+    fi
+
     # Inkscape
     if type snap; then
         if snap list inkscape 2>/dev/null; then
