@@ -907,7 +907,7 @@ export class Model {
             });
         }
 
-        await this.deleted_items.dropChildItem(deletion.key, childIndex);
+        await this.deleted_items.drop(deletion.key, [childIndex]);
     }
 };
 

@@ -249,26 +249,40 @@ export class Model {
         return entry;
     }
 
-    drop(key: string): Promise<void> {
-        // We will get an event for the deletion later
-        return this._kvs.set([{key}]);
-    }
+    async drop(key: string, indexPath?: number[]): Promise<void> {
+        if (! indexPath || indexPath.length == 0) {
+            // We will get an event for the deletion later
+            return await this._kvs.set([{key}]);
+        }
 
-    async dropChildItem(key: string, index: number): Promise<void> {
         const entry = this._entry_cache.get(key);
         // istanbul ignore next
         if (! entry) throw new Error(`${key}: Record not loaded or doesn't exist`);
-        // istanbul ignore next
-        if (! ('children' in entry.item)) throw new Error(`${key}: Not a folder`);
 
         // Must do a full JSON parse/stringify here to get rid of reactivity
-        const children = JSON.parse(JSON.stringify(entry.item.children));
-        children.splice(index, 1);
+        const item = JSON.parse(JSON.stringify(entry.item)) as DeletedItem;
+
+        // In-place remove the subtree at indexPath.
+        let child = item;
+        for (const index of indexPath.slice(0, indexPath.length - 1)) {
+            if (! ('children' in child)) {
+                throw new Error(`${key}[${indexPath}]: Invalid path`);
+            }
+            child = child.children[index];
+        }
+
+        if (! ('children' in child)) {
+            throw new Error(`${key}[${indexPath}]: Invalid path`);
+        }
+        child.children.splice(indexPath[indexPath.length - 1], 1);
+
+        // Store the modified item (with the subtree removed above) back into
+        // the KVS
         await this._kvs.set([{
             key,
             value: {
                 deleted_at: entry.deleted_at.toISOString(),
-                item: {title: entry.item.title, children},
+                item: item,
             },
         }]);
     }

@@ -129,7 +129,7 @@ describe('model/deleted-items', () => {
         }});
 
         await m2.loadMore();
-        await m2.dropChildItem(item.key, 1);
+        await m2.drop(item.key, [1]);
         await events.next(source.onSet);
         expect(model.state.entries.length).to.equal(1);
         expect(model.state.entries[0]).to.deep.include({item: {
@@ -138,6 +138,65 @@ describe('model/deleted-items', () => {
                 {title: "Third", url: "third"},
             ]
         }});
+    });
+
+    it('drops nested folders correctly', async() => {
+        const item = await model.add({
+            title: 'Parent',
+            children: [
+                {title: 'Outer 1', url: 'outer1'},
+                {title: 'Inner', children: [
+                    {title: 'Inner 1', url: 'inner1'},
+                    {title: 'Inner 2', url: 'inner2'},
+                    {title: 'Leaf', children: [
+                        {title: 'Leaf 1', url: 'leaf1'},
+                    ]},
+                ]},
+            ],
+        });
+        await events.next(source.onSet);
+
+        await model.loadMore();
+        await model.drop(item.key, [1, 1]);
+        await events.next(source.onSet);
+
+        expect(model.state.entries.length).to.equal(1);
+        expect(model.state.entries[0]).to.deep.equal({
+            key: item.key,
+            deleted_at: new Date(item.value.deleted_at),
+            deleted_from: undefined,
+            item: {
+                title: 'Parent',
+                children: [
+                    {title: 'Outer 1', url: 'outer1'},
+                    {title: 'Inner', children: [
+                        {title: 'Inner 1', url: 'inner1'},
+                        {title: 'Leaf', children: [
+                            {title: 'Leaf 1', url: 'leaf1'},
+                        ]},
+                    ]},
+                ],
+            }
+        });
+
+        await model.drop(item.key, [1, 1]);
+        await events.next(source.onSet);
+
+        expect(model.state.entries.length).to.equal(1);
+        expect(model.state.entries[0]).to.deep.equal({
+            key: item.key,
+            deleted_at: new Date(item.value.deleted_at),
+            deleted_from: undefined,
+            item: {
+                title: 'Parent',
+                children: [
+                    {title: 'Outer 1', url: 'outer1'},
+                    {title: 'Inner', children: [
+                        {title: 'Inner 1', url: 'inner1'},
+                    ]},
+                ],
+            }
+        });
     });
 
     it('reloads the model when KVS sync is lost', async () => {
