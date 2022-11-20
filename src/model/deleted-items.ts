@@ -7,7 +7,6 @@ import {nonReentrant} from '../util';
 import {makeRandomString} from '../util/random';
 
 import {KeyValueStore, Entry, MaybeEntry} from '../datastore/kvs';
-import {friendlyFolderName} from './bookmarks';
 import {entryHasValue} from '../datastore/kvs/proto';
 
 // The key for a deleted record should be opaque but monotonically increasing as
@@ -60,12 +59,7 @@ export function src2state(e: Entry<string, SourceValue>): Deletion {
         key: e.key,
         deleted_at: new Date(e.value.deleted_at),
         deleted_from: e.value.deleted_from ? {...e.value.deleted_from} : undefined,
-        item: 'children' in e.value.item
-            ? {
-                title: friendlyFolderName(e.value.item.title),
-                children: e.value.item.children,
-            }
-            : e.value.item,
+        item: e.value.item,
     });
 }
 

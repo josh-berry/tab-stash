@@ -22,7 +22,7 @@
                     ? model().undelete(recently_deleted)
                     : go('deleted-items.html')">
         <span v-if="typeof recently_deleted === 'object'">
-            Deleted "{{recently_deleted.item.title}}".  Undo?
+            Deleted "{{recentlyDeletedTitle}}".  Undo?
         </span>
         <span v-else>
             Deleted {{recently_deleted}} items.  Show what was deleted?
@@ -79,7 +79,7 @@ import {pageref} from '../launch-vue';
 import {TaskMonitor, parseVersion, required} from '../util';
 import {Model} from '../model';
 import {Tab} from '../model/tabs';
-import {Folder} from '../model/bookmarks';
+import {Folder, friendlyFolderName} from '../model/bookmarks';
 import {BookmarkMetadataEntry, CUR_WINDOW_MD_ID} from '../model/bookmark-metadata';
 import {fetchInfoForSites} from '../tasks/siteinfo';
 
@@ -142,6 +142,12 @@ export default defineComponent({
 
         recently_deleted() {
             return this.model().deleted_items.state.recentlyDeleted;
+        },
+        recentlyDeletedTitle() {
+            if (typeof this.recently_deleted === 'object') {
+                return friendlyFolderName(this.recently_deleted.item.title);
+            }
+            return undefined;
         },
 
         selection_active(): boolean {

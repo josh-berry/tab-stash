@@ -6,7 +6,7 @@
 <div v-else>
     <div class="folder-item deleted action-container">
         <span class="item-icon icon icon-folder" />
-        <span class="text" :title="tooltip">{{deletion.item.title}}</span>
+        <span class="text" :title="tooltip">{{friendlyTitle}}</span>
         <ButtonBox>
             <Button class="stash" tooltip="Restore" @action="restore" />
             <Menu class="menu" summaryClass="action remove last-toolbar-button"
@@ -37,6 +37,7 @@ import {PropType, defineComponent} from 'vue';
 import {required} from '../util';
 import {Model} from '../model';
 import {DeletedFolder, DeletedItem, Deletion} from '../model/deleted-items';
+import {friendlyFolderName} from '../model/bookmarks';
 
 export default defineComponent({
     components: {
@@ -57,6 +58,7 @@ export default defineComponent({
     }),
 
     computed: {
+        friendlyTitle(): string { return friendlyFolderName(this.item.title); },
         item(): DeletedFolder { return this.deletion.item as DeletedFolder; },
         deletedAt(): string { return this.deletion.deleted_at.toLocaleString() },
         leafChildren(): DeletedItem[] {
