@@ -2,11 +2,11 @@
 
 ## I Have a Problem
 
-First off, I'm sorry to hear that!  Here are a few things to try, in order from
+First off, I'm sorry to hear that! Here are a few things to try, in order from
 easy to hard:
 
 1. If the problem is with the sidebar or stash list, close and open the sidebar
-   (or Tab Stash tab).  This often resolves temporary UI issues and glitches.
+   (or Tab Stash tab). This often resolves temporary UI issues and glitches.
 2. Check the [list of extensions that are known to have problems working with
    Tab Stash](https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions)
    to make sure the issue is not caused by another extension.
@@ -24,7 +24,7 @@ If none of the above helps, or if your problem keeps recurring, you have a coupl
    to see if someone else has run into your problem, and if it's been solved
    already.
 2. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new/choose)
-   on GitHub.  While I can't promise to get to your issue in any particular
+   on GitHub. While I can't promise to get to your issue in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
    like they may be more serious.
 
@@ -43,7 +43,7 @@ submitted it already by
 
 If your idea is already filed as an issue, feel free to participate in the
 discussion, and **be sure to up-vote it** by leaving a thumbs-up reaction on the
-*original post* in the issue.  (Leaving a reaction on a comment doesn't count.)
+_original post_ in the issue. (Leaving a reaction on a comment doesn't count.)
 When I'm planning future releases, I look at which issues have seen the most
 up-votes to help me learn what people are most interested in.
 
@@ -61,6 +61,6 @@ Here are a few ways to get your question answered:
    to see if someone else has asked your question, and if it's been solved
    already.
 4. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new/choose)
-   on GitHub.  While I can't promise to get to your issue in any particular
+   on GitHub. While I can't promise to get to your issue in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
    like they may be more serious.

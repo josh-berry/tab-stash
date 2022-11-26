@@ -1,111 +1,139 @@
-&.theme-system, &.theme-light {
-    --page-bg: #ffffff;
+&.theme-system,
+&.theme-light {
+  --page-bg: #ffffff;
 }
 
 &.theme-dark {
+  --page-bg: #202023;
+  --page-fg: #f9f9fa;
+  --scroll-bar: #48484e;
+  --scroll-handle: #202023;
+}
+
+@media (prefers-color-scheme: dark) {
+  &.theme-system {
     --page-bg: #202023;
     --page-fg: #f9f9fa;
     --scroll-bar: #48484e;
     --scroll-handle: #202023;
-}
-
-@media (prefers-color-scheme: dark) {
-    &.theme-system {
-        --page-bg: #202023;
-        --page-fg: #f9f9fa;
-        --scroll-bar: #48484e;
-        --scroll-handle: #202023;
-    }
+  }
 }
 
 // Allow the Firefox options page to dictate the size of the <html> element.
 // Without this, we'll get a scroll bar within the options section of the page
 // rather than on the page as a whole.
-& { overflow: auto; }
-body, main { overflow: unset; }
+& {
+  overflow: auto;
+}
+body,
+main {
+  overflow: unset;
+}
 
 // Add a bit of padding around the inside of the <main> to allow for the
 // advanced boxes to overflow their bounds a little bit (for corner rounding)
 main {
-    box-sizing: border-box;
-    padding: var(--ctrl-border-radius) var(--ctrl-border-radius);
+  box-sizing: border-box;
+  padding: var(--ctrl-border-radius) var(--ctrl-border-radius);
 }
 
-section { margin: calc(3 * var(--ctrl-mh)) 0; }
+section {
+  margin: calc(3 * var(--ctrl-mh)) 0;
+}
 
 hr {
-    margin-top: calc(3 * var(--ctrl-mh)) 0;
-    margin-bottom: var(--ctrl-mh);
-    border: var(--divider-border);
+  margin-top: calc(3 * var(--ctrl-mh)) 0;
+  margin-bottom: var(--ctrl-mh);
+  border: var(--divider-border);
 }
 
 h4 {
-    font-weight: bold; font-size: calc(var(--font-size) + 2pt);
-    margin-top: var(--ctrl-mh);
-    margin-bottom: calc(3 * var(--ctrl-mh));
+  font-weight: bold;
+  font-size: calc(var(--font-size) + 2pt);
+  margin-top: var(--ctrl-mh);
+  margin-bottom: calc(3 * var(--ctrl-mh));
 }
 h5 {
-    font-weight: bold; font-size: var(--font-size);
-    margin: 0 0;
+  font-weight: bold;
+  font-size: var(--font-size);
+  margin: 0 0;
 }
 
 ul {
-    list-style: none;
-    margin: 0 0 0 var(--text-list-indent-w);
-    padding: 0;
+  list-style: none;
+  margin: 0 0 0 var(--text-list-indent-w);
+  padding: 0;
 }
 li {
-    margin: var(--ctrl-mh) 0;
+  margin: var(--ctrl-mh) 0;
 }
 label {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    column-gap: var(--ctrl-pw);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ctrl-pw);
 }
 
-input[type=number] {
-    max-width: 5em;
+input[type="number"] {
+  max-width: 5em;
 }
-main:not(.show-advanced) .advanced { display: none; }
+main:not(.show-advanced) .advanced {
+  display: none;
+}
 .advanced.show-advanced {
-    display: block !important;
-    margin-top: var(--ctrl-mh);
+  display: block !important;
+  margin-top: var(--ctrl-mh);
 }
 .advanced {
-    background-color: var(--advanced-bg);
-    border-radius: calc(var(--ctrl-border-radius) / 2);
-    box-shadow: 0 0 0 var(--ctrl-border-radius) var(--advanced-bg);
-    margin-top: calc(var(--ctrl-mh) + var(--ctrl-border-radius));
-    margin-bottom: calc(var(--ctrl-mh) + var(--ctrl-border-radius));
+  background-color: var(--advanced-bg);
+  border-radius: calc(var(--ctrl-border-radius) / 2);
+  box-shadow: 0 0 0 var(--ctrl-border-radius) var(--advanced-bg);
+  margin-top: calc(var(--ctrl-mh) + var(--ctrl-border-radius));
+  margin-bottom: calc(var(--ctrl-mh) + var(--ctrl-border-radius));
 }
 section.advanced {
-    margin-top: calc(3 * var(--ctrl-mh) + var(--ctrl-border-radius));
-    margin-bottom: calc(3 * var(--ctrl-mh) + var(--ctrl-border-radius));
+  margin-top: calc(3 * var(--ctrl-mh) + var(--ctrl-border-radius));
+  margin-bottom: calc(3 * var(--ctrl-mh) + var(--ctrl-border-radius));
 }
 
 .two-col {
-    display: grid;
-    width: max-content;
+  display: grid;
+  width: max-content;
 
-    grid-template-columns: 0fr 1fr;
-    row-gap: var(--ctrl-mh);
-    column-gap: var(--ctrl-mw);
+  grid-template-columns: 0fr 1fr;
+  row-gap: var(--ctrl-mh);
+  column-gap: var(--ctrl-mw);
 
-    & > label { white-space: nowrap; }
+  & > label {
+    white-space: nowrap;
+  }
 }
 
 .feature-flag {
-    display: grid;
-    grid-template-columns: 1fr 0fr 0fr;
-    align-items: center;
-    column-gap: var(--ctrl-mw);
+  display: grid;
+  grid-template-columns: 1fr 0fr 0fr;
+  align-items: center;
+  column-gap: var(--ctrl-mw);
 
-    & > label  { grid-row: 1; grid-column: 1; }
-    & > input  { grid-row: 1; grid-column: 2; }
-    & > button { grid-row: 1; grid-column: 3; }
-    & > div    { grid-row: 2; grid-column: 1; }
+  & > label {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  & > input {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  & > button {
+    grid-row: 1;
+    grid-column: 3;
+  }
+  & > div {
+    grid-row: 2;
+    grid-column: 1;
+  }
 }
 
-.issue { .status-text(); }
+.issue {
+  .status-text();
+}

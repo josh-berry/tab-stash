@@ -5,7 +5,7 @@ any third party, except as noted below.
 
 ## Bookmarks and Firefox Sync
 
-Tab Stash uses bookmarks to store all your stashed tabs.  Your bookmarks are
+Tab Stash uses bookmarks to store all your stashed tabs. Your bookmarks are
 synced using the Firefox Sync service (if configured), so your stashed tabs will
 appear on all computers linked to your Firefox Sync account.
 
@@ -19,11 +19,11 @@ Here's why we need each of them:
 
 - **Access browser tabs**: Used to save and restore tabs to the stash.
   (Honestly, we'd all be surprised if an extension with a name like "Tab Stash"
-  *didn't* have this permission.)
+  _didn't_ have this permission.)
 
 - **Access recently closed tabs**: When restoring a stashed tab, Tab Stash will
   look thru recently-closed tabs to see if any of them have matching URLs, and
-  restore the closed tab rather than creating a new one.  This will restore
+  restore the closed tab rather than creating a new one. This will restore
   additional state for that tab, such as navigation history.
 
 - **Hide and show browser tabs**: Used to hide stashed tabs instead of closing
@@ -36,9 +36,9 @@ Here's why we need each of them:
 
 - **Read and modify browser settings**: Read-only; used to determine the new-tab
   and Home pages, so Tab Stash can tell if you're looking at a new tab, and
-  automatically close it if it's not needed.  Tab Stash does not modify your
-  browser settings.  (Although, if we *did*, we'd probably change your homepage
-  to be a picture of a kitten.  Because who doesn't like kittens?)
+  automatically close it if it's not needed. Tab Stash does not modify your
+  browser settings. (Although, if we _did_, we'd probably change your homepage
+  to be a picture of a kitten. Because who doesn't like kittens?)
 
 - **Store client-side data**: Tab Stash stores your preferences (such as whether
   to open the stash in the sidebar or a new tab) in the browser's local and
@@ -46,9 +46,9 @@ Here's why we need each of them:
 
 - **Store unlimited amount of client-side data**: Tab Stash keeps a cache of
   website icons on your local computer, so they do not have to be fetched from
-  the Internet (which can be a very slow process, depending on the website).  To
+  the Internet (which can be a very slow process, depending on the website). To
   accommodate users whose stashes may grow very large, we ask to store lots of
-  data so the cache can hold all the icons.  Icons are removed from the cache
+  data so the cache can hold all the icons. Icons are removed from the cache
   automatically once they're no longer needed.
 
 - **Containers (contextual identities)** and **Cookies**: If you use Firefox's

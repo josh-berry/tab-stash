@@ -1,6 +1,6 @@
 # Tab Stash
 
-Can't keep all your tabs straight?  Need to clear your plate, but want to come
+Can't keep all your tabs straight? Need to clear your plate, but want to come
 back to your tabs later?
 
 Tab Stash is a no-fuss way to save and organize batches of tabs as bookmarks.

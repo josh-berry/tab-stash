@@ -1,19 +1,25 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,maximum-scale=2">
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,maximum-scale=2" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
     <title>{{site.title}} - {{page.title}}</title>
   </head>
   <body>
     <header>
       <div>
-        <h1><a href="."><img id="logo" src="logo.svg"> {{ site.title }}</a></h1>
+        <h1>
+          <a href="."><img id="logo" src="logo.svg" /> {{ site.title }}</a>
+        </h1>
         <h2>{{ site.description }}</h2>
       </div>
       <nav>
-        <a class="install" href="https://addons.mozilla.org/en-US/firefox/addon/tab-stash/">Get Tab Stash</a>
+        <a
+          class="install"
+          href="https://addons.mozilla.org/en-US/firefox/addon/tab-stash/"
+          >Get Tab Stash</a
+        >
         <a href="tips.html">Tips</a>
         <a href="privacy.html">Privacy</a>
         <a href="support.html">Support</a>
@@ -24,14 +30,15 @@
     </header>
 
     <main>
-      <div>
-        {{ content }}
-      </div>
+      <div>{{ content }}</div>
     </main>
 
     <footer>
       <div>
-        <p>Tab Stash is a spare-time project by <a href="{{ site.github.owner_url }}">Josh Berry</a></p>
+        <p>
+          Tab Stash is a spare-time project by
+          <a href="{{ site.github.owner_url }}">Josh Berry</a>
+        </p>
       </div>
     </footer>
   </body>

@@ -1,85 +1,98 @@
 // The prototypical toolbar button, or "action".
 .action {
-    display: inline-block;
-    box-sizing: border-box;
-    width: var(--icon-btn-size);
-    height: var(--icon-btn-size);
-    padding: var(--icon-p);
-    text-align: center;
-    vertical-align: middle;
-    background-size: var(--icon-size) var(--icon-size);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-color: transparent;
-    border: none;
-    border-radius: var(--ctrl-border-radius);
-    color: var(--page-fg);
-    cursor: default;
+  display: inline-block;
+  box-sizing: border-box;
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  padding: var(--icon-p);
+  text-align: center;
+  vertical-align: middle;
+  background-size: var(--icon-size) var(--icon-size);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--ctrl-border-radius);
+  color: var(--page-fg);
+  cursor: default;
 
-    &:hover, &:focus-within {
-        background-color: var(--button-hover-bg);
-        box-shadow: none; // Overrides generic :focus box-shadow
-    }
+  &:hover,
+  &:focus-within {
+    background-color: var(--button-hover-bg);
+    box-shadow: none; // Overrides generic :focus box-shadow
+  }
 
-    &:active { background-color: var(--button-active-bg); }
+  &:active {
+    background-color: var(--button-active-bg);
+  }
 }
 
 // A group of related actions packaged together into a single container
 nav.action-group {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
 
-    // For child actions, we override the border-radius so we can get a nice
-    // "pill" look to the entire group.
-    .action { border-radius: 0; }
+  // For child actions, we override the border-radius so we can get a nice
+  // "pill" look to the entire group.
+  .action {
+    border-radius: 0;
+  }
 
-    & > .action:first-child, & > :first-child .action {
-        border-top-left-radius: var(--ctrl-border-radius);
-        border-bottom-left-radius: var(--ctrl-border-radius);
-    }
+  & > .action:first-child,
+  & > :first-child .action {
+    border-top-left-radius: var(--ctrl-border-radius);
+    border-bottom-left-radius: var(--ctrl-border-radius);
+  }
 
-    & > .action:last-child, & > :last-child .action {
-        border-top-right-radius: var(--ctrl-border-radius);
-        border-bottom-right-radius: var(--ctrl-border-radius);
-    }
+  & > .action:last-child,
+  & > :last-child .action {
+    border-top-right-radius: var(--ctrl-border-radius);
+    border-bottom-right-radius: var(--ctrl-border-radius);
+  }
 }
 
 .action.first {
-    border-top-left-radius: var(--ctrl-border-radius);
-    border-bottom-left-radius: var(--ctrl-border-radius);
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+  border-top-left-radius: var(--ctrl-border-radius);
+  border-bottom-left-radius: var(--ctrl-border-radius);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .action.middle {
-    border-radius: 0;
+  border-radius: 0;
 }
 
 .action.last {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    border-top-right-radius: var(--ctrl-border-radius);
-    border-bottom-right-radius: var(--ctrl-border-radius);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: var(--ctrl-border-radius);
+  border-bottom-right-radius: var(--ctrl-border-radius);
 }
 
 @keyframes action-loading-spinner {
-    from { transform: rotate(-0.25turn); }
-    to { transform: rotate(0.25turn); }
+  from {
+    transform: rotate(-0.25turn);
+  }
+  to {
+    transform: rotate(0.25turn);
+  }
 }
 
 .action-container .loading {
-    & .action.select, .icon-tab, .icon-tab-selected-inverse {
-        border-radius: 50%;
-        border: 2px dotted  var(--page-fg);
-        border-top-color: var(--disabled-fg);
-        border-bottom-color: var(--disabled-fg);
-        animation-name: action-loading-spinner;
-        animation-duration: 1.5s;
-        animation-iteration-count: infinite;
-        animation-timing-function: ease-in-out;
-        animation-direction: alternate;
-    }
+  & .action.select,
+  .icon-tab,
+  .icon-tab-selected-inverse {
+    border-radius: 50%;
+    border: 2px dotted var(--page-fg);
+    border-top-color: var(--disabled-fg);
+    border-bottom-color: var(--disabled-fg);
+    animation-name: action-loading-spinner;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+  }
 }
 
 //
@@ -88,39 +101,83 @@ nav.action-group {
 
 // When user is hovering over an "action container", colorize the actions within
 .action-container:hover .action {
-    .def(@color) {
-        background-color: var(e("--@{color}-bg"));
-        &:hover { background-color: var(e("--@{color}-hover-bg")); }
-        &:active { background-color: var(e("--@{color}-active-bg")); }
+  .def(@color) {
+    background-color: var(e("--@{color}-bg"));
+    &:hover {
+      background-color: var(e("--@{color}-hover-bg"));
     }
-    &.rename { .def(update); }
-    &.stash { .def(create); }
-    &.restore { .def(read); }
-    &.restore-remove { .def(update); }
-    &.remove { .def(delete); }
+    &:active {
+      background-color: var(e("--@{color}-active-bg"));
+    }
+  }
+  &.rename {
+    .def(update);
+  }
+  &.stash {
+    .def(create);
+  }
+  &.restore {
+    .def(read);
+  }
+  &.restore-remove {
+    .def(update);
+  }
+  &.remove {
+    .def(delete);
+  }
 }
 
 // Icons for each action
 .action {
-    &.mainmenu { background-image: var(--icon-mainmenu); }
-    &.menu { background-image: var(--icon-menu); }
-    &.collapse { background-image: var(--icon-collapse-open); }
-    &.expand { background-image: var(--icon-collapse-closed); }
-    &.cancel { background-image: var(--icon-cancel); }
-    &.stash { background-image: var(--icon-stash); }
-    &.stash.one { background-image: var(--icon-stash-one); }
-    &.stash.newgroup { background-image: var(--icon-new-empty-group); }
-    &.rename { background-image: var(--icon-rename); }
-    &.restore { background-image: var(--icon-restore); }
-    &.restore-remove { background-image: var(--icon-restore-del); }
-    &.remove { background-image: var(--icon-delete); }
-    &.remove.stashed { background-image: var(--icon-delete-stashed); }
-    &.remove.opened { background-image: var(--icon-delete-opened); }
-    &.back { background-image: var(--icon-back); }
+  &.mainmenu {
+    background-image: var(--icon-mainmenu);
+  }
+  &.menu {
+    background-image: var(--icon-menu);
+  }
+  &.collapse {
+    background-image: var(--icon-collapse-open);
+  }
+  &.expand {
+    background-image: var(--icon-collapse-closed);
+  }
+  &.cancel {
+    background-image: var(--icon-cancel);
+  }
+  &.stash {
+    background-image: var(--icon-stash);
+  }
+  &.stash.one {
+    background-image: var(--icon-stash-one);
+  }
+  &.stash.newgroup {
+    background-image: var(--icon-new-empty-group);
+  }
+  &.rename {
+    background-image: var(--icon-rename);
+  }
+  &.restore {
+    background-image: var(--icon-restore);
+  }
+  &.restore-remove {
+    background-image: var(--icon-restore-del);
+  }
+  &.remove {
+    background-image: var(--icon-delete);
+  }
+  &.remove.stashed {
+    background-image: var(--icon-delete-stashed);
+  }
+  &.remove.opened {
+    background-image: var(--icon-delete-opened);
+  }
+  &.back {
+    background-image: var(--icon-back);
+  }
 }
 
 // A "cancel" action within a notification should use the inverse icon (since
 // notifications have inverse coloration)
 .notification .action.cancel {
-    background-image: var(--icon-cancel-inverse);
+  background-image: var(--icon-cancel-inverse);
 }

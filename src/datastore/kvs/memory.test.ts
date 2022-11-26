@@ -1,6 +1,6 @@
-import {tests} from './index.test';
-import MemoryKVS from './memory';
+import {tests} from "./index.test";
+import MemoryKVS from "./memory";
 
-const factory = async() => new MemoryKVS<string, string>('test');
+const factory = async () => new MemoryKVS<string, string>("test");
 
-describe('datastore/kvs/memory', () => tests(factory));
+describe("datastore/kvs/memory", () => tests(factory));

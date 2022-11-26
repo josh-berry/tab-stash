@@ -2,71 +2,71 @@
 there first. */
 
 & {
-    --modal-bg: rgba(0, 0, 0, 0.5);
+  --modal-bg: rgba(0, 0, 0, 0.5);
 
-    --page-bg: #2a2a2e;
-    --page-fg: #f9f9fa;
-    --disabled-fg: #a0a4ac;
-    --link-fg: #e0e0e2;
-    --userlink-fg: #80bfff;
-    --userlink-hover-fg: #57abff;
-    --userlink-hover-bg: var(--button-bg);
-    --userlink-active-fg: #2e96ff;
-    --userlink-active-bg: var(--button-bg);
+  --page-bg: #2a2a2e;
+  --page-fg: #f9f9fa;
+  --disabled-fg: #a0a4ac;
+  --link-fg: #e0e0e2;
+  --userlink-fg: #80bfff;
+  --userlink-hover-fg: #57abff;
+  --userlink-hover-bg: var(--button-bg);
+  --userlink-active-fg: #2e96ff;
+  --userlink-active-bg: var(--button-bg);
 
-    --selected-bg: #3d6899;
+  --selected-bg: #3d6899;
 
-    --scroll-bar: #242426;
-    --scroll-handle: #48484e;
+  --scroll-bar: #242426;
+  --scroll-handle: #48484e;
 
-    --ctrl-bg: #2a2a2e;
-    --ctrl-border-clr: rgba(255, 255, 255, 0.34);
-    --button-bg: rgba(255, 255, 255, 0.2);
-    --button-hover-bg: rgba(255, 255, 255, 0.27);
-    --button-active-bg: rgba(255, 255, 255, 0.34);
+  --ctrl-bg: #2a2a2e;
+  --ctrl-border-clr: rgba(255, 255, 255, 0.34);
+  --button-bg: rgba(255, 255, 255, 0.2);
+  --button-hover-bg: rgba(255, 255, 255, 0.27);
+  --button-active-bg: rgba(255, 255, 255, 0.34);
 
-    --ephemeral-hover-shadow-clr: rgba(255, 255, 255, 0.27);
+  --ephemeral-hover-shadow-clr: rgba(255, 255, 255, 0.27);
 
-    --group-bg: #48484e;
-    --group-border-clr: #3a3a3e;
-    --group-disabled-bg: #3a3a3e;
-    --group-disabled-border: 1px solid #3a3a3e;
+  --group-bg: #48484e;
+  --group-border-clr: #3a3a3e;
+  --group-disabled-bg: #3a3a3e;
+  --group-disabled-border: 1px solid #3a3a3e;
 
-    /* CRUD colors */
-    --create-bg: #3d6899;
-    --create-hover-bg: #4779b2;
-    --create-active-bg: #518acc;
-    --read-bg: #337f42;
-    --read-hover-bg: #3d994f;
-    --read-active-bg: #47b25c;
-    --update-bg: #727216;
-    --update-hover-bg: #8c8c1c;
-    --update-active-bg: #a5a521;
-    --delete-bg: #7f5151;
-    --delete-hover-bg: #996161;
-    --delete-active-bg: #b27272;
+  /* CRUD colors */
+  --create-bg: #3d6899;
+  --create-hover-bg: #4779b2;
+  --create-active-bg: #518acc;
+  --read-bg: #337f42;
+  --read-hover-bg: #3d994f;
+  --read-active-bg: #47b25c;
+  --update-bg: #727216;
+  --update-hover-bg: #8c8c1c;
+  --update-active-bg: #a5a521;
+  --delete-bg: #7f5151;
+  --delete-hover-bg: #996161;
+  --delete-active-bg: #b27272;
 
-    // Spinner colors (which should be more saturated CRUD colors)
-    --spinner-gradient: conic-gradient(
-        hsl(0, 60%, 50%),
-        hsl(60, 60%, 50%),
-        hsl(132, 60%, 50%),
-        hsl(200, 60%, 50%),
-        hsl(0, 60%, 50%)
-    );
+  // Spinner colors (which should be more saturated CRUD colors)
+  --spinner-gradient: conic-gradient(
+    hsl(0, 60%, 50%),
+    hsl(60, 60%, 50%),
+    hsl(132, 60%, 50%),
+    hsl(200, 60%, 50%),
+    hsl(0, 60%, 50%)
+  );
 
-    // "Advanced" options background
-    --advanced-bg: rgba(127, 81, 81, 0.5);
+  // "Advanced" options background
+  --advanced-bg: rgba(127, 81, 81, 0.5);
 
-    // Container colors and styles.  (Colors are the same in light and dark
-    // mode, but the thickness is different due to differing contrast.  This
-    // basically follows what Firefox does.)
-    --container-indicator-shadow-style: inset -2px 0px 0px 0px;
+  // Container colors and styles.  (Colors are the same in light and dark
+  // mode, but the thickness is different due to differing contrast.  This
+  // basically follows what Firefox does.)
+  --container-indicator-shadow-style: inset -2px 0px 0px 0px;
 }
 
 &.view-tab {
-    --page-bg: #2a2a2e;
-    --scroll-bar: #2a2a2e;
+  --page-bg: #2a2a2e;
+  --scroll-bar: #2a2a2e;
 }
 
 .icon-vars(@theme: dark, @inverse: light);

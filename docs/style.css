@@ -1,131 +1,163 @@
 /* Global page settings and layout */
 
-html, body {
-    margin: 0;
-    padding: 0;
-    background-color: white;
-    color: #222426;
-    font-family: Segoe UI, Helvetica Neue, Arial, sans-serif;
-    font-size: 13pt;
-    line-height: 1.4;
-    display: flex;
-    flex-direction: column;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+  color: #222426;
+  font-family: Segoe UI, Helvetica Neue, Arial, sans-serif;
+  font-size: 13pt;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
 }
 
-a, a:visited, a:hover { color: #287acc; }
-a:hover { background-color: rgba(0, 0, 0, 0.08); }
-a:active { background-color: rgba(0, 0, 0, 0.16); }
+a,
+a:visited,
+a:hover {
+  color: #287acc;
+}
+a:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+a:active {
+  background-color: rgba(0, 0, 0, 0.16);
+}
 
-header, main, footer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 2rem;
+header,
+main,
+footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 2rem;
 }
 
 @media (max-width: 780px) {
-    html, body { font-size: 12pt; }
-    header, main, footer {
-        padding: 0 1rem;
-    }
+  html,
+  body {
+    font-size: 12pt;
+  }
+  header,
+  main,
+  footer {
+    padding: 0 1rem;
+  }
 }
 
-header >div, main > div, footer > div {
-    width: 800px;
-    max-width: 100%;
-    margin: 1rem 0;
+header > div,
+main > div,
+footer > div {
+  width: 800px;
+  max-width: 100%;
+  margin: 1rem 0;
 }
 
 img {
-    max-width: 100%;
+  max-width: 100%;
 }
 
 pre {
-    background-color: #efefef;
-    padding: 0.5ex 1ex;
-    border-radius: 0.5ex;
+  background-color: #efefef;
+  padding: 0.5ex 1ex;
+  border-radius: 0.5ex;
 }
-
-
 
 /* Header */
 
 header {
-    /*background-color: #287acc;*/
-    background: linear-gradient(160deg, #287acc, #3d6899);
-    color: white;
+  /*background-color: #287acc;*/
+  background: linear-gradient(160deg, #287acc, #3d6899);
+  color: white;
 }
 
 header h1 {
-    font-size: 30pt;
-    line-height: 115%;
-    margin: 1ex 0;
+  font-size: 30pt;
+  line-height: 115%;
+  margin: 1ex 0;
 }
 header h1 #logo {
-    height: 30pt;
-    vertical-align: bottom;
+  height: 30pt;
+  vertical-align: bottom;
 }
 header h2 {
-    margin: 0;
-    font-weight: normal;
-    font-size: 15pt;
-    font-style: italic;
-    color: #f9f9fa;
+  margin: 0;
+  font-weight: normal;
+  font-size: 15pt;
+  font-style: italic;
+  color: #f9f9fa;
 }
 header nav {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    border-top-left-radius: 1ex;
-    border-top-right-radius: 1ex;
-    background-color: rgba(255, 255, 255, 0.16);
-    clip-path: border-box;
-    overflow: hidden; /* needed to get clip-path to work */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  border-top-left-radius: 1ex;
+  border-top-right-radius: 1ex;
+  background-color: rgba(255, 255, 255, 0.16);
+  clip-path: border-box;
+  overflow: hidden; /* needed to get clip-path to work */
 }
 header a {
-    display: inline-block;
-    padding: 0.75ex 2ex;
-    text-decoration: none;
+  display: inline-block;
+  padding: 0.75ex 2ex;
+  text-decoration: none;
 }
 header h1 a {
-    padding: 0;
-    background-color: inherit;
+  padding: 0;
+  background-color: inherit;
 }
 header h1 a:hover {
-    text-decoration: none;
-    box-shadow: 0 0 0 0.5ex rgba(0, 0, 0, 0.08);
-    border-radius: 0.25ex;
+  text-decoration: none;
+  box-shadow: 0 0 0 0.5ex rgba(0, 0, 0, 0.08);
+  border-radius: 0.25ex;
 }
 header h1 a:active {
-    box-shadow: 0 0 0 0.5ex rgba(0, 0, 0, 0.16);
+  box-shadow: 0 0 0 0.5ex rgba(0, 0, 0, 0.16);
 }
-header a, header a:visited, header a:hover, header a:active {
-    color: white;
+header a,
+header a:visited,
+header a:hover,
+header a:active {
+  color: white;
 }
-header a:hover, header a:active {
-    text-decoration: underline;
+header a:hover,
+header a:active {
+  text-decoration: underline;
 }
 
-a.install, a.install:visited {
-    background-color: #47b25c;
-    font-weight: bold;
+a.install,
+a.install:visited {
+  background-color: #47b25c;
+  font-weight: bold;
 }
-a.install:hover { background-color: #3f9e52; }
-a.install:active { background-color: #378947; }
+a.install:hover {
+  background-color: #3f9e52;
+}
+a.install:active {
+  background-color: #378947;
+}
 
 @media (max-width: 780px) {
-    header h1 { font-size: 20pt; margin-top: 0; }
-    header h1 #logo { height: 20pt; }
-    header h2 { font-size: 11pt; }
-    header a { padding: 1ex 1.5ex; }
+  header h1 {
+    font-size: 20pt;
+    margin-top: 0;
+  }
+  header h1 #logo {
+    height: 20pt;
+  }
+  header h2 {
+    font-size: 11pt;
+  }
+  header a {
+    padding: 1ex 1.5ex;
+  }
 }
-
-
 
 /* Footer */
 footer {
-    color: #889099;
-    font-style: italic;
-    font-size: 11pt;
-    text-align: center;
+  color: #889099;
+  font-style: italic;
+  font-size: 11pt;
+  text-align: center;
 }

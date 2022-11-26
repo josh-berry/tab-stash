@@ -2,39 +2,57 @@
 // stash list.
 
 main {
-    -moz-user-select: text;
-    user-select: text;
+  -moz-user-select: text;
+  user-select: text;
 }
 
 .folder > ul.contents {
-    padding: 0;
-    margin-left: calc(2 * var(--page-pw));
-    margin-right: var(--page-pw);
-    margin-top: 0;
-    list-style: disc;
+  padding: 0;
+  margin-left: calc(2 * var(--page-pw));
+  margin-right: var(--page-pw);
+  margin-top: 0;
+  list-style: disc;
 }
-li { margin: var(--ctrl-mh) 0; }
+li {
+  margin: var(--ctrl-mh) 0;
+}
 
 span {
-    &.new, &.added, &.new-experiment, &.experiment-released, &.improved, &.fixed,
-    &.removed {
-        font-variant: small-caps;
-        font-weight: bold;
-        border-radius: var(--input-text-border-radius);
-        padding: 0 var(--icon-p);
-    }
+  &.new,
+  &.added,
+  &.new-experiment,
+  &.experiment-released,
+  &.improved,
+  &.fixed,
+  &.removed {
+    font-variant: small-caps;
+    font-weight: bold;
+    border-radius: var(--input-text-border-radius);
+    padding: 0 var(--icon-p);
+  }
 
-    &.new, &.added, &.new-experiment, &.experiment-released {
-        background-color: var(--read-bg);
-    }
-    &.improved { background-color: var(--create-bg); }
-    &.fixed { background-color: var(--update-bg); }
-    &.removed { background-color: var(--delete-bg); }
+  &.new,
+  &.added,
+  &.new-experiment,
+  &.experiment-released {
+    background-color: var(--read-bg);
+  }
+  &.improved {
+    background-color: var(--create-bg);
+  }
+  &.fixed {
+    background-color: var(--update-bg);
+  }
+  &.removed {
+    background-color: var(--delete-bg);
+  }
 }
 
 img.inl {
-    height: var(--icon-size);
-    vertical-align: bottom;
+  height: var(--icon-size);
+  vertical-align: bottom;
 }
 
-.issue { .status-text(); }
+.issue {
+  .status-text();
+}

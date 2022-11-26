@@ -1,94 +1,96 @@
 {
-    "manifest_version": 2,
-    "name": "Tab Stash",
-    "version": "2.11.1",
-    "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
-    "homepage_url": "https://josh-berry.github.io/tab-stash/",
-    "icons": {
-        "48": "icons/logo-48.png",
-        "96": "icons/logo-96.png",
-        "128": "icons/logo-128.png"
-    },
-    "browser_specific_settings": {
-        "gecko": {
-            "id": "tab-stash@condordes.net",
-            "strict_min_version": "72.0"
-        }
-    },
-    "permissions": [
-        "sessions",
-        "tabs",
-        "tabHide",
-        "bookmarks",
-        "contextMenus",
-        "browserSettings",
-        "storage",
-        "unlimitedStorage",
-        "contextualIdentities",
-        "cookies"
-    ],
-    "content_security_policy":
-        "script-src 'self'; object-src 'self';",
-    "background": {
-        "scripts": ["lib.js", "index.js"]
-    },
-    "browser_action": {
-        "default_title": "Tab Stash",
-        "default_icon": {
-            "16": "icons/light/logo-16.png",
-            "32": "icons/light/logo-32.png"
-        },
-        "theme_icons": [{
-            "light": "icons/dark/logo-16.png",
-            "dark": "icons/light/logo-16.png",
-            "size": 16
-        }, {
-            "light": "icons/dark/logo-32.png",
-            "dark": "icons/light/logo-32.png",
-            "size": 32
-        }],
-        "browser_style": false
-    },
-    "page_action": {
-        "default_title": "Stash this tab",
-        "default_icon": {
-            "16": "icons/stash-one.svg",
-            "32": "icons/stash-one.svg"
-        },
-        "browser_style": false,
-        "show_matches": ["<all_urls>"]
-    },
-    "sidebar_action": {
-        "default_title": "Tab Stash",
-        "default_icon": {
-            "16": "icons/logo.svg",
-            "32": "icons/logo.svg"
-        },
-        "default_panel": "stash-list.html?view=sidebar",
-        "browser_style": false
-    },
-    "options_ui": {
-        "page": "options.html",
-        "browser_style": true
-    },
-    "commands": {
-        "_execute_browser_action": {
-            "suggested_key": {
-                "default": "Ctrl+Alt+T",
-                "mac": "MacCtrl+Shift+T"
-            }
-        },
-        "_execute_sidebar_action": {
-            "suggested_key": {
-                "default": "Ctrl+Alt+S",
-                "mac": "MacCtrl+Shift+S"
-            }
-        },
-        "_execute_page_action": {
-            "suggested_key": {
-                "default": "Ctrl+Alt+W",
-                "mac": "MacCtrl+Shift+W"
-            }
-        }
+  "manifest_version": 2,
+  "name": "Tab Stash",
+  "version": "2.11.1",
+  "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
+  "homepage_url": "https://josh-berry.github.io/tab-stash/",
+  "icons": {
+    "48": "icons/logo-48.png",
+    "96": "icons/logo-96.png",
+    "128": "icons/logo-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tab-stash@condordes.net",
+      "strict_min_version": "72.0"
     }
+  },
+  "permissions": [
+    "sessions",
+    "tabs",
+    "tabHide",
+    "bookmarks",
+    "contextMenus",
+    "browserSettings",
+    "storage",
+    "unlimitedStorage",
+    "contextualIdentities",
+    "cookies"
+  ],
+  "content_security_policy": "script-src 'self'; object-src 'self';",
+  "background": {
+    "scripts": ["lib.js", "index.js"]
+  },
+  "browser_action": {
+    "default_title": "Tab Stash",
+    "default_icon": {
+      "16": "icons/light/logo-16.png",
+      "32": "icons/light/logo-32.png"
+    },
+    "theme_icons": [
+      {
+        "light": "icons/dark/logo-16.png",
+        "dark": "icons/light/logo-16.png",
+        "size": 16
+      },
+      {
+        "light": "icons/dark/logo-32.png",
+        "dark": "icons/light/logo-32.png",
+        "size": 32
+      }
+    ],
+    "browser_style": false
+  },
+  "page_action": {
+    "default_title": "Stash this tab",
+    "default_icon": {
+      "16": "icons/stash-one.svg",
+      "32": "icons/stash-one.svg"
+    },
+    "browser_style": false,
+    "show_matches": ["<all_urls>"]
+  },
+  "sidebar_action": {
+    "default_title": "Tab Stash",
+    "default_icon": {
+      "16": "icons/logo.svg",
+      "32": "icons/logo.svg"
+    },
+    "default_panel": "stash-list.html?view=sidebar",
+    "browser_style": false
+  },
+  "options_ui": {
+    "page": "options.html",
+    "browser_style": true
+  },
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+T",
+        "mac": "MacCtrl+Shift+T"
+      }
+    },
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+S",
+        "mac": "MacCtrl+Shift+S"
+      }
+    },
+    "_execute_page_action": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+W",
+        "mac": "MacCtrl+Shift+W"
+      }
+    }
+  }
 }

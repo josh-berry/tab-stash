@@ -19,13 +19,21 @@ SRC_PKG = $(RELEASE_DIR)/$(SRCPKG_DIR).tar.gz
 DIST_PKG = $(RELEASE_DIR)/tab-stash-$(FULL_VERSION).zip
 
 # Primary (user-facing) targets
-debug: build-dbg build-chrome-dbg
-	@$(MAKE) check
+debug: node_modules
+	npm run check-style || npm run fix-style
+	$(MAKE) build-dbg build-chrome-dbg check-tests
 .PHONY: debug
 
-check: # no dependencies since it must work with all types of builds
-	npm run test
+check: check-tests check-style
 .PHONY: check
+
+check-tests: node_modules
+	npm run test
+.PHONY: check-tests
+
+check-style: node_modules
+	npm run check-style
+.PHONY: check-style
 
 rel:
 	$(MAKE) distclean release-tag
@@ -107,7 +115,7 @@ build-rel:
 	$(MAKE) clean
 	$(MAKE) node_modules icons dist/tab-stash.css
 	npm run build-rel
-	npm run test
+	$(MAKE) check
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 

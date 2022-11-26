@@ -23,6 +23,7 @@
     "less": "^4.1",
     "mocha": "^9.1",
     "nyc": "^15.1.0",
+    "prettier": "^2.8.0",
     "ts-loader": "^9.2",
     "ts-node": "^10",
     "typescript": "^4.6",
@@ -38,6 +39,8 @@
     "build": "webpack --mode development && copyfiles -u 1 'assets/**/*' dist",
     "build-rel": "webpack --mode production && copyfiles -u 1 'assets/**/*' dist",
     "build-styles": "lessc --math=strict styles/index.less dist/tab-stash.css",
+    "check-style": "prettier --check .",
+    "fix-style": "prettier --write .",
     "test": "nyc --reporter=text --reporter=lcov --reporter=html mocha"
   }
 }

@@ -1,136 +1,172 @@
 body {
-    font: caption;
-    user-select: none;
-    -moz-user-select: none;
-    background-color: var(--page-bg);
-    color: var(--page-fg);
-    scrollbar-color: var(--scroll-handle) var(--scroll-bar);
-    overscroll-behavior: contain;
+  font: caption;
+  user-select: none;
+  -moz-user-select: none;
+  background-color: var(--page-bg);
+  color: var(--page-fg);
+  scrollbar-color: var(--scroll-handle) var(--scroll-bar);
+  overscroll-behavior: contain;
 }
 
 html.view-popup {
-    // NOTE: The weird widths here are so that everything looks right when Tab
-    // Stash is moved to Firefox's popup menu (which for some reason STILL,
-    // after who knows how many years, doesn't change width to accommodate
-    // extension popups...)
-    & > body {
-        min-width: 200px;
-        max-width: 600px;
-        width: 376px;
-        height: 600px;
-    }
+  // NOTE: The weird widths here are so that everything looks right when Tab
+  // Stash is moved to Firefox's popup menu (which for some reason STILL,
+  // after who knows how many years, doesn't change width to accommodate
+  // extension popups...)
+  & > body {
+    min-width: 200px;
+    max-width: 600px;
+    width: 376px;
+    height: 600px;
+  }
 
-    &.os-mac > body {
-        width: 378px;
-    }
+  &.os-mac > body {
+    width: 378px;
+  }
 
-    &.os-win > body {
-        width: 348px;
-    }
+  &.os-win > body {
+    width: 348px;
+  }
 }
 
 html.browser-chrome > body {
-    font: initial;
-    font-family: system-ui, sans-serif;
-    font-size: 9.5pt;
+  font: initial;
+  font-family: system-ui, sans-serif;
+  font-size: 9.5pt;
 }
-html.browser-chrome.os-win > body { font-size: 9pt; }
+html.browser-chrome.os-win > body {
+  font-size: 9pt;
+}
 
 // Anything that has keyboard focus
 :focus {
-    box-shadow: var(--focus-shadow);
-    outline: none;
+  box-shadow: var(--focus-shadow);
+  outline: none;
 }
 
 // Basic formatting
-em { font-style: italic; }
+em {
+  font-style: italic;
+}
 
 // Links
-a, a:visited {
-    color: var(--userlink-fg);
-    text-decoration: underline;
+a,
+a:visited {
+  color: var(--userlink-fg);
+  text-decoration: underline;
 }
-a:hover, a:focus-within {
-    background-color: var(--userlink-hover-bg);
-    color: var(--userlink-hover-fg);
+a:hover,
+a:focus-within {
+  background-color: var(--userlink-hover-bg);
+  color: var(--userlink-hover-fg);
 }
-a:active, a:focus-within { box-shadow: none; }
+a:active,
+a:focus-within {
+  box-shadow: none;
+}
 a:active {
-    background-color: var(--userlink-active-bg);
-    color: var(--userlink-active-fg);
+  background-color: var(--userlink-active-bg);
+  color: var(--userlink-active-fg);
 }
-summary:active, summary:focus-within { box-shadow: none; }
+summary:active,
+summary:focus-within {
+  box-shadow: none;
+}
 
 form {
-    row-gap: var(--ctrl-mh);
-    column-gap: var(--ctrl-mw);
+  row-gap: var(--ctrl-mh);
+  column-gap: var(--ctrl-mw);
 }
-button, input, select, textarea {
-    margin: 0;
-    padding: var(--ctrl-ph) var(--ctrl-pw);
+button,
+input,
+select,
+textarea {
+  margin: 0;
+  padding: var(--ctrl-ph) var(--ctrl-pw);
 }
-button, input, select {
-    display: inline-block;
+button,
+input,
+select {
+  display: inline-block;
 
-    font: inherit;
-    color: var(--page-fg);
+  font: inherit;
+  color: var(--page-fg);
 
-    vertical-align: middle;
-    white-space: nowrap;
+  vertical-align: middle;
+  white-space: nowrap;
 }
-output { cursor: auto; }
-.input { cursor: text; }
-output, .input {
-    display: block;
+output {
+  cursor: auto;
+}
+.input {
+  cursor: text;
+}
+output,
+.input {
+  display: block;
 
-    user-select: text;
-    -moz-user-select: text;
-    overflow-y: auto;
-    overflow-wrap: anywhere;
+  user-select: text;
+  -moz-user-select: text;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
-input, textarea, .input, output {
-    background-color: var(--ctrl-bg);
-    color: var(--page-fg);
-    padding: var(--input-text-ph) var(--input-text-pw);
-    border: var(--ctrl-border);
-    border-radius: var(--input-text-border-radius);
+input,
+textarea,
+.input,
+output {
+  background-color: var(--ctrl-bg);
+  color: var(--page-fg);
+  padding: var(--input-text-ph) var(--input-text-pw);
+  border: var(--ctrl-border);
+  border-radius: var(--input-text-border-radius);
 }
-button, input[type=button], input[type=submit], input[type=reset], select {
-    padding: var(--ctrl-ph) var(--ctrl-pw);
-    border: none;
-    border-radius: var(--ctrl-border-radius);
-    background-color: var(--button-bg);
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select {
+  padding: var(--ctrl-ph) var(--ctrl-pw);
+  border: none;
+  border-radius: var(--ctrl-border-radius);
+  background-color: var(--button-bg);
 
-    &:not([disabled]):hover { background-color: var(--button-hover-bg); }
-    &:not([disabled]):active { background-color: var(--button-active-bg); }
+  &:not([disabled]):hover {
+    background-color: var(--button-hover-bg);
+  }
+  &:not([disabled]):active {
+    background-color: var(--button-active-bg);
+  }
 }
 select {
-    -moz-appearance: none;
-    -webkit-appearance: none;
-    appearance: none;
-    background-image: var(--icon-select-disclosure);
-    background-position: right var(--ctrl-pw) top 50%;
-    background-size: 12px;
-    background-repeat: no-repeat;
-    padding-right: calc(2 * var(--ctrl-pw) + 12px);
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: var(--icon-select-disclosure);
+  background-position: right var(--ctrl-pw) top 50%;
+  background-size: 12px;
+  background-repeat: no-repeat;
+  padding-right: calc(2 * var(--ctrl-pw) + 12px);
 }
 option {
-    font: inherit;
-    color: var(--ctrl-fg);
-    background-color: var(--ctrl-bg);
+  font: inherit;
+  color: var(--ctrl-fg);
+  background-color: var(--ctrl-bg);
 }
 
-.disabled, [disabled] { color: var(--disabled-fg); }
+.disabled,
+[disabled] {
+  color: var(--disabled-fg);
+}
 
 .selected {
-    background-color: var(--selected-bg);
-    font-weight: bold;
+  background-color: var(--selected-bg);
+  font-weight: bold;
 }
 
 // Drag and drop ghost elements
 [data-dnd-ghost] {
-    box-sizing: border-box;
-    border: dashed var(--disabled-fg);
-    min-height: var(--item-h);
-    min-width: var(--icon-btn-size);
+  box-sizing: border-box;
+  border: dashed var(--disabled-fg);
+  min-height: var(--item-h);
+  min-width: var(--icon-btn-size);
 }

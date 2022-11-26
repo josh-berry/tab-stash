@@ -5,19 +5,20 @@
 let makeRandomString: (bytes: number) => string;
 
 // istanbul ignore if
-if (/* istanbul ignore next */ (<any>globalThis)?.crypto?.getRandomValues) { // Browser
-    makeRandomString = (bytes: number): string => {
-        const a = new Uint8Array(bytes);
-        crypto.getRandomValues(a);
-        return btoa(String.fromCharCode(...a)).replace(/=+$/, '');
-    }
-
-} else { // Node.js (for testing purposes)
-    const crypto = require('crypto');
-    makeRandomString = (bytes: number): string => {
-        const a = crypto.randomBytes(bytes);
-        return a.toString('base64').replace(/=+$/, '');
-    }
+if (/* istanbul ignore next */ (<any>globalThis)?.crypto?.getRandomValues) {
+  // Browser
+  makeRandomString = (bytes: number): string => {
+    const a = new Uint8Array(bytes);
+    crypto.getRandomValues(a);
+    return btoa(String.fromCharCode(...a)).replace(/=+$/, "");
+  };
+} else {
+  // Node.js (for testing purposes)
+  const crypto = require("crypto");
+  makeRandomString = (bytes: number): string => {
+    const a = crypto.randomBytes(bytes);
+    return a.toString("base64").replace(/=+$/, "");
+  };
 }
 
 export {makeRandomString};

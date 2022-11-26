@@ -16,7 +16,7 @@ Supported distribution channels include:
 ## Reporting a Vulnerability
 
 Vulnerabilities may be reported in confidence via email to
-`tab-stash@condordes.net`.  Please put `[Tab Stash Security]` (including the
+`tab-stash@condordes.net`. Please put `[Tab Stash Security]` (including the
 brackets) at the beginning of the subject.
 
 When reporting a vulnerability, please provide as much detail as possible, and

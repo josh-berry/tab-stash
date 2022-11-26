@@ -1,272 +1,308 @@
 .folder-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  margin: 0;
+  padding: 0;
+
+  & > li {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    margin: 0;
-    padding: 0;
-
-    & > li {
-        display: flex;
-        flex: 1 1 auto;
-        width: 100%;
-        list-style: none;
-        &:empty:not([data-dnd-ghost]) { display: none; }
+    flex: 1 1 auto;
+    width: 100%;
+    list-style: none;
+    &:empty:not([data-dnd-ghost]) {
+      display: none;
     }
+  }
 }
 
 .folder {
-    display: block;
-    flex: 1 1 auto;
-    width: 100%;
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
 
-    // The header grid is set up like this in the sidebar view:
-    // | Folder Name ------------ | Collapse |
-    // | Actions | -------------- | -------- |
-    //
-    // The reason being we don't want the action container to take up any more
-    // space than necessary, because it will swallow DnD events.
+  // The header grid is set up like this in the sidebar view:
+  // | Folder Name ------------ | Collapse |
+  // | Actions | -------------- | -------- |
+  //
+  // The reason being we don't want the action container to take up any more
+  // space than necessary, because it will swallow DnD events.
 
-    & > header {
-        margin-top: calc(var(--ctrl-mh) / 2);
-        margin-bottom: var(--group-headerhr-mh);
-        padding: var(--group-headerhr-mh) var(--page-pw);
-        // NOTE: --ctrl-mh is used in both places above to give equal height
-        // above and below the following border:
-        border-bottom: var(--divider-border);
+  & > header {
+    margin-top: calc(var(--ctrl-mh) / 2);
+    margin-bottom: var(--group-headerhr-mh);
+    padding: var(--group-headerhr-mh) var(--page-pw);
+    // NOTE: --ctrl-mh is used in both places above to give equal height
+    // above and below the following border:
+    border-bottom: var(--divider-border);
 
-        display: grid;
-        grid-template-columns: 0fr 1fr 0fr 0fr;
-        // Gives a little more breathing room between folder-name and
-        // folder-actions to accommodate any outline/shadow of the folder name
-        // (and because folder names tend to use bigger font sizes anyway).
-        row-gap: var(--input-text-ph);
-        column-gap: var(--input-text-pw);
-        align-items: center;
+    display: grid;
+    grid-template-columns: 0fr 1fr 0fr 0fr;
+    // Gives a little more breathing room between folder-name and
+    // folder-actions to accommodate any outline/shadow of the folder name
+    // (and because folder names tend to use bigger font sizes anyway).
+    row-gap: var(--input-text-ph);
+    column-gap: var(--input-text-pw);
+    align-items: center;
 
-        & > .folder-name {
-            grid-row: 1;
-            grid-column: 1 / 3;
-            // Make sure the folder-name is tall enough that the header doesn't
-            // resize when toolbar buttons become visible/hidden
-            height: var(--icon-btn-size);
-            line-height: var(--icon-btn-size);
+    & > .folder-name {
+      grid-row: 1;
+      grid-column: 1 / 3;
+      // Make sure the folder-name is tall enough that the header doesn't
+      // resize when toolbar buttons become visible/hidden
+      height: var(--icon-btn-size);
+      line-height: var(--icon-btn-size);
 
-            .text-overflow-ellipsis();
-        }
-
-        // Column 3 is reserved for folder-actions in tab view
-
-        & > .action.collapse, & > .action.expand {
-            grid-row: 1;
-            grid-column: 4;
-        }
-
-        & > .action.collapse { display: none; } // shown only on hover, below
-        & > .action.expand { display: block; }
-
-        & > .folder-actions {
-            grid-row: 2;
-            grid-column: 1;
-        }
+      .text-overflow-ellipsis();
     }
-    &:hover > header, &:focus-within > header {
-        & > .action.collapse { display: block; }
+
+    // Column 3 is reserved for folder-actions in tab view
+
+    & > .action.collapse,
+    & > .action.expand {
+      grid-row: 1;
+      grid-column: 4;
+    }
+
+    & > .action.collapse {
+      display: none;
+    } // shown only on hover, below
+    & > .action.expand {
+      display: block;
+    }
+
+    & > .folder-actions {
+      grid-row: 2;
+      grid-column: 1;
+    }
+  }
+  &:hover > header,
+  &:focus-within > header {
+    & > .action.collapse {
+      display: block;
+    }
+  }
+
+  & > .contents {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--page-ph) 0;
+
+    & > .tabs {
+      display: flex;
+      flex-direction: column;
+      min-height: 12px;
+      margin: 0;
+      padding: 0;
+
+      & > li {
+        list-style: none;
+        &:empty:not([data-dnd-ghost]) {
+          display: none;
+        }
+      }
+    }
+  }
+
+  &.collapsed {
+    & > header {
+      margin-bottom: 0px;
+      grid-template-columns: 1fr 0fr 0fr;
+      & > .folder-actions {
+        display: none; // only on hover, below
+        grid-row: 1;
+        grid-column: 3;
+      }
+    }
+    &:hover > header,
+    &:focus-within > header {
+      & > .folder-actions {
+        display: flex;
+      }
     }
 
     & > .contents {
-        list-style: none;
-        padding: 0;
-        margin: 0 0 var(--page-ph) 0;
-
-        & > .tabs {
-            display: flex;
-            flex-direction: column;
-            min-height: 12px;
-            margin: 0;
-            padding: 0;
-
-            & > li {
-                list-style: none;
-                &:empty:not([data-dnd-ghost]) { display: none; }
-            }
-        }
+      display: none !important;
     }
-
-    &.collapsed {
-        & > header {
-            margin-bottom: 0px;
-            grid-template-columns: 1fr 0fr 0fr;
-            & > .folder-actions {
-                display: none; // only on hover, below
-                grid-row: 1;
-                grid-column: 3;
-            }
-        }
-        &:hover > header, &:focus-within > header {
-            & > .folder-actions { display: flex; }
-        }
-
-        & > .contents { display: none !important; }
-    }
+  }
 }
 
-.folder-name, .group-title {
-    display: block;
-    font-weight: bold;
-    font-size: 13pt;
-    .text-overflow-ellipsis();
+.folder-name,
+.group-title {
+  display: block;
+  font-weight: bold;
+  font-size: 13pt;
+  .text-overflow-ellipsis();
 
-    // So that descenders and ascenders don't get clipped (much... :/)
-    padding: var(--input-text-ph) var(--input-text-pw);
-    &.disabled { color: var(--disabled-fg); }
+  // So that descenders and ascenders don't get clipped (much... :/)
+  padding: var(--input-text-ph) var(--input-text-pw);
+  &.disabled {
+    color: var(--disabled-fg);
+  }
 }
 
 [data-container-color="blue"] {
-    --container-indicator-color: var(--container-color-blue);
+  --container-indicator-color: var(--container-color-blue);
 }
 
 [data-container-color="turquoise"] {
-    --container-indicator-color: var(--container-color-turquoise);
+  --container-indicator-color: var(--container-color-turquoise);
 }
 
 [data-container-color="green"] {
-    --container-indicator-color: var(--container-color-green);
+  --container-indicator-color: var(--container-color-green);
 }
 
 [data-container-color="yellow"] {
-    --container-indicator-color: var(--container-color-yellow);
+  --container-indicator-color: var(--container-color-yellow);
 }
 
 [data-container-color="orange"] {
-    --container-indicator-color: var(--container-color-orange);
+  --container-indicator-color: var(--container-color-orange);
 }
 
 [data-container-color="red"] {
-    --container-indicator-color: var(--container-color-red);
+  --container-indicator-color: var(--container-color-red);
 }
 
 [data-container-color="pink"] {
-    --container-indicator-color: var(--container-color-pink);
+  --container-indicator-color: var(--container-color-pink);
 }
 
 [data-container-color="purple"] {
-    --container-indicator-color: var(--container-color-purple);
+  --container-indicator-color: var(--container-color-purple);
 }
 
 [data-container-color="toolbar"] {
-    --container-indicator-color: var(--container-color-toolbar);
+  --container-indicator-color: var(--container-color-toolbar);
 }
-
 
 // This matches the text of an editable-label component that is not
 // currently being edited.
 &.has-open-tabs .folder-name {
-    color: var(--userlink-fg);
-    filter: saturate(0.7);
+  color: var(--userlink-fg);
+  filter: saturate(0.7);
 }
 
 // Tab entries and other folder contents (e.g. count of hidden tabs)
 .folder-item[data-container-color] {
-    box-shadow: var(--container-indicator-shadow-style) var(--container-indicator-color);
+  box-shadow: var(--container-indicator-shadow-style)
+    var(--container-indicator-color);
 }
 
 .folder-item {
-    display: grid;
-    // 1:.indent, 2:.item-icon, 3:<padding>, 4:.text, 5:.badge, 6:nav
-    grid-template-columns: 0fr 0fr var(--ctrl-mw) 1fr 0fr 0fr;
-    align-items: center;
-    padding: 0 var(--page-pw);
+  display: grid;
+  // 1:.indent, 2:.item-icon, 3:<padding>, 4:.text, 5:.badge, 6:nav
+  grid-template-columns: 0fr 0fr var(--ctrl-mw) 1fr 0fr 0fr;
+  align-items: center;
+  padding: 0 var(--page-pw);
+  height: var(--item-h);
+
+  &:not(.disabled) {
+    // If a selection is active and this is a candidate for selection, show
+    // a background on the select button indicating the item can be selected.
+    .selection-active & .action.select {
+      background-color: var(--button-bg);
+    }
+
+    &.selected .action.select {
+      background-color: var(--userlink-fg);
+      &:hover {
+        background-color: var(--userlink-hover-fg);
+      }
+      &:active,
+      &:focus-within {
+        background-color: var(--userlink-active-fg);
+      }
+    }
+
+    &:hover,
+    &:focus-within {
+      background-color: var(--item-hover-bg);
+
+      .action.select {
+        box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
+      }
+
+      // Special highlighting behavior for using the icon to select the tab.
+      &:not(.selected) .action.select {
+        background-color: var(--button-bg);
+        &:hover {
+          background-color: var(--button-hover-bg);
+        }
+        &:active {
+          background-color: var(--button-active-bg);
+        }
+      }
+    }
+  }
+
+  // The aforementioned indentation element
+  & > .indent {
+    display: inline-block;
+    width: calc(var(--icon-size) + var(--ctrl-mw));
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  & > .item-icon {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  & > .text {
+    grid-row: 1;
+    grid-column: 4;
     height: var(--item-h);
+    /* to vertically center text while text-overflow: ellipsis; */
+    line-height: var(--item-h);
+    .text-overflow-ellipsis();
+  }
 
-    &:not(.disabled) {
-        // If a selection is active and this is a candidate for selection, show
-        // a background on the select button indicating the item can be selected.
-        .selection-active & .action.select {
-            background-color: var(--button-bg);
-        }
-
-        &.selected .action.select {
-            background-color: var(--userlink-fg);
-            &:hover { background-color: var(--userlink-hover-fg); }
-            &:active, &:focus-within { background-color: var(--userlink-active-fg); }
-        }
-
-        &:hover, &:focus-within {
-            background-color: var(--item-hover-bg);
-
-            .action.select {
-                box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
-            }
-
-            // Special highlighting behavior for using the icon to select the tab.
-            &:not(.selected) .action.select {
-                background-color: var(--button-bg);
-                &:hover { background-color: var(--button-hover-bg); }
-                &:active { background-color: var(--button-active-bg); }
-            }
-        }
+  & > .badge {
+    grid-row: 1;
+    grid-column: 5;
+    height: var(--item-h);
+    line-height: var(--item-h);
+    opacity: 50%;
+    &.icon {
+      /* Similar to .action... */
+      box-sizing: border-box;
+      width: var(--icon-btn-size);
+      height: var(--icon-btn-size);
+      padding: var(--icon-p);
     }
+  }
 
-    // The aforementioned indentation element
-    & > .indent {
-        display: inline-block;
-        width: calc(var(--icon-size) + var(--ctrl-mw));
-        grid-row: 1;
-        grid-column: 1;
-    }
+  & > nav {
+    display: none;
+    grid-row: 1;
+    grid-column: 6;
+  }
+  &:hover > nav,
+  &:focus-within > nav {
+    display: flex;
+  }
 
-    & > .item-icon {
-        grid-row: 1;
-        grid-column: 2;
-    }
-
-    & > .text {
-        grid-row: 1;
-        grid-column: 4;
-        height: var(--item-h);
-        /* to vertically center text while text-overflow: ellipsis; */
-        line-height: var(--item-h);
-        .text-overflow-ellipsis();
-    }
-
-    & > .badge {
-        grid-row: 1;
-        grid-column: 5;
-        height: var(--item-h);
-        line-height: var(--item-h);
-        opacity: 50%;
-        &.icon {
-            /* Similar to .action... */
-            box-sizing: border-box;
-            width: var(--icon-btn-size);
-            height: var(--icon-btn-size);
-            padding: var(--icon-p);
-        }
-    }
-
-    & > nav {
-        display: none;
-        grid-row: 1;
-        grid-column: 6;
-    }
-    &:hover > nav, &:focus-within > nav { display: flex; }
-
-    // Don't double-highlight folder-item links
-    a:hover, a:focus-within, a:active { background-color: transparent; }
+  // Don't double-highlight folder-item links
+  a:hover,
+  a:focus-within,
+  a:active {
+    background-color: transparent;
+  }
 }
 
 // Container holding nested folder items, which should not be visible to the
 // naked eye (because indentation is handled by .indent elements).
 .folder-item-nesting {
-    margin: 0;
-    padding: 0 0 0 0;
-    list-style: none;
+  margin: 0;
+  padding: 0 0 0 0;
+  list-style: none;
 }
 
-
 .text-overflow-ellipsis() {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

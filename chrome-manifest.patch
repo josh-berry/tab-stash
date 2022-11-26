@@ -1,64 +1,61 @@
-diff --git a/assets/manifest.json b/assets/manifest.json
-index 2e44593..9743a64 100644
---- a/assets/manifest.json
-+++ b/assets/manifest.json
-@@ -33,8 +33,8 @@
-     "browser_action": {
-         "default_title": "Tab Stash",
-         "default_icon": {
--            "16": "icons/light/logo-16.png",
--            "32": "icons/light/logo-32.png"
-+            "16": "icons/logo-16.png",
-+            "32": "icons/logo-32.png"
-         },
-         "theme_icons": [{
-             "light": "icons/dark/logo-16.png",
-@@ -47,45 +47,16 @@
-         }],
-         "browser_style": false
+--- a/assets/manifest.json	2022-11-25 13:41:21
++++ b/assets/manifest.json	2022-11-25 14:01:02
+@@ -34,8 +34,8 @@
+   "browser_action": {
+     "default_title": "Tab Stash",
+     "default_icon": {
+-      "16": "icons/light/logo-16.png",
+-      "32": "icons/light/logo-32.png"
++      "16": "icons/logo-16.png",
++      "32": "icons/logo-32.png"
      },
--    "page_action": {
--        "default_title": "Stash this tab",
--        "default_icon": {
--            "16": "icons/stash-one.svg",
--            "32": "icons/stash-one.svg"
--        },
--        "browser_style": false,
--        "show_matches": ["<all_urls>"]
+     "theme_icons": [
+       {
+@@ -51,24 +51,6 @@
+     ],
+     "browser_style": false
+   },
+-  "page_action": {
+-    "default_title": "Stash this tab",
+-    "default_icon": {
+-      "16": "icons/stash-one.svg",
+-      "32": "icons/stash-one.svg"
 -    },
--    "sidebar_action": {
--        "default_title": "Tab Stash",
--        "default_icon": {
--            "16": "icons/logo.svg",
--            "32": "icons/logo.svg"
--        },
--        "default_panel": "stash-list.html?view=sidebar",
--        "browser_style": false
+-    "browser_style": false,
+-    "show_matches": ["<all_urls>"]
+-  },
+-  "sidebar_action": {
+-    "default_title": "Tab Stash",
+-    "default_icon": {
+-      "16": "icons/logo.svg",
+-      "32": "icons/logo.svg"
 -    },
-     "options_ui": {
-         "page": "options.html",
-+        "open_in_tab": false,
-         "browser_style": true
-     },
-     "commands": {
-         "_execute_browser_action": {
-             "suggested_key": {
--                "default": "Ctrl+Alt+T",
--                "mac": "MacCtrl+Shift+T"
--            }
--        },
--        "_execute_sidebar_action": {
--            "suggested_key": {
--                "default": "Ctrl+Alt+S",
--                "mac": "MacCtrl+Shift+S"
--            }
--        },
--        "_execute_page_action": {
--            "suggested_key": {
--                "default": "Ctrl+Alt+W",
--                "mac": "MacCtrl+Shift+W"
-+                "default": "Ctrl+Shift+Period",
-+                "mac": "MacCtrl+Shift+Period"
-             }
-         }
+-    "default_panel": "stash-list.html?view=sidebar",
+-    "browser_style": false
+-  },
+   "options_ui": {
+     "page": "options.html",
+     "browser_style": true
+@@ -76,20 +58,8 @@
+   "commands": {
+     "_execute_browser_action": {
+       "suggested_key": {
+-        "default": "Ctrl+Alt+T",
+-        "mac": "MacCtrl+Shift+T"
+-      }
+-    },
+-    "_execute_sidebar_action": {
+-      "suggested_key": {
+-        "default": "Ctrl+Alt+S",
+-        "mac": "MacCtrl+Shift+S"
+-      }
+-    },
+-    "_execute_page_action": {
+-      "suggested_key": {
+-        "default": "Ctrl+Alt+W",
+-        "mac": "MacCtrl+Shift+W"
++        "default": "Ctrl+Shift+Period",
++        "mac": "MacCtrl+Shift+Period"
+       }
      }
+   }

@@ -1,59 +1,68 @@
 // Mods for when in tab view -- uses a multi-column display format
 
 .folder-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: stretch;
-    // Same width and height since this is a grid
-    margin: var(--page-pw) var(--page-pw);
-    row-gap: var(--page-pw);
-    column-gap: var(--page-pw);
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  // Same width and height since this is a grid
+  margin: var(--page-pw) var(--page-pw);
+  row-gap: var(--page-pw);
+  column-gap: var(--page-pw);
 
-    & > li { flex: 1 1 25rem; }
+  & > li {
+    flex: 1 1 25rem;
+  }
 }
 .one-column .folder {
-    flex: 1 1 auto;
-    width: 100%;
+  flex: 1 1 auto;
+  width: 100%;
 }
 
 .folder {
-    flex: 1 1 auto;
-    background-color: var(--group-bg);
-    border: var(--group-border);
-    box-shadow: var(--shadow);
+  flex: 1 1 auto;
+  background-color: var(--group-bg);
+  border: var(--group-border);
+  box-shadow: var(--shadow);
 
+  display: flex;
+  flex-direction: column;
+
+  &.collapsed {
+    background: var(--group-disabled-bg);
+    border: var(--group-disabled-border);
+    box-shadow: var(--shadow-faint);
+  }
+
+  & > header {
+    & > nav.folder-actions {
+      grid-row: 1;
+      grid-column: 3;
+      display: none;
+    }
+  }
+  &:hover > header,
+  &:focus-within > header {
+    & > nav.folder-actions {
+      display: flex;
+    }
+  }
+
+  & > .contents {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
 
-    &.collapsed {
-        background: var(--group-disabled-bg);
-        border: var(--group-disabled-border);
-        box-shadow: var(--shadow-faint);
+    // If we are not showing a "+ N filtered" label at the bottom, make
+    // the tab list expand to fill the whole folder box so it's a bigger
+    // drop target.
+    & > .tabs:last-child {
+      flex: 1 1 auto;
     }
-
-    & > header {
-        & > nav.folder-actions {
-            grid-row: 1;
-            grid-column: 3;
-            display: none;
-        }
-    }
-    &:hover > header, &:focus-within > header {
-        & > nav.folder-actions { display: flex; }
-    }
-
-    & > .contents {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-
-        // If we are not showing a "+ N filtered" label at the bottom, make
-        // the tab list expand to fill the whole folder box so it's a bigger
-        // drop target.
-        & > .tabs:last-child { flex: 1 1 auto; }
-    }
+  }
 }
 
 // Don't show the "stash this tab" button on folders when we are the
 // current tab (and not the sidebar)
-.action.stash.one.here { display: none; }
+.action.stash.one.here {
+  display: none;
+}

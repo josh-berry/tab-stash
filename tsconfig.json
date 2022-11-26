@@ -1,17 +1,13 @@
 {
-    "compilerOptions": {
-        "sourceMap": true,
-        "esModuleInterop": true,
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "noUnusedLocals": true,
-        "strict": true,
-        "target": "es2017",
-        "typeRoots": [
-            "node_modules/@types",
-        ]
-    },
-    "include": [
-        "./src/**/*"
-    ]
+  "compilerOptions": {
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noUnusedLocals": true,
+    "strict": true,
+    "target": "es2017",
+    "typeRoots": ["node_modules/@types"]
+  },
+  "include": ["./src/**/*"]
 }

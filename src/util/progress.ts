@@ -266,200 +266,218 @@ async function onCancelHandler(data: any[], tm: TaskMonitor) {
 
 import {reactive} from "vue";
 
-
-
 export interface TaskHandle {
-    progress: Progress;
-    cancel(): void;
+  progress: Progress;
+  cancel(): void;
 }
 
 export type Task<R> = Promise<R> & TaskHandle;
 export type TaskIterator<R> = AsyncIterableIterator<R> & TaskHandle;
 
 function _spawn<R>(
-    parent: TaskMonitor | undefined,
-    weight: number,
-    fn: (tm: TaskMonitor) => Promise<R>,
+  parent: TaskMonitor | undefined,
+  weight: number,
+  fn: (tm: TaskMonitor) => Promise<R>,
 ): Task<R> {
-    const tm = new TaskMonitor(parent, weight);
-    const promise = fn(tm).finally(() => tm.detach());
-    return Object.assign(promise, {
-        progress: tm.progress,
-        cancel() { tm.cancel(); },
-    });
+  const tm = new TaskMonitor(parent, weight);
+  const promise = fn(tm).finally(() => tm.detach());
+  return Object.assign(promise, {
+    progress: tm.progress,
+    cancel() {
+      tm.cancel();
+    },
+  });
 }
 
 function _spawn_iter<R>(
-    parent: TaskMonitor | undefined,
-    weight: number,
-    fn: (tm: TaskMonitor) => AsyncIterator<R>,
+  parent: TaskMonitor | undefined,
+  weight: number,
+  fn: (tm: TaskMonitor) => AsyncIterator<R>,
 ): TaskIterator<R> {
-    let tm: TaskMonitor | undefined = new TaskMonitor(parent, weight);
-    const iter = fn(tm);
-    return {
-        [Symbol.asyncIterator](): TaskIterator<R> { return this; },
-        async next(): Promise<IteratorResult<R>> {
-            const res = await iter.next();
-            if (tm && res.done) {
-                tm.detach();
-                tm = undefined;
-            }
-            return res;
-        },
-        progress: tm!.progress,
-        cancel() { tm?.cancel(); },
-    };
+  let tm: TaskMonitor | undefined = new TaskMonitor(parent, weight);
+  const iter = fn(tm);
+  return {
+    [Symbol.asyncIterator](): TaskIterator<R> {
+      return this;
+    },
+    async next(): Promise<IteratorResult<R>> {
+      const res = await iter.next();
+      if (tm && res.done) {
+        tm.detach();
+        tm = undefined;
+      }
+      return res;
+    },
+    progress: tm!.progress,
+    cancel() {
+      tm?.cancel();
+    },
+  };
 }
 
 export class TaskMonitor {
-    readonly progress: Progress;
-    onCancel?: () => void = undefined;
+  readonly progress: Progress;
+  onCancel?: () => void = undefined;
 
-    private _cancelled: boolean = false;
+  private _cancelled: boolean = false;
 
-    private _parent: TaskMonitor | undefined;
-    private _children: TaskMonitor[] = [];
+  private _parent: TaskMonitor | undefined;
+  private _children: TaskMonitor[] = [];
 
-    static run<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
-        return _spawn(undefined, 1, fn);
+  static run<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
+    return _spawn(undefined, 1, fn);
+  }
+
+  static run_iter<R>(
+    fn: (tm: TaskMonitor) => AsyncIterableIterator<R>,
+  ): TaskIterator<R> {
+    return _spawn_iter(undefined, 1, fn);
+  }
+
+  constructor(parent?: TaskMonitor, weight?: number) {
+    this.progress = make_progress(parent?.progress, weight);
+    this._parent = parent;
+    if (this._parent) {
+      this._parent._children.push(this);
     }
+  }
 
-    static run_iter<R>(fn: (tm: TaskMonitor) => AsyncIterableIterator<R>):
-        TaskIterator<R>
-    {
-        return _spawn_iter(undefined, 1, fn);
+  detach() {
+    this.progress._detach();
+    if (this._parent) {
+      this._parent._children.splice(this._parent._children.indexOf(this), 1);
+      this._parent = undefined;
     }
+  }
 
-    constructor(parent?: TaskMonitor, weight?: number) {
-        this.progress = make_progress(parent?.progress, weight);
-        this._parent = parent;
-        if (this._parent) {
-            this._parent._children.push(this);
-        }
+  spawn<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
+    return this.wspawn(1, fn);
+  }
+
+  wspawn<R>(weight: number, fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
+    return _spawn(this, weight, fn);
+  }
+
+  spawn_iter<R>(
+    fn: (tm: TaskMonitor) => AsyncIterableIterator<R>,
+  ): TaskIterator<R> {
+    return this.wspawn_iter(1, fn);
+  }
+
+  wspawn_iter<R>(
+    weight: number,
+    fn: (tm: TaskMonitor) => AsyncIterableIterator<R>,
+  ): TaskIterator<R> {
+    return _spawn_iter(this, weight, fn);
+  }
+
+  get cancelled() {
+    return this._cancelled;
+  }
+  cancel() {
+    this._cancelled = true;
+  }
+
+  get status() {
+    return this.progress.status;
+  }
+  set status(s: string) {
+    this.progress.status = s;
+    this._cancelCheck();
+  }
+
+  get value() {
+    return this.progress.value;
+  }
+  set value(v: number) {
+    this.progress.value = v;
+    this._cancelCheck();
+  }
+
+  get max() {
+    return this.progress.max;
+  }
+  set max(m: number) {
+    this.progress.max = m;
+    this._cancelCheck();
+  }
+
+  private _cancelCheck() {
+    if (this._parent) this._parent._cancelCheck();
+    if (this.onCancel && this._cancelled) {
+      this.onCancel();
+      this.onCancel = undefined;
     }
-
-    detach() {
-        this.progress._detach();
-        if (this._parent) {
-            this._parent._children.splice(this._parent._children.indexOf(this), 1);
-            this._parent = undefined;
-        }
-    }
-
-    spawn<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
-        return this.wspawn(1, fn);
-    }
-
-    wspawn<R>(weight: number, fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
-        return _spawn(this, weight, fn);
-    }
-
-    spawn_iter<R>(fn: (tm: TaskMonitor) => AsyncIterableIterator<R>):
-        TaskIterator<R>
-    {
-        return this.wspawn_iter(1, fn);
-    }
-
-    wspawn_iter<R>(
-        weight: number,
-        fn: (tm: TaskMonitor) => AsyncIterableIterator<R>
-    ): TaskIterator<R> {
-        return _spawn_iter(this, weight, fn);
-    }
-
-    get cancelled() { return this._cancelled; }
-    cancel() { this._cancelled = true; }
-
-    get status() { return this.progress.status; }
-    set status(s: string) {
-        this.progress.status = s;
-        this._cancelCheck();
-    }
-
-    get value() { return this.progress.value; }
-    set value(v: number) {
-        this.progress.value = v;
-        this._cancelCheck();
-    }
-
-    get max() { return this.progress.max; }
-    set max(m: number) {
-        this.progress.max = m;
-        this._cancelCheck();
-    }
-
-    private _cancelCheck() {
-        if (this._parent) this._parent._cancelCheck();
-        if (this.onCancel && this._cancelled) {
-            this.onCancel();
-            this.onCancel = undefined;
-        }
-    }
+  }
 }
 
 export interface Progress {
-    readonly id: string;
-    status: string;
-    value: number;
-    max: number;
-    readonly children: Progress[];
+  readonly id: string;
+  status: string;
+  value: number;
+  max: number;
+  readonly children: Progress[];
 
-    _child_count: number;
-    _detach(): void;
+  _child_count: number;
+  _detach(): void;
 }
 
 function make_progress(parent?: Progress, weight?: number): Progress {
-    let value = 0;
-    let max = 1;
+  let value = 0;
+  let max = 1;
 
-    function updateParentProgress(old_value: number, old_max: number) {
-        if (parent) {
-            const old_progress = (weight || 1) * old_value / (old_max || 1);
-            const new_progress = (weight || 1) * value / (max || 1);
-            parent.value += new_progress - old_progress;
-        }
-    }
-
-    const progress = reactive({
-        id: parent ? `${parent.id}/${parent._child_count}` : '',
-        status: '',
-        children: [] as Progress[],
-
-        _child_count: 0,
-
-        get value() { return value; },
-        set value(v: number) {
-            if (v < 0) throw new RangeError("value must be >= 0");
-            if (v > max) v = max;
-
-            const old_value = value;
-            value = v;
-            updateParentProgress(old_value, max);
-        },
-
-        get max() { return max; },
-        set max(m: number) {
-            if (m < 0) throw new RangeError("max must be >= 0");
-
-            const old_max = max;
-            max = m;
-            updateParentProgress(value, old_max);
-        },
-
-        _detach() {
-            if (parent) {
-                parent.children.splice(parent.children.indexOf(this), 1);
-                parent = undefined;
-            }
-        },
-    });
-
+  function updateParentProgress(old_value: number, old_max: number) {
     if (parent) {
-        parent._child_count += 1;
-        parent.children.push(progress);
+      const old_progress = ((weight || 1) * old_value) / (old_max || 1);
+      const new_progress = ((weight || 1) * value) / (max || 1);
+      parent.value += new_progress - old_progress;
     }
+  }
 
-    return progress;
+  const progress = reactive({
+    id: parent ? `${parent.id}/${parent._child_count}` : "",
+    status: "",
+    children: [] as Progress[],
+
+    _child_count: 0,
+
+    get value() {
+      return value;
+    },
+    set value(v: number) {
+      if (v < 0) throw new RangeError("value must be >= 0");
+      if (v > max) v = max;
+
+      const old_value = value;
+      value = v;
+      updateParentProgress(old_value, max);
+    },
+
+    get max() {
+      return max;
+    },
+    set max(m: number) {
+      if (m < 0) throw new RangeError("max must be >= 0");
+
+      const old_max = max;
+      max = m;
+      updateParentProgress(value, old_max);
+    },
+
+    _detach() {
+      if (parent) {
+        parent.children.splice(parent.children.indexOf(this), 1);
+        parent = undefined;
+      }
+    },
+  });
+
+  if (parent) {
+    parent._child_count += 1;
+    parent.children.push(progress);
+  }
+
+  return progress;
 }
 
 export class TaskCancelled extends Error {}

@@ -1,42 +1,42 @@
 // Function to define the set of icons used in each theme.  Must be called from
 // the theme-* files for themes which have their own icons.
 .icon-vars(@theme, @inverse) {
-    .icon(@id) {
-        --icon-@{id}: url("icons/@{theme}/@{id}.svg");
-        --icon-@{id}-inverse: url("icons/@{inverse}/@{id}.svg");
-    }
-    & {
-        .icon(back);
-        .icon(cancel);
-        .icon(collapse-closed);
-        .icon(collapse-open);
-        .icon(delete-opened);
-        .icon(delete-stashed);
-        .icon(delete);
-        .icon(folder);
-        .icon(mainmenu);
-        .icon(move-menu);
-        .icon(new-empty-group);
-        .icon(rename);
-        .icon(restore-del);
-        .icon(restore);
-        .icon(stash-one);
-        .icon(stash);
-        .icon(stashed);
-        .icon(tab);
-        .icon(tab-selected);
-        .icon(warning);
-    }
+  .icon(@id) {
+    --icon-@{id}: url("icons/@{theme}/@{id}.svg");
+    --icon-@{id}-inverse: url("icons/@{inverse}/@{id}.svg");
+  }
+  & {
+    .icon(back);
+    .icon(cancel);
+    .icon(collapse-closed);
+    .icon(collapse-open);
+    .icon(delete-opened);
+    .icon(delete-stashed);
+    .icon(delete);
+    .icon(folder);
+    .icon(mainmenu);
+    .icon(move-menu);
+    .icon(new-empty-group);
+    .icon(rename);
+    .icon(restore-del);
+    .icon(restore);
+    .icon(stash-one);
+    .icon(stash);
+    .icon(stashed);
+    .icon(tab);
+    .icon(tab-selected);
+    .icon(warning);
+  }
 }
 
 // Define CSS for particular icons.
 .def-icon(@id) {
-    .icon-@{id} {
-        background-image: var(e("--icon-@{id}"));
-        background-position: 50% 50%;
-        background-size: cover;
-        background-repeat: no-repeat;
-    }
+  .icon-@{id} {
+    background-image: var(e("--icon-@{id}"));
+    background-position: 50% 50%;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
 }
 
 // Vanilla icons (separate from actions, which are handled in action.less)

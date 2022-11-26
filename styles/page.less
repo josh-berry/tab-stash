@@ -1,131 +1,164 @@
-html, body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 main {
-    overflow: auto;
-    width: 100%;
-    height: 100%;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
 }
 
 header.page {
-    position: sticky;
-    z-index: 1;
-    top: 0px;
+  position: sticky;
+  z-index: 1;
+  top: 0px;
 
-    padding: calc(var(--ctrl-mh) / 2) var(--page-pw) var(--ctrl-mh) var(--page-pw);
-    margin-bottom: var(--page-ph);
+  padding: calc(var(--ctrl-mh) / 2) var(--page-pw) var(--ctrl-mh) var(--page-pw);
+  margin-bottom: var(--page-ph);
 
-    display: grid;
-    grid-template-columns: 0fr 1fr 0fr;
-    column-gap: 4px;
-    align-items: center;
+  display: grid;
+  grid-template-columns: 0fr 1fr 0fr;
+  column-gap: 4px;
+  align-items: center;
 
-    background-color: var(--page-bg);
-    border-bottom: var(--divider-border);
+  background-color: var(--page-bg);
+  border-bottom: var(--divider-border);
 
-    & > .main-menu {
-        grid-row: 1; grid-column: 1;
-        .selection-active & { display: none; }
+  & > .main-menu {
+    grid-row: 1;
+    grid-column: 1;
+    .selection-active & {
+      display: none;
     }
-    & > .selection-menu { grid-row: 1; grid-column: 1; }
-    & > input[type="search"] {
-        grid-row: 1; grid-column: 2;
-    }
-    & > .action.collapse { grid-row: 1; grid-column: 4; }
+  }
+  & > .selection-menu {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  & > input[type="search"] {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  & > .action.collapse {
+    grid-row: 1;
+    grid-column: 4;
+  }
 
-    & > .title {
-        margin: 0 0 0 8px;
-    }
+  & > .title {
+    margin: 0 0 0 8px;
+  }
 }
 
 input[type="search"] {
-    min-width: 16px;
+  min-width: 16px;
 }
 
 .selection-menu > summary {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
-    padding: var(--icon-p) var(--ctrl-pw);
-    gap: var(--ctrl-mw);
+  padding: var(--icon-p) var(--ctrl-pw);
+  gap: var(--ctrl-mw);
 
-    background-color: var(--userlink-fg);
-    color: var(--page-bg);
-    border-radius: var(--ctrl-border-radius);
+  background-color: var(--userlink-fg);
+  color: var(--page-bg);
+  border-radius: var(--ctrl-border-radius);
 
-    &:hover { background-color: var(--userlink-hover-fg); }
-    &:active, &:focus-within { background-color: var(--userlink-active-fg); }
+  &:hover {
+    background-color: var(--userlink-hover-fg);
+  }
+  &:active,
+  &:focus-within {
+    background-color: var(--userlink-active-fg);
+  }
 }
 
 .notification-overlay {
-    position: fixed;
-    z-index: 10;
-    top: 0;
-    left: 0;
-    right: 0;
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
 
-    // By using the margin to center the notifications, we allow clicks to go
-    // through to whatever is behind the notifications on either side (so the
-    // user doesn't try to click the menu, even though it's not covering the
-    // notification, and get confused why the menu isn't opening.)
-    //
-    // By computing the margin this way, we center the notification-overlay if
-    // it gets too wide, while still allowing it to gracefully shrink if the
-    // window is too narrow.
-    //
-    // (This has to be escaped so Less doesn't try to calculate it at compile
-    // time...)
-    margin: 0 ~"max(0px, calc(50% - 20rem))";
-    max-width: 40rem;
-    max-height: 100%;
-    box-sizing: border-box;
-    overflow: auto;
+  // By using the margin to center the notifications, we allow clicks to go
+  // through to whatever is behind the notifications on either side (so the
+  // user doesn't try to click the menu, even though it's not covering the
+  // notification, and get confused why the menu isn't opening.)
+  //
+  // By computing the margin this way, we center the notification-overlay if
+  // it gets too wide, while still allowing it to gracefully shrink if the
+  // window is too narrow.
+  //
+  // (This has to be escaped so Less doesn't try to calculate it at compile
+  // time...)
+  margin: 0 ~"max(0px, calc(50% - 20rem))";
+  max-width: 40rem;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
 
-    display: flex;
-    flex-direction: column;
-    padding: var(--notification-mh) var(--notification-mw);
-    gap: var(--notification-mh);
+  display: flex;
+  flex-direction: column;
+  padding: var(--notification-mh) var(--notification-mw);
+  gap: var(--notification-mh);
 
-    // Needed to prevent the padding from blocking the user from interacting
-    // with elements at the top of the page.
-    &:empty { display: none; }
+  // Needed to prevent the padding from blocking the user from interacting
+  // with elements at the top of the page.
+  &:empty {
+    display: none;
+  }
 }
 
 .notification {
-    display: grid;
-    grid-template-columns: 1fr 0fr;
-    align-items: center;
-    background-color: var(--userlink-fg);
+  display: grid;
+  grid-template-columns: 1fr 0fr;
+  align-items: center;
+  background-color: var(--userlink-fg);
+  color: var(--page-bg);
+  border-radius: var(--ctrl-border-radius);
+  box-shadow: var(--shadow-heavy);
+
+  &.has-action:hover {
+    background-color: var(--userlink-hover-fg);
+  }
+  &.has-action:active {
+    background-color: var(--userlink-active-fg);
+  }
+
+  & > .contents {
+    margin: var(--ctrl-mh) var(--ctrl-mw);
+  }
+
+  & button {
+    background-color: var(--userlink-hover-fg);
     color: var(--page-bg);
-    border-radius: var(--ctrl-border-radius);
-    box-shadow: var(--shadow-heavy);
-
-    &.has-action:hover { background-color: var(--userlink-hover-fg); }
-    &.has-action:active { background-color: var(--userlink-active-fg); }
-
-    & > .contents { margin: var(--ctrl-mh) var(--ctrl-mw); }
-
-    & button {
-        background-color: var(--userlink-hover-fg);
-        color: var(--page-bg);
-        &:hover { background-color: var(--userlink-active-fg); }
-        &:active { background-color: var(--userlink-fg); }
+    &:hover {
+      background-color: var(--userlink-active-fg);
     }
+    &:active {
+      background-color: var(--userlink-fg);
+    }
+  }
 }
 
-.notification-enter-active { transition: all var(--notification-fade-time) ease-out; }
-.notification-leave-active { transition: all var(--notification-fade-time) ease-in; }
-.notification-enter-from, .notification-leave-to {
-    opacity: 0;
-    scale: 1 0.5;
+.notification-enter-active {
+  transition: all var(--notification-fade-time) ease-out;
+}
+.notification-leave-active {
+  transition: all var(--notification-fade-time) ease-in;
+}
+.notification-enter-from,
+.notification-leave-to {
+  opacity: 0;
+  scale: 1 0.5;
 }
 
 footer.page {
-    padding: var(--page-ph) var(--page-pw);
-    text-align: center;
+  padding: var(--page-ph) var(--page-pw);
+  text-align: center;
 }

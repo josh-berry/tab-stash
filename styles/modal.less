@@ -1,140 +1,156 @@
 // The modal backdrop used for dialogs
 .modal-backdrop {
-    background-color: var(--modal-bg);
-    & > * {
-        max-width: 100%;
-        max-height: 100%;
-        // Needed so padding is taken into account when sizing child elements
-        box-sizing: border-box;
-    }
+  background-color: var(--modal-bg);
+  & > * {
+    max-width: 100%;
+    max-height: 100%;
+    // Needed so padding is taken into account when sizing child elements
+    box-sizing: border-box;
+  }
 }
-.dialog-enter-active { transition: all var(--modal-fade-time) ease-out; }
-.dialog-leave-active { transition: all var(--modal-fade-time) ease-in; }
-.dialog-enter-from, .dialog-leave-to { opacity: 0; }
+.dialog-enter-active {
+  transition: all var(--modal-fade-time) ease-out;
+}
+.dialog-leave-active {
+  transition: all var(--modal-fade-time) ease-in;
+}
+.dialog-enter-from,
+.dialog-leave-to {
+  opacity: 0;
+}
 
 // Dialogs themselves
 .dialog {
-    background-color: var(--group-bg);
-    border: var(--group-border);
-    box-shadow: var(--shadow);
-    overflow: hidden;
+  background-color: var(--group-bg);
+  border: var(--group-border);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 
-    & > .dialog-title {
-        flex: none;
-        padding: var(--dialog-ph) var(--dialog-pw);
-        border-bottom: var(--group-border);
+  & > .dialog-title {
+    flex: none;
+    padding: var(--dialog-ph) var(--dialog-pw);
+    border-bottom: var(--group-border);
 
-        display: grid;
-        grid-template-columns: 1fr 0fr;
-        align-items: center;
+    display: grid;
+    grid-template-columns: 1fr 0fr;
+    align-items: center;
 
-        & > .dialog-close {
-            grid-row: 1;
-            grid-column: 2;
-            .action();
-            background-image: var(--icon-cancel);
-        }
+    & > .dialog-close {
+      grid-row: 1;
+      grid-column: 2;
+      .action();
+      background-image: var(--icon-cancel);
     }
-    & > .dialog-content {
-        flex: 1 1 auto;
-        padding: var(--dialog-ph) var(--dialog-pw);
+  }
+  & > .dialog-content {
+    flex: 1 1 auto;
+    padding: var(--dialog-ph) var(--dialog-pw);
 
-        display: grid;
-        overflow: auto;
-    }
-    & > .dialog-buttons {
-        flex: none;
-        padding: var(--dialog-ph) var(--dialog-pw);
-        border-top: var(--group-border);
+    display: grid;
+    overflow: auto;
+  }
+  & > .dialog-buttons {
+    flex: none;
+    padding: var(--dialog-ph) var(--dialog-pw);
+    border-top: var(--group-border);
 
-        display: grid;
-        align-items: center;
-    }
+    display: grid;
+    align-items: center;
+  }
 
-    * {
-        row-gap: var(--ctrl-mh);
-        column-gap: var(--ctrl-mw);
-    }
+  * {
+    row-gap: var(--ctrl-mh);
+    column-gap: var(--ctrl-mw);
+  }
 }
 
 // Pop-up menus (which may or may not use the modal backdrop)
 details.menu {
-    // The button to open the menu (the details's <summary>)
-    & > summary {
-        list-style: none; // no triangle on Firefox
-        &::-webkit-details-marker { display: none; } // no triangle on Chrome
-    }
-    &[open] > summary {
-        // Shadow the menu button to match the menu (below)
-        box-shadow: var(--shadow);
-    }
-    &[open] > summary.action {
-        // They should also be colorized to show the menu is open.
-        background-color: var(--button-hover-bg);
-    }
+  // The button to open the menu (the details's <summary>)
+  & > summary {
+    list-style: none; // no triangle on Firefox
+    &::-webkit-details-marker {
+      display: none;
+    } // no triangle on Chrome
+  }
+  &[open] > summary {
+    // Shadow the menu button to match the menu (below)
+    box-shadow: var(--shadow);
+  }
+  &[open] > summary.action {
+    // They should also be colorized to show the menu is open.
+    background-color: var(--button-hover-bg);
+  }
 }
 
 // The bounding box holding the menu.  We add padding here so the menu never
 // outgrows the viewport.  (The padding will be overridden by the Vue menu
 // component to position the menu properly.)
 .menu-bounds {
-    padding: var(--menu-mh) var(--menu-mw);
+  padding: var(--menu-mh) var(--menu-mw);
 }
 
 // The pop-up menu itself, showing a list of items
 .menu-bounds > nav {
-    padding: var(--menu-mh) 0;
-    background-color: var(--group-bg);
-    box-shadow: var(--shadow);
-    border: var(--group-border);
+  padding: var(--menu-mh) 0;
+  background-color: var(--group-bg);
+  box-shadow: var(--shadow);
+  border: var(--group-border);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+
+  & input {
+    margin: var(--ctrl-mh) var(--ctrl-mw);
+  }
+
+  & a,
+  & button,
+  & .menu-item {
+    cursor: default;
+    margin: 0;
+    // Extra 16px is for scroll bars, should they appear...
+    padding: 0 calc(var(--menu-mw) + 16px) 0 var(--menu-mw);
+
     display: flex;
-    flex-direction: column;
-    overflow: auto;
+    align-items: center;
+    gap: var(--ctrl-mw);
+    min-height: var(--item-h);
+    border: none;
+    border-radius: 0;
+    text-decoration: none;
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    background: inherit;
 
-    & input {
-        margin: var(--ctrl-mh) var(--ctrl-mw);
+    // Needed because the above background change overrides the global
+    // .selected rules.
+    &.selected {
+      background-color: var(--selected-bg);
     }
 
-    & a, & button, & .menu-item {
-        cursor: default;
-        margin: 0;
-        // Extra 16px is for scroll bars, should they appear...
-        padding: 0 calc(var(--menu-mw) + 16px) 0 var(--menu-mw);
-
-        display: flex;
-        align-items: center;
-        gap: var(--ctrl-mw);
-        min-height: var(--item-h);
-        border: none;
-        border-radius: 0;
-        text-decoration: none;
-        text-align: left;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        background: inherit;
-
-        // Needed because the above background change overrides the global
-        // .selected rules.
-        &.selected { background-color: var(--selected-bg); }
-
-        &:not(.disabled) {
-            color: var(--link-fg);
-            &:hover, &:focus-within {
-                background-color: var(--item-hover-bg);
-                box-shadow: none;
-            }
-            &:active { background-color: var(--item-active-bg); }
-        }
+    &:not(.disabled) {
+      color: var(--link-fg);
+      &:hover,
+      &:focus-within {
+        background-color: var(--item-hover-bg);
+        box-shadow: none;
+      }
+      &:active {
+        background-color: var(--item-active-bg);
+      }
     }
+  }
 
-    & hr {
-        margin: var(--menu-mh) 0;
-        padding: 0;
-        border: none;
-        border-top: var(--divider-border);
-    }
+  & hr {
+    margin: var(--menu-mh) 0;
+    padding: 0;
+    border: none;
+    border-top: var(--divider-border);
+  }
 }

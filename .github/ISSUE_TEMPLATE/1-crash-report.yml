@@ -41,7 +41,7 @@ body:
         3. I clicked on "Encabulate"
         4. The crash happened
     validations:
-       required: true
+      required: true
 
   - type: textarea
     id: expected-behavior
