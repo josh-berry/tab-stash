@@ -5,8 +5,9 @@ import browser from "webextension-polyfill";
 import launch from "../launch-vue";
 
 import * as Options from "../model/options";
+import Main from "./index.vue";
 
-launch(require("./index.vue").default, async () => {
+launch(Main, async () => {
   const opts = await Options.Model.live();
   (<any>globalThis).model = opts;
   return {

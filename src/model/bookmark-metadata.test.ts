@@ -4,7 +4,8 @@ import * as events from "../mock/events";
 
 import {KVSCache} from "../datastore/kvs";
 import MemoryKVS from "../datastore/kvs/memory";
-import {Model, BookmarkMetadata} from "./bookmark-metadata";
+import type {BookmarkMetadata} from "./bookmark-metadata";
+import {Model} from "./bookmark-metadata";
 
 describe("model/bookmark-metadata", () => {
   let kvc: KVSCache<string, BookmarkMetadata>;

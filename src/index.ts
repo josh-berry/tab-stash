@@ -1,13 +1,14 @@
 // istanbul ignore file
 
-import browser, {Tabs, Menus} from "webextension-polyfill";
+import type {Tabs, Menus} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import {asyncEvent, urlToOpen, nonReentrant, backingOff} from "./util";
 import {logErrorsFrom} from "./util/oops";
 import service_model from "./service-model";
 import {copyIf} from "./model";
-import {StashWhatOpt, ShowWhatOpt} from "./model/options";
-import {TabID, WindowID} from "./model/tabs";
+import type {StashWhatOpt, ShowWhatOpt} from "./model/options";
+import type {TabID, WindowID} from "./model/tabs";
 
 logErrorsFrom(async () => {
   // BEGIN FILE-WIDE ASYNC BLOCK
@@ -245,7 +246,7 @@ logErrorsFrom(async () => {
   browser.contextMenus.onClicked.addListener((info, tab) => {
     // #cast We only ever create menu items with string IDs
     const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, "");
-    console.assert(commands[cmd]);
+    console.assert(!!commands[cmd]);
     commands[cmd](tab).catch(console.log);
   });
 

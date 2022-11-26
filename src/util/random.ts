@@ -2,6 +2,8 @@
 // surprisingly not a one-liner in JS, and is different between the browser and
 // Node, so it's done once here.
 
+declare function require(name: string): any;
+
 let makeRandomString: (bytes: number) => string;
 
 // istanbul ignore if

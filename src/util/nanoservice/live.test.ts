@@ -1,11 +1,12 @@
 import {expect} from "chai";
-import browser, {Runtime} from "webextension-polyfill";
+import type {Runtime} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import * as events from "../../mock/events";
 
 import * as M from ".";
 import * as Live from "./live";
-import {Send} from "./proto";
+import type {Send} from "./proto";
 
 type Port = Runtime.Port;
 

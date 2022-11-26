@@ -1,6 +1,8 @@
-import browser, {Tabs} from "webextension-polyfill";
+import type {Tabs} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
-import {AsyncChannel, TaskMonitor, Task} from "../util";
+import type {Task} from "../util";
+import {AsyncChannel, TaskMonitor} from "../util";
 
 // How many concurrent fetches do we want to allow?
 const MAX_CONCURRENT_FETCHES = 4;

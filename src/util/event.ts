@@ -23,7 +23,7 @@ let eventClass: {new (name: string, instance?: string): Event<any>};
 if ((<any>globalThis).mock?.events) {
   // We are running in a mock environment.  Use the MockEventDispatcher
   // instead, which allows for snooping on events.
-  eventClass = require("../mock/events").MockEvent;
+  eventClass = (<any>globalThis).MockEvent;
 } else {
   eventClass = class Event<L extends (...args: any[]) => any>
     implements Event<L>

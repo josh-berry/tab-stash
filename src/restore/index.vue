@@ -41,10 +41,10 @@ import {defineComponent} from "vue";
 
 import {required} from "../util";
 
+import Notification from "../components/notification.vue";
+
 export default defineComponent({
-  components: {
-    Notification: require("../components/notification.vue").default,
-  },
+  components: {Notification},
 
   props: {
     url: required(String),

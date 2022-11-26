@@ -15,16 +15,20 @@
  * both when they are sent and when they are delivered.
  */
 
+declare function require(name: string): any;
+
 // istanbul ignore next
-const inspect =
+const inspect: (v: any, options?: {depth: number}) => string =
   require("util").inspect ?? ((v: any) => JSON.stringify(v, undefined, 4));
 
-// NOTE: Duplicates util/index.ts, to avoid any dependency on prod code.
 // istanbul ignore next
-const later: <F extends () => any>(f: F) => void = setImmediate ?? setTimeout;
+// This is duplicated from ../util because we can't afford to load all of
+// ../util yet--that will pull in webextension-polyfill and we can't do that
+// until the mock event system is set up.
+const later: <F extends () => any>(f: F) => void =
+  (<any>globalThis).setImmediate ?? globalThis.setTimeout;
 
 import type {Event, EventSource} from "../util/event";
-
 import type {Args} from "../util";
 
 type EventSystemState = {
@@ -169,6 +173,8 @@ export class MockEvent<L extends AnyListener> implements Event<L> {
     }
   }
 }
+
+(<any>globalThis).MockEvent = MockEvent;
 
 /** Watches for and returns events which match a particular query. */
 export class EventWatcher<L extends AnyListener = AnyListener> {

@@ -4,12 +4,14 @@ import browser from "webextension-polyfill";
 import * as events from "../mock/events";
 import storage_mock from "../mock/browser/storage";
 
-import {
-  _StoredObjectFactory,
+import type {
   StoredObject,
   StorableDef,
   StorableType,
   StorableValue,
+} from "./stored-object";
+import {
+  _StoredObjectFactory,
   aBoolean,
   anEnum,
   aNumber,

@@ -71,24 +71,24 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import {type PropType, defineComponent} from "vue";
 
 import {filterMap, required, textMatcher} from "../util";
 import {pageref} from "../launch-vue";
-import {Model} from "../model";
-import * as DI from "../model/deleted-items";
-import {RecordGroup, FilteredDeletedItem} from "./schema";
+import type {Model} from "../model";
+import type * as DI from "../model/deleted-items";
+import type {RecordGroup, FilteredDeletedItem} from "./schema";
+
+import LoadMore from "../components/load-more.vue";
+import Bookmark from "./bookmark.vue";
+import Folder from "./folder.vue";
+import ItemIcon from "../components/item-icon.vue";
+import OopsNotification from "../components/oops-notification.vue";
 
 const date_formatter = new Intl.DateTimeFormat();
 
 export default defineComponent({
-  components: {
-    LoadMore: require("../components/load-more.vue").default,
-    Bookmark: require("./bookmark.vue").default,
-    Folder: require("./folder.vue").default,
-    ItemIcon: require("../components/item-icon.vue").default,
-    OopsNotification: require("../components/oops-notification.vue").default,
-  },
+  components: {LoadMore, Bookmark, Folder, ItemIcon, OopsNotification},
 
   props: {
     state: required(Object as PropType<DI.State>),

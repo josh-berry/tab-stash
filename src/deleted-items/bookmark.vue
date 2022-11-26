@@ -29,18 +29,18 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import {type PropType, defineComponent} from "vue";
 
-import {Model} from "../model";
-import {DeletedBookmark, Deletion} from "../model/deleted-items";
+import type {Model} from "../model";
+import type {DeletedBookmark, Deletion} from "../model/deleted-items";
+
+import Button from "../components/button.vue";
+import ButtonBox from "../components/button-box.vue";
+import ItemIcon from "../components/item-icon.vue";
+import Menu from "../components/menu.vue";
 
 export default defineComponent({
-  components: {
-    Button: require("../components/button.vue").default,
-    ButtonBox: require("../components/button-box.vue").default,
-    ItemIcon: require("../components/item-icon.vue").default,
-    Menu: require("../components/menu.vue").default,
-  },
+  components: {Button, ButtonBox, ItemIcon, Menu},
   inject: ["$model"],
 
   props: {

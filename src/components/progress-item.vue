@@ -12,10 +12,11 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import type {PropType} from "vue";
+import {defineComponent} from "vue";
 
 import {required} from "../util";
-import {Progress} from "../util/progress";
+import type {Progress} from "../util/progress";
 
 export default defineComponent({
   name: "Self",

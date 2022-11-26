@@ -1,11 +1,13 @@
-import {computed, reactive, Ref, ref, watch} from "vue";
-import browser, {Bookmarks} from "webextension-polyfill";
+import type {Ref} from "vue";
+import {computed, reactive, ref, watch} from "vue";
+import type {Bookmarks} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
+import type {OpenableURL} from "../util";
 import {
   backingOff,
   expect,
   filterMap,
-  OpenableURL,
   shortPoll,
   tryAgain,
   urlToOpen,

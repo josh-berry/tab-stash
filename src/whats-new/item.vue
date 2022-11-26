@@ -15,7 +15,8 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import type {PropType} from "vue";
+import {defineComponent} from "vue";
 
 function coerceArray<T>(i: T | T[]): T[] {
   if (i instanceof Array) return i;

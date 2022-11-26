@@ -1,4 +1,4 @@
-import * as DI from "../model/deleted-items";
+import type * as DI from "../model/deleted-items";
 
 export type RecordGroup = {title: string; records: FilteredDeletion[]};
 export type FilteredDeletion = DI.Deletion & {item: FilteredDeletedItem};

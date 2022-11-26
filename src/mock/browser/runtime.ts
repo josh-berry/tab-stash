@@ -1,4 +1,4 @@
-import {Manifest, Runtime} from "webextension-polyfill";
+import type {Manifest, Runtime} from "webextension-polyfill";
 
 import * as events from "../events";
 

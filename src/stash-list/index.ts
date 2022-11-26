@@ -6,7 +6,9 @@ import {resolveNamed} from "../util";
 import ui_model from "../ui-model";
 import launch from "../launch-vue";
 
-launch(require("./index.vue").default, async () => {
+import Main from "./index.vue";
+
+launch(Main, async () => {
   const p = await resolveNamed({
     model: ui_model(),
     ext_info: browser.management.getSelf(),

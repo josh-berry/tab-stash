@@ -514,9 +514,7 @@
             >Firefox 64</a
           >
           and newer. Just Ctrl/Cmd- or Shift-click on the tabs you want to
-          stash, and then click any
-          <img class="inl" src="icons/dark/stash.svg" alt="multi-stash" />
-          button.</L
+          stash, and then click any "stash" button.</L
         >
         <L v="Added"
           >the ability to manage collapsed groups in the sidebar. When you hover
@@ -673,14 +671,12 @@
 import {defineComponent} from "vue";
 import {pageref} from "../launch-vue";
 
+import Version from "./version.vue";
+import L from "./item.vue";
+
 export default defineComponent({
-  components: {
-    Version: require("./version.vue").default,
-    L: require("./item.vue").default,
-  },
-  methods: {
-    pageref,
-  },
+  components: {Version, L},
+  methods: {pageref},
 });
 </script>
 

@@ -4,7 +4,8 @@
 // istanbul ignore file
 
 import browser from "webextension-polyfill";
-import {createApp, MethodOptions, ExtractPropTypes} from "vue";
+import type {MethodOptions, ExtractPropTypes} from "vue";
+import {createApp} from "vue";
 
 import {asyncEvent, resolveNamed} from "./util";
 

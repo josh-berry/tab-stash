@@ -66,7 +66,7 @@
 
 <script lang="ts">
 import browser from "webextension-polyfill";
-import {Ref, ref, inject} from "vue";
+import {type Ref, ref, inject} from "vue";
 
 const TROUBLESHOOTING_URL =
   "https://josh-berry.github.io/tab-stash/support.html";
@@ -95,8 +95,8 @@ if (browser.management.getSelf) {
 
 <script setup lang="ts">
 import {errorLog, clearErrorLog, logErrorsFrom} from "../util/oops";
-import {Model} from "../model";
-const Notification = require("./notification.vue").default;
+import type {Model} from "../model";
+import Notification from "./notification.vue";
 
 const model = inject<Model>("$model")!;
 

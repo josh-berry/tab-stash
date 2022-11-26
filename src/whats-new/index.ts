@@ -7,7 +7,9 @@ import launch from "../launch-vue";
 
 import * as Options from "../model/options";
 
-launch(require("./index.vue").default, async () => {
+import Main from "./index.vue";
+
+launch(Main, async () => {
   const r = await resolveNamed({
     options: Options.Model.live(),
     extn: browser.management.getSelf(),

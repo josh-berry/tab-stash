@@ -1,9 +1,10 @@
-import browser, {Tabs} from "webextension-polyfill";
+import type {Tabs} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import {urlToOpen} from "../util";
 import {logErrorsFrom} from "../util/oops";
 
-import {KVSCache, MaybeEntry} from "../datastore/kvs";
+import type {KVSCache, MaybeEntry} from "../datastore/kvs";
 
 /** The persistent cache which holds favicons, keyed by URL. */
 export type FaviconCache = KVSCache<string, Favicon>;

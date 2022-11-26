@@ -51,10 +51,11 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent, reactive, nextTick} from "vue";
+import type {PropType} from "vue";
+import {defineComponent, reactive, nextTick} from "vue";
 
 import {required} from "../util";
-import {DragAction, DropAction} from "./dnd-list";
+import type {DragAction, DropAction} from "./dnd-list";
 
 type DragLocation = {
   /** The DndList containing the drag/drop location */
@@ -89,10 +90,10 @@ export default defineComponent({
     itemIs: String,
     itemKey: required(String),
     itemClass: Function as PropType<
-      (item: any, index: number) => Record<string, string> | string
+      (item: any, index: number) => Record<string, boolean> | string
     >,
-    accepts: [String, Array] as PropType<string | string[]>,
-    modelValue: required(Array),
+    accepts: [String, Array] as PropType<string | readonly string[]>,
+    modelValue: required(Array as PropType<readonly unknown[]>),
 
     drag: required(Function as PropType<(drag: DragAction) => void>),
     drop: required(Function as PropType<(drop: DropAction) => Promise<void>>),
@@ -132,7 +133,7 @@ export default defineComponent({
       return style || undefined;
     },
 
-    displayItems(): any[] {
+    displayItems(): readonly unknown[] {
       return this.modelSnapshot ?? this.modelValue;
     },
   },

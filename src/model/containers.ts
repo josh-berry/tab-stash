@@ -1,8 +1,6 @@
 import {reactive} from "vue";
-import {
-  contextualIdentities,
-  ContextualIdentities,
-} from "webextension-polyfill";
+import type {ContextualIdentities} from "webextension-polyfill";
+import {contextualIdentities} from "webextension-polyfill";
 import {backingOff} from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";

@@ -78,18 +78,22 @@
 </template>
 
 <script lang="ts">
-import {defineComponent} from "@vue/runtime-core";
+import {defineComponent} from "vue";
 
 import {altKeyName, filterMap, textMatcher} from "../util";
-import {Model} from "../model";
-import {Folder, NodeID, friendlyFolderName} from "../model/bookmarks";
+import type {Model} from "../model";
+import {type Folder, type NodeID, friendlyFolderName} from "../model/bookmarks";
+
+import Menu from "../components/menu.vue";
 
 export default defineComponent({
-  components: {
-    Menu: require("../components/menu.vue").default,
-  },
+  components: {Menu},
 
-  props: {},
+  // If `props` is an empty object, Vue thinks the props of the component are of
+  // type `unknown` rather than `{}`. See:
+  // https://github.com/vuejs/core/issues/4051
+  //
+  // props: {},
 
   data: () => ({
     searchText: "",

@@ -131,28 +131,39 @@ import {defineComponent} from "vue";
 
 import {pageref} from "../launch-vue";
 import {TaskMonitor, parseVersion, required} from "../util";
-import {Model} from "../model";
-import {Tab} from "../model/tabs";
-import {Folder, friendlyFolderName} from "../model/bookmarks";
-import {
-  BookmarkMetadataEntry,
-  CUR_WINDOW_MD_ID,
-} from "../model/bookmark-metadata";
+import type {Model} from "../model";
+import type {Tab} from "../model/tabs";
+import type {Folder} from "../model/bookmarks";
+import {friendlyFolderName} from "../model/bookmarks";
+import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
+import {CUR_WINDOW_MD_ID} from "../model/bookmark-metadata";
 import {fetchInfoForSites} from "../tasks/siteinfo";
+
+import SelectionMenu from "./selection-menu.vue";
+import Button from "../components/button.vue";
+import ExportDialog from "../tasks/export.vue";
+import FolderVue from "./folder.vue";
+import FolderList from "./folder-list.vue";
+import ImportDialog from "../tasks/import.vue";
+import Menu from "../components/menu.vue";
+import Notification from "../components/notification.vue";
+import OopsNotification from "../components/oops-notification.vue";
+import ProgressDialog from "../components/progress-dialog.vue";
+import Window from "./window.vue";
 
 export default defineComponent({
   components: {
-    SelectionMenu: require("./selection-menu.vue").default,
-    Button: require("../components/button.vue").default,
-    ExportDialog: require("../tasks/export.vue").default,
-    Folder: require("./folder.vue").default,
-    FolderList: require("./folder-list.vue").default,
-    ImportDialog: require("../tasks/import.vue").default,
-    Menu: require("../components/menu.vue").default,
-    Notification: require("../components/notification.vue").default,
-    OopsNotification: require("../components/oops-notification.vue").default,
-    ProgressDialog: require("../components/progress-dialog.vue").default,
-    Window: require("./window.vue").default,
+    SelectionMenu,
+    Button,
+    ExportDialog,
+    Folder: FolderVue,
+    FolderList,
+    ImportDialog,
+    Menu,
+    Notification,
+    OopsNotification,
+    ProgressDialog,
+    Window,
   },
 
   props: {

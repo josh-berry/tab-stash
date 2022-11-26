@@ -4,7 +4,8 @@
  */
 
 import {expect} from "chai";
-import browser, {Bookmarks, Windows, Tabs} from "webextension-polyfill";
+import type {Bookmarks, Windows, Tabs} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import * as events from "../mock/events";
 
@@ -13,7 +14,7 @@ import type {Tab, TabID, WindowID} from "./tabs";
 import type * as BookmarkMetadata from "./bookmark-metadata";
 import type * as Favicons from "./favicons";
 import type * as DeletedItems from "./deleted-items";
-import {KeyValueStore} from "../datastore/kvs";
+import type {KeyValueStore} from "../datastore/kvs";
 import {Options} from ".";
 
 //

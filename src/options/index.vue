@@ -407,12 +407,17 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
-import {computed, WritableComputedRef} from "@vue/reactivity";
+import type {PropType} from "vue";
+import {defineComponent} from "vue";
+import type {WritableComputedRef} from "@vue/reactivity";
+import {computed} from "@vue/reactivity";
 
 import {logErrorsFrom} from "../util/oops";
 import * as Options from "../model/options";
 import {required} from "../util";
+
+import FeatureFlag from "./feature-flag.vue";
+import OopsNotification from "../components/oops-notification.vue";
 
 function prop<
   M extends Options.SyncModel | Options.LocalModel,
@@ -432,21 +437,20 @@ function options(model: Options.Model): {
   sync: Options.SyncState;
   local: Options.LocalState;
 } {
-  let ret: any = {};
-  for (const k of Object.keys(Options.LOCAL_DEF)) {
-    ret[k] = prop(model.local, k as keyof Options.LocalState);
-  }
+  const ret = {sync: {} as any, local: {} as any};
+
   for (const k of Object.keys(Options.SYNC_DEF)) {
-    ret[k] = prop(model.sync, k as keyof Options.SyncState);
+    ret.sync[k] = prop(model.sync, k as keyof Options.SyncState);
   }
+  for (const k of Object.keys(Options.LOCAL_DEF)) {
+    ret.local[k] = prop(model.local, k as keyof Options.LocalState);
+  }
+
   return ret;
 }
 
 export default defineComponent({
-  components: {
-    FeatureFlag: require("./feature-flag").default,
-    OopsNotification: require("../components/oops-notification.vue").default,
-  },
+  components: {FeatureFlag, OopsNotification},
 
   props: {
     hasSidebar: Boolean,

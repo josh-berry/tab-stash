@@ -1,14 +1,10 @@
-import browser, {Runtime} from "webextension-polyfill";
+import type {Runtime} from "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 import {logErrorsFrom} from "../oops";
-import {
-  NanoPort,
-  NanoService,
-  NanoDisconnectedError,
-  NanoTimeoutError,
-  RemoteNanoError,
-} from ".";
-import {
+import type {NanoPort, NanoService} from ".";
+import {NanoDisconnectedError, NanoTimeoutError, RemoteNanoError} from ".";
+import type {
   Envelope,
   NotifyEnvelope,
   RequestEnvelope,

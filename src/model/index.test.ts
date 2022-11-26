@@ -6,9 +6,8 @@ import browser from "webextension-polyfill";
 
 import * as events from "../mock/events";
 import storage_mock from "../mock/browser/storage";
+import type {BookmarkFixture, TabFixture} from "./fixtures.testlib";
 import {
-  BookmarkFixture,
-  TabFixture,
   B,
   STASH_ROOT_NAME,
   make_tabs,
@@ -18,16 +17,17 @@ import {
   make_favicons,
 } from "./fixtures.testlib";
 
-import {filterMap} from "../util";
+import {filterMap, later} from "../util";
 
 import * as M from ".";
-import {KeyValueStore, KVSCache} from "../datastore/kvs";
+import type {KeyValueStore} from "../datastore/kvs";
+import {KVSCache} from "../datastore/kvs";
 import MemoryKVS from "../datastore/kvs/memory";
 import {_StoredObjectFactory} from "../datastore/stored-object";
 import {LOCAL_DEF, SYNC_DEF} from "./options";
-import {TabID} from "./tabs";
+import type {TabID} from "./tabs";
 import {getDefaultFolderNameISODate} from "./bookmarks";
-import {DeletedFolder} from "./deleted-items";
+import type {DeletedFolder} from "./deleted-items";
 import {CUR_WINDOW_MD_ID} from "./bookmark-metadata";
 
 describe("model", () => {
@@ -1711,7 +1711,7 @@ describe("model", () => {
         // Wait for time to advance so we don't delete two items in the
         // same millisecond, and we can thus guarantee their sort order.
         const now = Date.now();
-        while (Date.now() === now) await new Promise(r => setImmediate(r));
+        while (Date.now() === now) await new Promise<void>(r => later(r));
 
         expect(model.bookmarks.node(bookmarks.helen.id)).to.be.undefined;
         expect(

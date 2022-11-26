@@ -1,7 +1,7 @@
 import browser from "webextension-polyfill";
 
 import {TaskMonitor, filterMap} from "../util";
-import {Model} from "../model";
+import type {Model} from "../model";
 import {fetchInfoForSites} from "./siteinfo";
 
 // This is based on RFC 3986, but is rather more permissive in some ways,

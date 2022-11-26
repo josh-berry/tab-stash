@@ -36,15 +36,16 @@
 
 <script lang="ts">
 import {defineComponent} from "vue";
-import {ParseOptions, parse, importURLs} from "./import";
+
+import {type ParseOptions, parse, importURLs} from "./import";
 import {TaskMonitor} from "../util";
-import {Model} from "../model";
+import type {Model} from "../model";
+
+import Dialog from "../components/dialog.vue";
+import ProgressDialog from "../components/progress-dialog.vue";
 
 export default defineComponent({
-  components: {
-    Dialog: require("../components/dialog.vue").default,
-    ProgressDialog: require("../components/progress-dialog.vue").default,
-  },
+  components: {Dialog, ProgressDialog},
 
   emits: ["close"],
 

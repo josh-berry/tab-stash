@@ -108,23 +108,28 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import type {PropType} from "vue";
+import {defineComponent} from "vue";
 
 import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
-import {DragAction, DropAction} from "../components/dnd-list";
+import type {DragAction, DropAction} from "../components/dnd-list";
 
-import {copyIf, Model, StashItem} from "../model";
+import type {StashItem} from "../model";
+import {copyIf, Model} from "../model";
+import type {Node, NodeID, Bookmark, Folder} from "../model/bookmarks";
 import {
-  Node,
-  NodeID,
-  Bookmark,
-  Folder,
   genDefaultFolderName,
   getDefaultFolderNameISODate,
   friendlyFolderName,
 } from "../model/bookmarks";
-import {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import {Tab} from "../model/tabs";
+import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
+import type {Tab} from "../model/tabs";
+
+import Button from "../components/button.vue";
+import ButtonBox from "../components/button-box.vue";
+import DndList from "../components/dnd-list.vue";
+import AsyncTextInput from "../components/async-text-input.vue";
+import BookmarkVue from "./bookmark.vue";
 
 type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
 
@@ -132,11 +137,11 @@ const DROP_FORMATS = ["application/x-tab-stash-items"];
 
 export default defineComponent({
   components: {
-    Button: require("../components/button.vue").default,
-    ButtonBox: require("../components/button-box.vue").default,
-    DndList: require("../components/dnd-list.vue").default,
-    AsyncTextInput: require("../components/async-text-input.vue").default,
-    Bookmark: require("./bookmark.vue").default,
+    Button,
+    ButtonBox,
+    DndList,
+    AsyncTextInput,
+    Bookmark: BookmarkVue,
   },
 
   inject: ["$model"],

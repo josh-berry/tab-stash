@@ -1,10 +1,13 @@
-import {computed, reactive, Ref, ref, watch} from "vue";
-import browser, {Tabs, Windows} from "webextension-polyfill";
+import type {Ref} from "vue";
+import {computed, reactive, ref, watch} from "vue";
+import type {Tabs, Windows} from "webextension-polyfill";
+import browser from "webextension-polyfill";
+
+import type {OpenableURL} from "../util";
 import {
   backingOff,
   expect,
   filterMap,
-  OpenableURL,
   shortPoll,
   tryAgain,
   urlToOpen,
@@ -346,7 +349,7 @@ export class Model {
 
         // We should always have a /focus_tab/ at this point, but if we
         // don't, it's better to fail gracefully by doing nothing.
-        console.assert(focus_tab);
+        console.assert(!!focus_tab);
         // We filter out tabs with undefined IDs above #undef
         if (focus_tab) await browser.tabs.update(focus_tab.id!, {active: true});
       }

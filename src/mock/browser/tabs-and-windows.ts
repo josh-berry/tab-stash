@@ -1,4 +1,4 @@
-import {
+import type {
   ExtensionTypes,
   Runtime,
   Tabs as T,
@@ -6,12 +6,10 @@ import {
 } from "webextension-polyfill";
 
 import * as events from "../events";
+import {later} from "../../util";
 
 type Window = Omit<W.Window, "id" | "tabs"> & {id: number; tabs: Tab[]};
 type Tab = Omit<T.Tab, "id" | "windowId"> & {id: number; windowId: number};
-
-// istanbul ignore next
-const defer = setImmediate ?? ((x: () => void) => Promise.resolve().then(x));
 
 class State {
   readonly onWindowCreated: events.MockEvent<(window: W.Window) => void>;
@@ -288,7 +286,7 @@ class MockWindows implements W.Static {
       };
       win.tabs.push(tab);
       this._state.onTabCreated.send(JSON.parse(JSON.stringify(tab)));
-      defer(() => {
+      later(() => {
         tab.status = "complete";
         this._state.onTabUpdated.send(
           tab.id,
@@ -890,7 +888,7 @@ class MockTabs implements T.Static {
   }
 
   _finish_loading(t: Tab) {
-    defer(() => {
+    later(() => {
       t.status = "complete";
       this.onUpdated.send(
         t.id,

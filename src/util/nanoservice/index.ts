@@ -1,6 +1,6 @@
 // istanbul ignore file
 
-import * as Proto from "./proto";
+import type * as Proto from "./proto";
 import * as Live from "./live";
 
 export type Send = Proto.Send;

@@ -6,7 +6,7 @@ import {expect} from "chai";
 import FakeTimers from "@sinonjs/fake-timers";
 
 import Client from "./client";
-import * as Proto from "./proto";
+import type * as Proto from "./proto";
 import * as events from "../../mock/events";
 import {NanoDisconnectedError} from "../../util/nanoservice";
 

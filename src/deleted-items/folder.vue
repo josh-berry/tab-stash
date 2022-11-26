@@ -43,22 +43,21 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import {type PropType, defineComponent} from "vue";
 
-import {required} from "../util";
-import {Model} from "../model";
-import {DeletedFolder, DeletedItem} from "../model/deleted-items";
+import {filterMap, required} from "../util";
+import type {Model} from "../model";
+import type {DeletedBookmark, DeletedFolder} from "../model/deleted-items";
 import {friendlyFolderName} from "../model/bookmarks";
-import {FilteredDeletion, FilteredCount} from "./schema";
+import type {FilteredDeletion, FilteredCount} from "./schema";
+
+import Button from "../components/button.vue";
+import ButtonBox from "../components/button-box.vue";
+import Menu from "../components/menu.vue";
+import Bookmark from "./bookmark.vue";
 
 export default defineComponent({
-  components: {
-    Button: require("../components/button.vue").default,
-    ButtonBox: require("../components/button-box.vue").default,
-    Menu: require("../components/menu.vue").default,
-
-    Bookmark: require("./bookmark.vue").default,
-  },
+  components: {Button, ButtonBox, Menu, Bookmark},
   inject: ["$model"],
 
   props: {
@@ -79,8 +78,10 @@ export default defineComponent({
     deletedAt(): string {
       return this.deletion.deleted_at.toLocaleString();
     },
-    leafChildren(): DeletedItem[] {
-      return this.item.children.filter(i => !("children" in i));
+    leafChildren(): DeletedBookmark[] {
+      return filterMap(this.item.children, i =>
+        !("children" in i) ? i : undefined,
+      );
     },
     tooltip(): string {
       return `${this.item.title}\nDeleted ${this.deletedAt}`;

@@ -17,7 +17,7 @@
   >
     <item-icon
       :class="{action: true, 'item-icon': true, select: true}"
-      :src="!bookmark.$selected ? favicon?.value?.favIconUrl : ''"
+      :src="!bookmark.$selected ? favicon?.value?.favIconUrl || '' : ''"
       :default-class="{
         'icon-tab': !bookmark.$selected,
         'icon-tab-selected-inverse': bookmark.$selected,
@@ -66,13 +66,18 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import {type PropType, defineComponent} from "vue";
 
 import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
-import {Model} from "../model";
-import {Tab} from "../model/tabs";
-import {Bookmark} from "../model/bookmarks";
-import {FaviconEntry} from "../model/favicons";
+import type {Model} from "../model";
+import type {Tab} from "../model/tabs";
+import type {Bookmark} from "../model/bookmarks";
+import type {FaviconEntry} from "../model/favicons";
+
+import Button from "../components/button.vue";
+import ButtonBox from "../components/button-box.vue";
+import ItemIcon from "../components/item-icon.vue";
+import AsyncTextInput from "../components/async-text-input.vue";
 
 type RelatedTabState = {
   open: boolean;
@@ -83,12 +88,7 @@ type RelatedTabState = {
 };
 
 export default defineComponent({
-  components: {
-    Button: require("../components/button.vue").default,
-    ButtonBox: require("../components/button-box.vue").default,
-    ItemIcon: require("../components/item-icon").default,
-    AsyncTextInput: require("../components/async-text-input.vue").default,
-  },
+  components: {Button, ButtonBox, ItemIcon, AsyncTextInput},
 
   inject: ["$model"],
 

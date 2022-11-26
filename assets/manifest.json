@@ -12,7 +12,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "tab-stash@condordes.net",
-      "strict_min_version": "72.0"
+      "strict_min_version": "78.0"
     }
   },
   "permissions": [
@@ -29,7 +29,7 @@
   ],
   "content_security_policy": "script-src 'self'; object-src 'self';",
   "background": {
-    "scripts": ["lib.js", "index.js"]
+    "scripts": ["index.js"]
   },
   "browser_action": {
     "default_title": "Tab Stash",

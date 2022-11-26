@@ -72,7 +72,7 @@ dive into the code:
      (for interacting with the browser)
    - [Vue.js](https://v3.vuejs.org/) (for creating UI elements)
    - [Less](https://lesscss.org/) (for styling)
-   - [Webpack](https://webpack.js.org/) (for builds)
+   - [Vite](https://vitejs.dev/) (for builds)
    - [Mocha](https://mochajs.org/) and [Chai](https://www.chaijs.com/) (for testing)
 
 ## Getting Started
@@ -173,7 +173,7 @@ the final Tab Stash extension. Let's go on a quick tour:
    3. Similarly there are entry points for the options page, deleted-items page,
       etc. in the `index.{ts|vue}` files in their respective directories
       (`src/options/`, `src/deleted-items/`, etc.). You can find a list of such
-      entry points in the top-level file `webpack.config.js`.
+      entry points in the top-level files `vite.config.*.ts`.
 
    4. Finally, it's worth checking out `src/ui-model.ts` and
       `src/service-model.ts`. `ui-model` constructs the global "model" data

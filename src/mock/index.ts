@@ -2,7 +2,7 @@
 // facilities BEFORE tests are run, and resets/verifies sanity AFTER tests are
 // complete.
 
-import {RootHookObject} from "mocha";
+import type {RootHookObject} from "mocha";
 
 (<any>globalThis).mock = {
   indexedDB: true,
@@ -12,7 +12,7 @@ import {RootHookObject} from "mocha";
 
 // Mock indexedDB.* APIs
 import "fake-indexeddb/auto";
-const FDBFactory = require("fake-indexeddb/lib/FDBFactory");
+import {IDBFactory} from "fake-indexeddb";
 
 // Event system which allows snooping on events
 import * as events from "./events";
@@ -24,7 +24,7 @@ import * as mock_browser from "./browser";
 
 export const mochaHooks: RootHookObject = {
   async beforeEach() {
-    (<any>globalThis).indexedDB = new FDBFactory();
+    (<any>globalThis).indexedDB = new IDBFactory();
     events.beforeTest();
     mock_browser.runtime.reset();
     mock_browser.storage.reset();

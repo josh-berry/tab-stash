@@ -2,14 +2,8 @@
 import browser from "webextension-polyfill";
 import * as Vue from "vue";
 
-export {
-  TaskHandle,
-  Task,
-  TaskIterator,
-  TaskMonitor,
-  Progress,
-  TaskCancelled,
-} from "./progress";
+export type {TaskHandle, Task, TaskIterator, Progress} from "./progress";
+export {TaskMonitor, TaskCancelled} from "./progress";
 
 export type Atom = null | boolean | number | string;
 
@@ -189,7 +183,7 @@ export async function resolveNamed<T extends {[k: string]: any}>(
  * - https://nodejs.org/dist/latest-v16.x/docs/api/timers.html#setimmediatecallback-args
  */
 export const later: <F extends () => any>(f: F) => void =
-  globalThis.setImmediate ?? globalThis.setTimeout;
+  (<any>globalThis).setImmediate ?? globalThis.setTimeout;
 
 /** Waits for the next iteration of the event loop and for Vue to flush any
  * pending watches (allowing event handlers etc. to run in the meantime). */

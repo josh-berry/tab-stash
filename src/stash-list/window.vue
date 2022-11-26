@@ -107,16 +107,24 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 
 <script lang="ts">
 import browser from "webextension-polyfill";
-import {PropType, defineComponent} from "vue";
+import type {PropType} from "vue";
+import {defineComponent} from "vue";
 
 import {altKeyName, filterMap, required} from "../util";
 
-import {DragAction, DropAction} from "../components/dnd-list";
+import type {DragAction, DropAction} from "../components/dnd-list";
 
-import {Model, StashItem, copyIf} from "../model";
-import {Tab} from "../model/tabs";
-import {BookmarkMetadataEntry} from "../model/bookmark-metadata";
+import type {Model, StashItem} from "../model";
+import {copyIf} from "../model";
+import type {Tab} from "../model/tabs";
+import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {SyncState} from "../model/options";
+
+import Button from "../components/button.vue";
+import ButtonBox from "../components/button-box.vue";
+import DndList from "../components/dnd-list.vue";
+import TabVue from "./tab.vue";
+import Bookmark from "./bookmark.vue";
 
 const DROP_FORMATS = ["application/x-tab-stash-items"];
 
@@ -129,13 +137,7 @@ const NEXT_SHOW_OPEN_TAB_STATE: Record<
 };
 
 export default defineComponent({
-  components: {
-    Button: require("../components/button.vue").default,
-    ButtonBox: require("../components/button-box.vue").default,
-    DndList: require("../components/dnd-list.vue").default,
-    Tab: require("./tab.vue").default,
-    Bookmark: require("./bookmark.vue").default,
-  },
+  components: {Button, ButtonBox, DndList, Tab: TabVue, Bookmark},
 
   inject: ["$model"],
 

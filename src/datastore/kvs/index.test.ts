@@ -3,7 +3,8 @@ import {expect} from "chai";
 // Needed because the 'util' import below tries to poke at browser.runtime
 import "../../mock/browser/runtime";
 
-import {KeyValueStore, KVSCache} from ".";
+import type {KeyValueStore} from ".";
+import {KVSCache} from ".";
 import MemoryKVS from "./memory";
 
 import * as events from "../../mock/events";

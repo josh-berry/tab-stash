@@ -1,7 +1,9 @@
-import {KeyValueStore, genericList} from ".";
-import * as Proto from "./proto";
+import type {KeyValueStore} from ".";
+import {genericList} from ".";
+import type * as Proto from "./proto";
 import * as NanoService from "../../util/nanoservice";
-import event, {Event} from "../../util/event";
+import type {Event} from "../../util/event";
+import event from "../../util/event";
 
 export default class Client<K extends Proto.Key, V extends Proto.Value>
   implements KeyValueStore<K, V>

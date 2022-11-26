@@ -11,8 +11,8 @@ import {ref, computed} from "vue";
 
 import {resolveNamed} from "../util";
 import {errorLog} from "../util/oops";
+import type {StoredObject} from "../datastore/stored-object";
 import stored_object, {
-  StoredObject,
   aBoolean,
   anEnum,
   aNumber,

@@ -2,7 +2,7 @@ import {expect} from "chai";
 import FakeTimers from "@sinonjs/fake-timers";
 
 import * as M from "../util";
-import {BackingOffOptions} from "../util";
+import type {BackingOffOptions} from "../util";
 
 const REDIR_URL = M.REDIR_URL_TESTONLY;
 

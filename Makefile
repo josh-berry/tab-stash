@@ -18,10 +18,16 @@ SRCPKG_DIR = tab-stash-src-$(FULL_VERSION)
 SRC_PKG = $(RELEASE_DIR)/$(SRCPKG_DIR).tar.gz
 DIST_PKG = $(RELEASE_DIR)/tab-stash-$(FULL_VERSION).zip
 
-# Primary (user-facing) targets
-debug: node_modules
-	npm run check-style || npm run fix-style
-	$(MAKE) build-dbg build-chrome-dbg check-tests
+# Primary (user-facing) targets.
+
+# The default target.  This is unrolled so that the things that are most likely
+# to fail and are fastest to fail, fail first, and so that style issues can be
+# automatically fixed.
+debug:
+	$(MAKE) check-types
+	$(MAKE) check-style || ( $(MAKE) fix-style && $(MAKE) check-types )
+	$(MAKE) build-dbg build-chrome-dbg
+	$(MAKE) check-tests
 .PHONY: debug
 
 check: check-types check-tests check-style
@@ -32,12 +38,16 @@ check-types: node_modules
 .PHONY: check-types
 
 check-tests: node_modules
-	npm run test
+	./node_modules/.bin/nyc --reporter=text --reporter=lcov --reporter=html ./node_modules/.bin/mocha
 .PHONY: check-tests
 
 check-style: node_modules
-	npm run check-style
+	./node_modules/.bin/prettier --check .
 .PHONY: check-style
+
+fix-style: node_modules
+	./node_modules/.bin/prettier --write .
+.PHONY: fix-style
 
 rel:
 	$(MAKE) distclean release-tag
@@ -112,14 +122,18 @@ build-chrome-dbg: build-dbg
 .PHONY: build-chrome-dbg
 
 build-dbg: node_modules icons dist/tab-stash.css
-	npm run build
+	./node_modules/.bin/vite build -c vite.config.html.ts -m development
+	./node_modules/.bin/vite build -c vite.config.lib.ts -m development
+	./node_modules/.bin/copyfiles -u 1 'assets/**/*' dist
 .PHONY: build-dbg
 
 build-rel:
 	$(MAKE) clean
 	$(MAKE) node_modules icons dist/tab-stash.css
-	npm run build-rel
 	$(MAKE) check
+	./node_modules/.bin/vite build -c vite.config.html.ts -m production
+	./node_modules/.bin/vite build -c vite.config.lib.ts -m production
+	./node_modules/.bin/copyfiles -u 1 'assets/**/*' dist
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 
@@ -130,7 +144,7 @@ node_modules package-lock.json: package.json
 
 dist/tab-stash.css: node_modules $(wildcard styles/*.less)
 	@mkdir -p dist
-	npm run build-styles
+	./node_modules/.bin/lessc --math=strict styles/index.less dist/tab-stash.css
 
 ## Build Icons
 
@@ -188,5 +202,5 @@ distclean: clean
 .PHONY: distclean
 
 clean:
-	rm -rf dist dist-chrome docs/_site
+	rm -rf build.test dist dist-chrome docs/_site .nyc_output coverage
 .PHONY: clean

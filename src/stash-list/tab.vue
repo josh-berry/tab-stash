@@ -60,21 +60,21 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import {type PropType, defineComponent} from "vue";
 import browser from "webextension-polyfill";
 
 import {altKeyName, bgKeyName, required} from "../util";
 import {Model, copyIf} from "../model";
-import {Tab} from "../model/tabs";
-import {Container} from "../model/containers";
+import type {Tab} from "../model/tabs";
+import type {Container} from "../model/containers";
 import {friendlyFolderName} from "../model/bookmarks";
 
+import Button from "../components/button.vue";
+import ButtonBox from "../components/button-box.vue";
+import ItemIcon from "../components/item-icon.vue";
+
 export default defineComponent({
-  components: {
-    Button: require("../components/button.vue").default,
-    ButtonBox: require("../components/button-box.vue").default,
-    ItemIcon: require("../components/item-icon").default,
-  },
+  components: {Button, ButtonBox, ItemIcon},
 
   inject: ["$model"],
 

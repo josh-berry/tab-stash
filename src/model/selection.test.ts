@@ -1,7 +1,8 @@
 import {expect} from "chai";
 import {computed, nextTick, ref} from "vue";
 
-import {Model, SelectableModel} from "./selection";
+import type {SelectableModel} from "./selection";
+import {Model} from "./selection";
 
 class TestModel implements SelectableModel<string> {
   readonly values = ref([] as string[]);

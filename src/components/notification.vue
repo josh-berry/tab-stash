@@ -20,11 +20,11 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
+import ButtonBox from "./button-box.vue";
+import Button from "./button.vue";
+
 export default defineComponent({
-  components: {
-    ButtonBox: require("./button-box.vue").default,
-    Button: require("./button.vue").default,
-  },
+  components: {ButtonBox, Button},
 
   emits: ["activate", "dismiss"],
 

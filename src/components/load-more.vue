@@ -13,7 +13,8 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, PropType, ref, shallowRef} from "vue";
+import type {PropType} from "vue";
+import {defineComponent, ref, shallowRef} from "vue";
 
 import {required} from "../util";
 

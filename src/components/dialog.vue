@@ -28,12 +28,12 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, PropType} from "vue";
+import {defineComponent, type PropType} from "vue";
+
+import ModalBackdrop from "./modal-backdrop.vue";
 
 export default defineComponent({
-  components: {
-    ModalBackdrop: require("./modal-backdrop.vue").default,
-  },
+  components: {ModalBackdrop},
 
   emits: ["close"],
 

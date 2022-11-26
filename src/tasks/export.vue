@@ -113,16 +113,17 @@
 import {defineComponent, nextTick} from "vue";
 
 import {filterMap} from "../util";
-import {Model} from "../model";
-import {Node, Folder, friendlyFolderName, Bookmark} from "../model/bookmarks";
+import type {Model} from "../model";
+import type {Node, Folder, Bookmark} from "../model/bookmarks";
+import {friendlyFolderName} from "../model/bookmarks";
+
+import Dialog from "../components/dialog.vue";
 
 const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
 export default defineComponent({
-  components: {
-    Dialog: require("../components/dialog.vue").default,
-  },
+  components: {Dialog},
 
   inject: ["$model"],
 

@@ -1,4 +1,4 @@
-import {Send, NanoPort} from "../../util/nanoservice";
+import type {Send, NanoPort} from "../../util/nanoservice";
 
 // The protocol used to communicate between client and service.
 

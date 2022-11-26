@@ -21,21 +21,22 @@
 </template>
 
 <script lang="ts">
-import {PropType, defineComponent} from "vue";
+import type {PropType} from "vue";
+import {defineComponent} from "vue";
 
 import {required} from "../util";
 
-import {Model} from "../model";
-import {Folder, Node, NodeID} from "../model/bookmarks";
-import {DragAction, DropAction} from "../components/dnd-list";
+import type {Model} from "../model";
+import type {Folder, Node, NodeID} from "../model/bookmarks";
+import type {DragAction, DropAction} from "../components/dnd-list";
+
+import DndList from "../components/dnd-list.vue";
+import FolderVue from "./folder.vue";
 
 const DROP_FORMAT = "application/x-tab-stash-folder-id";
 
 export default defineComponent({
-  components: {
-    DndList: require("../components/dnd-list.vue").default,
-    Folder: require("./folder.vue").default,
-  },
+  components: {DndList, Folder: FolderVue},
 
   inject: ["$model"],
 

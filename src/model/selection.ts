@@ -1,4 +1,5 @@
-import {Ref, computed} from "vue";
+import type {Ref} from "vue";
+import {computed} from "vue";
 
 /** A model which allows for its elements to be selected must implement a few
  * things so that the selection model itself can report selected items in the

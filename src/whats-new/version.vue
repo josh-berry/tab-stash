@@ -19,10 +19,10 @@
 import {defineComponent} from "vue";
 import {cmpVersions, required} from "../util";
 
+import Button from "../components/button.vue";
+
 export default defineComponent({
-  components: {
-    Button: require("../components/button.vue").default,
-  },
+  components: {Button},
 
   props: {v: required(String)},
   inject: ["last_notified_version"],

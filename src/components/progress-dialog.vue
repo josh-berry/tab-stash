@@ -1,7 +1,7 @@
 <template>
   <Dialog
-    :class="{progress: true, cancellable: cancel}"
-    :backdrop-class="{progress: true, cancellable: cancel}"
+    :class="{progress: true, cancellable: !!cancel}"
+    :backdrop-class="{progress: true, cancellable: !!cancel}"
     :prevent-closing="true"
   >
     <ProgressItem class="toplevel" :progress="progress" />
@@ -18,17 +18,19 @@
 </template>
 
 <script lang="ts">
-import {defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
+
+import {type Progress, required} from "../util";
+
+import Dialog from "./dialog.vue";
+import ProgressItem from "./progress-item.vue";
 
 export default defineComponent({
-  components: {
-    Dialog: require("./dialog.vue").default,
-    ProgressItem: require("./progress-item.vue").default,
-  },
+  components: {Dialog, ProgressItem},
   emits: ["close"],
   props: {
     cancel: Function,
-    progress: Object,
+    progress: required(Object as PropType<Progress>),
   },
   data() {
     return {

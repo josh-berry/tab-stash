@@ -4,7 +4,8 @@ import browser from "webextension-polyfill";
 import * as events from "../mock/events";
 
 import * as M from "./tabs";
-import {B, make_tabs, TabFixture} from "./fixtures.testlib";
+import type {TabFixture} from "./fixtures.testlib";
+import {B, make_tabs} from "./fixtures.testlib";
 import {nextTick} from "../util";
 
 describe("model/tabs", () => {

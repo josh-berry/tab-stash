@@ -1,9 +1,12 @@
-import {IDBPDatabase, openDB} from "idb";
+import type {IDBPDatabase} from "idb";
+import {openDB} from "idb";
 
-import {KeyValueStore, genericList} from ".";
-import event, {Event} from "../../util/event";
-import {NanoService} from "../../util/nanoservice";
-import * as Proto from "./proto";
+import type {KeyValueStore} from ".";
+import {genericList} from ".";
+import type {Event} from "../../util/event";
+import event from "../../util/event";
+import type {NanoService} from "../../util/nanoservice";
+import type * as Proto from "./proto";
 
 export default class Service<K extends Proto.Key, V extends Proto.Value>
   implements

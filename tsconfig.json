@@ -1,13 +1,16 @@
 {
+  "extends": "@vue/tsconfig/tsconfig.web.json",
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    "lib": ["ES2018", "DOM", "DOM.Iterable"],
+    "types": ["@types/mocha"],
+
     "sourceMap": true,
-    "esModuleInterop": true,
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noUnusedLocals": true,
-    "strict": true,
-    "target": "es2017",
-    "typeRoots": ["node_modules/@types"]
+    "noUnusedLocals": true
   },
   "include": ["./src/**/*"]
 }

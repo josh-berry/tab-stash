@@ -6,7 +6,7 @@ import Service from "./service";
 import * as events from "../../mock/events";
 
 import {tests} from "./index.test";
-import * as P from "./proto";
+import type * as P from "./proto";
 
 async function kvs_factory(): Promise<Service<string, string>> {
   NS.registry.reset_testonly();
