@@ -110,10 +110,9 @@ export default defineComponent({
         if (this.deletion) {
           return this.model().deleted_items.drop(this.deletion.key);
         } else {
-          return this.model().deleted_items.dropChildItem(
-            this.parent!.key,
+          return this.model().deleted_items.drop(this.parent!.key, [
             this.childIndex!,
-          );
+          ]);
         }
       });
     },
