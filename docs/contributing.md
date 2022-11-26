@@ -129,10 +129,6 @@ the final Tab Stash extension. Let's go on a quick tour:
    1. `manifest.json` describes the extension to the browser. This is the place
       to start to understand how the browser interacts with Tab Stash.
 
-   2. Each "top-level" part of the Tab Stash UI has an HTML page here as well.
-      The HTML pages are pretty minimal, just enough to get things started--most
-      of the actual UI code is in `src/`, which we'll get to later.
-
 2. `icons/` contains the SVG icons used throughout the Tab Stash UI. Icons are
    always expected to be monochromatic, and will be re-colored during the build
    to work with both light and dark themes. Some icons are converted to PNG
@@ -170,10 +166,12 @@ the final Tab Stash extension. Let's go on a quick tour:
       (The same UI is used for all views---sidebar, full page, and popup.) The
       UI itself is defined in the corresponding `src/stash-list/index.vue` file.
 
-   3. Similarly there are entry points for the options page, deleted-items page,
-      etc. in the `index.{ts|vue}` files in their respective directories
-      (`src/options/`, `src/deleted-items/`, etc.). You can find a list of such
-      entry points in the top-level files `vite.config.*.ts`.
+   3. Similarly, there are entry points for the options page, deleted-items
+      page, etc. in the `*.html` files in the top level of `src/`. You can find
+      a list of such entry points in the top-level files `vite.config.html.ts`.
+      All of the HTML pages follow a similar structure to the stash
+      list---`src/foo.html` includes `src/foo/index.ts`, which bootstraps the
+      page and loads the top-level Vue component, which is `src/foo/index.vue`.
 
    4. Finally, it's worth checking out `src/ui-model.ts` and
       `src/service-model.ts`. `ui-model` constructs the global "model" data
@@ -192,6 +190,29 @@ There is a lot more to the codebase, but hopefully this is enough to get you
 oriented and keep you from getting lost. Most of the rest should be easy to
 find by reading code and poking around. And if you do get lost, feel free to
 ask a question on GitHub!
+
+## Debugging / Global Variables
+
+There are a few global variables made accessible to you from the console so you
+can inspect the state of the application at runtime:
+
+- `app`: The Vue application
+
+- `model`: The root model (see `src/ui-model.ts` for the UI's root, or
+  `src/service-model.ts` for the background page's root).
+
+- `error_log`: The error log used by `oops` to collect and report errors to the
+  user.
+
+You can also set a few "magical" global variables to get more debugging info
+(note that these variables do not exist until you set them):
+
+- `trace_nano_ports: boolean`: When set to `true`, all communication between the
+  UI and background page is logged to the console. This is VERY verbose so use
+  it sparingly!
+
+- `trace_siteinfo: boolean`: When set to `true`, all browser events involved in
+  fetching site info (during import, or fetching favicons) are logged.
 
 ## Coding Conventions
 
