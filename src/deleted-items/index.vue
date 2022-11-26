@@ -77,14 +77,9 @@ import {filterMap, required, textMatcher} from "../util";
 import {pageref} from "../launch-vue";
 import {Model} from "../model";
 import * as DI from "../model/deleted-items";
+import {RecordGroup, FilteredDeletedItem} from "./schema";
 
 const date_formatter = new Intl.DateTimeFormat();
-
-type RecordGroup = {title: string; records: FilteredDeletion[]};
-type FilteredDeletion = DI.Deletion & {item: FilteredDeletedItem};
-type FilteredDeletedItem = FilteredCount<DI.DeletedItem>;
-
-type FilteredCount<F> = F & {filtered_count?: number};
 
 export default defineComponent({
   components: {

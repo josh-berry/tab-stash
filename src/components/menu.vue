@@ -12,7 +12,7 @@
   >
     <summary
       ref="summary"
-      :class="{[$style.summary]: true, [summaryClass]: true}"
+      :class="{[$style.summary]: true, [summaryClass ?? '']: true}"
       tabindex="0"
     >
       <slot name="summary">{{ name }}</slot>
@@ -25,7 +25,11 @@
     >
       <div
         :style="isOpen ? '' : 'display: none'"
-        :class="{[$style.modal]: true, 'menu-modal': true, [modalClass]: true}"
+        :class="{
+          [$style.modal]: true,
+          'menu-modal': true,
+          [modalClass ?? '']: true,
+        }"
         tabindex="-1"
         @keydown.esc.prevent.stop="close"
         @click.prevent.stop="close"

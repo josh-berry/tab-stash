@@ -37,7 +37,7 @@ export default defineComponent({
   },
 
   methods: {
-    set(ev: InputEvent) {
+    set(ev: Event) {
       this.$emit("update:modelValue", (<HTMLInputElement>ev.target).checked);
     },
     reset() {

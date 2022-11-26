@@ -33,7 +33,7 @@
       <Notification
         key="stash-root-warning"
         v-if="stash_root_warning"
-        @activate="stash_root_warning.help"
+        @activate="stash_root_warning!.help"
       >
         {{ stash_root_warning.text }}
       </Notification>

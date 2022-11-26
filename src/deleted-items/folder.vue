@@ -24,7 +24,7 @@
     <ul class="folder-item-nesting">
       <Bookmark
         v-for="(child, index) of leafChildren"
-        :key="child.url + index"
+        :key="index"
         :parent="deletion"
         :child="child"
         :childIndex="index"
@@ -47,8 +47,9 @@ import {PropType, defineComponent} from "vue";
 
 import {required} from "../util";
 import {Model} from "../model";
-import {DeletedFolder, DeletedItem, Deletion} from "../model/deleted-items";
+import {DeletedFolder, DeletedItem} from "../model/deleted-items";
 import {friendlyFolderName} from "../model/bookmarks";
+import {FilteredDeletion, FilteredCount} from "./schema";
 
 export default defineComponent({
   components: {
@@ -61,7 +62,7 @@ export default defineComponent({
   inject: ["$model"],
 
   props: {
-    deletion: required(Object as PropType<Deletion>),
+    deletion: required(Object as PropType<FilteredDeletion>),
   },
 
   data: () => ({
@@ -72,7 +73,7 @@ export default defineComponent({
     friendlyTitle(): string {
       return friendlyFolderName(this.item.title);
     },
-    item(): DeletedFolder {
+    item(): FilteredCount<DeletedFolder> {
       return this.deletion.item as DeletedFolder;
     },
     deletedAt(): string {

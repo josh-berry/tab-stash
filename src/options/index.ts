@@ -12,13 +12,7 @@ launch(require("./index.vue").default, async () => {
   return {
     propsData: {
       hasSidebar: !!browser.sidebarAction,
-      sync: opts.sync.state,
-      local: opts.local.state,
-    },
-    methods: {
-      model() {
-        return opts;
-      },
+      model: opts,
     },
   };
 });

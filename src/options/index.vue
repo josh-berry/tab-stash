@@ -1,5 +1,5 @@
 <template>
-  <main :class="{'show-advanced': meta_show_advanced}">
+  <main :class="{'show-advanced': sync.meta_show_advanced}">
     <transition-group
       tag="aside"
       class="notification-overlay"
@@ -14,7 +14,7 @@
         <input
           type="checkbox"
           id="meta_show_advanced"
-          v-model="meta_show_advanced"
+          v-model="sync.meta_show_advanced"
         />
         Show advanced settings
       </label>
@@ -22,7 +22,7 @@
 
     <section>
       <button
-        v-if="hide_crash_reports_until > Date.now()"
+        v-if="local.hide_crash_reports_until ?? 0 > Date.now()"
         @click.stop="showCrashReports"
       >
         Stop Hiding Crash Reports
@@ -37,27 +37,39 @@
       <label>When the toolbar button is clicked:</label>
       <ul>
         <li>
-          <select id="browser_action_stash" v-model="browser_action_stash">
-            <option :disabled="browser_action_show === 'popup'" value="all">
+          <select id="browser_action_stash" v-model="sync.browser_action_stash">
+            <option
+              :disabled="sync.browser_action_show === 'popup'"
+              value="all"
+            >
               Stash all (or selected) tabs
             </option>
-            <option :disabled="browser_action_show === 'popup'" value="single">
+            <option
+              :disabled="sync.browser_action_show === 'popup'"
+              value="single"
+            >
               Stash the active tab
             </option>
-            <option :disabled="browser_action_show === 'none'" value="none">
+            <option
+              :disabled="sync.browser_action_show === 'none'"
+              value="none"
+            >
               Don't stash any tabs
             </option>
           </select>
           and
-          <select id="browser_action_show" v-model="browser_action_show">
+          <select id="browser_action_show" v-model="sync.browser_action_show">
             <option v-if="hasSidebar" value="sidebar">
               show the stash in the sidebar
             </option>
             <option value="tab">show the stash in a tab</option>
-            <option v-if="ff_popup_view" value="popup">
+            <option v-if="local.ff_popup_view" value="popup">
               show the stash in a popup
             </option>
-            <option :disabled="browser_action_stash === 'none'" value="none">
+            <option
+              :disabled="sync.browser_action_stash === 'none'"
+              value="none"
+            >
               don't show the stash
             </option>
           </select>
@@ -74,7 +86,7 @@
               type="radio"
               name="open_stash_in"
               id="open_stash_in_sidebar"
-              v-model="open_stash_in"
+              v-model="sync.open_stash_in"
               value="sidebar"
             />
             Show the stash in the sidebar
@@ -86,7 +98,7 @@
               type="radio"
               name="open_stash_in"
               id="open_stash_in_tab"
-              v-model="open_stash_in"
+              v-model="sync.open_stash_in"
               value="tab"
             />
             Show the stash in a tab
@@ -98,7 +110,7 @@
               type="radio"
               name="open_stash_in"
               id="open_stash_in_none"
-              v-model="open_stash_in"
+              v-model="sync.open_stash_in"
               value="none"
             />
             Don't show the stash
@@ -119,7 +131,7 @@
             <input
               type="number"
               id="new_folder_timeout_min"
-              v-model="new_folder_timeout_min"
+              v-model="sync.new_folder_timeout_min"
               min="0"
             />
             minutes
@@ -134,13 +146,13 @@
 
     <section class="two-col">
       <label for="ui_metrics">Spacing and fonts:</label>
-      <select id="ui_metrics" v-model="ui_metrics">
+      <select id="ui_metrics" v-model="sync.ui_metrics">
         <option value="normal">Normal</option>
         <option value="compact">Compact</option>
       </select>
 
       <label for="ui_theme">Theme:</label>
-      <select id="ui_theme" v-model="ui_theme">
+      <select id="ui_theme" v-model="sync.ui_theme">
         <option value="system">Same as operating system</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
@@ -149,7 +161,7 @@
       <label for="show_open_tabs">Show which open tabs:</label>
       <select
         id="show_open_tabs"
-        v-model="show_open_tabs"
+        v-model="sync.show_open_tabs"
         :title="
           `Click on the &quot;Open Tabs&quot; or ` +
           `&quot;Unstashed Tabs&quot; title to toggle between these ` +
@@ -174,7 +186,7 @@
             <input
               type="number"
               id="deleted_items_expiration_days"
-              v-model="deleted_items_expiration_days"
+              v-model="sync.deleted_items_expiration_days"
               min="1"
             />
             days
@@ -199,12 +211,12 @@
               type="radio"
               name="after_stashing_tab"
               id="after_stashing_tab_hide"
-              v-model="after_stashing_tab"
+              v-model="local.after_stashing_tab"
               value="hide"
             />
             Hide the tab and keep it loaded in the background
           </label>
-          <ul :class="{disabled: after_stashing_tab !== 'hide'}">
+          <ul :class="{disabled: local.after_stashing_tab !== 'hide'}">
             <li>
               <label
                 for="autodiscard_hidden_tabs"
@@ -214,8 +226,8 @@
                   type="checkbox"
                   name="autodiscard_hidden_tabs"
                   id="autodiscard_hidden_tabs"
-                  :disabled="after_stashing_tab !== 'hide'"
-                  v-model="autodiscard_hidden_tabs"
+                  :disabled="local.after_stashing_tab !== 'hide'"
+                  v-model="local.autodiscard_hidden_tabs"
                 />
                 Automatically unload hidden tabs that haven't been used in a
                 while
@@ -226,7 +238,8 @@
                 :class="{
                   advanced: true,
                   disabled:
-                    after_stashing_tab !== 'hide' || !autodiscard_hidden_tabs,
+                    local.after_stashing_tab !== 'hide' ||
+                    !local.autodiscard_hidden_tabs,
                 }"
               >
                 <li>
@@ -236,10 +249,10 @@
                       type="number"
                       id="autodiscard_interval_min"
                       :disabled="
-                        after_stashing_tab !== 'hide' ||
-                        !autodiscard_hidden_tabs
+                        local.after_stashing_tab !== 'hide' ||
+                        !local.autodiscard_hidden_tabs
                       "
-                      v-model="autodiscard_interval_min"
+                      v-model="local.autodiscard_interval_min"
                       min="1"
                     />
                     minutes
@@ -252,10 +265,10 @@
                       type="number"
                       id="autodiscard_min_keep_tabs"
                       :disabled="
-                        after_stashing_tab !== 'hide' ||
-                        !autodiscard_hidden_tabs
+                        local.after_stashing_tab !== 'hide' ||
+                        !local.autodiscard_hidden_tabs
                       "
-                      v-model="autodiscard_min_keep_tabs"
+                      v-model="local.autodiscard_min_keep_tabs"
                       min="0"
                     />
                     hidden and visible tabs loaded at all times
@@ -268,10 +281,10 @@
                       type="number"
                       id="autodiscard_target_age_min"
                       :disabled="
-                        after_stashing_tab !== 'hide' ||
-                        !autodiscard_hidden_tabs
+                        local.after_stashing_tab !== 'hide' ||
+                        !local.autodiscard_hidden_tabs
                       "
-                      v-model="autodiscard_target_age_min"
+                      v-model="local.autodiscard_target_age_min"
                       min="1"
                     />
                     minutes, but...
@@ -284,11 +297,11 @@
                       type="number"
                       id="autodiscard_target_tab_count"
                       :disabled="
-                        after_stashing_tab !== 'hide' ||
-                        !autodiscard_hidden_tabs
+                        local.after_stashing_tab !== 'hide' ||
+                        !local.autodiscard_hidden_tabs
                       "
-                      v-model="autodiscard_target_tab_count"
-                      :min="autodiscard_min_keep_tabs"
+                      v-model="local.autodiscard_target_tab_count"
+                      :min="local.autodiscard_min_keep_tabs"
                     />
                     tabs loaded
                   </label>
@@ -306,7 +319,7 @@
               type="radio"
               name="after_stashing_tab"
               id="after_stashing_tab_hide_discard"
-              v-model="after_stashing_tab"
+              v-model="local.after_stashing_tab"
               value="hide_discard"
             />
             Hide the tab and immediately unload it
@@ -321,7 +334,7 @@
               type="radio"
               name="after_stashing_tab"
               id="after_stashing_tab_close"
-              v-model="after_stashing_tab"
+              v-model="local.after_stashing_tab"
               value="close"
             />
             Close the tab immediately
@@ -330,7 +343,7 @@
       </ul>
     </section>
 
-    <hr v-if="meta_show_advanced" />
+    <hr v-if="sync.meta_show_advanced" />
 
     <section class="advanced">
       <h4>Experimental Features</h4>
@@ -354,7 +367,7 @@
 
       <FeatureFlag
         name="ff_popup_view"
-        v-model="ff_popup_view"
+        v-model="local.ff_popup_view"
         :default_value="local_def().ff_popup_view.default"
         :issue="115"
       >
@@ -366,7 +379,7 @@
 
       <FeatureFlag
         name="ff_restore_closed_tabs"
-        v-model="ff_restore_closed_tabs"
+        v-model="local.ff_restore_closed_tabs"
         :default_value="local_def().ff_restore_closed_tabs.default"
         :issue="200"
       >
@@ -379,7 +392,7 @@
 
       <FeatureFlag
         name="ff_container_indicators"
-        v-model="ff_container_indicators"
+        v-model="local.ff_container_indicators"
         :default_value="local_def().ff_container_indicators.default"
         :issue="125"
       >
@@ -395,26 +408,36 @@
 
 <script lang="ts">
 import {PropType, defineComponent} from "vue";
+import {computed, WritableComputedRef} from "@vue/reactivity";
 
 import {logErrorsFrom} from "../util/oops";
 import * as Options from "../model/options";
+import {required} from "../util";
 
-const prop = (area: string, name: string) => ({
-  get: function (this: any) {
-    return this[area][name];
-  },
-  set: function (this: any, v: any) {
-    logErrorsFrom(() => this.model()[area].set({[name]: v}));
-  },
-});
+function prop<
+  M extends Options.SyncModel | Options.LocalModel,
+  N extends keyof M["state"],
+>(model: M, name: N): WritableComputedRef<M["state"][N]> {
+  return computed({
+    get(): M["state"][N] {
+      return model.state[name as keyof typeof model.state];
+    },
+    set(v: M["state"][N]) {
+      logErrorsFrom(() => model.set({[name]: v}));
+    },
+  });
+}
 
-function options() {
+function options(model: Options.Model): {
+  sync: Options.SyncState;
+  local: Options.LocalState;
+} {
   let ret: any = {};
-  for (let k of Object.keys(Options.LOCAL_DEF)) {
-    ret[k] = prop("local", k);
+  for (const k of Object.keys(Options.LOCAL_DEF)) {
+    ret[k] = prop(model.local, k as keyof Options.LocalState);
   }
-  for (let k of Object.keys(Options.SYNC_DEF)) {
-    ret[k] = prop("sync", k);
+  for (const k of Object.keys(Options.SYNC_DEF)) {
+    ret[k] = prop(model.sync, k as keyof Options.SyncState);
   }
   return ret;
 }
@@ -427,15 +450,16 @@ export default defineComponent({
 
   props: {
     hasSidebar: Boolean,
-    sync: Object as PropType<Options.SyncState>,
-    local: Object as PropType<Options.LocalState>,
+    model: required(Object as PropType<Options.Model>),
+  },
+
+  data() {
+    return options(this.model);
   },
 
   computed: {
-    ...options(),
-
     showCrashReport(): boolean {
-      return this.model().showCrashReport.value;
+      return this.model.showCrashReport.value;
     },
   },
 
@@ -444,13 +468,13 @@ export default defineComponent({
       switch (val) {
         case "popup":
           logErrorsFrom(() =>
-            this.model().sync.set({browser_action_stash: "none"}),
+            this.model.sync.set({browser_action_stash: "none"}),
           );
           break;
         case "none":
-          if (this.model().sync.state.browser_action_stash === "none") {
+          if (this.model.sync.state.browser_action_stash === "none") {
             logErrorsFrom(() =>
-              this.model().sync.set({browser_action_stash: "single"}),
+              this.model.sync.set({browser_action_stash: "single"}),
             );
           }
           break;
@@ -460,16 +484,16 @@ export default defineComponent({
     browser_action_stash(val: Options.StashWhatOpt) {
       switch (val) {
         case "none":
-          if (this.model().sync.state.browser_action_show === "none") {
+          if (this.model.sync.state.browser_action_show === "none") {
             logErrorsFrom(() =>
-              this.model().sync.set({browser_action_show: "tab"}),
+              this.model.sync.set({browser_action_show: "tab"}),
             );
           }
           break;
         default:
-          if (this.model().sync.state.browser_action_show === "popup") {
+          if (this.model.sync.state.browser_action_show === "popup") {
             logErrorsFrom(() =>
-              this.model().sync.set({browser_action_show: "tab"}),
+              this.model.sync.set({browser_action_show: "tab"}),
             );
           }
           break;
@@ -478,9 +502,6 @@ export default defineComponent({
   },
 
   methods: {
-    model(): Options.Model {
-      throw new Error("dummy overridden method");
-    },
     local_def() {
       return Options.LOCAL_DEF;
     },
@@ -490,7 +511,7 @@ export default defineComponent({
 
     showCrashReports() {
       logErrorsFrom(() =>
-        this.model().local.set({hide_crash_reports_until: undefined}),
+        this.model.local.set({hide_crash_reports_until: undefined}),
       );
     },
   },

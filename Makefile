@@ -24,8 +24,12 @@ debug: node_modules
 	$(MAKE) build-dbg build-chrome-dbg check-tests
 .PHONY: debug
 
-check: check-tests check-style
+check: check-types check-tests check-style
 .PHONY: check
+
+check-types: node_modules
+	./node_modules/.bin/vue-tsc --noEmit
+.PHONY: check-types
 
 check-tests: node_modules
 	npm run test
