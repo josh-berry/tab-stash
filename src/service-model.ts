@@ -3,10 +3,10 @@
 //
 
 // istanbul ignore file
+import {KVSCache} from "./datastore/kvs";
+import KVSService from "./datastore/kvs/service";
 import {resolveNamed} from "./util";
 import {listen} from "./util/nanoservice";
-import KVSService from "./datastore/kvs/service";
-import {KVSCache} from "./datastore/kvs";
 
 import * as M from "./model";
 

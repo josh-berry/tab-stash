@@ -126,29 +126,30 @@
 </template>
 
 <script lang="ts">
-import browser from "webextension-polyfill";
 import {defineComponent} from "vue";
+import browser from "webextension-polyfill";
 
 import {pageref} from "../launch-vue";
-import {TaskMonitor, parseVersion, required} from "../util";
 import type {Model} from "../model";
+import {
+  CUR_WINDOW_MD_ID,
+  type BookmarkMetadataEntry,
+} from "../model/bookmark-metadata";
+import {friendlyFolderName, type Folder} from "../model/bookmarks";
 import type {Tab} from "../model/tabs";
-import type {Folder} from "../model/bookmarks";
-import {friendlyFolderName} from "../model/bookmarks";
-import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import {CUR_WINDOW_MD_ID} from "../model/bookmark-metadata";
 import {fetchInfoForSites} from "../tasks/siteinfo";
+import {parseVersion, required, TaskMonitor} from "../util";
 
-import SelectionMenu from "./selection-menu.vue";
 import Button from "../components/button.vue";
-import ExportDialog from "../tasks/export.vue";
-import FolderVue from "./folder.vue";
-import FolderList from "./folder-list.vue";
-import ImportDialog from "../tasks/import.vue";
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
 import OopsNotification from "../components/oops-notification.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
+import ExportDialog from "../tasks/export.vue";
+import ImportDialog from "../tasks/import.vue";
+import FolderList from "./folder-list.vue";
+import FolderVue from "./folder.vue";
+import SelectionMenu from "./selection-menu.vue";
 import Window from "./window.vue";
 
 export default defineComponent({

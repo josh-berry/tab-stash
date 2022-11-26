@@ -4,17 +4,17 @@
 import {expect} from "chai";
 import browser from "webextension-polyfill";
 
-import * as events from "../mock/events";
 import storage_mock from "../mock/browser/storage";
+import * as events from "../mock/events";
 import type {BookmarkFixture, TabFixture} from "./fixtures.testlib";
 import {
   B,
-  STASH_ROOT_NAME,
-  make_tabs,
   make_bookmarks,
   make_bookmark_metadata,
   make_deleted_items,
   make_favicons,
+  make_tabs,
+  STASH_ROOT_NAME,
 } from "./fixtures.testlib";
 
 import {filterMap, later} from "../util";
@@ -24,11 +24,11 @@ import type {KeyValueStore} from "../datastore/kvs";
 import {KVSCache} from "../datastore/kvs";
 import MemoryKVS from "../datastore/kvs/memory";
 import {_StoredObjectFactory} from "../datastore/stored-object";
-import {LOCAL_DEF, SYNC_DEF} from "./options";
-import type {TabID} from "./tabs";
+import {CUR_WINDOW_MD_ID} from "./bookmark-metadata";
 import {getDefaultFolderNameISODate} from "./bookmarks";
 import type {DeletedFolder} from "./deleted-items";
-import {CUR_WINDOW_MD_ID} from "./bookmark-metadata";
+import {LOCAL_DEF, SYNC_DEF} from "./options";
+import type {TabID} from "./tabs";
 
 describe("model", () => {
   let tabs: TabFixture["tabs"];

@@ -71,19 +71,19 @@
 </template>
 
 <script lang="ts">
-import {type PropType, defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 
-import {filterMap, required, textMatcher} from "../util";
 import {pageref} from "../launch-vue";
 import type {Model} from "../model";
 import type * as DI from "../model/deleted-items";
-import type {RecordGroup, FilteredDeletedItem} from "./schema";
+import {filterMap, required, textMatcher} from "../util";
+import type {FilteredDeletedItem, RecordGroup} from "./schema";
 
+import ItemIcon from "../components/item-icon.vue";
 import LoadMore from "../components/load-more.vue";
+import OopsNotification from "../components/oops-notification.vue";
 import Bookmark from "./bookmark.vue";
 import Folder from "./folder.vue";
-import ItemIcon from "../components/item-icon.vue";
-import OopsNotification from "../components/oops-notification.vue";
 
 const date_formatter = new Intl.DateTimeFormat();
 

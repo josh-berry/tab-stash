@@ -60,7 +60,7 @@
 </template>
 
 <script lang="ts">
-import {Teleport, type Component, defineComponent} from "vue";
+import {defineComponent, Teleport, type Component} from "vue";
 
 export default defineComponent({
   components: {

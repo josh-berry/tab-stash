@@ -2,8 +2,8 @@
 
 import browser from "webextension-polyfill";
 
-import {resolveNamed} from "../util";
 import launch from "../launch-vue";
+import {resolveNamed} from "../util";
 
 import * as Options from "../model/options";
 

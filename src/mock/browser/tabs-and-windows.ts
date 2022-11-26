@@ -5,8 +5,8 @@ import type {
   Windows as W,
 } from "webextension-polyfill";
 
-import * as events from "../events";
 import {later} from "../../util";
+import * as events from "../events";
 
 type Window = Omit<W.Window, "id" | "tabs"> & {id: number; tabs: Tab[]};
 type Tab = Omit<T.Tab, "id" | "windowId"> & {id: number; windowId: number};

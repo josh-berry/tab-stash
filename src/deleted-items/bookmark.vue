@@ -29,13 +29,13 @@
 </template>
 
 <script lang="ts">
-import {type PropType, defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 
 import type {Model} from "../model";
 import type {DeletedBookmark, Deletion} from "../model/deleted-items";
 
-import Button from "../components/button.vue";
 import ButtonBox from "../components/button-box.vue";
+import Button from "../components/button.vue";
 import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
 

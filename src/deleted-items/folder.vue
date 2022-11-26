@@ -43,16 +43,16 @@
 </template>
 
 <script lang="ts">
-import {type PropType, defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 
-import {filterMap, required} from "../util";
 import type {Model} from "../model";
-import type {DeletedBookmark, DeletedFolder} from "../model/deleted-items";
 import {friendlyFolderName} from "../model/bookmarks";
-import type {FilteredDeletion, FilteredCount} from "./schema";
+import type {DeletedBookmark, DeletedFolder} from "../model/deleted-items";
+import {filterMap, required} from "../util";
+import type {FilteredCount, FilteredDeletion} from "./schema";
 
-import Button from "../components/button.vue";
 import ButtonBox from "../components/button-box.vue";
+import Button from "../components/button.vue";
 import Menu from "../components/menu.vue";
 import Bookmark from "./bookmark.vue";
 

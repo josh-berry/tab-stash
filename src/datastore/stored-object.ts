@@ -27,8 +27,8 @@
 //
 //     await obj.delete();
 
-import browser from "webextension-polyfill";
 import {reactive} from "vue";
+import browser from "webextension-polyfill";
 
 import type {Event} from "../util/event";
 import event from "../util/event";

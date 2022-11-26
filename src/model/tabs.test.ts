@@ -3,10 +3,9 @@ import browser from "webextension-polyfill";
 
 import * as events from "../mock/events";
 
-import * as M from "./tabs";
-import type {TabFixture} from "./fixtures.testlib";
-import {B, make_tabs} from "./fixtures.testlib";
 import {nextTick} from "../util";
+import {B, make_tabs, type TabFixture} from "./fixtures.testlib";
+import * as M from "./tabs";
 
 describe("model/tabs", () => {
   let windows: TabFixture["windows"];

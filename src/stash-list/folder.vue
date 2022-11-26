@@ -108,27 +108,25 @@
 </template>
 
 <script lang="ts">
-import type {PropType} from "vue";
-import {defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 
-import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 import type {DragAction, DropAction} from "../components/dnd-list";
+import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 
-import type {StashItem} from "../model";
-import {copyIf, Model} from "../model";
-import type {Node, NodeID, Bookmark, Folder} from "../model/bookmarks";
+import {copyIf, Model, type StashItem} from "../model";
+import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
+import type {Bookmark, Folder, Node, NodeID} from "../model/bookmarks";
 import {
+  friendlyFolderName,
   genDefaultFolderName,
   getDefaultFolderNameISODate,
-  friendlyFolderName,
 } from "../model/bookmarks";
-import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {Tab} from "../model/tabs";
 
-import Button from "../components/button.vue";
-import ButtonBox from "../components/button-box.vue";
-import DndList from "../components/dnd-list.vue";
 import AsyncTextInput from "../components/async-text-input.vue";
+import ButtonBox from "../components/button-box.vue";
+import Button from "../components/button.vue";
+import DndList from "../components/dnd-list.vue";
 import BookmarkVue from "./bookmark.vue";
 
 type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};

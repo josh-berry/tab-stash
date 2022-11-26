@@ -6,7 +6,7 @@ import {reactive} from "vue";
 import {nonReentrant} from "../util";
 import {makeRandomString} from "../util/random";
 
-import type {KeyValueStore, Entry, MaybeEntry} from "../datastore/kvs";
+import type {Entry, KeyValueStore, MaybeEntry} from "../datastore/kvs";
 import {entryHasValue} from "../datastore/kvs/proto";
 
 // The key for a deleted record should be opaque but monotonically increasing as

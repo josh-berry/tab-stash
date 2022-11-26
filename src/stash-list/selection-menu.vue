@@ -80,9 +80,9 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
-import {altKeyName, filterMap, textMatcher} from "../util";
 import type {Model} from "../model";
-import {type Folder, type NodeID, friendlyFolderName} from "../model/bookmarks";
+import {friendlyFolderName, type Folder, type NodeID} from "../model/bookmarks";
+import {altKeyName, filterMap, textMatcher} from "../util";
 
 import Menu from "../components/menu.vue";
 

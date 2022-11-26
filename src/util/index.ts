@@ -1,9 +1,15 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
-import browser from "webextension-polyfill";
 import * as Vue from "vue";
+import browser from "webextension-polyfill";
 
-export type {TaskHandle, Task, TaskIterator, Progress} from "./progress";
-export {TaskMonitor, TaskCancelled} from "./progress";
+export {
+  TaskCancelled,
+  TaskMonitor,
+  type Progress,
+  type Task,
+  type TaskHandle,
+  type TaskIterator,
+} from "./progress";
 
 export type Atom = null | boolean | number | string;
 

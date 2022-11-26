@@ -112,10 +112,14 @@
 <script lang="ts">
 import {defineComponent, nextTick} from "vue";
 
-import {filterMap} from "../util";
 import type {Model} from "../model";
-import type {Node, Folder, Bookmark} from "../model/bookmarks";
-import {friendlyFolderName} from "../model/bookmarks";
+import {
+  friendlyFolderName,
+  type Bookmark,
+  type Folder,
+  type Node,
+} from "../model/bookmarks";
+import {filterMap} from "../util";
 
 import Dialog from "../components/dialog.vue";
 

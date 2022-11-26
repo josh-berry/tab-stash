@@ -60,17 +60,17 @@
 </template>
 
 <script lang="ts">
-import {type PropType, defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, bgKeyName, required} from "../util";
-import {Model, copyIf} from "../model";
-import type {Tab} from "../model/tabs";
-import type {Container} from "../model/containers";
+import {copyIf, Model} from "../model";
 import {friendlyFolderName} from "../model/bookmarks";
+import type {Container} from "../model/containers";
+import type {Tab} from "../model/tabs";
+import {altKeyName, bgKeyName, required} from "../util";
 
-import Button from "../components/button.vue";
 import ButtonBox from "../components/button-box.vue";
+import Button from "../components/button.vue";
 import ItemIcon from "../components/item-icon.vue";
 
 export default defineComponent({

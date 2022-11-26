@@ -1,23 +1,23 @@
 import {expect} from "chai";
 import browser from "webextension-polyfill";
 
-import * as events from "../mock/events";
 import storage_mock from "../mock/browser/storage";
+import * as events from "../mock/events";
 
 import type {
-  StoredObject,
   StorableDef,
   StorableType,
   StorableValue,
+  StoredObject,
 } from "./stored-object";
 import {
-  _StoredObjectFactory,
   aBoolean,
   anEnum,
   aNumber,
   aString,
   maybeNull,
   maybeUndef,
+  _StoredObjectFactory,
 } from "./stored-object";
 
 describe("stored-object", function () {

@@ -15,6 +15,9 @@
  * both when they are sent and when they are delivered.
  */
 
+import type {Args} from "../util";
+import type {Event, EventSource} from "../util/event";
+
 declare function require(name: string): any;
 
 // istanbul ignore next
@@ -27,9 +30,6 @@ const inspect: (v: any, options?: {depth: number}) => string =
 // until the mock event system is set up.
 const later: <F extends () => any>(f: F) => void =
   (<any>globalThis).setImmediate ?? globalThis.setTimeout;
-
-import type {Event, EventSource} from "../util/event";
-import type {Args} from "../util";
 
 type EventSystemState = {
   verbose: boolean;

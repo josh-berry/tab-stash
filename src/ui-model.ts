@@ -2,13 +2,13 @@
 // context)
 
 // istanbul ignore file
-import {resolveNamed} from "./util";
-import KVSClient from "./datastore/kvs/client";
 import {KVSCache} from "./datastore/kvs";
+import KVSClient from "./datastore/kvs/client";
+import {resolveNamed} from "./util";
 
 import * as M from "./model";
-import type {Favicon} from "./model/favicons";
 import type {BookmarkMetadata} from "./model/bookmark-metadata";
+import type {Favicon} from "./model/favicons";
 
 export default async function (): Promise<M.Model> {
   const sources = await resolveNamed({

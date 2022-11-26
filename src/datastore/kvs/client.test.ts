@@ -2,13 +2,13 @@
 // before trying to load the "live" code.
 import {tests} from "./index.test";
 
-import {expect} from "chai";
 import FakeTimers from "@sinonjs/fake-timers";
+import {expect} from "chai";
 
-import Client from "./client";
-import type * as Proto from "./proto";
 import * as events from "../../mock/events";
 import {NanoDisconnectedError} from "../../util/nanoservice";
+import Client from "./client";
+import type * as Proto from "./proto";
 
 async function kvs_factory(): Promise<Client<string, string>> {
   return new Client("kvs-test", () => new MockServicePort());

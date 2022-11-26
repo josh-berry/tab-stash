@@ -51,8 +51,7 @@
 </template>
 
 <script lang="ts">
-import type {PropType} from "vue";
-import {defineComponent, reactive, nextTick} from "vue";
+import {defineComponent, nextTick, reactive, type PropType} from "vue";
 
 import {required} from "../util";
 import type {DragAction, DropAction} from "./dnd-list";

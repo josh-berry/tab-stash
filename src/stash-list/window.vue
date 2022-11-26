@@ -106,25 +106,23 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 </template>
 
 <script lang="ts">
+import {defineComponent, type PropType} from "vue";
 import browser from "webextension-polyfill";
-import type {PropType} from "vue";
-import {defineComponent} from "vue";
 
 import {altKeyName, filterMap, required} from "../util";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
 
-import type {Model, StashItem} from "../model";
-import {copyIf} from "../model";
-import type {Tab} from "../model/tabs";
+import {copyIf, type Model, type StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {SyncState} from "../model/options";
+import type {Tab} from "../model/tabs";
 
-import Button from "../components/button.vue";
 import ButtonBox from "../components/button-box.vue";
+import Button from "../components/button.vue";
 import DndList from "../components/dnd-list.vue";
-import TabVue from "./tab.vue";
 import Bookmark from "./bookmark.vue";
+import TabVue from "./tab.vue";
 
 const DROP_FORMATS = ["application/x-tab-stash-items"];
 

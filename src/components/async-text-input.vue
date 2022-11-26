@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import {shallowReactive, onMounted, ref} from "vue";
+import {onMounted, ref, shallowReactive} from "vue";
 
 const props = defineProps<{
   /** Async function which is called when it's time to save the edited value.

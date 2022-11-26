@@ -1,14 +1,14 @@
 // istanbul ignore file
 
-import type {Tabs, Menus} from "webextension-polyfill";
+import type {Menus, Tabs} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import {asyncEvent, urlToOpen, nonReentrant, backingOff} from "./util";
-import {logErrorsFrom} from "./util/oops";
-import service_model from "./service-model";
 import {copyIf} from "./model";
-import type {StashWhatOpt, ShowWhatOpt} from "./model/options";
+import type {ShowWhatOpt, StashWhatOpt} from "./model/options";
 import type {TabID, WindowID} from "./model/tabs";
+import service_model from "./service-model";
+import {asyncEvent, backingOff, nonReentrant, urlToOpen} from "./util";
+import {logErrorsFrom} from "./util/oops";
 
 logErrorsFrom(async () => {
   // BEGIN FILE-WIDE ASYNC BLOCK

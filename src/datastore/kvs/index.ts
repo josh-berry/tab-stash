@@ -1,11 +1,11 @@
-import type {Events} from "webextension-polyfill";
 import {reactive} from "vue";
+import type {Events} from "webextension-polyfill";
 
-import {later, batchesOf} from "../../util";
+import {batchesOf, later} from "../../util";
 import {logErrorsFrom} from "../../util/oops";
 
-import type {Entry, Key, MaybeEntry, Value} from "./proto";
 import Client from "./client";
+import type {Entry, Key, MaybeEntry, Value} from "./proto";
 import Service from "./service";
 
 export {Client, Service, Entry, MaybeEntry, Key, Value};

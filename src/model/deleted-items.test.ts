@@ -1,5 +1,5 @@
-import {expect} from "chai";
 import FakeTimers from "@sinonjs/fake-timers";
+import {expect} from "chai";
 
 import "../mock/browser";
 import * as events from "../mock/events";

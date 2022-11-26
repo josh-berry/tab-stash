@@ -671,8 +671,8 @@
 import {defineComponent} from "vue";
 import {pageref} from "../launch-vue";
 
-import Version from "./version.vue";
 import L from "./item.vue";
+import Version from "./version.vue";
 
 export default defineComponent({
   components: {Version, L},

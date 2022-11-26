@@ -47,14 +47,13 @@ import {logError, logErrorsFrom} from "../util/oops";
 import * as BrowserSettings from "./browser-settings";
 import * as Options from "./options";
 
-import * as Tabs from "./tabs";
-import * as Containers from "./containers";
-import * as Bookmarks from "./bookmarks";
-import * as DeletedItems from "./deleted-items";
-
-import * as Favicons from "./favicons";
 import * as BookmarkMetadata from "./bookmark-metadata";
+import * as Bookmarks from "./bookmarks";
+import * as Containers from "./containers";
+import * as DeletedItems from "./deleted-items";
+import * as Favicons from "./favicons";
 import * as Selection from "./selection";
+import * as Tabs from "./tabs";
 
 export {
   BrowserSettings,

@@ -37,9 +37,9 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
-import {type ParseOptions, parse, importURLs} from "./import";
-import {TaskMonitor} from "../util";
 import type {Model} from "../model";
+import {TaskMonitor} from "../util";
+import {importURLs, parse, type ParseOptions} from "./import";
 
 import Dialog from "../components/dialog.vue";
 import ProgressDialog from "../components/progress-dialog.vue";

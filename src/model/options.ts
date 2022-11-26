@@ -6,19 +6,19 @@
 // to change where an option is stored.  For another, options.vue expects this
 // and will break if it's not true.)
 
+import {computed, ref} from "vue";
 import browser from "webextension-polyfill";
-import {ref, computed} from "vue";
 
-import {resolveNamed} from "../util";
-import {errorLog} from "../util/oops";
-import type {StoredObject} from "../datastore/stored-object";
 import stored_object, {
   aBoolean,
   anEnum,
   aNumber,
   aString,
   maybeUndef,
+  type StoredObject,
 } from "../datastore/stored-object";
+import {resolveNamed} from "../util";
+import {errorLog} from "../util/oops";
 
 export const SHOW_WHAT_OPT = anEnum("sidebar", "tab", "popup", "none");
 export const STASH_WHAT_OPT = anEnum("all", "single", "none");

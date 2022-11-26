@@ -1,8 +1,8 @@
-import {resolve} from "path";
 import {fileURLToPath, URL} from "node:url";
+import {resolve} from "path";
 
-import {type UserConfig, defineConfig} from "vite";
 import vue from "@vitejs/plugin-vue";
+import {type UserConfig} from "vite";
 
 const rel = (p: string) => resolve(__dirname, p);
 

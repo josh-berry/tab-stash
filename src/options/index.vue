@@ -407,17 +407,19 @@
 </template>
 
 <script lang="ts">
-import type {PropType} from "vue";
-import {defineComponent} from "vue";
-import type {WritableComputedRef} from "@vue/reactivity";
-import {computed} from "@vue/reactivity";
+import {
+  computed,
+  defineComponent,
+  type PropType,
+  type WritableComputedRef,
+} from "vue";
 
-import {logErrorsFrom} from "../util/oops";
 import * as Options from "../model/options";
 import {required} from "../util";
+import {logErrorsFrom} from "../util/oops";
 
-import FeatureFlag from "./feature-flag.vue";
 import OopsNotification from "../components/oops-notification.vue";
+import FeatureFlag from "./feature-flag.vue";
 
 function prop<
   M extends Options.SyncModel | Options.LocalModel,

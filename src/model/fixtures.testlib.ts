@@ -4,18 +4,21 @@
  */
 
 import {expect} from "chai";
-import type {Bookmarks, Windows, Tabs} from "webextension-polyfill";
-import browser from "webextension-polyfill";
+import browser, {
+  type Bookmarks,
+  type Tabs,
+  type Windows,
+} from "webextension-polyfill";
 
 import * as events from "../mock/events";
 
-import type {NodeID} from "./bookmarks";
-import type {Tab, TabID, WindowID} from "./tabs";
-import type * as BookmarkMetadata from "./bookmark-metadata";
-import type * as Favicons from "./favicons";
-import type * as DeletedItems from "./deleted-items";
-import type {KeyValueStore} from "../datastore/kvs";
 import {Options} from ".";
+import type {KeyValueStore} from "../datastore/kvs";
+import type * as BookmarkMetadata from "./bookmark-metadata";
+import type {NodeID} from "./bookmarks";
+import type * as DeletedItems from "./deleted-items";
+import type * as Favicons from "./favicons";
+import type {Tab, TabID, WindowID} from "./tabs";
 
 //
 // The test data.

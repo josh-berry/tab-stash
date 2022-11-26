@@ -66,18 +66,18 @@
 </template>
 
 <script lang="ts">
-import {type PropType, defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 
-import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 import type {Model} from "../model";
-import type {Tab} from "../model/tabs";
 import type {Bookmark} from "../model/bookmarks";
 import type {FaviconEntry} from "../model/favicons";
+import type {Tab} from "../model/tabs";
+import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 
-import Button from "../components/button.vue";
-import ButtonBox from "../components/button-box.vue";
-import ItemIcon from "../components/item-icon.vue";
 import AsyncTextInput from "../components/async-text-input.vue";
+import ButtonBox from "../components/button-box.vue";
+import Button from "../components/button.vue";
+import ItemIcon from "../components/item-icon.vue";
 
 type RelatedTabState = {
   open: boolean;

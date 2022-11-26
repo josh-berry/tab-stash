@@ -21,14 +21,13 @@
 </template>
 
 <script lang="ts">
-import type {PropType} from "vue";
-import {defineComponent} from "vue";
+import {defineComponent, type PropType} from "vue";
 
 import {required} from "../util";
 
+import type {DragAction, DropAction} from "../components/dnd-list";
 import type {Model} from "../model";
 import type {Folder, Node, NodeID} from "../model/bookmarks";
-import type {DragAction, DropAction} from "../components/dnd-list";
 
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";

@@ -2,9 +2,9 @@
 
 import browser from "webextension-polyfill";
 
-import {resolveNamed} from "../util";
-import ui_model from "../ui-model";
 import launch from "../launch-vue";
+import ui_model from "../ui-model";
+import {resolveNamed} from "../util";
 
 import Main from "./index.vue";
 

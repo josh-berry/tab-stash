@@ -1,18 +1,18 @@
 import type {Runtime} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import {logErrorsFrom} from "../oops";
 import type {NanoPort, NanoService} from ".";
 import {NanoDisconnectedError, NanoTimeoutError, RemoteNanoError} from ".";
+import {logErrorsFrom} from "../oops";
+import {makeRandomString} from "../random";
 import type {
   Envelope,
   NotifyEnvelope,
   RequestEnvelope,
-  ResponseEnvelope,
   Response,
+  ResponseEnvelope,
   Send,
 } from "./proto";
-import {makeRandomString} from "../random";
 
 let listener_count = 0;
 

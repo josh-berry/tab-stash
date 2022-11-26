@@ -4,24 +4,27 @@
 
 import type {RootHookObject} from "mocha";
 
+// Setup globals before importing, so that webextension-polyfill etc. see what
+// they expect.
 (<any>globalThis).mock = {
   indexedDB: true,
   browser: true,
   events: true,
 };
+(<any>globalThis).browser = {};
 
 // Mock indexedDB.* APIs
-import "fake-indexeddb/auto";
 import {IDBFactory} from "fake-indexeddb";
+import "fake-indexeddb/auto";
 
-// Event system which allows snooping on events
+// Mock WebExtension APIs
 import * as events from "./events";
 
-// Mock browser.* APIs
-(<any>globalThis).browser = {};
 import "webextension-polyfill";
 import * as mock_browser from "./browser";
 
+// Reset the mocks before each test, and make sure all events have drained after
+// each test.
 export const mochaHooks: RootHookObject = {
   async beforeEach() {
     (<any>globalThis).indexedDB = new IDBFactory();

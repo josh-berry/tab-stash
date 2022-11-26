@@ -1,7 +1,6 @@
-import type {KeyValueStore, Entry, MaybeEntry, Key, Value} from ".";
+import type {Entry, Key, KeyValueStore, MaybeEntry, Value} from ".";
 
-import type {Event} from "../../util/event";
-import event from "../../util/event";
+import event, {type Event} from "../../util/event";
 
 const copy = (x: any) => JSON.parse(JSON.stringify(x));
 

@@ -1,9 +1,9 @@
 import {expect} from "chai";
 import {openDB} from "idb";
 
+import * as events from "../../mock/events";
 import * as NS from "../../util/nanoservice";
 import Service from "./service";
-import * as events from "../../mock/events";
 
 import {tests} from "./index.test";
 import type * as P from "./proto";
