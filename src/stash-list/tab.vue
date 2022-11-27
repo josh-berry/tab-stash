@@ -63,7 +63,7 @@
 import {defineComponent, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
-import {copyIf, Model} from "../model";
+import type {Model} from "../model";
 import {friendlyFolderName} from "../model/bookmarks";
 import type {Container} from "../model/containers";
 import type {Tab} from "../model/tabs";
@@ -160,7 +160,7 @@ export default defineComponent({
       this.attempt(async () => {
         const model = this.model();
         await model.putItemsInFolder({
-          items: copyIf(ev.altKey, [this.tab]),
+          items: model.copyIf(ev.altKey, [this.tab]),
           toFolderId: (await model.ensureRecentUnnamedFolder()).id,
         });
       });

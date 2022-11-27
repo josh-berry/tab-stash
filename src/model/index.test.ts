@@ -470,7 +470,7 @@ describe("model", () => {
       }) =>
       async () => {
         const p = model.putItemsInFolder({
-          items: options.items.map(i => ({id: bookmarks[i].id})),
+          items: options.items.map(i => model.bookmarks.node(bookmarks[i].id)!),
           toFolderId: bookmarks[options.toFolder].id,
           toIndex: options.toIndex,
         });
@@ -969,6 +969,43 @@ describe("model", () => {
         ),
       ).to.deep.equal(expectedIds);
     });
+
+    it("puts nested folders into the stash", async () => {
+      const p = model.putItemsInFolder({
+        toFolderId: bookmarks.names.id,
+        toIndex: 0,
+        items: [
+          {
+            title: "Folder",
+            children: [
+              {title: "1", url: `${B}#1`},
+              {title: "2", url: `${B}#2`},
+              {
+                title: "Nested",
+                children: [
+                  {title: "3", url: `${B}#3`},
+                  {title: "4", url: `${B}#4`},
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      await events.nextN(browser.bookmarks.onCreated, 6);
+      await p;
+
+      const folder = model.bookmarks.folder(bookmarks.names.id)!;
+      const topChild = model.bookmarks.folder(folder.children[0])!;
+      expect(topChild.title).to.equal("Folder");
+      expect(
+        model.bookmarks.childrenOf(topChild).map(c => c.title),
+      ).to.deep.equal(["1", "2", "Nested"]);
+
+      const nestedChildren = model.bookmarks.childrenOf(
+        model.bookmarks.folder(topChild.children[2])!,
+      );
+      expect(nestedChildren.map(c => c.title)).to.deep.equal(["3", "4"]);
+    });
   });
 
   describe("puts items in windows", () => {
@@ -1009,7 +1046,7 @@ describe("model", () => {
       }) =>
       async () => {
         const p = model.putItemsInWindow({
-          items: options.items.map(i => ({id: tabs[i].id})),
+          items: options.items.map(i => model.tabs.tab(tabs[i].id)!),
           toWindowId: windows[options.toWindow].id,
           toIndex: options.toIndex,
         });
@@ -1677,7 +1714,7 @@ describe("model", () => {
     it("un-deletes folders", async () => {
       const p1 = model.deleteBookmarkTree(bookmarks.names.id);
       await events.next(browser.bookmarks.onRemoved);
-      await events.next("KVS.Memory.onSet");
+      await events.next(deleted_items.onSet);
       await p1;
 
       expect(model.bookmarks.node(bookmarks.names.id)).to.be.undefined;
@@ -1687,7 +1724,7 @@ describe("model", () => {
 
       const p = model.undelete(model.deleted_items.state.entries[0]);
       await events.nextN(browser.bookmarks.onCreated, 5);
-      await events.next("KVS.Memory.onSet");
+      await events.next(deleted_items.onSet);
       await p;
       await events.next(favicons.onSet);
 
@@ -1705,7 +1742,7 @@ describe("model", () => {
           model.bookmarks.bookmark(bookmarks.helen.id)!,
         );
         await events.next(browser.bookmarks.onRemoved);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p;
 
         // Wait for time to advance so we don't delete two items in the
@@ -1730,7 +1767,7 @@ describe("model", () => {
       it("into their old folder", async () => {
         const p = model.undelete(model.deleted_items.state.entries[0]);
         await events.nextN(browser.bookmarks.onCreated, 1);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p;
 
         const ids = model.bookmarks.folder(bookmarks.names.id)!.children;
@@ -1748,7 +1785,7 @@ describe("model", () => {
         // deleted item #0:
         const p1 = model.deleteBookmarkTree(bookmarks.names.id);
         await events.next(browser.bookmarks.onRemoved);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p1;
 
         await model.deleted_items.loadMore();
@@ -1760,7 +1797,7 @@ describe("model", () => {
 
         const p = model.undelete(model.deleted_items.state.entries[1]);
         await events.nextN(browser.bookmarks.onCreated, 1);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p;
 
         expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
@@ -1776,7 +1813,7 @@ describe("model", () => {
         // deleted item #0:
         const p1 = model.deleteBookmarkTree(bookmarks.names.id);
         await events.next(browser.bookmarks.onRemoved);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p1;
 
         await model.deleted_items.loadMore();
@@ -1791,7 +1828,7 @@ describe("model", () => {
 
         const p = model.undelete(model.deleted_items.state.entries[1]);
         await events.nextN(browser.bookmarks.onCreated, 2);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p;
 
         expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
@@ -1810,7 +1847,7 @@ describe("model", () => {
       beforeEach(async () => {
         const p = model.deleteBookmarkTree(bookmarks.names.id);
         await events.next(browser.bookmarks.onRemoved);
-        await events.next("KVS.Memory.onSet");
+        await events.next(deleted_items.onSet);
         await p;
 
         expect(model.deleted_items.state.entries.length).to.equal(0);
@@ -1819,9 +1856,9 @@ describe("model", () => {
       });
 
       it("into a recently-created unnamed folder", async () => {
-        const p = model.undeleteChild(model.deleted_items.state.entries[0], 2);
+        const p = model.undelete(model.deleted_items.state.entries[0], [2]);
         await events.nextN(browser.bookmarks.onCreated, 1);
-        await events.next("KVS.Memory.onSet"); // deleted-item update
+        await events.next(deleted_items.onSet); // deleted-item update
         await p;
 
         expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
@@ -1847,9 +1884,9 @@ describe("model", () => {
         // now an unnamed folder.
         await makeEmptyStashFolder();
 
-        const p = model.undeleteChild(model.deleted_items.state.entries[0], 2);
+        const p = model.undelete(model.deleted_items.state.entries[0], [2]);
         await events.nextN(browser.bookmarks.onCreated, 2);
-        await events.next("KVS.Memory.onSet"); // deleted-item update
+        await events.next(deleted_items.onSet); // deleted-item update
         await p;
 
         expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);

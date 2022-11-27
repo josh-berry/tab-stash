@@ -113,7 +113,7 @@ import {altKeyName, filterMap, required} from "../util";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
 
-import {copyIf, type Model, type StashItem} from "../model";
+import type {Model, StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {SyncState} from "../model/options";
 import type {Tab} from "../model/tabs";
@@ -250,7 +250,7 @@ export default defineComponent({
 
         if (stashable_visible_children.length === 0) return;
         await model.putItemsInFolder({
-          items: copyIf(ev.altKey, stashable_visible_children),
+          items: model.copyIf(ev.altKey, stashable_visible_children),
           toFolderId: (await model.bookmarks.createStashFolder()).id,
         });
       });

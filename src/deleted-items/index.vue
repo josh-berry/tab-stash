@@ -37,8 +37,7 @@
         </header>
         <ul class="contents">
           <li v-for="rec of group.records" :key="rec.key">
-            <Folder v-if="'children' in rec.item" :deletion="rec" />
-            <Bookmark v-else :deletion="rec" />
+            <DeletedItem :deletion="rec" :path="[]" />
           </li>
         </ul>
       </section>
@@ -82,13 +81,12 @@ import type {FilteredDeletedItem, RecordGroup} from "./schema";
 import ItemIcon from "../components/item-icon.vue";
 import LoadMore from "../components/load-more.vue";
 import OopsNotification from "../components/oops-notification.vue";
-import Bookmark from "./bookmark.vue";
-import Folder from "./folder.vue";
+import DeletedItem from "./item.vue";
 
 const date_formatter = new Intl.DateTimeFormat();
 
 export default defineComponent({
-  components: {LoadMore, Bookmark, Folder, ItemIcon, OopsNotification},
+  components: {LoadMore, DeletedItem, ItemIcon, OopsNotification},
 
   props: {
     state: required(Object as PropType<DI.State>),

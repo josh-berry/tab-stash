@@ -113,7 +113,7 @@ import {defineComponent, type PropType} from "vue";
 import type {DragAction, DropAction} from "../components/dnd-list";
 import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 
-import {copyIf, Model, type StashItem} from "../model";
+import type {Model, StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {Bookmark, Folder, Node, NodeID} from "../model/bookmarks";
 import {
@@ -302,7 +302,7 @@ export default defineComponent({
       model.attempt(
         async () =>
           await model.putItemsInFolder({
-            items: copyIf(ev.altKey, model.stashableTabsInWindow(win_id)),
+            items: model.copyIf(ev.altKey, model.stashableTabsInWindow(win_id)),
             toFolderId: this.folder.id,
           }),
       );
@@ -313,7 +313,7 @@ export default defineComponent({
         const tab = this.model().tabs.activeTab();
         if (!tab) return;
         await this.model().putItemsInFolder({
-          items: copyIf(ev.altKey, [tab]),
+          items: this.model().copyIf(ev.altKey, [tab]),
           toFolderId: this.folder.id,
         });
       });

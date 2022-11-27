@@ -1,5 +1,6 @@
 // istanbul ignore file -- launcher shim for the live UI
 
+import {Model} from "@/model";
 import browser from "webextension-polyfill";
 
 import launch from "../launch-vue";
@@ -20,6 +21,7 @@ launch(Main, async () => {
     },
     provide: {
       $model: p.model,
+      [Model.injectionKey as symbol]: p.model,
     },
     methods: {
       model() {

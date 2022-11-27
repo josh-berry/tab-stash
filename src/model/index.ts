@@ -47,6 +47,7 @@ import {logError, logErrorsFrom} from "../util/oops";
 import * as BrowserSettings from "./browser-settings";
 import * as Options from "./options";
 
+import {inject, type InjectionKey} from "vue";
 import * as BookmarkMetadata from "./bookmark-metadata";
 import * as Bookmarks from "./bookmarks";
 import * as Containers from "./containers";
@@ -70,27 +71,38 @@ export {
  * be present as a tab (`id: number`), a bookmark (`id: string`), or not present
  * at all (no `id`).  It captures just the essential details of an item, like
  * its title, URL and identity (if it's part of the model). */
-export type StashItem = {
-  id?: string | number;
-  title?: string;
-  url?: string;
-  $selected?: boolean;
-};
+export type StashItem = NewTab | NewFolder | ModelItem;
+
+export type StashLeaf = NewTab | Bookmarks.Bookmark | Tabs.Tab;
 
 /** An actual bookmark/tab that is part of the model. */
 export type ModelItem = Bookmarks.Node | Tabs.Tab;
 
-export function isTab(item?: StashItem): item is StashItem & {id: Tabs.TabID} {
-  if (!item) return false;
-  return typeof item.id === "number";
-}
+export type NewTab = {title?: string; url: string};
+export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
 
-export function isBookmark(
-  item?: StashItem,
-): item is StashItem & {id: Bookmarks.NodeID} {
-  if (!item) return false;
-  return typeof item.id === "string";
-}
+export const isModelItem = (item: StashItem): item is ModelItem => "id" in item;
+
+export const isTab = (item: StashItem): item is Tabs.Tab =>
+  "id" in item && typeof item.id === "number";
+
+export const isNode = (item: StashItem): item is Bookmarks.Node =>
+  "id" in item && typeof item.id === "string";
+
+export const isBookmark = (item: StashItem): item is Bookmarks.Bookmark =>
+  isNode(item) && Bookmarks.isBookmark(item);
+
+export const isFolder = (item: StashItem): item is Bookmarks.Folder =>
+  isNode(item) && Bookmarks.isFolder(item);
+
+export const isNewItem = (item: StashItem): item is NewTab | NewFolder =>
+  !("id" in item);
+
+export const isNewTab = (item: StashItem): item is NewTab =>
+  !("id" in item) && "url" in item;
+
+export const isNewFolder = (item: StashItem): item is NewFolder =>
+  !("id" in item) && "children" in item;
 
 export type Source = {
   readonly browser_settings: BrowserSettings.Model;
@@ -125,6 +137,11 @@ export class Model {
   readonly favicons: Favicons.Model;
   readonly bookmark_metadata: BookmarkMetadata.Model;
   readonly selection: Selection.Model;
+
+  static readonly injectionKey = Symbol("model") as InjectionKey<Model>;
+  static get(): Model {
+    return inject(Model.injectionKey)!;
+  }
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;
@@ -327,7 +344,7 @@ export class Model {
     toFolderId?: Bookmarks.NodeID;
   }) {
     const from_items = Array.from(this.selectedItems());
-    const items = copyIf(options?.copy === true, from_items);
+    const items = this.copyIf(options?.copy === true, from_items);
 
     let affected_items: StashItem[];
     if (options?.toFolderId === undefined) {
@@ -340,7 +357,7 @@ export class Model {
       });
     }
     if (!options?.copy) {
-      affected_items.forEach(i => (i.$selected = false));
+      for (const i of affected_items) if (isModelItem(i)) i.$selected = false;
     }
   }
 
@@ -403,7 +420,7 @@ export class Model {
    * since we don't want to open duplicate tabs.  Such tabs will not be
    * included in the returned list. */
   async restoreTabs(
-    items: StashItem[],
+    items: StashLeaf[],
     options: {background?: boolean},
   ): Promise<Tabs.Tab[]> {
     const toWindowId = this.tabs.targetWindow.value;
@@ -437,7 +454,7 @@ export class Model {
     const active_tab = win_tabs.filter(t => t.active)[0];
 
     const tabs = await this.putItemsInWindow({
-      items: copying(items),
+      items: this.copying(items),
       toWindowId,
     });
 
@@ -525,10 +542,10 @@ export class Model {
       ++i, ++to_index, options.task && ++options.task.value
     ) {
       const item = items[i];
-      const model_item = item.id !== undefined ? this.item(item.id) : undefined;
+      const model_item = isModelItem(item) ? this.item(item.id) : undefined;
 
       // If it's a bookmark, just move it directly.
-      if (isBookmark(model_item)) {
+      if (model_item && isBookmark(model_item)) {
         const pos = this.bookmarks.positionOf(model_item);
         await this.bookmarks.move(model_item.id, to_folder.id, to_index);
         moved_items.push(model_item);
@@ -554,36 +571,72 @@ export class Model {
       // putItemsInWindow(), we look at both title and url here since the
       // user might have renamed the bookmark.
       let node;
-      const already_there = this.bookmarks
-        .childrenOf(to_folder)
-        .filter(
-          bm =>
-            !options.allowDuplicates &&
-            !dont_steal_bms.has(bm.id) &&
-            "url" in bm &&
-            (item.title ? item.title === bm.title : true) &&
-            bm.url === item.url,
-        );
+      const already_there =
+        "url" in item && !options.allowDuplicates
+          ? this.bookmarks
+              .childrenOf(to_folder)
+              .filter(
+                bm =>
+                  !dont_steal_bms.has(bm.id) &&
+                  "url" in bm &&
+                  bm.url === item.url &&
+                  (item.title ? item.title === bm.title : true),
+              )
+          : [];
       if (already_there.length > 0) {
+        // We found a duplicate in the folder already; move it into position.
         node = already_there[0];
 
         const pos = this.bookmarks.positionOf(node);
         await this.bookmarks.move(node.id, to_folder.id, to_index);
         if (pos && pos.parent === to_folder && pos.index < to_index) --to_index;
       } else {
-        node = await this.bookmarks.create({
-          title: item.title || item.url,
-          url: item.url,
-          parentId: to_folder.id,
-          index: to_index,
-        });
+        // There is no duplicate, so we can just create a new one.  We might
+        // also make it here if we've been given a folder of bookmarks to copy
+        // in (i.e. that wasn't moved from elsewhere).
+        const createTree = async (
+          item: StashItem,
+          parentId: Bookmarks.NodeID,
+          index: number,
+        ): Promise<Bookmarks.Node> => {
+          const node =
+            "url" in item
+              ? await this.bookmarks.create({
+                  title: item.title || item.url,
+                  url: item.url,
+                  parentId,
+                  index,
+                })
+              : await this.bookmarks.create({
+                  title: item.title,
+                  parentId,
+                  index,
+                });
+
+          if ("children" in item) {
+            let idx = 0;
+            for (const c of item.children) {
+              if (typeof c === "string") {
+                await this.bookmarks.move(c, node.id, idx);
+              } else {
+                await createTree(c, node.id, idx);
+              }
+              ++idx;
+            }
+          }
+          return node;
+        };
+        node = await createTree(item, to_folder.id, to_index);
       }
       moved_items.push(node);
       dont_steal_bms.add(node.id);
 
       // Update the selection state of the chosen bookmark to match the
       // original item's selection state.
-      await this.bookmarks.setSelected([node], !!item.$selected);
+      await this.bookmarks.setSelected(
+        [node],
+        isModelItem(item) && item.$selected,
+      );
     }
 
     // Hide/close any tabs which were moved from, since they are now
@@ -665,12 +718,12 @@ export class Model {
       ++i, ++to_index, options.task && ++options.task.value
     ) {
       const item = items[i];
-      const model_item = item.id !== undefined ? this.item(item.id) : undefined;
+      const model_item = "id" in item ? this.item(item.id) : undefined;
 
       // console.log('processing', item);
 
       // If the item we're moving is a tab, just move it into place.
-      if (isTab(model_item)) {
+      if (model_item && isTab(model_item)) {
         const pos = this.tabs.positionOf(model_item);
         await this.tabs.move(model_item.id, to_win_id, to_index);
         moved_items.push(model_item);
@@ -688,18 +741,20 @@ export class Model {
 
       // If we're "moving" a bookmark into a window, mark the bookmark
       // for deletion later.
-      if (isBookmark(model_item)) delete_bm_ids.push(model_item);
+      if (model_item && isBookmark(model_item)) delete_bm_ids.push(model_item);
 
       // If the item we're moving is not a tab, we need to create a
       // new tab or restore an old one from somewhere else.
 
-      const url = item.url;
-      if (!url) {
-        // No URL? Don't bother restoring anything.
+      if (!("url" in item)) {
+        // No URL? Don't bother restoring anything.  This means we will skip
+        // over nested folders entirely.  We do this because there's no way to
+        // represent a tree of tabs in the UI.
         --to_index;
         // console.log('item has no URL', item);
         continue;
       }
+      const url = item.url;
 
       // First let's see if we have another tab we can just "steal"--that
       // is, move into place to represent the source item (which,
@@ -734,7 +789,7 @@ export class Model {
         if (pos && pos.window === win && pos.index < to_index) --to_index;
         moved_items.push(t);
         dont_steal_tabs.add(t.id);
-        await this.tabs.setSelected([t], !!item.$selected);
+        await this.tabs.setSelected([t], isModelItem(item) && item.$selected);
         // console.log('moved already-open tab', t);
         continue;
       }
@@ -766,7 +821,7 @@ export class Model {
         );
         moved_items.push(tab);
         dont_steal_tabs.add(tab.id);
-        await this.tabs.setSelected([tab], !!item.$selected);
+        await this.tabs.setSelected([tab], isModelItem(item) && item.$selected);
         // console.log('restored recently-closed tab', tab);
         continue;
       }
@@ -782,7 +837,7 @@ export class Model {
       });
       moved_items.push(tab);
       dont_steal_tabs.add(tab.id);
-      await this.tabs.setSelected([tab], !!item.$selected);
+      await this.tabs.setSelected([tab], isModelItem(item) && item.$selected);
       // console.log('created new tab', tab);
     }
 
@@ -881,11 +936,15 @@ export class Model {
     await this.bookmarks.remove(bm.id);
   }
 
-  /** Un-delete a deleted item.  Removes it from deleted_items and adds it
-   * back to bookmarks, hopefully in approximately the same place it was in
-   * before. */
-  async undelete(deletion: DeletedItems.Deletion): Promise<void> {
+  /** Un-delete a deleted item, or part of a deleted item if `path' is
+   * specified.  Removes it from deleted_items and adds it back to bookmarks,
+   * hopefully in approximately the same place it was in before. */
+  async undelete(
+    deletion: DeletedItems.Deletion,
+    path?: number[],
+  ): Promise<void> {
     const di = this.deleted_items;
+
     // We optimistically remove immediately from recentlyDeleted to prevent
     // users from trying to un-delete the same thing multiple times.
     if (
@@ -895,93 +954,94 @@ export class Model {
       di.state.recentlyDeleted = 0;
     }
 
+    const item = DeletedItems.findChildItem(deletion.item, path).child;
+
     const stash_root = await this.bookmarks.ensureStashRoot();
 
-    if ("children" in deletion.item) {
-      // Restoring an entire folder of bookmarks; just put it at the root.
-      const folder = await this.bookmarks.create({
-        parentId: stash_root.id,
-        title: deletion.item.title,
-        index: 0,
-      });
-      await this.putItemsInFolder({
-        items: deletion.item.children,
-        toFolderId: folder.id,
-      });
-
-      // Restore their favicons.
-      for (const c of deletion.item.children) {
-        if (!("url" in c && c.favIconUrl)) continue;
-        this.favicons.maybeSet(c.url, c);
+    // Try to find where to put the restored bookmark, if relevant.  We only try
+    // to find the existing folder IF we're restoring a top-level item.
+    let toFolderId: Bookmarks.NodeID | undefined;
+    let toIndex: number | undefined;
+    if (deletion.deleted_from && (!path || path.length == 0)) {
+      const from = deletion.deleted_from;
+      const folder = this.bookmarks.folder(from.folder_id as Bookmarks.NodeID);
+      if (folder) {
+        // The exact folder we want still exists, use it
+        toFolderId = from.folder_id as Bookmarks.NodeID;
+      } else {
+        // Search for an existing folder inside the stash root with
+        // the same name as the folder it was deleted from.
+        const child = this.bookmarks
+          .childrenOf(stash_root)
+          .find(c => "children" in c && c.title === from.title);
+        if (child) toFolderId = child.id;
       }
-    } else {
-      // We're restoring an individual bookmark.  Try to find where to put
-      // it, IF we remember where it came from.
-      let folderId: Bookmarks.NodeID | undefined;
-
-      if (deletion.deleted_from) {
-        const from = deletion.deleted_from;
-        const folder = this.bookmarks.folder(
-          from.folder_id as Bookmarks.NodeID,
-        );
-        if (folder) {
-          // The exact bookmark we want still exists, use it
-          folderId = from.folder_id as Bookmarks.NodeID;
-        } else {
-          // Search for an existing folder inside the stash root with
-          // the same name as the folder it was deleted from.
-          const child = this.bookmarks
-            .childrenOf(stash_root)
-            .find(c => "children" in c && c.title === from.title);
-          if (child) folderId = child.id;
-        }
-      }
-
-      // If we still don't know where it came from or its prior containing
-      // folder was deleted, just put it in an unnamed folder.
-      if (!folderId) folderId = (await this.ensureRecentUnnamedFolder()).id;
-
-      // Restore the bookmark.
-      await this.putItemsInFolder({
-        items: [deletion.item],
-        toFolderId: folderId,
-      });
-
-      // Restore its favicon.
-      this.favicons.maybeSet(deletion.item.url, deletion.item);
     }
 
-    await di.drop(deletion.key);
+    // If we still don't know where it came from or its prior containing folder
+    // was deleted, AND the item we're restoring is not itself a folder, just
+    // put it in an unnamed folder.
+    if (!toFolderId) {
+      if (!("children" in item)) {
+        toFolderId = (await this.ensureRecentUnnamedFolder()).id;
+      } else {
+        // We're restoring a folder, and we don't know where to put it; just put
+        // it in the stash root.
+        toFolderId = stash_root.id;
+        toIndex = 0;
+      }
+    }
+
+    // Restore the deleted item.
+    await this.putItemsInFolder({items: [item], toFolderId, toIndex});
+
+    // Restore any favicons.
+    const restoreFavicons = (item: DeletedItems.DeletedItem) => {
+      if ("url" in item && "favIconUrl" in item) {
+        this.favicons.maybeSet(item.url, item);
+      }
+      if ("children" in item) {
+        for (const c of item.children) restoreFavicons(c);
+      }
+    };
+    restoreFavicons(item);
+
+    // Remove the item we just restored.
+    await di.drop(deletion.key, path);
   }
 
-  /** Un-delete a single child item inside a deleted folder.  Removes it from
-   * deleted_items and re-stashes it as if it were a single stashed tab, into
-   * a new (or recent) unnamed folder. */
-  async undeleteChild(
-    deletion: DeletedItems.Deletion,
-    childIndex: number,
-  ): Promise<void> {
-    // istanbul ignore if
-    if (!("children" in deletion.item)) {
-      throw new Error(`Deletion ${deletion.key} is not a folder`);
-    }
+  //
+  // Helpers for working with the mutators
+  //
 
-    const child = deletion.item.children[childIndex];
-    if (!child) return;
+  /** Apply `copying()` to a set of stash items if `predicate` is true. */
+  copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
+    if (predicate) return this.copying(items);
+    return items;
+  }
 
-    await this.putItemsInFolder({
-      items: [child],
-      toFolderId: (await this.ensureRecentUnnamedFolder()).id,
+  /** Given a set of stash items, transform them such that passing them to a
+   * put*() model method will copy them instead of moving them, leaving the
+   * original sources untouched. */
+  copying(items: StashItem[]): (NewTab | NewFolder)[] {
+    return filterMap(items, item => {
+      if (isNewItem(item)) return item;
+
+      if (isTab(item)) return {title: item.title, url: item.url};
+
+      if (isNode(item)) {
+        if (Bookmarks.isBookmark(item)) {
+          return {title: item.title, url: item.url};
+        }
+        if (Bookmarks.isFolder(item)) {
+          return {
+            title: item.title,
+            children: this.copying(this.bookmarks.childrenOf(item)),
+          };
+        }
+        // Separators are excluded
+      }
     });
-
-    if ("url" in child) {
-      this.favicons.maybeSet(child.url, {
-        favIconUrl: child.favIconUrl ?? null,
-        title: child.title,
-      });
-    }
-
-    await this.deleted_items.drop(deletion.key, [childIndex]);
   }
 }
 
@@ -990,19 +1050,6 @@ export type BookmarkTabsResult = {
   bookmarks: Bookmarks.Node[];
   newFolderId?: string;
 };
-
-/** Apply `copying()` to a set of stash items if `predicate` is true. */
-export function copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
-  if (predicate) return copying(items);
-  return items;
-}
-
-/** Given a set of stash items, transform them such that passing them to a
- * put*() model method will copy them instead of moving them, leaving the
- * original sources untouched. */
-export function copying(items: StashItem[]): StashItem[] {
-  return items.map(({title, url}) => ({title, url}));
-}
 
 //
 // Private helper functions

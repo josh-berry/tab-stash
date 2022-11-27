@@ -36,6 +36,16 @@ export type NodeID = string & {readonly __node_id: unique symbol};
 
 export type NodePosition = {parent: Folder; index: number};
 
+export function isBookmark(node: Node): node is Bookmark {
+  return "url" in node;
+}
+export function isFolder(node: Node): node is Folder {
+  return "children" in node;
+}
+export function isSeparator(node: Node): node is Separator {
+  return "type" in node && node.type === "separator";
+}
+
 /** The name of the stash root folder.  This name must match exactly (including
  * in capitalization). */
 const STASH_ROOT = "Tab Stash";
@@ -165,20 +175,20 @@ export class Model {
   //
 
   /** Retrieves the node with the specified ID (if it exists). */
-  node(id: NodeID): Node | undefined {
-    return this.by_id.get(id);
+  node(id: string): Node | undefined {
+    return this.by_id.get(id as NodeID);
   }
 
   /** Retrieves the bookmark with the specified ID.  Returns `undefined` if it
    * does not exist or is not a bookmark. */
-  bookmark(id: NodeID): Bookmark | undefined {
+  bookmark(id: string): Bookmark | undefined {
     const node = this.node(id);
     if (node && "url" in node) return node;
     return undefined;
   }
 
   /** Retrieves the folder with the specified ID.  Returns `undefined` if it does not exist or is not a folder. */
-  folder(id: NodeID): Folder | undefined {
+  folder(id: string): Folder | undefined {
     const node = this.node(id);
     if (node && "children" in node) return node;
     return undefined;
@@ -502,7 +512,7 @@ export class Model {
         else --this.selectedCount.value;
       });
 
-      if (isFolder(new_bm)) {
+      if (isBrowserBTNFolder(new_bm)) {
         node = reactive({
           parentId: parentId,
           id: nodeId,
@@ -575,7 +585,7 @@ export class Model {
     }
 
     // If we got children, bring them in as well.
-    if (isFolder(new_bm) && new_bm.children) {
+    if (isBrowserBTNFolder(new_bm) && new_bm.children) {
       for (const child of new_bm.children)
         this.whenBookmarkCreated(child.id, child);
     }
@@ -852,8 +862,9 @@ export function friendlyFolderName(name: string): string {
 // Helper functions for the model
 //
 
-/** A cross-browser compatible way to tell if `bm` is a folder or not. */
-function isFolder(bm: Bookmarks.BookmarkTreeNode): boolean {
+/** A cross-browser compatible way to tell if a bookmark returned by the
+ * `browser.bookmarks` API is a folder or not. */
+function isBrowserBTNFolder(bm: Bookmarks.BookmarkTreeNode): boolean {
   if (bm.type === "folder") return true; // for Firefox
   if (bm.children) return true; // for Chrome (sometimes)
   if (!("type" in bm) && !("url" in bm)) return true; // for Chrome

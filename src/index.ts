@@ -1,11 +1,10 @@
 // istanbul ignore file
 
-import type {Menus, Tabs} from "webextension-polyfill";
+import type {Menus} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import {copyIf} from "./model";
 import type {ShowWhatOpt, StashWhatOpt} from "./model/options";
-import type {TabID, WindowID} from "./model/tabs";
+import type {Tab, TabID, WindowID} from "./model/tabs";
 import service_model from "./service-model";
 import {asyncEvent, backingOff, nonReentrant, urlToOpen} from "./util";
 import {logErrorsFrom} from "./util/oops";
@@ -109,7 +108,7 @@ logErrorsFrom(async () => {
     ],
   );
 
-  const commands: {[key: string]: (t?: Tabs.Tab) => Promise<void>} = {
+  const commands: {[key: string]: (t?: Tab) => Promise<void>} = {
     // NOTE: Several of these commands open the sidebar.  We have to open the
     // sidebar before the first "await" call, otherwise we won't actually have
     // permission to do so per Firefox's API rules.
@@ -150,17 +149,17 @@ logErrorsFrom(async () => {
       );
     },
 
-    stash_all: async function (tab?: Tabs.Tab) {
+    async stash_all(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
       await stash_something({what: "all", copy: false, tab});
     },
 
-    stash_one: async function (tab?: Tabs.Tab) {
+    async stash_one(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
       await stash_something({what: "single", copy: false, tab});
     },
 
-    stash_one_newgroup: async function (tab?: Tabs.Tab) {
+    async stash_one_newgroup(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
       if (!tab) return;
       await model.putItemsInFolder({
@@ -169,17 +168,17 @@ logErrorsFrom(async () => {
       });
     },
 
-    copy_all: async function (tab?: Tabs.Tab) {
+    async copy_all(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
       await stash_something({what: "all", copy: true, tab});
     },
 
-    copy_one: async function (tab?: Tabs.Tab) {
+    async copy_one(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
       await stash_something({what: "single", copy: true, tab});
     },
 
-    options: async function () {
+    async options() {
       await browser.runtime.openOptionsPage();
     },
   };
@@ -209,7 +208,7 @@ logErrorsFrom(async () => {
   async function stash_something(options: {
     what: StashWhatOpt;
     copy?: boolean;
-    tab?: Tabs.Tab;
+    tab?: Tab;
   }) {
     if (!options.tab || options.tab.windowId === undefined) return;
 
@@ -221,14 +220,14 @@ logErrorsFrom(async () => {
         if (tabs.length === 0) return;
 
         await model.putItemsInFolder({
-          items: copyIf(!!options.copy, tabs),
+          items: model.copyIf(!!options.copy, tabs),
           toFolderId: (await model.bookmarks.createStashFolder()).id,
         });
         break;
 
       case "single":
         await model.putItemsInFolder({
-          items: copyIf(!!options.copy, [options.tab]),
+          items: model.copyIf(!!options.copy, [options.tab]),
           toFolderId: (await model.ensureRecentUnnamedFolder()).id,
         });
         break;
@@ -247,7 +246,8 @@ logErrorsFrom(async () => {
     // #cast We only ever create menu items with string IDs
     const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, "");
     console.assert(!!commands[cmd]);
-    commands[cmd](tab).catch(console.log);
+    const t = tab?.id ? model.tabs.tab(tab?.id) : undefined;
+    commands[cmd](t).catch(console.log);
   });
 
   if (browser.browserAction) {
@@ -294,7 +294,11 @@ logErrorsFrom(async () => {
   }
 
   if (browser.pageAction) {
-    browser.pageAction.onClicked.addListener(asyncEvent(commands.stash_one));
+    browser.pageAction.onClicked.addListener(
+      asyncEvent(async tab => {
+        commands.stash_one(model.tabs.tab(tab.id));
+      }),
+    );
   }
 
   //

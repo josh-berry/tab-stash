@@ -176,11 +176,11 @@ export class Model {
   // Accessors
   //
 
-  window(id: WindowID): Window | undefined {
-    return this.windows.get(id);
+  window(id: number): Window | undefined {
+    return this.windows.get(id as WindowID);
   }
-  tab(id: TabID): Tab | undefined {
-    return this.tabs.get(id);
+  tab(id: number): Tab | undefined {
+    return this.tabs.get(id as TabID);
   }
 
   tabsIn(win: Window): Tab[] {

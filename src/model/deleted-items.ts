@@ -62,6 +62,31 @@ export function src2state(e: Entry<string, SourceValue>): Deletion {
   });
 }
 
+/** Find the child item of a deleted item based on the path.  If the path is
+ * empty, the item itself is returned as the `.child`, and `.parent`/`.index`
+ * are undefined. */
+export function findChildItem(
+  item: DeletedItem,
+  path?: number[],
+): {parent?: DeletedFolder; index?: number; child: DeletedItem} {
+  if (!path || path.length == 0) return {child: item};
+
+  let parent = item;
+  for (const index of path.slice(0, path.length - 1)) {
+    if (!("children" in parent)) {
+      throw new Error(`[${path}]: Invalid path in deleted item`);
+    }
+    parent = parent.children[index];
+  }
+
+  const index = path[path.length - 1];
+  if (!("children" in parent) || !parent.children[index]) {
+    throw new Error(`[${path}]: Invalid path in deleted item`);
+  }
+
+  return {parent, index, child: parent.children[index]};
+}
+
 const RECENT_DELETION_TIMEOUT = 8000; // ms
 
 export class Model {
@@ -254,8 +279,21 @@ export class Model {
     return entry;
   }
 
-  async drop(key: string, indexPath?: number[]): Promise<void> {
-    if (!indexPath || indexPath.length == 0) {
+  /** Remove a deleted item (or part of a deleted item) from the deleted-items
+   * database.
+   *
+   * Note that after a partial deletion, the path indexes after the removed item
+   * will decrement---that is, this is equivalent to doing an
+   * `Array.splice(index, 1)`.
+   *
+   * @param key The specific deletion to remove.
+   *
+   * @param path If specified and `path.length > 0`, remove only part of the
+   * specified deletion.  This is the path of array indexes to follow to the
+   * item to remove.
+   */
+  async drop(key: string, path?: number[]): Promise<void> {
+    if (!path || path.length == 0) {
       // We will get an event for the deletion later
       return await this._kvs.set([{key}]);
     }
@@ -267,19 +305,10 @@ export class Model {
     // Must do a full JSON parse/stringify here to get rid of reactivity
     const item = JSON.parse(JSON.stringify(entry.item)) as DeletedItem;
 
-    // In-place remove the subtree at indexPath.
-    let child = item;
-    for (const index of indexPath.slice(0, indexPath.length - 1)) {
-      if (!("children" in child)) {
-        throw new Error(`${key}[${indexPath}]: Invalid path`);
-      }
-      child = child.children[index];
-    }
-
-    if (!("children" in child)) {
-      throw new Error(`${key}[${indexPath}]: Invalid path`);
-    }
-    child.children.splice(indexPath[indexPath.length - 1], 1);
+    // In-place remove the subtree at indexPath.  We know that parent and index
+    // must be defined because we check above that path.length > 0.
+    const {parent, index} = findChildItem(item, path);
+    parent!.children.splice(index!, 1);
 
     // Store the modified item (with the subtree removed above) back into
     // the KVS
