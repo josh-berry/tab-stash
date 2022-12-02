@@ -2,6 +2,7 @@
   <Dialog
     :class="{[$style.dlg]: true, 'export-dialog': true}"
     @close="$emit('close')"
+    show-close-button
   >
     <template #title><span class="group-title">Export</span></template>
 

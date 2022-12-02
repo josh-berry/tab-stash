@@ -343,6 +343,23 @@
       </ul>
     </section>
 
+    <hr />
+
+    <h4>Confirmations (This Browser)</h4>
+
+    <section>
+      <li>
+        <label for="confirm_close_open_tabs">
+          <input
+            type="checkbox"
+            id="confirm_close_open_tabs"
+            v-model="local.confirm_close_open_tabs"
+          />
+          Confirm when closing a lot of open tabs
+        </label>
+      </li>
+    </section>
+
     <hr v-if="sync.meta_show_advanced" />
 
     <section class="advanced">

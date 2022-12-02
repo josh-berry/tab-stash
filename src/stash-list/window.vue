@@ -103,6 +103,20 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
       </div>
     </div>
   </section>
+
+  <confirm-dialog
+    v-if="confirmCloseTabs > 0"
+    :confirm="`Close ${confirmCloseTabs} tabs`"
+    cancel="Cancel"
+    @answer="confirmCloseTabsThen($event)"
+  >
+    <p>You're about to close {{ confirmCloseTabs }} tabs at once.</p>
+
+    <p>
+      Your browser may not keep this many tabs in its recent history, so THIS IS
+      IRREVERSIBLE. Are you sure?
+    </p>
+  </confirm-dialog>
 </template>
 
 <script lang="ts">
@@ -120,6 +134,9 @@ import type {Tab} from "../model/tabs";
 
 import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
+import ConfirmDialog, {
+  type ConfirmDialogEvent,
+} from "../components/confirm-dialog.vue";
 import DndList from "../components/dnd-list.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
@@ -135,7 +152,14 @@ const NEXT_SHOW_OPEN_TAB_STATE: Record<
 };
 
 export default defineComponent({
-  components: {Button, ButtonBox, DndList, Tab: TabVue, Bookmark},
+  components: {
+    Button,
+    ButtonBox,
+    ConfirmDialog,
+    DndList,
+    Tab: TabVue,
+    Bookmark,
+  },
 
   inject: ["$model"],
 
@@ -149,6 +173,8 @@ export default defineComponent({
 
   data: () => ({
     showFiltered: false,
+    confirmCloseTabs: 0,
+    confirmCloseTabsThen: (id: ConfirmDialogEvent): void => {},
   }),
 
   computed: {
@@ -198,6 +224,18 @@ export default defineComponent({
 
     selectedCount(): number {
       return this.model().selection.selectedCount.value;
+    },
+
+    shouldConfirmCloseOpenTabs: {
+      get(): boolean {
+        return this.model().options.local.state.confirm_close_open_tabs;
+      },
+
+      set(v: boolean) {
+        this.model().attempt(() =>
+          this.model().options.local.set({confirm_close_open_tabs: v}),
+        );
+      },
     },
   },
 
@@ -264,6 +302,7 @@ export default defineComponent({
         const to_remove = this.visibleChildren
           .filter(t => !t.active || model.isURLStashable(t.url))
           .filter(t => !model.bookmarks.isURLStashed(t.url));
+        if (!(await this.confirmRemove(to_remove.length))) return;
         await model.tabs.remove(to_remove.map(t => t.id));
       });
     },
@@ -271,14 +310,13 @@ export default defineComponent({
     async removeStashed() {
       this.attempt(async () => {
         const model = this.model();
-        await model.hideOrCloseStashedTabs(
-          this.tabs
-            .filter(
-              t =>
-                !t.hidden && !t.pinned && model.bookmarks.isURLStashed(t.url),
-            )
-            .map(t => t.id),
-        );
+        const tabIds = this.tabs
+          .filter(
+            t => !t.hidden && !t.pinned && model.bookmarks.isURLStashed(t.url),
+          )
+          .map(t => t.id);
+        if (!(await this.confirmRemove(tabIds.length))) return;
+        await model.hideOrCloseStashedTabs(tabIds);
       });
     },
 
@@ -313,11 +351,27 @@ export default defineComponent({
             .filter(t => !model.bookmarks.isURLStashed(t.url))
             .map(t => t.id);
 
+          if (!(await this.confirmRemove(tabs.length))) return;
+
           await model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
 
           model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
           browser.tabs.remove(close_tabs).catch(console.log);
         }
+      });
+    },
+
+    confirmRemove(nr_tabs: number): Promise<boolean> {
+      if (nr_tabs <= 10) return Promise.resolve(true);
+      if (!this.shouldConfirmCloseOpenTabs) return Promise.resolve(true);
+
+      return new Promise(resolve => {
+        this.confirmCloseTabs = nr_tabs;
+        this.confirmCloseTabsThen = ev => {
+          this.confirmCloseTabs = 0;
+          this.shouldConfirmCloseOpenTabs = ev.confirmNextTime;
+          resolve(ev.confirmed);
+        };
       });
     },
 

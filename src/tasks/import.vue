@@ -4,6 +4,7 @@
     v-else
     :class="{[$style.dlg]: true, 'import-dialog': true}"
     @close="$emit('close')"
+    show-close-button
   >
     <template #title><span class="group-title">Import</span></template>
 

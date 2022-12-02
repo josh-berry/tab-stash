@@ -108,6 +108,9 @@ export const LOCAL_DEF = {
   autodiscard_target_tab_count: {default: 50, is: aNumber},
   autodiscard_target_age_min: {default: 10, is: aNumber},
 
+  /** Confirm whether to close lots of open tabs or not. */
+  confirm_close_open_tabs: {default: true, is: aBoolean},
+
   /** Disable crash reports for a certain amount of time. */
   hide_crash_reports_until: {default: undefined, is: maybeUndef(aNumber)},
 

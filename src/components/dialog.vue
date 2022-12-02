@@ -5,9 +5,9 @@
     @keydown.esc.prevent.stop="close"
   >
     <aside ref="dialog" class="dialog" v-bind="$attrs" @click.stop="">
-      <header class="dialog-title" v-if="$slots.title || !preventClosing">
+      <header class="dialog-title" v-if="$slots.title || showCloseButton">
         <slot name="title"></slot>
-        <slot name="close" v-if="!preventClosing">
+        <slot name="close" v-if="showCloseButton">
           <button
             class="dialog-close"
             title="Close"
@@ -39,14 +39,14 @@ export default defineComponent({
 
   props: {
     backdropClass: Object as PropType<{[k: string]: boolean}>,
-    preventClosing: Boolean,
+    showCloseButton: Boolean,
   },
 
   inheritAttrs: false,
 
   methods: {
     close() {
-      if (!this.preventClosing) this.$emit("close");
+      this.$emit("close");
     },
   },
 });

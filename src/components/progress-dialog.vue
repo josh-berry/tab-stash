@@ -2,7 +2,6 @@
   <Dialog
     :class="{progress: true, cancellable: !!cancel}"
     :backdrop-class="{progress: true, cancellable: !!cancel}"
-    :prevent-closing="true"
   >
     <ProgressItem class="toplevel" :progress="progress" />
     <template #buttons v-if="cancel">

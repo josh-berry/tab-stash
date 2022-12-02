@@ -57,8 +57,13 @@
     padding: var(--dialog-ph) var(--dialog-pw);
     border-top: var(--group-border);
 
-    display: grid;
-    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+
+    & > * {
+      flex: 1 1;
+    }
   }
 
   * {
