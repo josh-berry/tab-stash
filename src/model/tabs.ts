@@ -1,16 +1,16 @@
-import type {Ref} from "vue";
-import {computed, reactive, ref, watch} from "vue";
+import {computed, reactive, ref, watch, type Ref} from "vue";
 import type {Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import type {OpenableURL} from "../util";
 import {
+  AsyncTaskQueue,
   backingOff,
   expect,
   filterMap,
   shortPoll,
   tryAgain,
   urlToOpen,
+  type OpenableURL,
 } from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
@@ -43,9 +43,9 @@ export type TabID = number & {readonly __tab_id: unique symbol};
 export type TabPosition = {window: Window; index: number};
 
 /** How many tabs do we want to allow to be loaded at once?  (NOTE: This is
- * approximate, since it takes a while for the model to catch up--so we might
- * actually end up loading more than this.) */
-const MAX_LOADING_TABS = 4;
+ * approximate, since the model may not be fully up to date, and the user can
+ * always trigger tab loading on their own.) */
+const MAX_LOADING_TABS = navigator.hardwareConcurrency ?? 4;
 
 /** A Vue model for the state of all open browser windows and their tabs.
  *
@@ -91,6 +91,11 @@ export class Model {
 
   /** The number of tabs being loaded. */
   readonly loadingCount = ref(0);
+
+  /** A queue of tabs to load.  We only want to allow so many tabs to load at
+   * once (to avoid overwhelming the user's machine), so every single call that
+   * could cause a tab to be loaded must go through here. */
+  private _loading_queue = new AsyncTaskQueue();
 
   /** Did we receive an event since the last (re)load of the model? */
   private _event_since_load: boolean = false;
@@ -231,27 +236,53 @@ export class Model {
    * Note that creation of non-discarded is rate-limited, to avoid
    * overwhelming the user's system with a lot of loading tabs. */
   async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
-    if (!browser.tabs.hide) {
-      // Remove fields not supported by Chrome
-      tab = Object.assign({}, tab);
-      delete tab.discarded;
-      delete tab.title;
-    }
+    const create_tab = Object.assign({}, tab);
 
-    // Rate-limiting as noted in the docs
-    while (!tab.discarded && this.loadingCount.value >= MAX_LOADING_TABS) {
-      await new Promise<void>(resolve => {
-        const cancel = watch(this.loadingCount, () => {
-          if (this.loadingCount.value < MAX_LOADING_TABS) {
-            resolve();
-            cancel();
-          }
-        });
+    if (!browser.tabs.hide || !tab.url || tab.url.startsWith("about:")) {
+      // This is Chrome; it doesn't support discarded tabs, so we can only load
+      // so many at once.  This is a little awkward because to the user, it will
+      // look like there is a big delay in opening tabs.
+      //
+      // (It could also be Firefox, which doesn't support creating discarded
+      // `about:` tabs.)
+      delete create_tab.discarded;
+      delete create_tab.title;
+      return await this._loading_queue.run(async () => {
+        await this._safe_to_load_another_tab();
+        const t = await browser.tabs.create(create_tab);
+        return await shortPoll(
+          () => this.tabs.get(t.id as TabID) || tryAgain(),
+        );
       });
     }
 
-    const t = await browser.tabs.create(tab);
-    return await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
+    // This is Firefox; it DOES support discarded tabs. We can be fancier and
+    // create the discarded tab immediately, and then try to load it in the
+    // background only if it's "safe" (i.e. the user's machine can handle it).
+    create_tab.discarded = true;
+
+    // Create the tab and find its equivalent in the model
+    const t = await browser.tabs.create(create_tab);
+    const m = await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
+
+    // If the caller requested that we load the tab, do so as soon as we
+    // can--but don't try to load too many at once so we don't overwhelm the
+    // user's machine.
+    if (!tab.discarded) {
+      this._loading_queue.run(async () => {
+        await this._safe_to_load_another_tab();
+        if (this.tabs.get(m.id) !== m) return; // Tab was closed
+        if (!m.discarded) return; // Tab was already loaded
+
+        // Load the tab if it's still discarded.
+        await browser.tabs.update(m.id, {url: m.url});
+        await shortPoll(
+          () => this.tabs.get(m.id) !== m || !m.discarded || tryAgain(),
+        );
+      });
+    }
+
+    return m;
   }
 
   /** Moves a tab such that it precedes the item with index `toIndex` in
@@ -576,6 +607,21 @@ export class Model {
     // istanbul ignore if -- internal consistency
     if (!index) return;
     index.delete(t);
+  }
+
+  /** Wait until the number of tabs being loaded concurrently drops below a
+   * reasonable threshold.  This prevents us from opening so many tabs at once
+   * that we lock up the user's whole machine. :/ */
+  private _safe_to_load_another_tab(): Promise<void> {
+    return new Promise<void>(resolve => {
+      const check = () => {
+        if (this.loadingCount.value >= MAX_LOADING_TABS) return;
+        resolve();
+        cancel();
+      };
+      const cancel = watch(this.loadingCount, check);
+      check();
+    });
   }
 
   //

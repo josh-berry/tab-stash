@@ -108,6 +108,13 @@ export const LOCAL_DEF = {
   autodiscard_target_tab_count: {default: 50, is: aNumber},
   autodiscard_target_age_min: {default: 10, is: aNumber},
 
+  /** Whether or not to load restored tabs immediately or wait for the user to
+   * click on them.  (That is, should newly-opened tabs be discarded or not?) */
+  load_tabs_on_restore: {
+    default: "immediately",
+    is: anEnum("immediately", "lazily"),
+  },
+
   /** Confirm whether to close lots of open tabs or not. */
   confirm_close_open_tabs: {default: true, is: aBoolean},
 

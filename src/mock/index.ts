@@ -12,6 +12,10 @@ import type {RootHookObject} from "mocha";
   events: true,
 };
 (<any>globalThis).browser = {};
+(<any>globalThis).navigator = {
+  // We provide a fake number here so that tests are always run consistently
+  hardwareConcurrency: 4,
+};
 
 // Mock indexedDB.* APIs
 import {IDBFactory} from "fake-indexeddb";

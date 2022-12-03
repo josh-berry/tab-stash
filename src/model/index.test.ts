@@ -1302,7 +1302,47 @@ describe("model", () => {
     // it('moves tabs from different windows into the target window');
     // it('moves a combination of tabs from the same/different windows');
 
+    it("immediately loads tabs if so requested", async () => {
+      await model.options.local.set({load_tabs_on_restore: "immediately"});
+      await events.next(browser.storage.onChanged);
+      await events.next("StoredObject.onChanged");
+      expect(model.options.local.state.load_tabs_on_restore).to.equal(
+        "immediately",
+      );
+
+      const p = model.putItemsInWindow({
+        items: [{url: "http://example.com/#1"}, {url: "http://example.com/#2"}],
+        toWindowId: windows.right.id,
+        toIndex: 2,
+      });
+      await events.nextN(browser.tabs.onCreated, 2);
+      await events.nextN(browser.tabs.onUpdated, 6);
+      await p;
+
+      const urls = [
+        `${B}`,
+        `${B}#adam`,
+        `http://example.com/#1`,
+        `http://example.com/#2`,
+        `${B}#doug`,
+      ];
+
+      const real_tabs = await browser.tabs.query({
+        windowId: windows.right.id,
+      });
+      expect(
+        real_tabs.map(c => c.url),
+        "Browser tab URLs",
+      ).to.deep.equal(urls);
+      expect(real_tabs.every(c => !c.discarded)).to.be.true;
+    });
+
     it("copies external items into the window", async () => {
+      await model.options.local.set({load_tabs_on_restore: "lazily"});
+      await events.next(browser.storage.onChanged);
+      await events.next("StoredObject.onChanged");
+      expect(model.options.local.state.load_tabs_on_restore).to.equal("lazily");
+
       const p = model.putItemsInWindow({
         items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
         toWindowId: windows.right.id,

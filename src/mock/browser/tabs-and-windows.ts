@@ -449,6 +449,8 @@ class MockTabs implements T.Static {
       windowId: options.windowId,
       index: options.index ?? win.tabs.length,
       url: options.url ?? "about:blank",
+      title: options.title,
+      discarded: options.discarded,
       highlighted: false,
       active: false,
       pinned: options.pinned ?? false,
@@ -579,6 +581,11 @@ class MockTabs implements T.Static {
       tab.url = options.url;
       dirty.status = "loading";
       tab.status = "loading";
+      // Updating a tab's URL causes it to become un-discarded
+      if (tab.discarded) {
+        dirty.discarded = false;
+        tab.discarded = false;
+      }
       this._finish_loading(tab);
     }
     if (options.highlighted !== undefined) {

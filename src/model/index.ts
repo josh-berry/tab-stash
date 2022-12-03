@@ -829,7 +829,7 @@ export class Model {
       // Else we just need to create a completely new tab.
       const tab = await this.tabs.create({
         active: false,
-        discarded: true,
+        discarded: this.options.local.state.load_tabs_on_restore === "lazily",
         title: item.title,
         url: urlToOpen(url),
         windowId: to_win_id,

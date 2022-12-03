@@ -343,6 +343,34 @@
       </ul>
     </section>
 
+    <section>
+      <label>When opening tabs from the stash:</label>
+      <ul>
+        <li>
+          <label for="load_tabs_on_restore_immediately">
+            <input
+              type="radio"
+              id="load_tabs_on_restore_immediately"
+              v-model="local.load_tabs_on_restore"
+              value="immediately"
+            />
+            Load all opened tabs immediately
+          </label>
+        </li>
+        <li>
+          <label for="load_tabs_on_restore_lazily">
+            <input
+              type="radio"
+              id="load_tabs_on_restore_lazily"
+              v-model="local.load_tabs_on_restore"
+              value="lazily"
+            />
+            Wait for a tab to be selected before loading it
+          </label>
+        </li>
+      </ul>
+    </section>
+
     <hr />
 
     <h4>Confirmations (This Browser)</h4>
