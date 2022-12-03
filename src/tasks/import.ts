@@ -16,7 +16,7 @@ import {fetchInfoForSites} from "./siteinfo";
 // followed by "://", we just take everything after the "://" as part of the
 // URL, up to a set of commonly-used terminator characters (e.g. quotes, closing
 // brackets/parens, or whitespace).
-const URL_RE = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>]+/g;
+const URL_RE = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>\\]+/g;
 
 const MARKDOWN_HEADER_RE = /^#+ (.*)$/;
 

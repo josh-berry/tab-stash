@@ -53,6 +53,13 @@ http://example.com/\tasdf
       ["http://whatever.com"],
     );
 
+    // https://github.com/josh-berry/tab-stash/issues/306
+    itf(
+      "parses URLs that are hiding inside escaped quotes",
+      '\\"this is a url: http://nowhere.com/foo\\"',
+      ["http://nowhere.com/foo"],
+    );
+
     itf(
       "parses URLs in raw HTML",
       `<a href="http://asdf.com/?test={uuid}#hashtag">link</a>`,
