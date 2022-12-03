@@ -1,6 +1,7 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 import * as Vue from "vue";
 import browser from "webextension-polyfill";
+import {logErrorsFrom} from "./oops";
 
 export {
   TaskCancelled,
@@ -207,7 +208,7 @@ export async function nextTick(): Promise<void> {
  * without throwing `TRY_AGAIN`.  "A few" is implementation-dependent but is
  * guaranteed to be (approximately) less than 10ms.
  *
- * If the function does not return a value within a reasonable mount of time,
+ * If the function does not return a value within a reasonable amount of time,
  * throws {@link TimedOutError}.  */
 export async function shortPoll<T>(fn: () => T): Promise<T> {
   // Relies on the implicit behavior of setTimeout() being automatically
@@ -242,6 +243,62 @@ export class TimedOutError extends Error {
   }
 }
 
+/** A queue of async functions which must be run in order. */
+export class AsyncTaskQueue {
+  private readonly _queue: {
+    fn: () => Promise<unknown>;
+    resolve: (r: unknown) => void;
+    reject: (e: unknown) => void;
+    promise: Promise<void>;
+  }[] = [];
+
+  /** Returns the length of the queue.  The first element in the queue is always
+   * the element that is currently running. */
+  get length() {
+    return this._queue.length;
+  }
+
+  run<T>(fn: () => Promise<T>): Promise<T> {
+    let resolve: (_: unknown) => void;
+    let reject: (_: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res as (_: unknown) => void;
+      reject = rej;
+    });
+    this._queue.push({
+      fn,
+      resolve: resolve!,
+      reject: reject!,
+      promise: promise.then(),
+    });
+    if (this._queue.length === 1) this._run();
+    return promise;
+  }
+
+  drain(): Promise<void> {
+    if (this._queue.length === 0) return Promise.resolve();
+    return this._queue[this._queue.length - 1].promise;
+  }
+
+  private _run() {
+    const next = this._queue[0];
+    if (!next) return;
+
+    logErrorsFrom(async () => {
+      try {
+        const r = await next.fn();
+        next.resolve(r);
+      } catch (e) {
+        next.reject(e);
+        throw e;
+      } finally {
+        this._queue.shift();
+        this._run();
+      }
+    });
+  }
+}
+
 // Returns a function which, when called, arranges to call the async function
 // /fn/ immediately, but only if it's not already running.
 //
@@ -254,35 +311,14 @@ export class TimedOutError extends Error {
 //
 // Since this is ostensibly a background task, exceptions which bubble out of
 // the function are caught and logged to the console.
-export function nonReentrant(fn: () => Promise<any>): () => Promise<void> {
-  let running: Promise<any> | undefined;
-  let next: Promise<void> | undefined;
-  let resolve_next: (() => void) | undefined;
+export function nonReentrant(fn: () => Promise<void>): () => Promise<void> {
+  const q = new AsyncTaskQueue();
 
-  const inner = () => {
-    if (!running) {
-      running = fn()
-        .finally(() => {
-          running = undefined;
-          if (next) {
-            let rn = resolve_next;
-            next = undefined;
-            resolve_next = undefined;
-            inner().finally(rn);
-          }
-        })
-        .catch(console.log);
-      return running;
-    } else if (!next) {
-      next = new Promise(resolve => {
-        resolve_next = resolve;
-      });
-    }
-
-    return next;
+  return () => {
+    // There should be one running, and at most one pending call.
+    if (q.length < 2) q.run(fn);
+    return q.drain();
   };
-
-  return inner;
 }
 
 /** Wraps the passed-in async function so that only one call can be running at a

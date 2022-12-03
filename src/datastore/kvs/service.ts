@@ -3,6 +3,7 @@ import {openDB} from "idb";
 
 import type {KeyValueStore} from ".";
 import {genericList} from ".";
+import {AsyncTaskQueue} from "../../util";
 import type {Event} from "../../util/event";
 import event from "../../util/event";
 import type {NanoService} from "../../util/nanoservice";
@@ -41,6 +42,10 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
 
   private _db: IDBPDatabase;
   private _clients = new Set<Proto.ClientPort<K, V>>();
+
+  /** We queue all write operations to the DB to avoid weirdnesses that seem to
+   * happen with IndexedDB and concurrent transactions. */
+  private _write_queue = new AsyncTaskQueue();
 
   constructor(db: IDBPDatabase, store_name: string) {
     this.name = store_name;
@@ -117,19 +122,21 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     return genericList((bound, limit) => this.getEndingAt(bound, limit));
   }
 
-  async set(entries: Proto.MaybeEntry<K, V>[]): Promise<void> {
-    // istanbul ignore if
-    if (entries.length === 0) return;
+  set(entries: Proto.MaybeEntry<K, V>[]): Promise<void> {
+    return this._write_queue.run(async () => {
+      // istanbul ignore if
+      if (entries.length === 0) return;
 
-    const txn = this._db.transaction(this.name, "readwrite");
-    for (const {key, value} of entries) {
-      if (value !== undefined) await txn.store.put(value, key);
-      else await txn.store.delete(key);
-    }
-    await txn.done;
+      const txn = this._db.transaction(this.name, "readwrite");
+      for (const {key, value} of entries) {
+        if (value !== undefined) await txn.store.put(value, key);
+        else await txn.store.delete(key);
+      }
+      await txn.done;
 
-    this._broadcast({$type: "set", entries});
-    this.onSet.send(entries);
+      this._broadcast({$type: "set", entries});
+      this.onSet.send(entries);
+    });
   }
 
   async deleteAll(): Promise<void> {
@@ -138,17 +145,20 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     // message that's too big).
     while (true) {
       const deletes: {key: K}[] = [];
-      const txn = this._db.transaction(this.name, "readwrite");
-      let cursor = await txn.store.openCursor();
 
-      while (cursor) {
-        // Same cast as in set() above
-        deletes.push({key: cursor.primaryKey as K});
-        cursor.delete();
-        cursor = await cursor.continue();
-        if (deletes.length > 100) break;
-      }
-      await txn.done;
+      await this._write_queue.run(async () => {
+        const txn = this._db.transaction(this.name, "readwrite");
+        let cursor = await txn.store.openCursor();
+
+        while (cursor) {
+          // Same cast as in set() above
+          deletes.push({key: cursor.primaryKey as K});
+          cursor.delete();
+          cursor = await cursor.continue();
+          if (deletes.length > 100) break;
+        }
+        await txn.done;
+      });
 
       if (deletes.length > 0) {
         this._broadcast({$type: "set", entries: deletes});
