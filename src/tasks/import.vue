@@ -13,21 +13,29 @@
       extracted and converted into bookmarks in your stash.
     </label>
 
-    <div
-      ref="data"
-      contenteditable="true"
-      id="data"
-      :class="{input: true, [$style.input]: true}"
-    />
+    <div ref="data" contenteditable="true" id="data" class="input" />
 
-    <form :class="$style.split_mode">
-      <label for="splitOn">Split tabs into different groups on:</label>
-      <select id="splitOn" v-model="splitOn">
-        <option value="p+h">Paragraphs and Headers</option>
-        <option value="h">Headers</option>
-        <option value="">Nothing [all in one group]</option>
-      </select>
-    </form>
+    <section>
+      <label for="splitOn">
+        <span>Split tabs into different groups on:</span>
+        <select id="splitOn" v-model="splitOn">
+          <option value="p+h">Paragraphs and Headers</option>
+          <option value="h">Headers</option>
+          <option value="">Nothing [all in one group]</option>
+        </select>
+      </label>
+    </section>
+
+    <section>
+      <label for="fetchIconsAndTitles">
+        <input
+          type="checkbox"
+          id="fetchIconsAndTitles"
+          v-model="fetchIconsAndTitles"
+        />
+        <span>Fetch icons and titles from each site</span>
+      </label>
+    </section>
 
     <template #buttons>
       <button class="clickme" @click="start">Import</button>
@@ -39,7 +47,7 @@
 import {defineComponent} from "vue";
 
 import type {Model} from "../model";
-import {TaskMonitor} from "../util";
+import {TaskMonitor, type Progress} from "../util";
 import {importURLs, parse, type ParseOptions} from "./import";
 
 import Dialog from "../components/dialog.vue";
@@ -51,9 +59,10 @@ export default defineComponent({
   emits: ["close"],
 
   data: () => ({
-    cancel: undefined,
-    progress: undefined,
+    cancel: undefined as undefined | (() => void),
+    progress: undefined as undefined | Progress,
     splitOn: "p+h" as ParseOptions["splitOn"],
+    fetchIconsAndTitles: true,
   }),
 
   inject: ["$model"],
@@ -69,21 +78,26 @@ export default defineComponent({
 
     start() {
       this.model().attempt(async () => {
-        const groups = parse(this.$refs.data as Element, this.model(), {
+        const folders = parse(this.$refs.data as Element, this.model(), {
           splitOn: this.splitOn,
         });
 
         try {
-          const task = TaskMonitor.run(tm =>
-            importURLs(this.model(), groups, tm),
+          const task = TaskMonitor.run(task =>
+            importURLs({
+              model: this.model(),
+              folders,
+              fetchIconsAndTitles: this.fetchIconsAndTitles,
+              task,
+            }),
           );
 
-          (<any>this).cancel = () => task.cancel();
-          (<any>this).progress = task.progress;
+          this.cancel = () => task.cancel();
+          this.progress = task.progress;
           await task;
         } finally {
-          (<any>this).cancel = undefined;
-          (<any>this).progress = undefined;
+          this.cancel = undefined;
+          this.progress = undefined;
           this.$emit("close");
         }
       });
@@ -101,17 +115,6 @@ export default defineComponent({
 
 .dlg :global(.dialog-content) {
   grid-template-columns: 1fr;
-  grid-template-rows: 0fr 1fr;
-}
-
-.dlg .input {
-  cursor: text;
-}
-
-.split_mode {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
+  grid-template-rows: 0fr 1fr 0fr 0fr;
 }
 </style>

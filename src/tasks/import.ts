@@ -1,8 +1,9 @@
 import browser from "webextension-polyfill";
 
-import type {Model} from "../model";
-import {filterMap, TaskMonitor} from "../util";
-import {fetchInfoForSites} from "./siteinfo";
+import type {Model, NewFolder, NewTab} from "../model";
+import type * as BM from "../model/bookmarks";
+import {AsyncChannel, filterMap, TaskMonitor} from "../util";
+import {fetchInfoForSites, type SiteInfo} from "./siteinfo";
 
 // This is based on RFC 3986, but is rather more permissive in some ways,
 // because CERTAIN COMPANIES (looking at you, Office365 with your un-encoded
@@ -16,7 +17,11 @@ import {fetchInfoForSites} from "./siteinfo";
 // followed by "://", we just take everything after the "://" as part of the
 // URL, up to a set of commonly-used terminator characters (e.g. quotes, closing
 // brackets/parens, or whitespace).
-const URL_RE = /[a-zA-Z][-a-zA-Z0-9+.]*:\/\/[^\]\) \t\n\r"'>\\]+/g;
+const URL_RE = "[a-zA-Z][-a-zA-Z0-9+.]*:\\/\\/[^\\]\\) \t\n\r\"'>\\\\]+";
+const MARKDOWN_LINK_RE = `\\[(?<md_title>[^\\]]+)\\]\\((?<md_url>${URL_RE})\\)`;
+const ONETAB_LINK_RE = `^(?<ot_url>${URL_RE}) \\| (?<ot_title>.*)$`;
+const PLAIN_URL_RE = `(?<url>${URL_RE})`;
+const URL_WITH_TITLE_RE = `${MARKDOWN_LINK_RE}|${ONETAB_LINK_RE}|${PLAIN_URL_RE}`;
 
 const MARKDOWN_HEADER_RE = /^#+ (.*)$/;
 
@@ -24,16 +29,11 @@ export type ParseOptions = {
   splitOn: "" | "h" | "p+h";
 };
 
-export type BookmarkGroup = {
-  title?: string;
-  urls: string[];
-};
-
 export function parse(
   node: Node,
   model: Model,
   options?: Partial<ParseOptions>,
-): BookmarkGroup[] {
+): NewFolder[] {
   const parser = new Parser(model, options);
   parser.parseChildren(node);
   return parser.end();
@@ -45,8 +45,8 @@ class Parser {
     splitOn: "p+h",
   };
 
-  building: BookmarkGroup = {urls: []};
-  built: BookmarkGroup[] = [];
+  building: NewFolder = {title: "", children: []};
+  built: NewFolder[] = [];
   afterBR: boolean = false;
 
   constructor(model: Model, options?: Partial<ParseOptions>) {
@@ -54,24 +54,20 @@ class Parser {
     if (options) this.options = Object.assign({}, this.options, options);
   }
 
-  end(): BookmarkGroup[] {
+  private _trace(...args: any[]) {
+    if ((<any>globalThis).trace_import) console.log(...args);
+  }
+
+  end(): NewFolder[] {
+    this._trace("end");
     this.endGroup();
-    return this.built
-      .map(group => {
-        group.urls = Array.from(
-          new Set(group.urls.filter(url => this.model.isURLStashable(url))),
-        );
-        return group;
-      })
-      .filter(group => group.urls.length > 0);
+    return this.built.filter(group => group.children.length > 0);
   }
 
   endGroup(titleForNextGroup?: string) {
+    this._trace("endGroup", {titleForNextGroup});
     this.built.push(this.building);
-    this.building = {
-      title: titleForNextGroup,
-      urls: [],
-    };
+    this.building = {title: titleForNextGroup ?? "", children: []};
   }
 
   parseChildren(node: Node) {
@@ -85,16 +81,21 @@ class Parser {
         case Node.TEXT_NODE:
           const text = child.nodeValue?.trim();
           if (!text) continue;
+          this._trace("text_node", {text});
 
           this.afterBR = false;
 
           if (["h", "p+h"].includes(this.options.splitOn)) {
             const header = text.match(MARKDOWN_HEADER_RE);
-            if (header) this.endGroup(header[1]?.trim());
+            if (header) {
+              this._trace("text_node found header", header);
+              this.endGroup(header[1]?.trim());
+            }
           }
 
-          for (const url of extractURLs(text)) {
-            this.building.urls.push(url);
+          for (const link of extractURLs(text)) {
+            this._trace("text_node found url", link);
+            this.building.children.push(link);
           }
           break;
 
@@ -106,6 +107,7 @@ class Parser {
   }
 
   parseElement(el: Element) {
+    this._trace("parsing", el.localName, el);
     switch (el.localName) {
       case "h1":
       case "h2":
@@ -138,9 +140,13 @@ class Parser {
       case "a":
         const a = el as HTMLAnchorElement;
         if (a.href) {
-          this.building.urls.push(a.href);
+          this.building.children.push({
+            url: a.href,
+            title: a.innerText,
+          });
+        } else {
+          this.parseChildren(el);
         }
-        this.parseChildren(el);
         break;
 
       default:
@@ -152,48 +158,59 @@ class Parser {
   }
 }
 
-export function* extractURLs(str: string): Generator<string> {
-  const re = new RegExp(URL_RE);
-  let m;
+export function* extractURLs(str: string): Generator<NewTab> {
+  const re = new RegExp(URL_WITH_TITLE_RE, "g");
+  let m: RegExpExecArray | null;
   while ((m = re.exec(str)) !== null) {
-    yield m[0];
+    const g = m.groups!;
+    if (g.md_url) yield {url: g.md_url, title: g.md_title};
+    else if (g.ot_url) yield {url: g.ot_url, title: g.ot_title};
+    else if (g.url) yield {url: g.url};
   }
 }
 
-export async function importURLs(
-  model: Model,
-  groups: BookmarkGroup[],
-  tm: TaskMonitor,
-): Promise<void> {
-  const top_tm = tm;
-
-  tm.status = "Importing tabs...";
-  tm.max = 100;
+export async function importURLs(options: {
+  model: Model;
+  folders: NewFolder[];
+  fetchIconsAndTitles: boolean;
+  task: TaskMonitor;
+}): Promise<void> {
+  options.task.status = "Importing tabs...";
+  options.task.max = 100;
 
   // We reverse the order of groups on import because the text/URLs that show
   // up at the top of the imported list will also show up at the top of the
   // stash.  Otherwise, the last folder to be created will show up first (so
   // groups will appear "backwards" once imported).
-  const groups_rev = groups.reverse();
-  const urls = flat(groups_rev.map(g => g.urls));
-  const urlset = new Set(urls);
+  const groups_rev = options.folders.reverse();
+
+  const urls_in_tree = (f: NewFolder): string[] =>
+    flat(
+      f.children.map(c => {
+        if ("children" in c) return urls_in_tree(c);
+        return [c.url];
+      }),
+    );
+  const urlset = new Set(flat(groups_rev.map(g => urls_in_tree(g))));
 
   // We start three tasks in parallel: Bookmark creation, fetching of site
   // information, and updating bookmarks with titles, favicons, etc.
 
   // Task: Creating bookmarks
-  const create_bms_p = tm.wspawn(25, async tm => {
+  const create_bms_p = options.task.wspawn(25, async tm => {
     tm.status = "Creating stash folders...";
     tm.max = groups_rev.length;
-    const bm_groups = [];
+    const bm_groups: {folder: BM.Folder; bookmarks: BM.Node[]}[] = [];
 
     for (const g of groups_rev) {
       if (tm.cancelled) break;
 
       const res = await tm.spawn(async tm => {
-        const folder = await model.bookmarks.createStashFolder(g.title);
-        const bookmarks = await model.putItemsInFolder({
-          items: g.urls.map(url => ({url, title: "Importing..."})),
+        const folder = await options.model.bookmarks.createStashFolder(
+          g.title || undefined,
+        );
+        const bookmarks = await options.model.putItemsInFolder({
+          items: g.children,
           toFolderId: folder.id,
           task: tm,
         });
@@ -213,13 +230,17 @@ export async function importURLs(
   });
 
   // Task: Fetching site info
-  const siteinfo_aiter = tm.wspawn_iter(50, tm =>
-    fetchInfoForSites(urlset, tm),
-  );
+  const siteinfo_aiter = options.task.wspawn_iter(50, tm => {
+    if (options.fetchIconsAndTitles) return fetchInfoForSites(urlset, tm);
+
+    const chan = new AsyncChannel<SiteInfo>();
+    chan.close();
+    return chan;
+  });
 
   // Task: Updating bookmarks with site info.  This task awaits the other two
   // tasks and brings their results together.
-  const update_p = tm.wspawn(25, async tm => {
+  const update_p = options.task.wspawn(25, async tm => {
     tm.status = "Updating bookmarks...";
 
     const {bookmarks, folderIds} = await create_bms_p;
@@ -237,7 +258,7 @@ export async function importURLs(
 
     for await (const siteinfo of siteinfo_aiter) {
       if (siteinfo.error) {
-        top_tm.cancel();
+        options.task.cancel();
         tm.cancel();
 
         alert(
@@ -270,7 +291,7 @@ export async function importURLs(
         }
       }
 
-      model.favicons.maybeSet(url, siteinfo);
+      options.model.favicons.maybeSet(url, siteinfo);
       ++tm.value;
     }
 
@@ -281,7 +302,7 @@ export async function importURLs(
     }
   });
 
-  tm.onCancel = () => {
+  options.task.onCancel = () => {
     create_bms_p.cancel();
     siteinfo_aiter.cancel();
     update_p.cancel();
