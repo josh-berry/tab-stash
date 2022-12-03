@@ -102,7 +102,6 @@ export default defineComponent({
     bgKey: bgKeyName,
 
     related_container_color(): string | undefined {
-      if (!this.model().options.local.state.ff_container_indicators) return;
       const containers = this.model().containers;
 
       // Reduce here has three states:

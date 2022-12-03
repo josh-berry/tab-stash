@@ -129,7 +129,7 @@ export const LOCAL_DEF = {
   ff_restore_closed_tabs: {default: false, is: aBoolean},
 
   /** Container color indicators. Related issue: #125 */
-  ff_container_indicators: {default: false, is: aBoolean},
+  // ff_container_indicators: {default: false, is: aBoolean},
 } as const;
 
 export type Source = {
