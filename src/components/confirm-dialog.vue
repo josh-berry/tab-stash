@@ -1,11 +1,11 @@
 <template>
   <teleport to="body">
     <Dialog @close="answer(false)">
-      <div>
+      <section>
         <slot />
-      </div>
+      </section>
 
-      <p>
+      <section>
         <label
           for="ask_next_time"
           title="If you change your mind, you can turn this confirmation on again in the options."
@@ -13,7 +13,7 @@
           <input type="checkbox" id="ask_next_time" v-model="confirmNextTime" />
           Ask me again next time
         </label>
-      </p>
+      </section>
 
       <template #buttons>
         <button
