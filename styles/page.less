@@ -39,7 +39,7 @@ header.page {
     grid-row: 1;
     grid-column: 1;
   }
-  & > input[type="search"] {
+  & > .search-input {
     grid-row: 1;
     grid-column: 2;
   }
@@ -53,8 +53,61 @@ header.page {
   }
 }
 
-input[type="search"] {
-  min-width: 16px;
+.search-input {
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--ctrl-border-radius);
+
+  display: grid;
+  grid-template-columns: 1fr 0fr;
+
+  &:not(.disabled) {
+    &:hover {
+      // Same as .ephemeral's shadow
+      box-shadow: var(--ephemeral-hover-shadow-metrics)
+        var(--ephemeral-hover-shadow-clr);
+    }
+    &:focus,
+    &:focus-within {
+      background-color: var(--ctrl-bg);
+      box-shadow: var(--focus-shadow);
+    }
+  }
+
+  & > input {
+    grid-row: 1;
+    grid-column: 1;
+    min-width: 32px;
+
+    border-radius: var(--ctrl-border-radius) 0 0 var(--ctrl-border-radius);
+    border: none;
+    background: transparent;
+
+    &:last-child {
+      border-radius: var(--ctrl-border-radius);
+    }
+
+    // Override the default styling for focused and hovered <input>s
+    &:hover,
+    &:focus,
+    &:focus-within {
+      box-shadow: none;
+    }
+  }
+
+  & > button.clear {
+    grid-row: 1;
+    grid-column: 2;
+
+    .action();
+    width: unset;
+    height: unset;
+    min-width: var(--icon-btn-size);
+    min-height: var(--icon-size);
+    border-radius: 0 var(--ctrl-border-radius) var(--ctrl-border-radius) 0;
+    background-image: var(--icon-cancel);
+  }
 }
 
 .selection-menu > summary {

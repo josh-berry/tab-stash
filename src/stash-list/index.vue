@@ -87,14 +87,11 @@
 
       <SelectionMenu v-if="selection_active" />
 
-      <input
-        type="search"
-        ref="search"
-        class="ephemeral"
-        aria-label="Search"
-        :title="searchTooltip"
+      <search-input
+        :tooltip="searchTooltip"
         :placeholder="search_placeholder"
         v-model="searchText"
+        :focus-on-mount="focusSearchOnMount"
       />
       <Button
         :class="{collapse: !collapsed, expand: collapsed}"
@@ -145,6 +142,7 @@ import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
 import OopsNotification from "../components/oops-notification.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
+import SearchInput from "../components/search-input.vue";
 import ExportDialog from "../tasks/export.vue";
 import ImportDialog from "../tasks/import.vue";
 import FolderList from "./folder-list.vue";
@@ -154,7 +152,6 @@ import Window from "./window.vue";
 
 export default defineComponent({
   components: {
-    SelectionMenu,
     Button,
     ExportDialog,
     Folder: FolderVue,
@@ -164,6 +161,8 @@ export default defineComponent({
     Notification,
     OopsNotification,
     ProgressDialog,
+    SearchInput,
+    SelectionMenu,
     Window,
   },
 
@@ -273,6 +272,10 @@ export default defineComponent({
       } open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
     },
 
+    focusSearchOnMount(): boolean {
+      return document.documentElement.classList.contains("view-popup");
+    },
+
     curWindowMetadata(): BookmarkMetadataEntry {
       return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
     },
@@ -283,10 +286,6 @@ export default defineComponent({
   },
 
   mounted() {
-    if (document.documentElement.classList.contains("view-popup")) {
-      (<HTMLInputElement>this.$refs.search).focus();
-    }
-
     // The following block of code is just to help me test out progress
     // dialogs (since they only appear for a limited time when things are
     // happening):

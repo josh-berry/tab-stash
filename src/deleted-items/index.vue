@@ -15,13 +15,9 @@
         title="Back to Tab Stash"
         :href="pageref('stash-list.html')"
       ></a>
-      <input
-        type="search"
-        ref="search"
-        class="ephemeral"
-        placeholder="Search Deleted Items"
+      <search-input
         aria-label="Search Deleted Items"
-        @keyup.esc.prevent="search = ''"
+        placeholder="Search Deleted Items"
         v-model="search"
       />
     </header>
@@ -81,12 +77,13 @@ import type {FilteredDeletedItem, RecordGroup} from "./schema";
 import ItemIcon from "../components/item-icon.vue";
 import LoadMore from "../components/load-more.vue";
 import OopsNotification from "../components/oops-notification.vue";
+import SearchInput from "../components/search-input.vue";
 import DeletedItem from "./item.vue";
 
 const date_formatter = new Intl.DateTimeFormat();
 
 export default defineComponent({
-  components: {LoadMore, DeletedItem, ItemIcon, OopsNotification},
+  components: {LoadMore, DeletedItem, ItemIcon, OopsNotification, SearchInput},
 
   props: {
     state: required(Object as PropType<DI.State>),
