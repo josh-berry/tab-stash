@@ -25,9 +25,15 @@ export default {
 
   build: {
     outDir: rel("dist"),
-    sourcemap: true,
     emptyOutDir: false,
-    minify: prod ? "esbuild" : false,
+
+    // We don't emit source maps in production to reduce build size, and because
+    // they are often not reliable for reasons I'm never able to figure out.
+    sourcemap: !prod,
+
+    // We never minify (even in production) because it produces more
+    // reliable stack traces with actual names for functions.
+    minify: false,
 
     // Remove the hash from the generated file names, because it (and ONLY it;
     // the content is the same even though it's supposedly a "content hash")
