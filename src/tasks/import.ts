@@ -139,10 +139,10 @@ class Parser {
 
       case "a":
         const a = el as HTMLAnchorElement;
-        if (a.href) {
+        if (a.href && a.innerText.trim()) {
           this.building.children.push({
             url: a.href,
-            title: a.innerText,
+            title: a.innerText.trim(),
           });
         } else {
           this.parseChildren(el);
