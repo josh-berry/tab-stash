@@ -18,8 +18,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} can now rename tabs in your stash, and switch
-        between showing "Unstashed Tabs" and "Open Tabs". See what else is new!
+        Tab Stash {{ my_version }} includes lots of small quality-of-life
+        improvements. See what's new!
       </Notification>
       <Notification
         key="new-fixes"
@@ -27,8 +27,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} includes bug fixes for issues related to
-        drag-and-drop. See what's new!
+        Tab Stash {{ my_version }} includes lots of small quality-of-life
+        improvements. See what's new!
       </Notification>
       <Notification
         key="stash-root-warning"

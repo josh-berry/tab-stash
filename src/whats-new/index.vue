@@ -10,6 +10,49 @@
     </header>
 
     <div class="folder-list one-column">
+      <Version v="2.12">
+        <L :issue="268" v="Added"
+          >a confirmation before closing lots of open tabs.</L
+        >
+
+        <L :issue="299" v="Added">a button to clear the search box.</L>
+
+        <L :issue="109" v="Added"
+          >an option to the importer to skip loading titles and icons. If
+          loading is skipped, the importer will try to auto-detect page titles
+          where possible.</L
+        >
+
+        <L :issue="125" v="Experiment Released:"
+          >Container tabs now have small colored bars showing which container
+          the tab belongs to.</L
+        >
+
+        <L :issue="298" v="Improved"
+          >the process of restoring tabs. Tabs are auto-loaded once again, but
+          slowly so as to avoid overwhelming your computer. There is a new
+          setting to revert to the previous behavior of loading tabs lazily if
+          you still run into performance issues.</L
+        >
+
+        <L v="Improved"
+          >reliability and performance of importing tabs and updating website
+          icons. Tab Stash will now load tabs in parallel based on how many
+          cores are available on your computer, and will retry failed tabs a few
+          times before giving up.</L
+        >
+
+        <L v="Fixed"
+          >a crash that occurred on rare occasions when saving website icons to
+          the cache.</L
+        >
+
+        <L :issue="306" v="Fixed"
+          >an issue where the importer would sometimes detect invalid characters
+          as being part of URLs.</L
+        >
+      </Version>
+
       <Version v="2.11.1">
         <L :issue="295" v="Fixed"
           >an issue that prevented drag-and-drop of two consecutive items in the
