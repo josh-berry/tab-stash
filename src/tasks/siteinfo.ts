@@ -5,7 +5,7 @@ import type {Task} from "../util";
 import {AsyncChannel, TaskMonitor} from "../util";
 
 // How many concurrent fetches do we want to allow?
-const MAX_CONCURRENT_FETCHES = 4;
+const MAX_CONCURRENT_FETCHES = navigator.hardwareConcurrency ?? 4;
 
 // How long do we wait for initial loading of the tab to complete?
 const LOADING_TIMEOUT = 30000; /* ms */
