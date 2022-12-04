@@ -215,6 +215,19 @@
       &:focus-within {
         background-color: var(--userlink-active-fg);
       }
+
+      // Always hide the custom icon while the item is selected
+      & > img {
+        display: none;
+      }
+    }
+
+    &:not(.selected):not(:hover):not(:focus-within) .action.select:not(:empty) {
+      // Hide the default image when the custom <img> is visible.
+      // Govern when the <img> inside the <item-icon> is visible and when to use
+      // the (default) background-image.  We always use the background-image on
+      // hover/focus, and not at other times if we have an <img>.
+      background-image: none;
     }
 
     &:hover,
@@ -223,6 +236,11 @@
 
       .action.select {
         box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
+
+        // Hide the custom image when hovering/focusing on an item.
+        & > img {
+          display: none;
+        }
       }
 
       // Special highlighting behavior for using the icon to select the tab.
@@ -290,6 +308,26 @@
   a:focus-within,
   a:active {
     background-color: transparent;
+  }
+}
+
+.item-icon {
+  // Similar to .action's sizing
+  display: flex;
+  box-sizing: border-box;
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  padding: var(--icon-p);
+
+  background-size: var(--icon-size) var(--icon-size);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: none;
+
+  & > img {
+    flex: 1 1 auto;
+    object-fit: contain;
   }
 }
 

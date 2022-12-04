@@ -236,6 +236,23 @@ html.metrics-compact {
     }
   }
 
+  &.loading .item-icon {
+    border-radius: 50%;
+    padding: calc(var(--icon-p) / 2);
+    border: calc(var(--icon-p) / 2) dotted var(--page-fg);
+    border-top-color: var(--disabled-fg);
+    border-bottom-color: var(--disabled-fg);
+    animation-name: tab-loading-spinner;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: normal;
+
+    & > img {
+      border-radius: 50%;
+    }
+  }
+
   &.active {
     font-weight: bold;
     background: linear-gradient(
@@ -269,6 +286,15 @@ html.metrics-compact {
       opacity: 0.75;
       filter: saturate(0.7);
     }
+  }
+}
+
+@keyframes tab-loading-spinner {
+  from {
+    transform: rotate(0turn);
+  }
+  to {
+    transform: rotate(1turn);
   }
 }
 

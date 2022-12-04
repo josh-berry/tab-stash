@@ -18,15 +18,11 @@
     <item-icon
       :class="{
         action: true,
-        'item-icon': true,
         select: true,
-        loading: isLoading,
-      }"
-      :src="favIcon"
-      :default-class="{
         'icon-tab': !tab.$selected,
         'icon-tab-selected-inverse': tab.$selected,
       }"
+      :src="favIcon"
       @click.prevent.stop="select"
     />
 

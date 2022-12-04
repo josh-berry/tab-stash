@@ -16,12 +16,13 @@
     @click.prevent.stop="select"
   >
     <item-icon
-      :class="{action: true, 'item-icon': true, select: true}"
-      :src="!bookmark.$selected ? favicon?.value?.favIconUrl || '' : ''"
-      :default-class="{
+      :class="{
+        action: true,
+        select: true,
         'icon-tab': !bookmark.$selected,
         'icon-tab-selected-inverse': bookmark.$selected,
       }"
+      :src="!bookmark.$selected ? favicon?.value?.favIconUrl || '' : ''"
       @click.prevent.stop="select"
     />
 

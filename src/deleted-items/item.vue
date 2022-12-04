@@ -5,13 +5,14 @@
   </div>
 
   <div v-else class="folder-item deleted action-container">
-    <ItemIcon
-      class="item-icon icon"
-      :src="'favIconUrl' in item ? item.favIconUrl : undefined"
-      :default-class="{
-        'icon-tab': 'url' in item,
-        'icon-folder': 'children' in item,
+    <item-icon
+      :class="{
+        'icon-tab':
+          (!('favIconUrl' in item) || !item.favIconUrl) && 'url' in item,
+        'icon-folder':
+          (!('favIconUrl' in item) || !item.favIconUrl) && 'children' in item,
       }"
+      :src="'favIconUrl' in item ? item.favIconUrl : undefined"
     />
 
     <a
