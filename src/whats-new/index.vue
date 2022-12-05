@@ -10,6 +10,10 @@
     </header>
 
     <div class="folder-list one-column">
+      <Version v="2.12.0.1">
+        <L v="Fixed">a packaging issue preventing upload to Mozilla.</L>
+      </Version>
+
       <Version v="2.12">
         <L :issue="268" v="Added"
           >a confirmation before closing lots of open tabs.</L
