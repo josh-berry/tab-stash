@@ -42,11 +42,11 @@ check-tests: node_modules
 .PHONY: check-tests
 
 check-style: node_modules
-	./node_modules/.bin/prettier --check .
+	./node_modules/.bin/prettier --ignore-path .gitignore --check .
 .PHONY: check-style
 
 fix-style: node_modules
-	./node_modules/.bin/prettier --write .
+	./node_modules/.bin/prettier --ignore-path .gitignore --write .
 .PHONY: fix-style
 
 rel:
