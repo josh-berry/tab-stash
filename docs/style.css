@@ -78,7 +78,7 @@ header h1 {
   margin: 1ex 0;
 }
 header h1 #logo {
-  height: 30pt;
+  height: 42pt;
   vertical-align: bottom;
 }
 header h2 {
@@ -140,7 +140,7 @@ a.install:active {
 
 @media (max-width: 780px) {
   header h1 {
-    font-size: 20pt;
+    font-size: 32pt;
     margin-top: 0;
   }
   header h1 #logo {
