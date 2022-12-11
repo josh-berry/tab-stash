@@ -162,7 +162,7 @@ icons: $(DARK_ICONS) $(LIGHT_ICONS) $(LOGO_ICONS) $(TOOLBAR_ICONS)
 
 dist/icons/dark/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#f9f9fa"%g' <$< >$@
+	sed 's%style="[^"]*"%style="fill:#fbfbfe"%g' <$< >$@
 
 dist/icons/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
