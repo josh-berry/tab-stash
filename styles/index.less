@@ -1,59 +1,12 @@
 //
-// COLOR AND ICON DEFINITIONS (as CSS vars)
+// Define a bunch of CSS variables.
 //
-// Suffixes:
-// *-fg     Foreground
-// *-bg     Background
+// Note that, with the exception of certain overrides for compact metrics, these
+// files generally do not apply style to the DOM; that's left to the rest of
+// this file.
 //
-
-@import "icons";
-
-html.theme-system {
-  @import (multiple) "theme-light";
-  @media (prefers-color-scheme: dark) {
-    @import (multiple) "theme-dark";
-  }
-}
-html.theme-light {
-  @import (multiple) "theme-light";
-}
-html.theme-dark {
-  // We import BOTH themes here so that dark variables override light
-  // variables, just like in theme-system.
-  @import (multiple) "theme-light";
-  @import (multiple) "theme-dark";
-}
-
-// Colors common to both themes (mainly accents like shadows/dividers):
-html {
-  --divider-border: 1px solid var(--ctrl-border-clr);
-
-  --item-hover-bg: var(--button-bg);
-  --item-active-bg: var(--button-active-bg);
-
-  --shadow: 2px 2px 4px rgba(0, 0, 0, 0.23);
-  --shadow-heavy: 4px 4px 8px rgba(0, 0, 0, 0.29);
-  --shadow-faint: 2px 2px 4px rgba(0, 0, 0, 0.19);
-
-  --icon-select-disclosure: var(--icon-collapse-open);
-}
-
-//
-// METRICS - WIDTHS, HEIGHTS AND OTHER MEASUREMENTS
-//
-// Suffixes: *-[mpg][whlrtb]
-//   mpg     - margin/padding/gap[within grid]
-//   whlrtb  - width/height/left/right/top/bottom
-//   -border - a full border: definition (including a theme color)
-//
-
-@import "metrics-normal";
-@media (max-width: 30rem) {
-  @import "metrics-narrow";
-}
-html.metrics-compact {
-  @import "metrics-compact";
-}
+@import "themes/index.less"; // Colors and icons
+@import "metrics/index.less"; // Measurements (width, height, etc.)
 
 //
 // GENERIC STYLING

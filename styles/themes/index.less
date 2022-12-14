@@ -1,0 +1,43 @@
+//
+// COLOR AND ICON DEFINITIONS
+//
+// "Themes" are colors and icons all defined as CSS vars.
+//
+// Suffixes:
+// *-fg     Foreground
+// *-bg     Background
+//
+
+@import "icons.less";
+
+html.theme-system {
+  @import (multiple) "light.less";
+  @media (prefers-color-scheme: dark) {
+    @import (multiple) "dark.less";
+  }
+}
+html.theme-light {
+  @import (multiple) "light.less";
+}
+html.theme-dark {
+  // We import BOTH themes here so that dark variables override light
+  // variables, just like in theme-system.
+  @import (multiple) "light.less";
+  @import (multiple) "dark.less";
+}
+
+// Colors common to both themes (mainly accents like shadows/dividers):
+html {
+  --item-hover-bg: var(--button-bg);
+  --item-active-bg: var(--button-active-bg);
+
+  // We are technically violating the rules by defining shadow widths here
+  // instead of in metrics/, but it's a small thing because shadow metrics never
+  // change and they're closely related to the color (lighter shadows are less
+  // noticeable than darker shadows at the same size).
+  --shadow: 2px 2px 4px rgba(0, 0, 0, 0.23);
+  --shadow-heavy: 4px 4px 8px rgba(0, 0, 0, 0.29);
+  --shadow-faint: 2px 2px 4px rgba(0, 0, 0, 0.19);
+
+  --icon-select-disclosure: var(--icon-collapse-open);
+}
