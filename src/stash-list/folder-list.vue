@@ -7,7 +7,8 @@
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
-    :mimic-height="true"
+    ghost-displaces-items
+    ghost-mimics-height
   >
     <template #item="{item: f}">
       <Folder

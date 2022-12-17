@@ -81,7 +81,6 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
         :accepts="accepts"
         :drag="drag"
         :drop="drop"
-        :mimic-height="true"
       >
         <template #item="{item}">
           <tab

@@ -1,6 +1,7 @@
 <template>
   <component
     :is="is || 'ul'"
+    :class="{'dnd-list': true, 'drag-in-progress': isDragging}"
     ref="top"
     @dragenter="parentDragEnter"
     @dragover="itemDragOver"
@@ -8,12 +9,14 @@
   >
     <template v-for="(item, index) of displayItems" :key="item[itemKey]">
       <component
-        v-if="index === ghostIndex"
         :is="itemIs || 'li'"
-        :style="ghostStyle"
-        data-dnd-ghost="true"
-        @dragenter="ghostDragEnter"
-        @dragover="ghostDragOver"
+        :style="index === ghostIndex && ghostStyle"
+        :class="{
+          'dnd-list-ghost': true,
+          'dropping-here': index === ghostIndex,
+        }"
+        @dragenter="ghostDragEnter($event, index)"
+        @dragover="ghostDragOver($event)"
         @drop="doDrop"
       >
         <slot name="ghost" />
@@ -21,8 +24,7 @@
 
       <component
         :is="itemIs || 'li'"
-        :style="draggingIndex === index ? 'display: none' : ''"
-        :class="itemClass && itemClass(item, index)"
+        :class="itemClassFor(item, index)"
         ref="dndElements"
         @mousedown.stop="enableDrag"
         @mouseup.stop="disableDrag"
@@ -37,12 +39,14 @@
     </template>
 
     <component
-      v-if="ghostIndex === displayItems.length"
       :is="itemIs || 'li'"
-      :style="ghostStyle"
-      data-dnd-ghost="true"
-      @dragenter="ghostDragEnter"
-      @dragover="ghostDragOver"
+      :style="ghostIndex === displayItems.length && ghostStyle"
+      :class="{
+        'dnd-list-ghost': true,
+        'dropping-here': ghostIndex === displayItems.length,
+      }"
+      @dragenter="ghostDragEnter($event, displayItems.length)"
+      @dragover="ghostDragOver($event)"
       @drop="doDrop"
     >
       <slot name="ghost" />
@@ -89,7 +93,7 @@ export default defineComponent({
     itemIs: String,
     itemKey: required(String),
     itemClass: Function as PropType<
-      (item: any, index: number) => Record<string, boolean> | string
+      (item: any, index: number) => Record<string, boolean>
     >,
     accepts: [String, Array] as PropType<string | readonly string[]>,
     modelValue: required(Array as PropType<readonly unknown[]>),
@@ -97,8 +101,15 @@ export default defineComponent({
     drag: required(Function as PropType<(drag: DragAction) => void>),
     drop: required(Function as PropType<(drop: DropAction) => Promise<void>>),
 
-    mimicWidth: Boolean,
-    mimicHeight: Boolean,
+    /** When the ghost is displayed, does it cause items to change their
+     * positions on the screen? */
+    ghostDisplacesItems: Boolean,
+
+    /** Should the ghost mimic the height of the item it's replacing? */
+    ghostMimicsWidth: Boolean,
+
+    /** Should the ghost mimic the width of the item it's replacing? */
+    ghostMimicsHeight: Boolean,
   },
 
   data: () => ({
@@ -110,6 +121,10 @@ export default defineComponent({
   }),
 
   computed: {
+    isDragging(): boolean {
+      return !!DND.dropping;
+    },
+
     draggingIndex(): number | undefined {
       if (DND.dragging?.parent !== this) return undefined;
       return DND.dragging.index;
@@ -127,8 +142,8 @@ export default defineComponent({
       if (!s) return undefined;
 
       let style = "";
-      if (this.mimicWidth) style += `width: ${s.width}px; `;
-      if (this.mimicHeight) style += `height: ${s.height}px; `;
+      if (this.ghostMimicsWidth) style += `width: ${s.width}px; `;
+      if (this.ghostMimicsHeight) style += `height: ${s.height}px; `;
       return style || undefined;
     },
 
@@ -138,6 +153,13 @@ export default defineComponent({
   },
 
   methods: {
+    itemClassFor(item: unknown, index: number): Record<string, boolean> {
+      const classes = this.itemClass ? this.itemClass(item, index) : {};
+      classes.dragging =
+        DND.dragging?.parent === this && DND.dragging?.index === index;
+      return classes;
+    },
+
     /** Given a DOM Event, locate the corresponding element in the DOM for
      * the DnD item. */
     dndElement(ev: Event): HTMLElement | undefined {
@@ -248,9 +270,13 @@ export default defineComponent({
     /** Fired on the "ghost" element when the cursor enters it (e.g. because
      * it was moved to be under the cursor, to indicate where the item will
      * be dropped). */
-    ghostDragEnter(ev: DragEvent) {
-      ev.preventDefault(); // allow dropping here
-      ev.stopPropagation(); // consume the (potential) drop
+    ghostDragEnter(ev: DragEvent, index: number) {
+      if (this.ghostDisplacesItems) {
+        ev.preventDefault(); // allow dropping here
+        ev.stopPropagation(); // consume the (potential) drop
+      } else {
+        this.itemDragEnter(ev, index);
+      }
     },
 
     /** Fired on the "ghost" element repeatedly while the cursor is inside
@@ -258,8 +284,12 @@ export default defineComponent({
      * let the browser know this is a valid drop target.  (We determined
      * this earlier before moving the ghost into place.) */
     ghostDragOver(ev: DragEvent) {
-      ev.preventDefault(); // allow dropping here
-      ev.stopPropagation(); // consume the (potential) drop
+      if (this.ghostDisplacesItems) {
+        ev.preventDefault(); // allow dropping here
+        ev.stopPropagation(); // consume the (potential) drop
+      } else {
+        this.itemDragOver(ev);
+      }
     },
 
     /** Rejects the potential drop operation if this isn't a suitable
@@ -293,7 +323,7 @@ export default defineComponent({
         // currently is, we need to account for the fact that it's being
         // removed from its previous location, or it will appear at the
         // entry prior to where the mouse cursor actually is.
-        index++;
+        if (this.ghostDisplacesItems) index++;
       }
       index = Math.min(index, this.displayItems.length);
 

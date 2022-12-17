@@ -11,8 +11,32 @@
     flex: 1 1 auto;
     width: 100%;
     list-style: none;
-    &:empty:not([data-dnd-ghost]) {
+    &:empty:not(.dnd-list-ghost) {
       display: none;
+    }
+  }
+
+  // Mods to how drag-and-drop looks, since the top-level folder list has a
+  // ghost which displaces items in the list.
+  &.dnd-list {
+    & > .dragging {
+      display: none;
+    }
+
+    &.drag-in-progress {
+      & > .dnd-list-ghost {
+        display: none;
+
+        &.dropping-here {
+          display: block;
+          box-sizing: border-box;
+          border: var(--ghost-border-width) dashed var(--disabled-fg);
+          background: transparent;
+          min-height: var(--item-h);
+          min-width: var(--icon-btn-size);
+          margin: 0;
+        }
+      }
     }
   }
 }
@@ -98,7 +122,7 @@
 
       & > li {
         list-style: none;
-        &:empty:not([data-dnd-ghost]) {
+        &:empty:not(.dnd-list-ghost) {
           display: none;
         }
       }

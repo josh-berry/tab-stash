@@ -82,7 +82,6 @@
         :accepts="accepts"
         :drag="drag"
         :drop="drop"
-        :mimic-height="true"
       >
         <template #item="{item}">
           <bookmark
