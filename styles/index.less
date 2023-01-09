@@ -88,11 +88,8 @@
 // Toolbar buttons, aka "actions"
 @import "action";
 
-// Folders, including .folder-list, .folder, .folder-name and .folder-item.
-// Used for the "main" views (stash list, deleted items list, etc.).  For
-// historical reasons, this describes the layout used in the sidebar, and the
-// CSS for the tab view simply adds modifications on top of the sidebar view.
-@import "folders";
+// The "forest" view (i.e. grouped hierarchies)
+@import "forest";
 
 // Import/Export Dialogs
 .export-dialog output h3 {
@@ -164,32 +161,32 @@
 }
 
 // Tabs (stashed or unstashed) within the stash list
-.tab {
-  & > a,
-  & > a:visited {
+.stash-list .forest-item {
+  & > a.forest-title,
+  & > a.forest-title:visited {
     color: var(--link-fg);
     text-decoration: none;
   }
 
-  &.open > a {
+  &.open > a.forest-title {
     color: var(--userlink-fg);
   }
 
   &.no-match {
     // When we are searching, dim items which wouldn't show up in a search,
     // except that their parent folder matches the search.
-    & > a,
-    & > a:visited,
-    &.open > a {
+    & > a.forest-title,
+    & > a.forest-title:visited,
+    &.open > a.forest-title {
       .status-text();
       text-decoration: line-through;
     }
-    & > .action.select {
+    & > .forest-icon {
       opacity: 60%;
     }
   }
 
-  &.loading .item-icon {
+  &.loading > .forest-icon {
     border-radius: 50%;
     padding: calc(var(--icon-p) / 2);
     border: calc(var(--icon-p) / 2) dotted var(--page-fg);
@@ -232,10 +229,8 @@
   }
 
   &.discarded {
-    & .text,
-    .action.select,
-    .icon-tab,
-    .icon-tab-selected-inverse {
+    & .forest-title,
+    .forest-icon {
       opacity: 0.75;
       filter: saturate(0.7);
     }

@@ -1,0 +1,363 @@
+// A forest is a group of trees, visually something like this:
+//
+// <ul class="forest">
+//
+// <li> <!-- this is a group -->
+//   <??? class="forest-item">...</>
+//   <ul class="forest-children">
+//     <li><??? class="forest-item">...</></li>
+//     <li>
+//       <??? class="forest-item">...</>
+//       <ul class="forest-children"> ... </ul>
+//     </li>
+//   </ul>
+// </li>
+//
+// ...
+//
+// </ul>
+//
+// Importantly, groups, trees and subtrees all share the same DOM, but are
+// styled differently.  So a group looks just like an item with child items.
+//
+// A forest item looks like this; each sub-element is optional except the title:
+//
+// <??? class="forest-item">
+//    <??? class="forest-collapse" />
+//    <??? class="forest-icon" />
+//    <??? class="forest-title" />
+//    <??? class="forest-badge" />
+//    <??? class="forest-toolbar" />
+// </>
+//
+// There are a few special classes that can be applied to .forest-item and
+// .forest-children to change their appearance/behavior:
+//
+// For .forest-item:
+//   .selectable - Means the item can be selected by clicking its icon
+//   .selected - The item is currently selected
+//
+// For .forest-children:
+//   .collapsed - The children should not be visible
+
+.forest,
+.forest-children {
+  display: block;
+  margin: 0;
+  padding: 0;
+
+  & > li {
+    display: block;
+    list-style: none;
+
+    // Hide empty list items in the forest (as a workaround so that indexes in
+    // <dnd-list> stay accurate)
+    &:empty:not(.dnd-list-ghost) {
+      display: none;
+    }
+
+    // Hide the toolbar unless the item is being hovered over
+    &:not(:hover):not(:focus-within) > .forest-item > .forest-toolbar {
+      display: none;
+    }
+
+    // Hide the collapse button unless the item is collapsed or being hovered
+    // over
+    &:not(:hover):not(:focus-within)
+      > .forest-item:not(.collapsed)
+      > .forest-collapse {
+      display: none;
+    }
+  }
+}
+
+.forest-children {
+  // Nested children should be indented
+  .forest-children {
+    padding-left: calc(var(--icon-btn-size) + var(--item-gap-w));
+  }
+
+  // Nested children should be hidden if the child is collapsed
+  &.collapsed {
+    display: none;
+  }
+}
+
+[data-container-color="blue"] {
+  --container-indicator-color: var(--container-color-blue);
+}
+
+[data-container-color="turquoise"] {
+  --container-indicator-color: var(--container-color-turquoise);
+}
+
+[data-container-color="green"] {
+  --container-indicator-color: var(--container-color-green);
+}
+
+[data-container-color="yellow"] {
+  --container-indicator-color: var(--container-color-yellow);
+}
+
+[data-container-color="orange"] {
+  --container-indicator-color: var(--container-color-orange);
+}
+
+[data-container-color="red"] {
+  --container-indicator-color: var(--container-color-red);
+}
+
+[data-container-color="pink"] {
+  --container-indicator-color: var(--container-color-pink);
+}
+
+[data-container-color="purple"] {
+  --container-indicator-color: var(--container-color-purple);
+}
+
+[data-container-color="toolbar"] {
+  --container-indicator-color: var(--container-color-toolbar);
+}
+
+// This matches the text of an editable-label component that is not
+// currently being edited.
+&.has-open-tabs .folder-name {
+  color: var(--userlink-fg);
+  filter: saturate(0.7);
+}
+
+// Tab entries and other folder contents (e.g. count of hidden tabs)
+.folder-item[data-container-color] {
+  box-shadow: var(--container-indicator-shadow-style)
+    var(--container-indicator-color);
+}
+
+.forest-item {
+  display: grid;
+
+  // The column layout.  This is tweaked in the top-level .folder-item overrides
+  // above, so keep that in mind.
+  //
+  // 1:.forest-collapse, 2:.forest-icon, 3:.forest-title, 4:.forest-badge, 5:.forest-toolbar
+  grid-template-columns:
+    var(--page-pw) calc(var(--icon-btn-size) + var(--item-gap-w))
+    1fr 0fr 0fr;
+
+  // No column-gap because we assign margins to individual items
+  align-items: center;
+  padding: 0 var(--page-pw) 0 0;
+  height: var(--item-h);
+
+  & > .forest-collapse {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  & > .forest-icon {
+    grid-row: 1;
+    grid-column: 2;
+    margin-right: var(--item-gap-w);
+  }
+
+  & > .forest-title {
+    grid-row: 1;
+    grid-column: 3;
+  }
+
+  & > .forest-badge {
+    grid-row: 1;
+    grid-column: 4;
+    margin-left: var(--item-gap-w);
+  }
+
+  & > .forest-toolbar {
+    grid-row: 1;
+    grid-column: 5;
+    margin-left: var(--item-gap-w);
+  }
+
+  &.selectable {
+    // If a selection is active and this is a candidate for selection, show
+    // a background on the select button indicating the item can be selected.
+    .selection-active & .action.select {
+      background-color: var(--button-bg);
+    }
+
+    &.selected .action.select {
+      background-color: var(--userlink-fg);
+      &:hover {
+        background-color: var(--userlink-hover-fg);
+      }
+      &:active,
+      &:focus-within {
+        background-color: var(--userlink-active-fg);
+      }
+
+      // Always hide the custom icon while the item is selected
+      & > img {
+        display: none;
+      }
+    }
+
+    &:not(.selected):not(:hover):not(:focus-within) .action.select:not(:empty) {
+      // Hide the default image when the custom <img> is visible.
+      // Govern when the <img> inside the <item-icon> is visible and when to use
+      // the (default) background-image.  We always use the background-image on
+      // hover/focus, and not at other times if we have an <img>.
+      background-image: none;
+    }
+
+    &:hover,
+    &:focus-within {
+      background-color: var(--item-hover-bg);
+
+      .action.select {
+        box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
+
+        // Hide the custom image when hovering/focusing on an item.
+        & > img {
+          display: none;
+        }
+      }
+
+      // Special highlighting behavior for using the icon to select the tab.
+      &:not(.selected) .action.select {
+        background-color: var(--button-bg);
+        &:hover {
+          background-color: var(--button-hover-bg);
+        }
+        &:active {
+          background-color: var(--button-active-bg);
+        }
+      }
+    }
+  }
+
+  & > .forest-title {
+    height: var(--item-h);
+    /* to vertically center text while text-overflow: ellipsis; */
+    line-height: var(--item-h);
+    .text-overflow-ellipsis();
+
+    // Don't double-highlight titles that are links
+    &:hover,
+    &:focus-within,
+    &:active {
+      background-color: transparent;
+    }
+  }
+
+  & > .forest-badge {
+    height: var(--item-h);
+    line-height: var(--item-h);
+    opacity: 50%;
+    &.icon {
+      /* Similar to .action... */
+      box-sizing: border-box;
+      width: var(--icon-btn-size);
+      height: var(--icon-btn-size);
+      padding: var(--icon-p);
+    }
+  }
+}
+
+.forest-icon {
+  // Similar to .action's sizing
+  display: flex;
+  box-sizing: border-box;
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  padding: var(--icon-p);
+
+  background-size: var(--icon-size) var(--icon-size);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: none;
+
+  & > img {
+    flex: 1 1 auto;
+
+    // Stretch non-square icons in a way that's compatible with how Firefox does
+    // it in its actual UI.
+    object-fit: fill;
+
+    // Make sure non-square icons don't overflow the container
+    max-width: var(--icon-size);
+    max-height: var(--icon-size);
+  }
+}
+
+.text-overflow-ellipsis() {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+//
+// Mods for top-level forest items (which should look like groups)
+//
+
+// The top level of the forest, which is shown as a set of different
+// sections/groups.
+.forest {
+  & > li {
+    // Make sure the sidebar/panel views have a visible gap between groups.
+    // This should be overridden in the tab view.
+    margin: var(--page-ph) 0;
+
+    & > .forest-item {
+      // If there's no icon for the top-level group, don't leave space for it
+      // (unlike what we do inside the group).
+      //
+      // This should match the same layout as the regular .folder-item grid
+      // below.
+      grid-template-columns: var(--page-pw) 0fr 1fr 0fr 0fr;
+
+      margin: 0;
+      padding: var(--group-ph) var(--page-pw) var(--group-ph) 0;
+      height: auto;
+
+      & > .forest-title {
+        font-weight: bold;
+        font-size: 13pt;
+      }
+
+      // Don't change the background color as if the group were a regular item
+      &:hover,
+      &:focus-within {
+        background-color: inherit;
+
+        // Don't outline the selection button, because it's easier to see in the
+        // group title and it's generally inconsistent with the rest of the UI
+        .action.select {
+          box-shadow: none;
+        }
+      }
+    }
+  }
+
+  // Mods to how drag-and-drop looks, since the top-level grouping has a ghost
+  // which displaces items in the list.
+  &.dnd-list {
+    & > .dragging {
+      display: none;
+    }
+
+    &.drag-in-progress {
+      & > .dnd-list-ghost {
+        display: none;
+
+        &.dropping-here {
+          display: block;
+          box-sizing: border-box;
+          border: var(--ghost-border-width) dashed var(--disabled-fg);
+          background: transparent;
+          min-height: var(--item-h);
+          min-width: var(--icon-btn-size);
+          margin: 0;
+        }
+      }
+    }
+  }
+}

@@ -2,7 +2,8 @@
   <div
     :class="{
       'action-container': true,
-      tab: true,
+      'forest-item': true,
+      selectable: true,
       open: !tab.hidden,
       active: !!tab.active,
       discarded: tab.discarded,
@@ -27,7 +28,7 @@
     />
 
     <a
-      class="text"
+      class="forest-title"
       :href="tab.url"
       target="_blank"
       draggable="false"
@@ -39,11 +40,11 @@
 
     <span
       v-if="stashedIn.length > 0"
-      class="badge icon icon-stashed"
+      class="forest-badge icon icon-stashed"
       :title="`This tab is stashed in:\n${stashedIn.join('\n')}`"
     />
 
-    <ButtonBox>
+    <nav class="action-group forest-toolbar">
       <Button
         v-if="isStashable"
         class="stash one"
@@ -51,7 +52,7 @@
         :tooltip="`Stash this tab (hold ${altKey} to keep tab open)`"
       />
       <Button class="remove" @action="remove" tooltip="Close this tab" />
-    </ButtonBox>
+    </nav>
   </div>
 </template>
 
@@ -65,12 +66,11 @@ import type {Container} from "../model/containers";
 import type {Tab} from "../model/tabs";
 import {altKeyName, bgKeyName, required} from "../util";
 
-import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
 import ItemIcon from "../components/item-icon.vue";
 
 export default defineComponent({
-  components: {Button, ButtonBox, ItemIcon},
+  components: {Button, ItemIcon},
 
   inject: ["$model"],
 

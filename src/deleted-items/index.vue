@@ -22,22 +22,18 @@
       />
     </header>
 
-    <div class="folder-list one-column">
-      <section
-        v-for="group of filter_results"
-        :key="group.title"
-        class="folder"
-      >
-        <header>
-          <div class="folder-name disabled">Deleted {{ group.title }}</div>
-        </header>
-        <ul class="contents">
+    <ul class="forest one-column">
+      <li v-for="group of filter_results" :key="group.title" class="folder">
+        <div class="forest-item">
+          <span class="forest-title disabled">Deleted {{ group.title }}</span>
+        </div>
+        <ul class="forest-children">
           <li v-for="rec of group.records" :key="rec.key">
             <DeletedItem :deletion="rec" :path="[]" />
           </li>
         </ul>
-      </section>
-    </div>
+      </li>
+    </ul>
 
     <LoadMore
       is="footer"

@@ -9,7 +9,7 @@
       <h1 class="title group-title">What's New in Tab Stash</h1>
     </header>
 
-    <div class="folder-list one-column">
+    <ul class="forest one-column">
       <Version v="2.12.0.1">
         <L v="Fixed">a packaging issue preventing upload to Mozilla.</L>
       </Version>
@@ -710,7 +710,7 @@
       <Version v="0.9">
         <li>Initial experimental release</li>
       </Version>
-    </div>
+    </ul>
   </main>
 </template>
 

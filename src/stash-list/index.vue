@@ -1,6 +1,6 @@
 <template>
   <main
-    :class="{'selection-active': selection_active}"
+    :class="{'stash-list': true, 'selection-active': selection_active}"
     tabindex="0"
     @click="deselectAll"
     @keydown.esc.prevent.stop="onEscape"
@@ -100,9 +100,9 @@
       />
     </header>
 
-    <div class="folder-list">
-      <window :tabs="tabs" :metadata="curWindowMetadata" />
-    </div>
+    <ul class="forest one-column">
+      <li><window :tabs="tabs" :metadata="curWindowMetadata" /></li>
+    </ul>
 
     <folder-list ref="stashed" v-if="stash_root" :parentFolder="stash_root" />
 

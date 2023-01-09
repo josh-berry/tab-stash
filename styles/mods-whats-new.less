@@ -6,15 +6,14 @@ main {
   user-select: text;
 }
 
-.folder > ul.contents {
-  padding: 0;
-  margin-left: calc(2 * var(--page-pw));
-  margin-right: var(--page-pw);
-  margin-top: 0;
-  list-style: disc;
-}
-li {
-  margin: var(--ctrl-mh) 0;
+.version-changes {
+  margin: var(--page-ph) var(--page-pw) !important;
+  padding-left: var(--page-pw);
+  & > li {
+    display: list-item;
+    list-style: disc;
+    margin: var(--ctrl-mh) 0;
+  }
 }
 
 span {

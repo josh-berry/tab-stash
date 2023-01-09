@@ -1,122 +1,139 @@
 <template>
-  <section
+  <div
     :class="{
+      'forest-item': true,
+      selectable: true,
       folder: true,
       'action-container': true,
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
+      selected: folder.$selected,
     }"
     :data-id="folder.id"
   >
-    <header>
+    <item-icon
+      :class="{
+        action: true,
+        select: true,
+        'icon-folder': !folder.$selected,
+        'icon-folder-selected-inverse': folder.$selected,
+      }"
+      @click.prevent.stop="select"
+    />
+
+    <Button
+      :class="{
+        'forest-collapse': true,
+        action: true,
+        collapse: !collapsed,
+        expand: collapsed,
+      }"
+      tooltip="Hide the tabs for this group"
+      @action="collapsed = !collapsed"
+    />
+    <ButtonBox v-if="selectedCount === 0" class="forest-toolbar">
       <Button
-        :class="{collapse: !collapsed, expand: collapsed}"
-        tooltip="Hide the tabs for this group"
-        @action="collapsed = !collapsed"
+        class="stash here"
+        @action="stash"
+        :tooltip="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
       />
-      <ButtonBox v-if="selectedCount === 0" class="folder-actions">
-        <Button
-          class="stash here"
-          @action="stash"
-          :tooltip="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
-        />
-        <Button
-          class="stash one here"
-          @action="stashOne"
-          :tooltip="
-            `Stash the active tab to this group ` +
-            `(hold ${altKey} to keep tabs open)`
-          "
-        />
-        <Button
-          class="restore"
-          @action="restoreAll"
-          :tooltip="
-            `Open all tabs in this group ` +
-            `(hold ${bgKey} to open in background)`
-          "
-        />
-        <Button
-          class="restore-remove"
-          @action="restoreAndRemove"
-          :tooltip="
-            `Open all tabs in the group and delete the group ` +
-            `(hold ${bgKey} to open in background)`
-          "
-        />
-        <Button class="remove" @action="remove" tooltip="Delete this group" />
-      </ButtonBox>
-
-      <ButtonBox v-else class="folder-actions">
-        <Button
-          class="stash here"
-          @action="move"
-          :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
-        />
-      </ButtonBox>
-
-      <span
-        v-if="!isRenaming"
-        class="folder-name ephemeral"
-        :title="tooltip"
-        @click.stop="isRenaming = true"
-        >{{ title }}</span
-      >
-      <async-text-input
-        v-else
-        class="folder-name ephemeral"
-        :title="tooltip"
-        :value="nonDefaultTitle"
-        :defaultValue="defaultTitle"
-        :save="rename"
-        @done="isRenaming = false"
+      <Button
+        class="stash one here"
+        @action="stashOne"
+        :tooltip="
+          `Stash the active tab to this group ` +
+          `(hold ${altKey} to keep tabs open)`
+        "
       />
-    </header>
+      <Button
+        class="restore"
+        @action="restoreAll"
+        :tooltip="
+          `Open all tabs in this group ` +
+          `(hold ${bgKey} to open in background)`
+        "
+      />
+      <Button
+        class="restore-remove"
+        @action="restoreAndRemove"
+        :tooltip="
+          `Open all tabs in the group and delete the group ` +
+          `(hold ${bgKey} to open in background)`
+        "
+      />
+      <Button class="remove" @action="remove" tooltip="Delete this group" />
+    </ButtonBox>
 
-    <div class="contents">
-      <dnd-list
-        class="tabs"
-        v-model="childrenWithTabs"
-        item-key="id"
-        :item-class="childClasses"
-        :accepts="accepts"
-        :drag="drag"
-        :drop="drop"
-      >
-        <template #item="{item}">
-          <bookmark
-            v-if="'url' in item.node"
-            :bookmark="item.node"
-            :relatedTabs="item.tabs"
-            :class="{'folder-item': true, 'no-match': !item.node.$visible}"
-          />
-          <child-folder
-            v-else-if="'children' in item.node"
-            :folder="item.node"
-            :metadata="model().bookmark_metadata.get(item.id)"
-            :class="{
-              hidden: !item.node.$visible && !item.node.$visibleChildren,
-            }"
-          />
-        </template>
-      </dnd-list>
+    <ButtonBox v-else class="forest-toolbar">
+      <Button
+        class="stash here"
+        @action="move"
+        :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
+      />
+    </ButtonBox>
 
-      <div class="folder-item" @click.prevent.stop="newChildFolder">
-        <span class="indent" />
-        <span class="text status-text">+ New Folder</span>
+    <span
+      v-if="!isRenaming"
+      class="forest-title ephemeral"
+      :title="tooltip"
+      @click.stop="isRenaming = true"
+      >{{ title }}</span
+    >
+    <async-text-input
+      v-else
+      class="forest-title ephemeral"
+      :title="tooltip"
+      :value="nonDefaultTitle"
+      :defaultValue="defaultTitle"
+      :save="rename"
+      @done="isRenaming = false"
+    />
+  </div>
+
+  <dnd-list
+    :class="{'forest-children': true, collapsed}"
+    v-model="childrenWithTabs"
+    item-key="id"
+    :item-class="childClasses"
+    :accepts="accepts"
+    :drag="drag"
+    :drop="drop"
+  >
+    <template #item="{item}">
+      <bookmark
+        v-if="'url' in item.node"
+        :bookmark="item.node"
+        :relatedTabs="item.tabs"
+        :class="{'folder-item': true, 'no-match': !item.node.$visible}"
+      />
+      <child-folder
+        v-else-if="'children' in item.node"
+        :folder="item.node"
+        :metadata="model().bookmark_metadata.get(item.id)"
+        :class="{
+          hidden: !item.node.$visible && !item.node.$visibleChildren,
+        }"
+      />
+    </template>
+  </dnd-list>
+
+  <ul :class="{'forest-children': true, collapsed}">
+    <li>
+      <div class="forest-item" @click.prevent.stop="newChildFolder">
+        <span class="forest-title status-text">+ New Folder</span>
       </div>
+    </li>
+    <li v-if="filterCount > 0">
       <div
-        class="folder-item"
-        v-if="filterCount > 0"
+        class="forest-item"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
-        <span class="indent" />
-        <span class="text status-text hidden-count">
+        <span class="forest-title status-text hidden-count">
           {{ showFiltered ? "-" : "+" }} {{ filterCount }} filtered
         </span>
       </div>
-    </div>
-  </section>
+    </li>
+  </ul>
 </template>
 
 <script lang="ts">
@@ -139,6 +156,7 @@ import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
 import DndList from "../components/dnd-list.vue";
+import ItemIcon from "../components/item-icon.vue";
 import BookmarkVue from "./bookmark.vue";
 
 type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
@@ -154,6 +172,7 @@ export default defineComponent({
     Button,
     DndList,
     Bookmark: BookmarkVue,
+    ItemIcon,
   },
 
   inject: ["$model"],
@@ -292,6 +311,16 @@ export default defineComponent({
     },
     attempt(fn: () => Promise<void>): Promise<void> {
       return this.model().attempt(fn);
+    },
+
+    select(ev: MouseEvent) {
+      this.model().attempt(async () => {
+        await this.model().selection.toggleSelectFromEvent(
+          ev,
+          this.model().bookmarks,
+          this.folder,
+        );
+      });
     },
 
     childClasses(nodet: NodeWithTabs): Record<string, boolean> {

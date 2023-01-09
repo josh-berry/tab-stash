@@ -1,6 +1,6 @@
 <template>
   <dnd-list
-    class="folder-list"
+    class="forest"
     v-model="children"
     item-key="id"
     :item-class="(f: Node) => ({

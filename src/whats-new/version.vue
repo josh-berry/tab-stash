@@ -1,18 +1,33 @@
 <template>
-  <section
-    :class="{folder: true, 'action-container': true, collapsed: is_collapsed}"
-  >
-    <header>
-      <span class="folder-name">Version {{ v }}</span>
+  <li>
+    <div
+      :class="{
+        'forest-item': true,
+        'action-container': true,
+        collapsed: is_collapsed,
+      }"
+    >
+      <span class="forest-title">Version {{ v }}</span>
       <Button
-        :class="{collapse: !is_collapsed, expand: is_collapsed}"
+        :class="{
+          'forest-collapse': true,
+          action: true,
+          collapse: !is_collapsed,
+          expand: is_collapsed,
+        }"
         @action="collapsed = !is_collapsed"
       />
-    </header>
-    <ul class="contents">
+    </div>
+    <ul
+      :class="{
+        'forest-children': true,
+        'version-changes': true,
+        collapsed: is_collapsed,
+      }"
+    >
       <slot />
     </ul>
-  </section>
+  </li>
 </template>
 
 <script lang="ts">
