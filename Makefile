@@ -162,7 +162,7 @@ icons: $(DARK_ICONS) $(LIGHT_ICONS) $(LOGO_ICONS) $(TOOLBAR_ICONS)
 
 dist/icons/dark/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#f9f9fa;fill-opacity:0.8"%g' <$< >$@
+	sed 's%style="[^"]*"%style="fill:#fbfbfe"%g' <$< >$@
 
 dist/icons/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
@@ -170,7 +170,7 @@ dist/icons/%.svg: icons/%.svg
 
 dist/icons/light/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#0c0c0d;fill-opacity:0.8"%g' <$< >$@
+	sed 's%style="[^"]*"%style="fill:#222426"%g' <$< >$@
 
 %-16.png: %.svg
 	inkscape "$<" -o "$@" -D -w 16 -h 16

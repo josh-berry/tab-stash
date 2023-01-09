@@ -54,9 +54,21 @@
   "page_action": {
     "default_title": "Stash this tab",
     "default_icon": {
-      "16": "icons/stash-one.svg",
-      "32": "icons/stash-one.svg"
+      "16": "icons/light/stash-one.svg",
+      "32": "icons/light/stash-one.svg"
     },
+    "theme_icons": [
+      {
+        "light": "icons/dark/stash-one.svg",
+        "dark": "icons/light/stash-one.svg",
+        "size": 16
+      },
+      {
+        "light": "icons/dark/stash-one.svg",
+        "dark": "icons/light/stash-one.svg",
+        "size": 32
+      }
+    ],
     "browser_style": false,
     "show_matches": ["<all_urls>"]
   },

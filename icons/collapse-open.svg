@@ -1,23 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- This Source Code Form is subject to the terms of the Mozilla Public
-   - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="16"
-   height="16"
-   viewBox="0 0 16 16"
+   width="96"
+   height="96"
+   viewBox="0 0 96 96"
    version="1.1"
    id="svg4"
-   sodipodi:docname="collapse-open.svg"
-   inkscape:version="0.92.2 5c3e80d, 2017-08-06">
+   sodipodi:docname="collapse-closed.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <metadata
      id="metadata10">
     <rdf:RDF>
@@ -40,20 +36,33 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="873"
-     inkscape:window-height="674"
+     inkscape:window-width="1728"
+     inkscape:window-height="1051"
      id="namedview6"
-     showgrid="false"
-     inkscape:zoom="14.75"
-     inkscape:cx="8"
-     inkscape:cy="8"
+     showgrid="true"
+     inkscape:zoom="8.65625"
+     inkscape:cx="29.516245"
+     inkscape:cy="48"
      inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-y="38"
      inkscape:window-maximized="0"
-     inkscape:current-layer="svg4" />
+     inkscape:current-layer="svg4"
+     inkscape:document-rotation="0"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid843"
+       spacingx="3"
+       spacingy="3"
+       empspacing="2" />
+  </sodipodi:namedview>
   <path
      fill="context-fill"
-     d="M8 12a1 1 0 0 1-.707-.293l-5-5a1 1 0 0 1 1.414-1.414L8 9.586l4.293-4.293a1 1 0 0 1 1.414 1.414l-5 5A1 1 0 0 1 8 12z"
+     d="M 48,63 15,30 C 8.9999999,24 2.9999999,27 8.9999999,33 L 39,63 c 3,3 6,6 9.000001,6 C 51,69 54,66 57,63 L 87,33 c 6,-6 0,-9 -6,-3 z"
      id="path2"
-     style="fill:#0c0c0d;fill-opacity:0.80000001" />
+     inkscape:connector-curvature="0"
+     style="opacity:0.994;fill:#808080;fill-opacity:1;stroke-width:6.0483"
+     sodipodi:nodetypes="ccccscccc" />
 </svg>

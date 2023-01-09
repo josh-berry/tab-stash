@@ -1,5 +1,5 @@
---- a/assets/manifest.json	2022-11-25 13:41:21
-+++ b/assets/manifest.json	2022-11-25 14:01:02
+--- a/assets/manifest.json	2022-12-10 17:52:31
++++ b/assets/manifest-chrome.json	2022-12-10 17:54:08
 @@ -34,8 +34,8 @@
    "browser_action": {
      "default_title": "Tab Stash",
@@ -11,51 +11,31 @@
      },
      "theme_icons": [
        {
-@@ -51,24 +51,6 @@
+@@ -50,27 +50,6 @@
+       }
      ],
      "browser_style": false
-   },
+-  },
 -  "page_action": {
 -    "default_title": "Stash this tab",
 -    "default_icon": {
--      "16": "icons/stash-one.svg",
--      "32": "icons/stash-one.svg"
+-      "16": "icons/light/stash-one.svg",
+-      "32": "icons/light/stash-one.svg"
 -    },
+-    "theme_icons": [
+-      {
+-        "light": "icons/dark/stash-one.svg",
+-        "dark": "icons/light/stash-one.svg",
+-        "size": 16
+-      },
+-      {
+-        "light": "icons/dark/stash-one.svg",
+-        "dark": "icons/light/stash-one.svg",
+-        "size": 32
+-      }
+-    ],
 -    "browser_style": false,
 -    "show_matches": ["<all_urls>"]
--  },
--  "sidebar_action": {
--    "default_title": "Tab Stash",
--    "default_icon": {
--      "16": "icons/logo.svg",
--      "32": "icons/logo.svg"
--    },
--    "default_panel": "stash-list.html?view=sidebar",
--    "browser_style": false
--  },
-   "options_ui": {
-     "page": "options.html",
-     "browser_style": true
-@@ -76,20 +58,8 @@
-   "commands": {
-     "_execute_browser_action": {
-       "suggested_key": {
--        "default": "Ctrl+Alt+T",
--        "mac": "MacCtrl+Shift+T"
--      }
--    },
--    "_execute_sidebar_action": {
--      "suggested_key": {
--        "default": "Ctrl+Alt+S",
--        "mac": "MacCtrl+Shift+S"
--      }
--    },
--    "_execute_page_action": {
--      "suggested_key": {
--        "default": "Ctrl+Alt+W",
--        "mac": "MacCtrl+Shift+W"
-+        "default": "Ctrl+Shift+Period",
-+        "mac": "MacCtrl+Shift+Period"
-       }
-     }
-   }
+   },
+   "sidebar_action": {
+     "default_title": "Tab Stash",
