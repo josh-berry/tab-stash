@@ -72,9 +72,16 @@
 }
 
 .forest-children {
-  // Nested children should be indented
+  // Nested children should be indented such that the left side of the icon
+  // lines up with the beginning of the title in the container.
   .forest-children {
-    padding-left: calc(var(--icon-btn-size) + var(--item-gap-w));
+    padding-left: calc(
+      var(--icon-btn-size) + var(--item-gap-w) - var(--icon-p)
+    );
+    .forest-item {
+      border-top-left-radius: var(--ctrl-border-radius);
+      border-bottom-left-radius: var(--ctrl-border-radius);
+    }
   }
 
   // Nested children should be hidden if the child is collapsed
@@ -139,9 +146,7 @@
   // above, so keep that in mind.
   //
   // 1:.forest-collapse, 2:.forest-icon, 3:.forest-title, 4:.forest-badge, 5:.forest-toolbar
-  grid-template-columns:
-    var(--page-pw) calc(var(--icon-btn-size) + var(--item-gap-w))
-    1fr 0fr 0fr;
+  grid-template-columns: var(--page-pw) var(--icon-btn-size) 1fr 0fr 0fr;
 
   // No column-gap because we assign margins to individual items
   align-items: center;
@@ -157,7 +162,6 @@
   & > .forest-icon {
     grid-row: 1;
     grid-column: 2;
-    margin-right: var(--item-gap-w);
   }
 
   & > .forest-title {
@@ -168,13 +172,11 @@
   & > .forest-badge {
     grid-row: 1;
     grid-column: 4;
-    margin-left: var(--item-gap-w);
   }
 
   & > .forest-toolbar {
     grid-row: 1;
     grid-column: 5;
-    margin-left: var(--item-gap-w);
   }
 
   &.selectable {
@@ -239,12 +241,17 @@
   }
 
   & > .forest-title {
+    padding: 0 calc(var(--item-gap-w) / 2);
+    margin: 0 calc(var(--item-gap-w) / 2);
+
     height: var(--item-h);
     /* to vertically center text while text-overflow: ellipsis; */
     line-height: var(--item-h);
     .text-overflow-ellipsis();
+  }
 
-    // Don't double-highlight titles that are links
+  // Don't double-highlight titles that are also links
+  & > a.forest-title {
     &:hover,
     &:focus-within,
     &:active {
@@ -309,7 +316,7 @@
   & > li {
     // Make sure the sidebar/panel views have a visible gap between groups.
     // This should be overridden in the tab view.
-    margin: var(--page-ph) 0;
+    margin: calc(2 * var(--page-ph)) 0;
 
     & > .forest-item {
       // If there's no icon for the top-level group, don't leave space for it
@@ -333,12 +340,6 @@
         &:hover,
         &:focus-within {
           background-color: inherit;
-
-          // Don't outline the selection button, because it's easier to see in the
-          // group title and it's generally inconsistent with the rest of the UI
-          .action.select {
-            box-shadow: none;
-          }
         }
       }
     }

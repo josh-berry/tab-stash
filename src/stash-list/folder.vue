@@ -31,7 +31,7 @@
       tooltip="Hide the tabs for this group"
       @action="collapsed = !collapsed"
     />
-    <ButtonBox v-if="selectedCount === 0" class="forest-toolbar">
+    <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
       <Button
         class="stash here"
         @action="stash"
@@ -64,7 +64,7 @@
       <Button class="remove" @action="remove" tooltip="Delete this group" />
     </ButtonBox>
 
-    <ButtonBox v-else class="forest-toolbar">
+    <ButtonBox v-else-if="!isRenaming" class="forest-toolbar">
       <Button
         class="stash here"
         @action="move"
@@ -74,14 +74,14 @@
 
     <span
       v-if="!isRenaming"
-      class="forest-title ephemeral"
+      class="forest-title editable"
       :title="tooltip"
       @click.stop="isRenaming = true"
       >{{ title }}</span
     >
     <async-text-input
       v-else
-      class="forest-title ephemeral"
+      class="forest-title editable"
       :title="tooltip"
       :value="nonDefaultTitle"
       :defaultValue="defaultTitle"

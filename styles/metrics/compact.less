@@ -30,8 +30,7 @@
   font-size: 8.5pt;
 }
 
-.folder-name,
-.group-title {
+& .forest > li > .forest-item > .forest-title {
   // NOTE: The font and other sizes here are designed to make the heading
   // height the same as the icon toolbar height, which is the minimum height
   // we can support without things looking weird when toolbar buttons appear
@@ -39,36 +38,10 @@
   font-size: var(--icon-size);
   font-weight: 600;
 
-  height: calc(var(--icon-btn-size) - 2 * var(--input-text-ph));
+  height: calc(var(--icon-btn-size));
 
   // The line-height is needed to correct for oddities when this folder name
   // is an ephemeral text box--without it, switching between the <input> and
   // the <span> produces some vertical displacement.
-  line-height: calc(var(--icon-btn-size) - 2 * var(--input-text-ph));
-}
-
-&.view-sidebar,
-&.view-popup {
-  // TODO duplicates what's in view-tab.less
-  .folder {
-    & > header {
-      & > nav.folder-actions {
-        grid-row: 1;
-        grid-column: 3;
-        display: none;
-      }
-      & > input.folder-name {
-        // When the folder name is being edited, make it overlap the
-        // folder-actions so it's easier to see the full name in narrow
-        // situations (like the sidebar).
-        grid-column: 1 / 4;
-      }
-    }
-    &:hover > header,
-    &:focus-within > header {
-      & > nav.folder-actions {
-        display: flex;
-      }
-    }
-  }
+  line-height: calc(var(--icon-btn-size));
 }

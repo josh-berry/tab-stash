@@ -40,7 +40,7 @@
     </a>
     <async-text-input
       v-else
-      class="forest-title ephemeral"
+      class="forest-title editable"
       :value="bookmark.title"
       :defaultValue="defaultTitle"
       :save="rename"

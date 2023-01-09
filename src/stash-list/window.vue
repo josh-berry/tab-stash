@@ -68,7 +68,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
     </nav>
 
     <span
-      :class="{'forest-title': true, ephemeral: true, disabled: true}"
+      :class="{'forest-title': true, editable: true, disabled: true}"
       :title="tooltip"
       @click.prevent.stop="toggleMode"
       >{{ title }}</span
