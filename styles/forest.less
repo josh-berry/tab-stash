@@ -151,6 +151,7 @@
   & > .forest-collapse {
     grid-row: 1;
     grid-column: 1;
+    width: var(--page-pw);
   }
 
   & > .forest-icon {
@@ -210,6 +211,10 @@
     &:hover,
     &:focus-within {
       background-color: var(--item-hover-bg);
+
+      &.selected {
+        background-color: var(--selected-hover-bg);
+      }
 
       .action.select {
         box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
@@ -324,14 +329,16 @@
       }
 
       // Don't change the background color as if the group were a regular item
-      &:hover,
-      &:focus-within {
-        background-color: inherit;
+      &:not(.selected) {
+        &:hover,
+        &:focus-within {
+          background-color: inherit;
 
-        // Don't outline the selection button, because it's easier to see in the
-        // group title and it's generally inconsistent with the rest of the UI
-        .action.select {
-          box-shadow: none;
+          // Don't outline the selection button, because it's easier to see in the
+          // group title and it's generally inconsistent with the rest of the UI
+          .action.select {
+            box-shadow: none;
+          }
         }
       }
     }

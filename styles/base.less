@@ -169,6 +169,11 @@ label {
 .selected {
   background-color: var(--selected-bg);
   font-weight: bold;
+
+  &:hover,
+  &:focus-within {
+    background-color: var(--selected-hover-bg);
+  }
 }
 
 .dragging {
