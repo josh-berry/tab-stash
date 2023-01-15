@@ -28,10 +28,10 @@
      id="namedview5971"
      showgrid="true"
      inkscape:zoom="7.2708333"
-     inkscape:cx="48"
+     inkscape:cx="48.206304"
      inkscape:cy="48"
      inkscape:window-x="102"
-     inkscape:window-y="82"
+     inkscape:window-y="54"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10"
      inkscape:showpageshadow="2"
@@ -69,7 +69,7 @@
      id="path396-3" />
   <path
      style="color:#000000;opacity:0.994;fill:#808080;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
-     d="M 30,6 C 24,6 18,12 18,18 v 6 c 0,3 -3,6 -6,6 -6,0 -6,6 0,6 h 72 c 6,0 6,-6 0,-6 -3,0 -6,-3 -6,-6 V 18 C 78,12 72,6 66,6 Z m -6,12 c 0,-3 3,-6 6,-6 h 36 c 3,0 6,3 6,6 v 6 c 0,3 -3,6 -6,6 l -36,1e-6 C 27,30 24,27 24,24 c 0,-3 0.02717,-1.109045 0,-6 z"
+     d="m 36,6 c -9,0 -18,9 -18,18 0,3 -3,6 -6,6 -6,0 -6,6 0,6 h 72 c 6,0 6,-6 0,-6 -3,0 -6,-3 -6,-6 C 78,15 69,6 60,6 Z m 0,6 h 24 c 6,0 12,6 12,12 0,3 -3,6 -6,6 l -36,1e-6 C 27,30 24,27 24,24 24,18 30,12 36,12 Z"
      id="rect480"
-     sodipodi:nodetypes="cccccccccccccccccccc" />
+     sodipodi:nodetypes="cccccccccccccccc" />
 </svg>

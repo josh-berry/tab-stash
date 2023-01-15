@@ -31,10 +31,10 @@
      id="namedview9"
      showgrid="true"
      inkscape:zoom="5.53125"
-     inkscape:cx="19.163842"
+     inkscape:cx="47.909605"
      inkscape:cy="48"
      inkscape:window-x="542"
-     inkscape:window-y="200"
+     inkscape:window-y="172"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10"
      inkscape:pagecheckerboard="0"
@@ -64,8 +64,8 @@
   <defs
      id="defs14" />
   <path
-     style="color:#000000;opacity:0.994;fill:#808080;stroke-linecap:round;stroke-linejoin:round;fill-opacity:1"
-     d="m 24,30 c -6,0 -12,6 -12,12 v 12 c 0,3 -3,6 -6,6 -6,0 -6,6 0,6 h 84 c 6,0 6,-6 0,-6 -3,0 -6,-3 -6,-6 V 42 C 84,36 78,30 72,30 Z"
-     id="rect480"
-     sodipodi:nodetypes="ccccccccccc" />
+     style="color:#000000;opacity:0.994;fill:#808080;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     d="m 33,30 c -12,0 -21,12 -21,24 0,3 -3,6 -6,6 -6,0 -6,6 0,6 h 84 c 6,0 6,-6 0,-6 -3,0 -6,-3 -6,-6 C 84,42 75,30 63,30 Z"
+     id="rect480-5"
+     sodipodi:nodetypes="ccccccccc" />
 </svg>
