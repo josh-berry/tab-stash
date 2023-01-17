@@ -13,6 +13,7 @@ import {
 } from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
+import {pathTo, type Position, type Tree} from "./tree";
 
 /** A node in the bookmark tree. */
 export type Node = Bookmark | Separator | Folder;
@@ -59,7 +60,7 @@ const ROOT_FOLDER_HELP =
  * some slight changes to handle hierarchy in the same manner as `tabs.ts`, and
  * ensure the state is JSON-serializable.
  */
-export class Model {
+export class Model implements Tree<Folder, Bookmark | Separator> {
   private readonly by_id = new Map<NodeID, Node>();
   private readonly by_url = new Map<OpenableURL, Set<Bookmark>>();
 
@@ -212,11 +213,15 @@ export class Model {
     return index;
   }
 
+  isParent(node: Node): node is Folder {
+    return isFolder(node);
+  }
+
   /** Given a child node, return its parent and the index of the child in the
    * parent's children.  Returns `undefined` if the child has no parent (i.e.
    * its `parentId === undefined`), if the parent itself cannot be located, or
    * if the child cannot be located inside the parent. */
-  positionOf(node: Node): NodePosition | undefined {
+  positionOf(node: Node): Position<Folder> | undefined {
     const parent = this.folder(node.parentId);
     if (!parent) return undefined;
 
@@ -255,18 +260,8 @@ export class Model {
   /** Given a bookmark node, return the path from the root to the node as an
    * array of NodePositions.  If the node is not present in the tree, throws
    * an exception. */
-  pathTo(node: Node): NodePosition[] {
-    const path = [];
-    while (node.parentId) {
-      const pos = expect(
-        this.positionOf(node),
-        () => `Can't find position of node: ${node.id}`,
-      );
-      path.push(pos);
-      node = pos.parent;
-    }
-    path.reverse();
-    return path;
+  pathTo(node: Node): Position<Folder>[] {
+    return pathTo(this, node);
   }
 
   /** Checks if a particular bookmark is a direct child of a stash folder

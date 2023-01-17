@@ -36,34 +36,32 @@
       v-model="searchText"
       @click.stop=""
       @keypress.enter.prevent.stop="
-        moveToSearch($event);
+        create($event);
         closeMenu();
       "
     />
 
-    <button
-      :class="{selected: searchText === '' || stashFolders.length === 0}"
-      :title="createTooltip"
-      @click.prevent="create"
-    >
+    <button :title="createTooltip" @click.prevent="create">
       <span class="icon icon-new-empty-group"></span>
       <span>{{ createTitle }}</span>
     </button>
 
     <hr />
 
-    <div :class="$style.list" tabindex="-1">
-      <button
-        v-for="(folder, index) of stashFolders"
-        :class="{selected: index === 0 && searchText !== ''}"
-        :title="`Move to &quot;${friendlyFolderName(
-          folder.title,
-        )}&quot; (hold ${altKey} to copy)`"
-        @click.prevent="moveTo($event, folder.id)"
-      >
-        {{ friendlyFolderName(folder.title) }}
-      </button>
-    </div>
+    <select-folder
+      v-if="model().bookmarks.stash_root.value"
+      :class="$style.list"
+      :tree="filteredTree"
+      :folder="filteredTree.wrappedParent(model().bookmarks.stash_root.value!)"
+      :tooltips="
+        f =>
+          `Move to &quot;${friendlyFolderName(
+            f.title,
+          )}&quot; (hold ${altKey} to copy)`
+      "
+      :button-classes="f => ({}) /* TODO selection */"
+      @select="moveTo"
+    />
 
     <hr />
 
@@ -81,13 +79,20 @@
 import {defineComponent} from "vue";
 
 import type {Model} from "../model";
-import {friendlyFolderName, type Folder, type NodeID} from "../model/bookmarks";
-import {altKeyName, filterMap, textMatcher} from "../util";
+import {
+  friendlyFolderName,
+  type Bookmark,
+  type Folder,
+  type Separator,
+} from "../model/bookmarks";
+import {altKeyName, textMatcher} from "../util";
 
+import {FilteredTree} from "@/model/filtered-tree";
 import Menu from "../components/menu.vue";
+import SelectFolder from "./select-folder.vue";
 
 export default defineComponent({
-  components: {Menu},
+  components: {Menu, SelectFolder},
 
   // If `props` is an empty object, Vue thinks the props of the component are of
   // type `unknown` rather than `{}`. See:
@@ -104,23 +109,22 @@ export default defineComponent({
   computed: {
     altKey: altKeyName,
 
+    filteredTree(): FilteredTree<Folder, Bookmark | Separator> {
+      const bm = this.model().bookmarks;
+      return new FilteredTree<Folder, Bookmark | Separator>(bm, node => {
+        const res =
+          bm.isParent(node) && this.filter(friendlyFolderName(node.title));
+        console.log(node.title, res);
+        return res;
+      });
+    },
+
     selectedCount(): number {
       return this.model().selection.selectedCount.value;
     },
 
-    stashFolders(): Folder[] {
-      const bookmarks = this.model().bookmarks;
-      const stash_root = bookmarks.stash_root.value;
-      if (!stash_root) return [];
-      return filterMap(stash_root.children, id => {
-        const node = bookmarks.node(id);
-        if (node && "children" in node) return node as Folder;
-        return undefined;
-      }).filter(node => this.filter(node.title));
-    },
-
     filter(): (text: string) => boolean {
-      return textMatcher(friendlyFolderName(this.searchText));
+      return textMatcher(this.searchText);
     },
 
     createTitle(): string {
@@ -131,7 +135,7 @@ export default defineComponent({
     createTooltip(): string {
       const copy = `(hold ${this.altKey} to copy)`;
       if (this.searchText === "") return `Move to a new group ${copy}`;
-      return `Move to new group "${this.searchText} ${copy}"`;
+      return `Move to new group "${this.searchText}" ${copy}`;
     },
   },
 
@@ -157,35 +161,26 @@ export default defineComponent({
     create(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         const model = this.model();
-        let folder;
+        let folder: Folder;
         if (!this.searchText) {
           folder = await model.bookmarks.createStashFolder();
         } else {
           const stash_root = await model.bookmarks.ensureStashRoot();
-          folder = await model.bookmarks.create({
+          folder = (await model.bookmarks.create({
             parentId: stash_root.id,
             title: this.searchText,
             index: 0,
-          });
+          })) as Folder;
         }
-        this.moveTo(ev, folder.id);
+        this.moveTo(ev, folder);
       });
     },
 
-    moveToSearch(ev: MouseEvent | KeyboardEvent) {
-      if (this.searchText === "" || this.stashFolders.length === 0) {
-        this.create(ev);
-      } else {
-        const folder = this.stashFolders[0];
-        this.moveTo(ev, folder.id);
-      }
-    },
-
-    moveTo(ev: MouseEvent | KeyboardEvent, id: NodeID) {
+    moveTo(ev: MouseEvent | KeyboardEvent, folder: Folder) {
       this.attempt(() =>
         this.model().putSelectedInFolder({
           copy: ev.altKey,
-          toFolderId: id,
+          toFolderId: folder.id,
         }),
       );
     },
@@ -217,5 +212,13 @@ export default defineComponent({
   flex-direction: column;
   padding-left: 0 !important;
   padding-right: 0 !important;
+}
+.list ul {
+  padding-left: var(--menu-mw);
+}
+.list li {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
 }
 </style>
