@@ -88,10 +88,10 @@
       <SelectionMenu v-if="selection_active" />
 
       <search-input
+        ref="search"
         :tooltip="searchTooltip"
         :placeholder="search_placeholder"
         v-model="searchText"
-        :focus-on-mount="focusSearchOnMount"
       />
       <Button
         :class="{collapse: !collapsed, expand: collapsed}"
@@ -272,10 +272,6 @@ export default defineComponent({
       } open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
     },
 
-    focusSearchOnMount(): boolean {
-      return document.documentElement.classList.contains("view-popup");
-    },
-
     curWindowMetadata(): BookmarkMetadataEntry {
       return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
     },
@@ -286,6 +282,10 @@ export default defineComponent({
   },
 
   mounted() {
+    if (document.documentElement.classList.contains("view-popup")) {
+      (<any>this.$refs.search).focus();
+    }
+
     // The following block of code is just to help me test out progress
     // dialogs (since they only appear for a limited time when things are
     // happening):

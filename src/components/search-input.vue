@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-import {computed, onMounted, ref} from "vue";
+import {computed, ref} from "vue";
 </script>
 
 <script setup lang="ts">
@@ -30,7 +30,6 @@ const props = defineProps<{
   ariaLabel?: string;
 
   modelValue: string;
-  focusOnMount?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -48,7 +47,11 @@ const modelValue = computed({
 
 const $search = ref(undefined! as HTMLInputElement);
 
-if (props.focusOnMount) onMounted(() => $search.value.focus());
+defineExpose({
+  focus() {
+    $search.value.focus();
+  },
+});
 
 function clear() {
   emit("update:modelValue", "");

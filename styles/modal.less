@@ -112,7 +112,12 @@ details.menu {
   flex-direction: column;
   overflow: auto;
 
-  & input {
+  & > * {
+    margin: 0;
+  }
+
+  & > input,
+  & > .search-input {
     margin: var(--ctrl-mh) var(--ctrl-mw);
   }
 
@@ -120,7 +125,6 @@ details.menu {
   & button,
   & .menu-item {
     cursor: default;
-    margin: 0;
     // Extra 16px is for scroll bars, should they appear...
     padding: 0 calc(var(--menu-mw) + 16px) 0 var(--menu-mw);
 
@@ -156,7 +160,7 @@ details.menu {
     }
   }
 
-  & hr {
+  & > hr {
     margin: var(--menu-mh) 0;
     padding: 0;
     border: none;

@@ -29,9 +29,8 @@
 
     <hr />
 
-    <input
+    <search-input
       ref="search"
-      type="search"
       placeholder="Search or create group"
       v-model="searchText"
       @click.stop=""
@@ -89,10 +88,11 @@ import {altKeyName, textMatcher} from "../util";
 
 import {FilteredTree} from "@/model/filtered-tree";
 import Menu from "../components/menu.vue";
+import SearchInput from "../components/search-input.vue";
 import SelectFolder from "./select-folder.vue";
 
 export default defineComponent({
-  components: {Menu, SelectFolder},
+  components: {Menu, SearchInput, SelectFolder},
 
   // If `props` is an empty object, Vue thinks the props of the component are of
   // type `unknown` rather than `{}`. See:
@@ -111,12 +111,11 @@ export default defineComponent({
 
     filteredTree(): FilteredTree<Folder, Bookmark | Separator> {
       const bm = this.model().bookmarks;
-      return new FilteredTree<Folder, Bookmark | Separator>(bm, node => {
-        const res =
-          bm.isParent(node) && this.filter(friendlyFolderName(node.title));
-        console.log(node.title, res);
-        return res;
-      });
+      return new FilteredTree<Folder, Bookmark | Separator>(
+        bm,
+        node =>
+          bm.isParent(node) && this.filter(friendlyFolderName(node.title)),
+      );
     },
 
     selectedCount(): number {
@@ -155,7 +154,7 @@ export default defineComponent({
 
     onOpenMenu() {
       this.searchText = "";
-      (<HTMLElement>this.$refs.search).focus();
+      (<any>this.$refs.search).focus();
     },
 
     create(ev: MouseEvent | KeyboardEvent) {
