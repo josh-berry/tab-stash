@@ -192,6 +192,13 @@ label {
       margin: calc(-1 * var(--item-h) / 2) 0;
       z-index: 1;
 
+      // Uncomment for debugging DnD ghost placement:
+      // &:not(.dropping-here) {
+      //   box-shadow: inset var(--ghost-border-width) var(--ghost-border-width)
+      //     var(--ctrl-border-clr);
+      //   border-radius: var(--ctrl-border-radius);
+      // }
+
       &.dropping-here {
         background: linear-gradient(
             to bottom,
