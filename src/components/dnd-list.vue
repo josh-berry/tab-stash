@@ -9,6 +9,7 @@
   >
     <template v-for="(item, index) of displayItems" :key="item[itemKey]">
       <component
+        v-if="index === ghostIndex"
         :is="itemIs || 'li'"
         :style="index === ghostIndex && ghostStyle"
         :class="{
