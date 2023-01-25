@@ -9,6 +9,7 @@
       active: tabState.active,
       loading: tabState.loading,
       selected: bookmark.$selected,
+      'no-match': !bookmark.$visible,
     }"
     :title="bookmark.title"
     :data-id="bookmark.id"

@@ -8,6 +8,7 @@
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
       selected: folder.$selected,
+      hidden: !folder.$visible && !folder.$visibleChildren,
     }"
     :data-id="folder.id"
   >
@@ -104,15 +105,11 @@
         v-if="'url' in item.node"
         :bookmark="item.node"
         :relatedTabs="item.tabs"
-        :class="{'folder-item': true, 'no-match': !item.node.$visible}"
       />
       <child-folder
         v-else-if="'children' in item.node"
         :folder="item.node"
         :metadata="model().bookmark_metadata.get(item.id)"
-        :class="{
-          hidden: !item.node.$visible && !item.node.$visibleChildren,
-        }"
       />
     </template>
   </dnd-list>

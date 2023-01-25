@@ -233,6 +233,45 @@
       filter: saturate(0.7);
     }
   }
+
+  // For folders with open tabs, we want to change their text color slightly
+  // to indicate this
+  &.has-open-tabs > .forest-title {
+    color: var(--userlink-fg);
+  }
+
+  // Colorize tabs that are open inside containers
+  &[data-container-color] {
+    box-shadow: var(--container-indicator-shadow-style)
+      var(--container-indicator-color);
+  }
+  &[data-container-color="blue"] {
+    --container-indicator-color: var(--container-color-blue);
+  }
+  &[data-container-color="turquoise"] {
+    --container-indicator-color: var(--container-color-turquoise);
+  }
+  &[data-container-color="green"] {
+    --container-indicator-color: var(--container-color-green);
+  }
+  &[data-container-color="yellow"] {
+    --container-indicator-color: var(--container-color-yellow);
+  }
+  &[data-container-color="orange"] {
+    --container-indicator-color: var(--container-color-orange);
+  }
+  &[data-container-color="red"] {
+    --container-indicator-color: var(--container-color-red);
+  }
+  &[data-container-color="pink"] {
+    --container-indicator-color: var(--container-color-pink);
+  }
+  &[data-container-color="purple"] {
+    --container-indicator-color: var(--container-color-purple);
+  }
+  &[data-container-color="toolbar"] {
+    --container-indicator-color: var(--container-color-toolbar);
+  }
 }
 
 @keyframes tab-loading-spinner {
