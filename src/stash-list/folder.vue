@@ -29,8 +29,8 @@
         collapse: !collapsed,
         expand: collapsed,
       }"
-      tooltip="Hide the tabs for this group"
-      @action="collapsed = !collapsed"
+      :tooltip="`Hide the tabs for this group (hold ${altKey} to hide tabs for child folders)`"
+      @action="toggleCollapsed"
     />
     <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
       <Button
@@ -320,6 +320,29 @@ export default defineComponent({
     },
     attempt(fn: () => Promise<void>): Promise<void> {
       return this.model().attempt(fn);
+    },
+
+    toggleCollapsed(ev: MouseEvent) {
+      if (!ev.altKey) {
+        // We're just toggling ourself.
+        this.collapsed = !this.collapsed;
+        return;
+      }
+
+      // Toggle the collapsed state of all the child folders
+      const folders = filterMap(this.validChildren, c =>
+        "children" in c ? c : undefined,
+      );
+      if (folders.length === 0) return;
+
+      // We just snoop on the collapsed state of the first folder because it's
+      // easier
+      const collapsed =
+        this.model().bookmark_metadata.get(folders[0].id).value?.collapsed ||
+        false;
+      for (const f of folders) {
+        this.model().bookmark_metadata.setCollapsed(f.id, !collapsed);
+      }
     },
 
     select(ev: MouseEvent) {
