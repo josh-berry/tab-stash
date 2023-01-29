@@ -137,7 +137,13 @@
 import {defineComponent, type PropType} from "vue";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
-import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
+import {
+  altKeyName,
+  bgKeyName,
+  bgKeyPressed,
+  filterMap,
+  required,
+} from "../util";
 
 import type {Model, StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
@@ -286,14 +292,20 @@ export default defineComponent({
       return `${this.title}\n${statstip}`;
     },
 
-    validChildren(): Bookmark[] {
-      return this.children.filter(c => this.isValidChild(c)) as Bookmark[];
+    validChildren(): (Bookmark | Folder)[] {
+      return filterMap(this.children, c =>
+        this.isValidChild(c) ? c : undefined,
+      );
     },
-    visibleChildren(): Bookmark[] {
+    visibleChildren(): (Bookmark | Folder)[] {
       return this.validChildren.filter(c => c.$visible);
     },
     filterCount(): number {
       return this.validChildren.length - this.visibleChildren.length;
+    },
+
+    leafChildren(): Bookmark[] {
+      return filterMap(this.children, c => ("url" in c ? c : undefined));
     },
 
     selectedCount(): number {
@@ -330,7 +342,7 @@ export default defineComponent({
       };
     },
 
-    isValidChild(node: Node): boolean {
+    isValidChild(node: Node): node is Folder | Bookmark {
       return "url" in node || "children" in node;
     },
 
@@ -374,7 +386,7 @@ export default defineComponent({
 
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        await this.model().restoreTabs(this.validChildren, {
+        await this.model().restoreTabs(this.leafChildren, {
           background: bgKeyPressed(ev),
         });
       });
@@ -390,8 +402,14 @@ export default defineComponent({
       this.attempt(async () => {
         const bg = bgKeyPressed(ev);
 
-        await this.model().restoreTabs(this.validChildren, {background: bg});
-        await this.model().deleteBookmarkTree(this.folder.id);
+        await this.model().restoreTabs(this.leafChildren, {background: bg});
+
+        if (this.leafChildren.length === this.children.length) {
+          await this.model().deleteBookmarkTree(this.folder.id);
+        } else {
+          const children = this.leafChildren.map(c => c.id);
+          await this.model().deleteItems(children);
+        }
       });
     },
 
