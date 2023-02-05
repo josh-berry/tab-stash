@@ -14,6 +14,7 @@
       class="clear"
       aria-label="Clear Search"
       title="Clear search"
+      tabindex="-1"
       @click.prevent.stop="clear"
     />
   </div>
