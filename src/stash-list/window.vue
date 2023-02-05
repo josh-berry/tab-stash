@@ -85,21 +85,17 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
     :drop="drop"
   >
     <template #item="{item}">
-      <tab
-        v-if="isValidChild(item)"
-        :tab="item"
-        :class="{'folder-item': true, 'no-match': !item.$visible}"
-      />
+      <tab v-if="isValidChild(item)" :tab="item" />
     </template>
   </dnd-list>
 
   <ul :class="{'forest-children': true, collapsed}">
     <li v-if="filteredCount > 0">
       <div
-        class="forest-item"
+        class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
-        <span class="forest-title status-text hidden-count">
+        <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }} {{ filteredCount }} filtered
         </span>
       </div>
@@ -260,7 +256,10 @@ export default defineComponent({
 
     childClasses(t: Tab): Record<string, boolean> {
       return {
-        hidden: !(this.isValidChild(t) && (this.showFiltered || t.$visible)),
+        hidden: !(
+          this.isValidChild(t) &&
+          (this.showFiltered || t.$visible || t.$selected)
+        ),
       };
     },
 

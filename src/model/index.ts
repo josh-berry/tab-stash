@@ -297,22 +297,8 @@ export class Model {
   setFilter(text: string) {
     const filter = textMatcher(text);
 
-    this.bookmarks.filter.value = node => {
-      if (filter(node.title)) return true;
-
-      if ("url" in node) {
-        if (filter(node.url)) return true;
-      } else if ("children" in node) {
-        // Filter should pass if any of its children are not filtered
-        // (so the parent is visible in the UI)
-        const visible_child = node.children.find(
-          id => this.bookmarks.node(id)?.$visible,
-        );
-        if (visible_child) return true;
-      }
-
-      return false;
-    };
+    this.bookmarks.filter.value = node =>
+      filter(node.title) || ("url" in node && filter(node.url));
 
     this.tabs.filter.value = t =>
       (!!t.title && filter(t.title)) || (!!t.url && filter(t.url));

@@ -10,6 +10,7 @@
       loading: isLoading,
       stashed: stashedIn.length > 0,
       selected: tab.$selected,
+      'no-match': !tab.$visible,
     }"
     :title="tab.title"
     :data-id="tab.id"

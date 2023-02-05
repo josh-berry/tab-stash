@@ -173,9 +173,9 @@
   &.no-match {
     // When we are searching, dim items which wouldn't show up in a search,
     // except that their parent folder matches the search.
-    & > a.forest-title,
-    & > a.forest-title:visited,
-    &.open > a.forest-title {
+    & > .forest-title,
+    & > .forest-title:visited,
+    &.open > .forest-title {
       .status-text();
       text-decoration: line-through;
     }
@@ -299,11 +299,6 @@
 // Mods for specific pages/views.  All of these assume the sidebar-view styling
 // is in effect (which, for historical reasons, is the default view).
 //
-
-// For the deleted items page:
-.folder-item.deleted > .item-icon {
-  opacity: 60%;
-}
 
 html.view-tab {
   @import "view-tab";

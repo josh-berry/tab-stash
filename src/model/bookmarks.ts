@@ -1,4 +1,4 @@
-import {computed, reactive, ref, watch, type Ref} from "vue";
+import {computed, reactive, ref, type Ref} from "vue";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
@@ -44,6 +44,7 @@ export type NodePosition = {parent: Folder; index: number};
 export type FolderStats = {
   bookmarkCount: number;
   folderCount: number;
+  selectedCount: number;
 };
 
 export function isBookmark(node: Node): node is Bookmark {
@@ -96,7 +97,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
    * The invariant is: this should only be updated by assigning to a node's
    * `$selected` field.  That will trigger a watch which will adjust the count
    * up or down by one. */
-  readonly selectedCount = ref(0);
+  readonly selectedCount = computed(
+    () => this.stash_root.value?.$recursiveStats.selectedCount || 0,
+  );
 
   /** A filter function--assign to this to filter bookmarks using the
    * function.  Each bookmark's $visible property will be updated
@@ -513,13 +516,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
         return false;
       });
       const $selected = ref(false);
-      watch($selected, (value, oldValue) => {
-        // INVARIANT: Nodes outside the stash root must not be selected.
-        // istanbul ignore if -- probably never happens in reality
-        if (value === oldValue) return;
-        if (value) ++this.selectedCount.value;
-        else --this.selectedCount.value;
-      });
 
       if (isBrowserBTNFolder(new_bm)) {
         const folder: Folder = reactive({
@@ -534,25 +530,29 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
           $stats: computed(() => {
             let bookmarkCount = 0;
             let folderCount = 0;
+            let selectedCount = 0;
             for (const c of folder.children) {
               const n = this.node(c);
               if (!n) continue;
               if (isFolder(n)) ++folderCount;
               if (isBookmark(n)) ++bookmarkCount;
+              if (n.$selected) ++selectedCount;
             }
-            return {bookmarkCount, folderCount};
+            return {bookmarkCount, folderCount, selectedCount};
           }),
           $recursiveStats: computed(() => {
             let bookmarkCount = folder.$stats.bookmarkCount;
             let folderCount = folder.$stats.folderCount;
+            let selectedCount = folder.$stats.selectedCount;
             for (const c of folder.children) {
               const f = this.folder(c);
               if (!f) continue;
               const stats = f.$recursiveStats;
               bookmarkCount += stats.bookmarkCount;
               folderCount += stats.folderCount;
+              selectedCount += stats.selectedCount;
             }
-            return {bookmarkCount, folderCount};
+            return {bookmarkCount, folderCount, selectedCount};
           }),
         });
         node = folder;

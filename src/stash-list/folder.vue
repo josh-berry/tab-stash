@@ -8,7 +8,7 @@
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
       selected: folder.$selected,
-      hidden: !folder.$visible && !folder.$visibleChildren,
+      'no-match': !folder.$visible,
     }"
     :data-id="folder.id"
   >
@@ -121,16 +121,16 @@
 
   <ul :class="{'forest-children': true, collapsed}">
     <li>
-      <div class="forest-item" @click.prevent.stop="newChildFolder">
+      <div class="forest-item selectable" @click.prevent.stop="newChildFolder">
         <span class="forest-title status-text">+ New Folder</span>
       </div>
     </li>
     <li v-if="filterCount > 0">
       <div
-        class="forest-item"
+        class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
-        <span class="forest-title status-text hidden-count">
+        <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }} {{ filterCount }} filtered
         </span>
       </div>
@@ -367,7 +367,10 @@ export default defineComponent({
       return {
         hidden: !(
           this.isValidChild(node) &&
-          (this.showFiltered || node.$visible)
+          (this.showFiltered ||
+            node.$visible ||
+            node.$selected ||
+            ("$recursiveStats" in node && node.$recursiveStats.selectedCount))
         ),
       };
     },

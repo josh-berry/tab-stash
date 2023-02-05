@@ -232,7 +232,7 @@ export default defineComponent({
 
     counts(): FolderStats {
       const stats = this.stash_root?.$recursiveStats;
-      if (!stats) return {bookmarkCount: 0, folderCount: 0};
+      if (!stats) return {bookmarkCount: 0, folderCount: 0, selectedCount: 0};
       return stats;
     },
 

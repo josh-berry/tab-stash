@@ -4,7 +4,8 @@
     v-model="children"
     item-key="id"
     :item-class="(f: Node) => ({
-      hidden: ! ('children' in f) || (! f.$visible && ! f.$visibleChildren)
+      hidden: ! ('children' in f) || !(
+        f.$visible || f.$visibleChildren || f.$recursiveStats.selectedCount > 0)
     })"
     :accepts="accepts"
     :drag="drag"
