@@ -301,8 +301,9 @@ describe("model/bookmarks", () => {
         expect(bms.nested_child.parentId).to.equal(bms.nested.id);
         expect(bms.nested.parentId).to.equal(bms.stash_root.id);
 
-        expect(model.stashGroupOf(model.node(bms.nested_child_1.id)!)).to.be
-          .undefined;
+        expect(
+          model.stashGroupOf(model.node(bms.nested_child_1.id)!)?.id,
+        ).to.equal(bms.nested_child.id);
       });
 
       it("the bookmark root folder", async () => {
@@ -319,8 +320,9 @@ describe("model/bookmarks", () => {
       });
 
       it("a stash group itself", async () => {
-        expect(model.stashGroupOf(model.node(bms.big_stash.id)!)).to.be
-          .undefined;
+        expect(model.stashGroupOf(model.node(bms.big_stash.id)!)?.id).to.equal(
+          bms.stash_root.id,
+        );
       });
     });
 
