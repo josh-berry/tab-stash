@@ -120,6 +120,7 @@ export class Model {
   private constructor(initial_window?: WindowID) {
     this.initialWindow.value = initial_window;
 
+    trace("Wiring events");
     const wiring = new EventWiring(this, {
       onFired: () => {
         this._event_since_load = true;
@@ -163,6 +164,7 @@ export class Model {
     this._event_since_load = true;
     while (this._event_since_load) {
       this._event_since_load = false;
+      trace("(Re-)loading the model");
 
       const cur_win = await browser.windows.getCurrent();
       this.focusedWindow.value = cur_win.id as WindowID;
@@ -184,6 +186,10 @@ export class Model {
       }
       for (const t of old_tabs) this.whenTabRemoved(t);
       for (const w of old_windows) this.whenWindowRemoved(w);
+      trace(
+        "Model (re-)load finished; seen events since load started =",
+        this._event_since_load,
+      );
     }
   });
 
@@ -398,7 +404,10 @@ export class Model {
         // don't, it's better to fail gracefully by doing nothing.
         console.assert(!!focus_tab);
         // We filter out tabs with undefined IDs above #undef
-        if (focus_tab) await browser.tabs.update(focus_tab.id!, {active: true});
+        if (focus_tab) {
+          trace("switching focus to tab", focus_tab.id!);
+          await browser.tabs.update(focus_tab.id!, {active: true});
+        }
       }
     }
   }

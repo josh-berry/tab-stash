@@ -8,6 +8,7 @@ import {createApp} from "vue";
 import browser from "webextension-polyfill";
 
 import {asyncEvent, resolveNamed} from "./util";
+import "./util/debug"; // To setup globalThis.trace
 
 import * as Options from "./model/options";
 
@@ -21,8 +22,16 @@ export default function launch<
     methods?: MethodOptions & Partial<C["methods"]>;
   }>,
 ): void {
+  const loc = new URL(document.location.href);
+
+  // Enable tracing at load time if needed
+  const trace = (loc.searchParams.get("trace") ?? "").split(",");
+  for (const t of trace) {
+    (<any>globalThis).trace[t] = true;
+  }
+
   const loader = async function () {
-    switch (new URL(document.location.href).searchParams.get("view")) {
+    switch (loc.searchParams.get("view")) {
       case "sidebar":
         document.documentElement.classList.add("view-sidebar");
         break;
