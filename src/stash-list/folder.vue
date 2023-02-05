@@ -71,6 +71,11 @@
         @action="move"
         :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
       />
+      <Button
+        class="stash newgroup"
+        @action="moveToChild"
+        :tooltip="`Move ${selectedCount} selected tab(s) to a new sub-group (hold ${altKey} to copy)`"
+      />
     </ButtonBox>
 
     <span
@@ -405,6 +410,23 @@ export default defineComponent({
           toFolderId: this.folder.id,
         }),
       );
+    },
+
+    moveToChild(ev: MouseEvent | KeyboardEvent) {
+      const model = this.model();
+      const win_id = model.tabs.targetWindow.value;
+      if (!win_id) return;
+
+      model.attempt(async () => {
+        const f = await model.bookmarks.create({
+          parentId: this.folder.id,
+          title: genDefaultFolderName(new Date()),
+        });
+        await model.putSelectedInFolder({
+          copy: ev.altKey,
+          toFolderId: f.id,
+        });
+      });
     },
 
     restoreAll(ev: MouseEvent | KeyboardEvent) {
