@@ -1,4 +1,5 @@
 import type {EventSource} from "./event";
+import {logError} from "./oops";
 
 export type EventWiringOptions = {
   onFired(): void;
@@ -28,6 +29,7 @@ export class EventWiring<M> {
       } catch (e) /* istanbul ignore next */ {
         // This is a safety net; unhandled exceptions generally should
         // not happen inside event handlers.
+        logError(e);
         this.options.onError(e);
         throw e;
       }
