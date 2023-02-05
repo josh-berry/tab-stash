@@ -6,7 +6,7 @@
       "@/*": ["./src/*"]
     },
 
-    "lib": ["ES2018", "DOM", "DOM.Iterable"],
+    "lib": ["ES2019", "DOM", "DOM.Iterable"],
     "types": ["@types/mocha"],
 
     "sourceMap": true,

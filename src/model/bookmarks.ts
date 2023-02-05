@@ -138,6 +138,14 @@ export class Model {
     wiring.listen(browser.bookmarks.onRemoved, this.whenBookmarkRemoved);
   }
 
+  dumpState(): any {
+    return {
+      root: this.root_id,
+      stash_root: this.stash_root.value?.id,
+      bookmarks: JSON.parse(JSON.stringify(Object.fromEntries(this.by_id))),
+    };
+  }
+
   /** Fetch bookmarks from the browser again and update the model's
    * understanding of the world with the browser's data.  Use this if it looks
    * like the model has gotten out of sync with the browser (e.g. for crash

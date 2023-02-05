@@ -30,6 +30,7 @@
 //   mutating and accessing the state in various ways that a user might want to
 //   perform.  All the business logic resides here.
 
+import {inject, type InjectionKey} from "vue";
 import browser from "webextension-polyfill";
 
 import {
@@ -42,17 +43,16 @@ import {
   tryAgain,
   urlToOpen,
 } from "../util";
+import {trace_fn} from "../util/debug";
 import {logError, logErrorsFrom} from "../util/oops";
 
-import * as BrowserSettings from "./browser-settings";
-import * as Options from "./options";
-
-import {inject, type InjectionKey} from "vue";
 import * as BookmarkMetadata from "./bookmark-metadata";
 import * as Bookmarks from "./bookmarks";
+import * as BrowserSettings from "./browser-settings";
 import * as Containers from "./containers";
 import * as DeletedItems from "./deleted-items";
 import * as Favicons from "./favicons";
+import * as Options from "./options";
 import * as Selection from "./selection";
 import * as Tabs from "./tabs";
 
@@ -66,6 +66,8 @@ export {
   BookmarkMetadata,
   Containers,
 };
+
+const trace = trace_fn("model");
 
 /** The StashItem is anything that can be placed in the stash.  It could already
  * be present as a tab (`id: number`), a bookmark (`id: string`), or not present
@@ -160,12 +162,16 @@ export class Model {
   /** Reload model data (where possible) in the event of an unexpected issue.
    * This should be used sparingly as it's quite expensive. */
   readonly reload = backingOff(async () => {
+    trace("[pre-reload] dump of tab state", this.tabs.dumpState());
+    trace("[pre-reload] dump of bookmark state", this.bookmarks.dumpState());
     await Promise.all([
       this.tabs.reload(),
       this.containers.reload(),
       this.bookmarks.reload(),
       this.browser_settings.reload(),
     ]);
+    trace("[post-reload] dump of tab state", this.tabs.dumpState());
+    trace("[post-reload] dump of bookmark state", this.bookmarks.dumpState());
   });
 
   /** Run an async function.  If it throws, reload the model (to try to

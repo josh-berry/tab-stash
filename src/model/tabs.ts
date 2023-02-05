@@ -12,6 +12,7 @@ import {
   urlToOpen,
   type OpenableURL,
 } from "../util";
+import {trace_fn} from "../util/debug";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
 
@@ -41,6 +42,8 @@ export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
 
 export type TabPosition = {window: Window; index: number};
+
+const trace = trace_fn("tabs");
 
 /** How many tabs do we want to allow to be loaded at once?  (NOTE: This is
  * approximate, since the model may not be fully up to date, and the user can
@@ -139,6 +142,13 @@ export class Model {
     wiring.listen(browser.tabs.onActivated, this.whenTabActivated);
     wiring.listen(browser.tabs.onHighlighted, this.whenTabsHighlighted);
     wiring.listen(browser.tabs.onRemoved, this.whenTabRemoved);
+  }
+
+  dumpState(): any {
+    return {
+      windows: JSON.parse(JSON.stringify(Object.fromEntries(this.windows))),
+      tabs: JSON.parse(JSON.stringify(Object.fromEntries(this.tabs))),
+    };
   }
 
   /** Fetch tabs/windows from the browser again and update the model's
@@ -249,6 +259,7 @@ export class Model {
       delete create_tab.title;
       return await this._loading_queue.run(async () => {
         await this._safe_to_load_another_tab();
+        trace("creating tab", create_tab);
         const t = await browser.tabs.create(create_tab);
         return await shortPoll(
           () => this.tabs.get(t.id as TabID) || tryAgain(),
@@ -262,6 +273,7 @@ export class Model {
     create_tab.discarded = true;
 
     // Create the tab and find its equivalent in the model
+    trace("creating tab", create_tab);
     const t = await browser.tabs.create(create_tab);
     const m = await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
 
@@ -275,6 +287,7 @@ export class Model {
         if (!m.discarded) return; // Tab was already loaded
 
         // Load the tab if it's still discarded.
+        trace("loading tab after creation", create_tab);
         await browser.tabs.update(m.id, {url: m.url});
         await shortPoll(
           () => this.tabs.get(m.id) !== m || !m.discarded || tryAgain(),
@@ -300,6 +313,7 @@ export class Model {
       if (position && toIndex > position.index) toIndex--;
     }
 
+    trace("moving tab", id, {toWindow, toIndex});
     await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
     await shortPoll(() => {
       const pos = this.positionOf(tab);
@@ -311,6 +325,7 @@ export class Model {
   /** Close the specified tabs, but leave the browser window open (and create
    * a new tab if necessary to keep it open). */
   async remove(tabIds: TabID[]): Promise<void> {
+    trace("removing tabs", tabIds);
     await this.refocusAwayFromTabs(tabIds);
     await browser.tabs.remove(tabIds);
     await shortPoll(() => {
@@ -347,6 +362,7 @@ export class Model {
       if (closing_tabs_in_window.length >= tabs_in_window.length) {
         // If we are about to close all visible tabs in the window, we
         // should open a new tab so the window doesn't close.
+        trace("creating new empty tab in window", active_tab.windowId);
         await browser.tabs.create({
           active: true,
           windowId: active_tab.windowId,
@@ -402,6 +418,7 @@ export class Model {
       window = reactive({id: wid, tabs: []});
       this.windows.set(wid, window);
     }
+    trace("event windowCreated", win.id, win);
     // istanbul ignore else
     if (win.tabs !== undefined) {
       for (const t of win.tabs) this.whenTabCreated(t);
@@ -418,6 +435,7 @@ export class Model {
 
   whenWindowRemoved(winId: number) {
     const win = this.windows.get(winId as WindowID);
+    trace("event windowRemoved", winId, win);
     if (!win) return;
 
     if (this.initialWindow.value === winId)
@@ -431,6 +449,15 @@ export class Model {
   }
 
   whenTabCreated(tab: Tabs.Tab) {
+    trace(
+      "event tabCreated",
+      "window",
+      tab.windowId,
+      "tab",
+      tab.id,
+      tab.url,
+      tab,
+    );
     let t = this.tabs.get(tab.id as TabID);
     if (!t) {
       // CAST: Tabs.Tab says the id should be optional, but it isn't...
@@ -489,6 +516,7 @@ export class Model {
   }
 
   whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
+    trace("event tabUpdated", id, info.url, info);
     const t = expect(
       this.tab(id as TabID),
       () => `Got change event for unknown tab ${id}`,
@@ -519,6 +547,7 @@ export class Model {
   }
 
   whenTabMoved(tabId: number, info: {windowId: number; toIndex: number}) {
+    trace("event tabMoved", tabId, info);
     const t = expect(
       this.tab(tabId as TabID),
       () => `Got move event for unknown tab ${tabId}`,
@@ -549,6 +578,7 @@ export class Model {
   }
 
   whenTabReplaced(newId: number, oldId: number) {
+    trace("event tabReplaced", oldId, "=>", newId);
     const t = expect(
       this.tab(oldId as TabID),
       () => `Got replace event for unknown tab ${oldId} (-> ${newId})`,
@@ -563,6 +593,7 @@ export class Model {
   }
 
   whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
+    trace("event tabActivated", info.tabId, info);
     const tab = expect(
       this.tab(info.tabId as TabID),
       () => `Got activated event for unknown tab ${info.tabId}`,
@@ -577,6 +608,7 @@ export class Model {
   }
 
   whenTabsHighlighted(info: Tabs.OnHighlightedHighlightInfoType) {
+    trace("event tabsHighlighted", info);
     const win = expect(
       this.window(info.windowId as WindowID),
       () => `Got highlighted event for unknown window ${info.windowId}`,
@@ -587,10 +619,13 @@ export class Model {
   }
 
   whenTabRemoved(tabId: number) {
+    trace("event tabRemoved", tabId);
     const t = this.tabs.get(tabId as TabID);
     if (!t) return; // tab is already removed
 
     const pos = this.positionOf(t);
+
+    trace("event ...tabRemoved", tabId, pos);
 
     this.tabs.delete(t.id);
     if (pos) pos.window.tabs.splice(pos.index, 1);
