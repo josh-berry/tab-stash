@@ -204,15 +204,10 @@ can inspect the state of the application at runtime:
 - `error_log`: The error log used by `oops` to collect and report errors to the
   user.
 
-You can also set a few "magical" global variables to get more debugging info
-(note that these variables do not exist until you set them):
-
-- `trace_nano_ports: boolean`: When set to `true`, all communication between the
-  UI and background page is logged to the console. This is VERY verbose so use
-  it sparingly!
-
-- `trace_siteinfo: boolean`: When set to `true`, all browser events involved in
-  fetching site info (during import, or fetching favicons) are logged.
+- `trace`: This is an object with boolean values to enable debug logging for
+  various parts of Tab Stash. Note that some of these logs might get VERY
+  verbose and/or cause performance problems, so be careful about turning on too
+  many of them for too long.
 
 ## Coding Conventions
 

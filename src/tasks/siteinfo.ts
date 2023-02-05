@@ -3,6 +3,9 @@ import browser from "webextension-polyfill";
 
 import type {Task} from "../util";
 import {AsyncChannel, TaskMonitor} from "../util";
+import {trace_fn} from "../util/debug";
+
+const trace = trace_fn("siteinfo");
 
 // How many concurrent fetches do we want to allow?
 const MAX_CONCURRENT_FETCHES = navigator.hardwareConcurrency ?? 4;
@@ -278,9 +281,3 @@ function watchForTabEvents(): AsyncChannel<TabEvent> {
 
   return chan;
 }
-
-function trace(...args: any[]) {
-  if (!(<any>globalThis).trace_siteinfo) return;
-  console.log("[siteinfo]", ...args);
-}
-//(<any>globalThis).trace_siteinfo = true;

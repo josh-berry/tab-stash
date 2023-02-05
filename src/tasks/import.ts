@@ -3,7 +3,10 @@ import browser from "webextension-polyfill";
 import type {Model, NewFolder, NewTab} from "../model";
 import type * as BM from "../model/bookmarks";
 import {AsyncChannel, filterMap, TaskMonitor} from "../util";
+import {trace_fn} from "../util/debug";
 import {fetchInfoForSites, type SiteInfo} from "./siteinfo";
+
+const trace = trace_fn("import");
 
 // This is based on RFC 3986, but is rather more permissive in some ways,
 // because CERTAIN COMPANIES (looking at you, Office365 with your un-encoded
@@ -54,18 +57,14 @@ class Parser {
     if (options) this.options = Object.assign({}, this.options, options);
   }
 
-  private _trace(...args: any[]) {
-    if ((<any>globalThis).trace_import) console.log(...args);
-  }
-
   end(): NewFolder[] {
-    this._trace("end");
+    trace("end");
     this.endGroup();
     return this.built.filter(group => group.children.length > 0);
   }
 
   endGroup(titleForNextGroup?: string) {
-    this._trace("endGroup", {titleForNextGroup});
+    trace("endGroup", {titleForNextGroup});
     this.built.push(this.building);
     this.building = {title: titleForNextGroup ?? "", children: []};
   }
@@ -81,20 +80,20 @@ class Parser {
         case Node.TEXT_NODE:
           const text = child.nodeValue?.trim();
           if (!text) continue;
-          this._trace("text_node", {text});
+          trace("text_node", {text});
 
           this.afterBR = false;
 
           if (["h", "p+h"].includes(this.options.splitOn)) {
             const header = text.match(MARKDOWN_HEADER_RE);
             if (header) {
-              this._trace("text_node found header", header);
+              trace("text_node found header", header);
               this.endGroup(header[1]?.trim());
             }
           }
 
           for (const link of extractURLs(text)) {
-            this._trace("text_node found url", link);
+            trace("text_node found url", link);
             this.building.children.push(link);
           }
           break;
@@ -107,7 +106,7 @@ class Parser {
   }
 
   parseElement(el: Element) {
-    this._trace("parsing", el.localName, el);
+    trace("parsing", el.localName, el);
     switch (el.localName) {
       case "h1":
       case "h2":

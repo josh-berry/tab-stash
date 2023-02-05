@@ -3,6 +3,7 @@ import browser from "webextension-polyfill";
 
 import type {NanoPort, NanoService} from ".";
 import {NanoDisconnectedError, NanoTimeoutError, RemoteNanoError} from ".";
+import {trace_fn} from "../debug";
 import {logErrorsFrom} from "../oops";
 import {makeRandomString} from "../random";
 import type {
@@ -16,13 +17,7 @@ import type {
 
 let listener_count = 0;
 
-// (<any>globalThis).trace_nano_ports = true;
-
-// istanbul ignore next
-const trace = (...args: any[]) => {
-  if (!(<any>globalThis).trace_nano_ports) return;
-  console.log(`[NanoPort ${globalThis?.location?.pathname}]`, ...args);
-};
+const trace = trace_fn("nano_port", globalThis?.location?.pathname);
 
 export class SvcRegistry {
   private services = new Map<string, NanoService<Send, Send>>();
