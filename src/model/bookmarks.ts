@@ -284,11 +284,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     if (!stash_root) return false;
 
     for (const bm of this.bookmarksWithURL(url)) {
-      const group = this.folder(bm.parentId);
-      // istanbul ignore next -- uncommon and hard to test
-      if (!group) continue;
-      const root = this.folder(group.parentId);
-      if (root === stash_root) return true;
+      if (this.isNodeInStashRoot(bm)) return true;
     }
     return false;
   }

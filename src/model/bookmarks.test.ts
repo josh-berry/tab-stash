@@ -334,11 +334,11 @@ describe("model/bookmarks", () => {
         expect(model.bookmarksWithURL(`${B}#francis`).size).to.equal(1);
         expect(model.isURLStashed(`${B}#francis`)).to.be.false;
       });
-      it("returns false for URLs nested deeply in the stash", async () => {
+      it("returns true for URLs nested deeply in the stash", async () => {
         expect(model.bookmarksWithURL(`${B}#nested_child_1`).size).to.equal(1);
-        expect(model.isURLStashed(`${B}#nested_child_1`)).to.be.false;
+        expect(model.isURLStashed(`${B}#nested_child_1`)).to.be.true;
       });
-      it("returns true for URLs nested appropriately in the stash", async () => {
+      it("returns true for URLs in a top-level group in the stash", async () => {
         expect(model.bookmarksWithURL(`${B}#1`).size).to.equal(1);
         expect(model.isURLStashed(`${B}#1`)).to.be.true;
       });
