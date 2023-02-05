@@ -289,10 +289,12 @@ export default defineComponent({
       return friendlyFolderName(this.folder.title);
     },
     tooltip(): string {
+      const bm_stats = this.folder.$stats;
       const st = this.childTabStats;
-      const child_count = this.validChildren.length;
-      const statstip = `${child_count} stashed tab${
-        child_count != 1 ? "s" : ""
+      const statstip = `${bm_stats.folderCount} sub-group${
+        bm_stats.folderCount !== 1 ? "s" : ""
+      }, ${bm_stats.bookmarkCount} stashed tab${
+        bm_stats.bookmarkCount != 1 ? "s" : ""
       } (${st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
       return `${this.title}\n${statstip}`;
     },

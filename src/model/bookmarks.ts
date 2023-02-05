@@ -20,7 +20,11 @@ export type Node = Bookmark | Separator | Folder;
 
 export type Bookmark = NodeBase & {url: string};
 export type Separator = NodeBase & {type: "separator"};
-export type Folder = NodeBase & {children: NodeID[]};
+export type Folder = NodeBase & {
+  children: NodeID[];
+  $stats: FolderStats;
+  $recursiveStats: FolderStats;
+};
 
 type NodeBase = {
   parentId: NodeID;
@@ -36,6 +40,11 @@ type NodeBase = {
 export type NodeID = string & {readonly __node_id: unique symbol};
 
 export type NodePosition = {parent: Folder; index: number};
+
+export type FolderStats = {
+  bookmarkCount: number;
+  folderCount: number;
+};
 
 export function isBookmark(node: Node): node is Bookmark {
   return "url" in node;
@@ -513,7 +522,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
       });
 
       if (isBrowserBTNFolder(new_bm)) {
-        node = reactive({
+        const folder: Folder = reactive({
           parentId: parentId,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
@@ -522,7 +531,31 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
           $visible,
           $visibleChildren,
           $selected,
+          $stats: computed(() => {
+            let bookmarkCount = 0;
+            let folderCount = 0;
+            for (const c of folder.children) {
+              const n = this.node(c);
+              if (!n) continue;
+              if (isFolder(n)) ++folderCount;
+              if (isBookmark(n)) ++bookmarkCount;
+            }
+            return {bookmarkCount, folderCount};
+          }),
+          $recursiveStats: computed(() => {
+            let bookmarkCount = folder.$stats.bookmarkCount;
+            let folderCount = folder.$stats.folderCount;
+            for (const c of folder.children) {
+              const f = this.folder(c);
+              if (!f) continue;
+              const stats = f.$recursiveStats;
+              bookmarkCount += stats.bookmarkCount;
+              folderCount += stats.folderCount;
+            }
+            return {bookmarkCount, folderCount};
+          }),
         });
+        node = folder;
       } else if (new_bm.type === "separator") {
         node = reactive({
           parentId: parentId,

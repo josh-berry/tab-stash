@@ -132,7 +132,11 @@ import {
   CUR_WINDOW_MD_ID,
   type BookmarkMetadataEntry,
 } from "../model/bookmark-metadata";
-import {friendlyFolderName, type Folder} from "../model/bookmarks";
+import {
+  friendlyFolderName,
+  type Folder,
+  type FolderStats,
+} from "../model/bookmarks";
 import type {Tab} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
 import {parseVersion, required, TaskMonitor} from "../util";
@@ -226,21 +230,17 @@ export default defineComponent({
       return this.model().selection.selectedCount.value > 0;
     },
 
-    counts(): {tabs: number; groups: number} {
-      let tabs = 0,
-        groups = 0;
-      for (const f of this.stash_groups) {
-        tabs += f.children.length;
-        groups++;
-      }
-      return {tabs, groups};
+    counts(): FolderStats {
+      const stats = this.stash_root?.$recursiveStats;
+      if (!stats) return {bookmarkCount: 0, folderCount: 0};
+      return stats;
     },
 
     search_placeholder(): string {
       const counts = this.counts;
-      const groups = counts.groups == 1 ? "group" : "groups";
-      const tabs = counts.tabs == 1 ? "tab" : "tabs";
-      return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
+      const groups = counts.folderCount == 1 ? "group" : "groups";
+      const tabs = counts.bookmarkCount == 1 ? "tab" : "tabs";
+      return `Search ${counts.folderCount} ${groups}, ${counts.bookmarkCount} ${tabs}`;
     },
 
     tabStats(): {open: number; discarded: number; hidden: number} {
@@ -263,10 +263,10 @@ export default defineComponent({
     searchTooltip(): string {
       const st = this.tabStats;
       const tabs_sum = st.open + st.discarded + st.hidden;
-      return `${this.counts.groups} group${this.plural(this.counts.groups)}, ${
-        this.counts.tabs
-      } stashed tab${this.plural(
-        this.counts.tabs,
+      return `${this.counts.folderCount} group${this.plural(
+        this.counts.folderCount,
+      )}, ${this.counts.bookmarkCount} stashed tab${this.plural(
+        this.counts.bookmarkCount,
       )}\n${tabs_sum} tab${this.plural(tabs_sum)} in this window (${
         st.open
       } open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
