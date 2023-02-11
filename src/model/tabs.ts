@@ -526,10 +526,20 @@ export class Model {
 
   whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
     trace("event tabUpdated", id, info.url, info);
-    const t = expect(
-      this.tab(id as TabID),
-      () => `Got change event for unknown tab ${id}`,
-    );
+    const t = this.tab(id as TabID);
+    if (!t) {
+      // Firefox sometimes sends onUpdated events for a tab after it has been
+      // closed.  Worse, the usual technique of reloading the model breaks
+      // things even more, because the closed tab hasn't been cleared out of
+      // Firefox's internal state at the time we receive the onUpdated event, so
+      // browser.tabs.query() still returns the closed tab.  We work around this
+      // by simply ignoring onUpdated events for tabs we don't recognize.
+      // https://github.com/josh-berry/tab-stash/issues/321
+      console.warn(
+        `Got onUpdated event for an unknown tab ${id}; ignoring it.`,
+      );
+      return;
+    }
 
     if (info.status !== undefined) {
       if (t.status === "loading") --this.loadingCount.value;
