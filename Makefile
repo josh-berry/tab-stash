@@ -1,3 +1,4 @@
+PACKAGE := $(shell node -e "x=`cat package.json`; console.log(x.name)")
 VERSION := $(shell node -e "x=`cat assets/manifest.json`; console.log(x.version)")
 COMMIT := $(shell git rev-parse --short HEAD)
 DEV_TAG := $(if $(shell git tag --points-at=HEAD),,-dev)
@@ -14,9 +15,9 @@ endif
 
 RELEASE_DIR = releases
 
-SRCPKG_DIR = tab-stash-src-$(FULL_VERSION)
+SRCPKG_DIR = $(PACKAGE)-src-$(FULL_VERSION)
 SRC_PKG = $(RELEASE_DIR)/$(SRCPKG_DIR).tar.gz
-DIST_PKG = $(RELEASE_DIR)/tab-stash-$(FULL_VERSION).zip
+DIST_PKG = $(RELEASE_DIR)/$(PACKAGE)-$(FULL_VERSION).zip
 
 # Primary (user-facing) targets.
 
