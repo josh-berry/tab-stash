@@ -4,13 +4,15 @@ import {friendlyFolderName} from "../../model/bookmarks";
 import {delimit, required} from "../../util";
 import {br, type ExportBookmark, type ExportFolder} from "./model";
 
-const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
+const MD_LINK_QUOTABLES_RE = /\\|\[|\]|\&|\<|\>/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
 function renderFolder(level: number, folder: ExportFolder): VNode {
   return h("div", {}, [
     h("div", {}, [
-      `${"".padStart(level, "#")} ${friendlyFolderName(folder.title)}`,
+      `${"".padStart(level, "#")} ${quote_title(
+        friendlyFolderName(folder.title),
+      )}`,
     ]),
     ...folder.bookmarks.map(renderBookmark),
     ...(folder.folders.length > 0 ? [br()] : []),
