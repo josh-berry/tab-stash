@@ -9,8 +9,7 @@
     <form :id="$style.dlg" @submit.prevent.stop="">
       <label :for="$style.format" :class="$style.format">Format:</label>
       <select :id="$style.format" v-model="format">
-        <option value="html-noicons">Clickable Links</option>
-        <option value="html-icons">Clickable Links with Icons</option>
+        <option value="html-links">Clickable Links</option>
         <option value="urls-folders">List of URLs</option>
         <option value="urls-nofolders">List of URLs (no stash names)</option>
         <option value="markdown">Markdown</option>
@@ -30,30 +29,12 @@
     </form>
 
     <output
-      v-if="format.startsWith('html-')"
+      v-if="format === 'html-links'"
       ref="output"
       tabindex="0"
       :for="$style.dlg"
     >
-      <div v-for="f of folders" :key="f.id">
-        <h3>{{ friendlyFolderName(f.title) }}</h3>
-        <ul>
-          <li v-for="bm of leaves(f)" :key="bm.id">
-            <a :href="bm.url">
-              <img
-                v-if="format.endsWith('-icons')"
-                :src="faviconFor(bm)"
-                :srcset="faviconFor(bm) && `${faviconFor(bm)} 2x`"
-                referrerpolicy="no-referrer"
-                alt=""
-                class="icon"
-              />
-              {{ format.endsWith("-icons") ? " " : "" }}
-              {{ bm.title }}
-            </a>
-          </li>
-        </ul>
-      </div>
+      <html-links v-if="export_folders" :folders="export_folders" />
     </output>
 
     <output
@@ -112,11 +93,12 @@ import Dialog from "../components/dialog.vue";
 
 import {exportFolder, type ExportFolder} from "./export/model";
 
+import HtmlLinks from "./export/html-links";
 import Markdown from "./export/markdown";
 import OneTab from "./export/one-tab";
 
 export default defineComponent({
-  components: {Dialog, Markdown, OneTab},
+  components: {Dialog, HtmlLinks, Markdown, OneTab},
 
   inject: ["$model"],
 
