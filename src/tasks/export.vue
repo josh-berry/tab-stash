@@ -63,16 +63,7 @@
       :class="$style.plaintext"
       tabindex="0"
     >
-      <div v-for="f of folders" :key="f.id">
-        <div>## {{ friendlyFolderName(f.title) }}</div>
-        <div v-for="bm of leaves(f)" :key="bm.id">
-          - [{{ quote_link_md(bm.title) }}](<a :href="bm.url">{{
-            quote_url_md(bm.url)
-          }}</a
-          >)
-        </div>
-        <div><br /></div>
-      </div>
+      <markdown v-if="export_folders" :folders="export_folders" />
     </output>
 
     <output
@@ -124,11 +115,12 @@ import {filterMap} from "../util";
 
 import Dialog from "../components/dialog.vue";
 
-const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
-const MD_URL_QUOTABLES_RE = /\\|\)/g;
+import {exportFolder, type ExportFolder} from "./export/model";
+
+import Markdown from "./export/markdown";
 
 export default defineComponent({
-  components: {Dialog},
+  components: {Dialog, Markdown},
 
   inject: ["$model"],
 
@@ -137,6 +129,11 @@ export default defineComponent({
   props: {},
 
   computed: {
+    export_folders(): ExportFolder[] | undefined {
+      const root = this.model().bookmarks.stash_root.value;
+      if (!root) return undefined;
+      return exportFolder(this.model().bookmarks, root).folders;
+    },
     stash(): Node[] {
       const m = this.model().bookmarks;
       if (!m.stash_root.value) return [];
@@ -179,26 +176,6 @@ export default defineComponent({
     faviconFor(bm: Bookmark): string | undefined {
       if (!bm.url) return undefined;
       return this.model().favicons.get(bm.url)?.value?.favIconUrl || undefined;
-    },
-
-    quote_emphasis_md(text: string): string {
-      return text
-        .replace(
-          /(^|\s)([*_]+)(\S)/g,
-          (str, ws, emph, rest) => `${ws}${emph.replace(/./g, "\\$&")}${rest}`,
-        )
-        .replace(
-          /(\S)([*_]+)(\s|$)/g,
-          (str, rest, emph, ws) => `${rest}${emph.replace(/./g, "\\$&")}${ws}`,
-        );
-    },
-    quote_link_md(text: string): string {
-      return (<any>this).quote_emphasis_md(
-        text.replace(MD_LINK_QUOTABLES_RE, x => `\\${x}`),
-      );
-    },
-    quote_url_md(url: string): string {
-      return url.replace(MD_URL_QUOTABLES_RE, x => `\\${x}`);
     },
 
     copy() {
