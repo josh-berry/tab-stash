@@ -524,3 +524,15 @@ export function textMatcher(query: string): (txt: string) => boolean {
     return txt => txt.normalize().toLocaleLowerCase().includes(lower);
   }
 }
+
+/** Add a delimiter in between each item in an array. For example:
+ * `delimit(0, [1, 2, 3]) => [1, 0, 2, 0, 3]` */
+export function delimit<T>(delimiter: () => T, array: T[]): T[] {
+  if (array.length === 0) return [];
+  const res = [array[0]];
+  for (let i = 1; i < array.length; ++i) {
+    res.push(delimiter());
+    res.push(array[i]);
+  }
+  return res;
+}

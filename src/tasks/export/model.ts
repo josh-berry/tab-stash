@@ -1,4 +1,5 @@
 import {filterMap} from "@/util";
+import {h, type VNode} from "vue";
 import type {Bookmark, Folder, Model} from "../../model/bookmarks";
 
 export type ExportFolder = {
@@ -27,4 +28,8 @@ export function exportFolder(m: Model, f: Folder): ExportFolder {
 
 export function exportBookmark(bm: Bookmark): ExportBookmark {
   return {id: bm.id, title: bm.title, url: bm.url};
+}
+
+export function br(): VNode {
+  return h("div", {}, [h("br")]);
 }
