@@ -73,12 +73,7 @@
       :class="$style.plaintext"
       tabindex="0"
     >
-      <div v-for="f of folders" :key="f.id">
-        <div v-for="bm of leaves(f)" :key="bm.id">
-          <a :href="bm.url">{{ bm.url }}</a> | {{ bm.title }}
-        </div>
-        <div><br /></div>
-      </div>
+      <one-tab v-if="export_folders" :folders="export_folders" />
     </output>
 
     <output
@@ -118,9 +113,10 @@ import Dialog from "../components/dialog.vue";
 import {exportFolder, type ExportFolder} from "./export/model";
 
 import Markdown from "./export/markdown";
+import OneTab from "./export/one-tab";
 
 export default defineComponent({
-  components: {Dialog, Markdown},
+  components: {Dialog, Markdown, OneTab},
 
   inject: ["$model"],
 
