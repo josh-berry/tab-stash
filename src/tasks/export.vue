@@ -12,7 +12,7 @@
         <option value="html-links">Clickable Links</option>
         <option value="url-list">List of URLs</option>
         <option value="markdown">Markdown</option>
-        <option value="onetab">OneTab</option>
+        <option value="one-tab">OneTab</option>
       </select>
       <nav>
         <button @click.prevent.stop="select_all">Select All</button>
@@ -28,42 +28,16 @@
     </form>
 
     <output
-      v-if="format === 'html-links'"
-      ref="output"
-      tabindex="0"
-      :for="$style.dlg"
-    >
-      <html-links v-if="export_folders" :folders="export_folders" />
-    </output>
-
-    <output
-      v-if="format == 'markdown'"
+      v-if="export_folders"
       ref="output"
       :for="$style.dlg"
-      :class="$style.plaintext"
+      :class="{[$style.plaintext]: format !== 'html-links'}"
       tabindex="0"
     >
-      <markdown v-if="export_folders" :folders="export_folders" />
-    </output>
-
-    <output
-      v-if="format == 'onetab'"
-      ref="output"
-      :for="$style.dlg"
-      :class="$style.plaintext"
-      tabindex="0"
-    >
-      <one-tab v-if="export_folders" :folders="export_folders" />
-    </output>
-
-    <output
-      v-if="format === 'url-list'"
-      ref="output"
-      :for="$style.dlg"
-      :class="$style.plaintext"
-      tabindex="0"
-    >
-      <url-list v-if="export_folders" :folders="export_folders" />
+      <html-links v-if="format === 'html-links'" :folders="export_folders" />
+      <url-list v-if="format === 'url-list'" :folders="export_folders" />
+      <markdown v-if="format === 'markdown'" :folders="export_folders" />
+      <one-tab v-if="format === 'one-tab'" :folders="export_folders" />
     </output>
   </Dialog>
 </template>
@@ -115,7 +89,7 @@ export default defineComponent({
   },
 
   data: () => ({
-    format: "url-list",
+    format: "html-links",
   }),
 
   mounted(this: any) {
