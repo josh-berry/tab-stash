@@ -44,7 +44,7 @@ import {
   urlToOpen,
 } from "../util";
 import {trace_fn} from "../util/debug";
-import {logError, logErrorsFrom} from "../util/oops";
+import {logError, logErrorsFrom, UserError} from "../util/oops";
 
 import * as BookmarkMetadata from "./bookmark-metadata";
 import * as Bookmarks from "./bookmarks";
@@ -510,6 +510,18 @@ export class Model {
     // Note: We explicitly DON'T check stashability here because the caller
     // has presumably done this for us--and has explicitly chosen what to
     // put in the folder.
+
+    // Check if we're trying to move a parent into itself or one of its children
+    const cyclic_sources = this.bookmarks
+      .pathTo(to_folder)
+      .map(p => p.parent.id);
+    cyclic_sources.push(to_folder.id);
+    for (const i of items) {
+      if (!isFolder(i)) continue;
+      if (cyclic_sources.includes(i.id)) {
+        throw new UserError(`Cannot move a group into itself`);
+      }
+    }
 
     if (options.task) options.task.max = options.items.length;
 

@@ -56,3 +56,6 @@ export function logError(error: unknown) {
 export function clearErrorLog() {
   errorLog.splice(0, errorLog.length);
 }
+
+/** An error that's actually the user's fault. */
+export class UserError extends Error {}

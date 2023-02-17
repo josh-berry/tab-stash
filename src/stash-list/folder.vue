@@ -65,7 +65,10 @@
       <Button class="remove" @action="remove" tooltip="Delete this group" />
     </ButtonBox>
 
-    <ButtonBox v-else-if="!isRenaming" class="forest-toolbar">
+    <ButtonBox
+      v-else-if="!isRenaming && canMoveIntoFolder"
+      class="forest-toolbar"
+    >
       <Button
         class="stash here"
         @action="move"
@@ -317,6 +320,16 @@ export default defineComponent({
 
     selectedCount(): number {
       return this.model().selection.selectedCount.value;
+    },
+
+    canMoveIntoFolder(): boolean {
+      // This loop is open-coded instead of using pathTo() for performance
+      let f: Folder | undefined = this.folder;
+      while (f) {
+        if (f.$selected) return false;
+        f = this.model().bookmarks.folder(f.parentId);
+      }
+      return true;
     },
   },
 
