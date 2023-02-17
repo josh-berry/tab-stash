@@ -1,6 +1,5 @@
 import {defineComponent, h, type PropType, type VNode} from "vue";
 
-import {friendlyFolderName} from "../../model/bookmarks";
 import {delimit, required} from "../../util";
 import {br, type ExportBookmark, type ExportFolder} from "./model";
 
@@ -9,11 +8,7 @@ const MD_URL_QUOTABLES_RE = /\\|\)/g;
 
 function renderFolder(level: number, folder: ExportFolder): VNode {
   return h("div", {}, [
-    h("div", {}, [
-      `${"".padStart(level, "#")} ${quote_title(
-        friendlyFolderName(folder.title),
-      )}`,
-    ]),
+    h("div", {}, [`${"".padStart(level, "#")} ${quote_title(folder.title)}`]),
     ...folder.bookmarks.map(renderBookmark),
     ...(folder.folders.length > 0 ? [br()] : []),
     ...delimit(

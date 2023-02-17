@@ -1,6 +1,11 @@
 import {filterMap} from "@/util";
 import {h, type VNode} from "vue";
-import type {Bookmark, Folder, Model} from "../../model/bookmarks";
+import {
+  friendlyFolderName,
+  type Bookmark,
+  type Folder,
+  type Model,
+} from "../../model/bookmarks";
 
 export type ExportFolder = {
   id: string;
@@ -18,7 +23,7 @@ export type ExportBookmark = {
 export function exportFolder(m: Model, f: Folder): ExportFolder {
   return {
     id: f.id,
-    title: f.title,
+    title: friendlyFolderName(f.title),
     bookmarks: filterMap(f.children, id => m.bookmark(id)).map(exportBookmark),
     folders: filterMap(f.children, id => m.folder(id)).map(f =>
       exportFolder(m, f),
