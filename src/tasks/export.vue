@@ -10,8 +10,7 @@
       <label :for="$style.format" :class="$style.format">Format:</label>
       <select :id="$style.format" v-model="format">
         <option value="html-links">Clickable Links</option>
-        <option value="urls-folders">List of URLs</option>
-        <option value="urls-nofolders">List of URLs (no stash names)</option>
+        <option value="url-list">List of URLs</option>
         <option value="markdown">Markdown</option>
         <option value="onetab">OneTab</option>
       </select>
@@ -58,21 +57,13 @@
     </output>
 
     <output
-      v-if="format.startsWith('urls-')"
+      v-if="format === 'url-list'"
       ref="output"
       :for="$style.dlg"
       :class="$style.plaintext"
       tabindex="0"
     >
-      <div v-for="f of folders" :key="f.id">
-        <div v-if="format.endsWith('-folders')">
-          ## {{ friendlyFolderName(f.title) }}
-        </div>
-        <div v-for="bm of leaves(f)" :key="bm.id">
-          <a :href="bm.url">{{ bm.url }}</a>
-        </div>
-        <div><br /></div>
-      </div>
+      <url-list v-if="export_folders" :folders="export_folders" />
     </output>
   </Dialog>
 </template>
@@ -96,9 +87,10 @@ import {exportFolder, type ExportFolder} from "./export/model";
 import HtmlLinks from "./export/html-links";
 import Markdown from "./export/markdown";
 import OneTab from "./export/one-tab";
+import UrlList from "./export/url-list";
 
 export default defineComponent({
-  components: {Dialog, HtmlLinks, Markdown, OneTab},
+  components: {Dialog, HtmlLinks, Markdown, OneTab, UrlList},
 
   inject: ["$model"],
 
@@ -123,7 +115,7 @@ export default defineComponent({
   },
 
   data: () => ({
-    format: "urls-folders",
+    format: "url-list",
   }),
 
   mounted(this: any) {
