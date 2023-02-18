@@ -497,7 +497,7 @@ export default defineComponent({
       return this.attempt(async () => {
         await this.model().bookmarks.create({
           parentId: this.folder.id,
-          title: "Untitled",
+          title: genDefaultFolderName(new Date()),
         });
       });
     },
