@@ -1,6 +1,6 @@
 <template>
   <main
-    :class="{'selection-active': selection_active}"
+    :class="{'stash-list': true, 'selection-active': selection_active}"
     tabindex="0"
     @click="deselectAll"
     @keydown.esc.prevent.stop="onEscape"
@@ -88,10 +88,10 @@
       <SelectionMenu v-if="selection_active" />
 
       <search-input
+        ref="search"
         :tooltip="searchTooltip"
         :placeholder="search_placeholder"
         v-model="searchText"
-        :focus-on-mount="focusSearchOnMount"
       />
       <Button
         :class="{collapse: !collapsed, expand: collapsed}"
@@ -100,9 +100,9 @@
       />
     </header>
 
-    <div class="folder-list">
-      <window :tabs="tabs" :metadata="curWindowMetadata" />
-    </div>
+    <ul class="forest one-column">
+      <li><window :tabs="tabs" :metadata="curWindowMetadata" /></li>
+    </ul>
 
     <folder-list ref="stashed" v-if="stash_root" :parentFolder="stash_root" />
 
@@ -132,7 +132,11 @@ import {
   CUR_WINDOW_MD_ID,
   type BookmarkMetadataEntry,
 } from "../model/bookmark-metadata";
-import {friendlyFolderName, type Folder} from "../model/bookmarks";
+import {
+  friendlyFolderName,
+  type Folder,
+  type FolderStats,
+} from "../model/bookmarks";
 import type {Tab} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
 import {parseVersion, required, TaskMonitor} from "../util";
@@ -226,21 +230,17 @@ export default defineComponent({
       return this.model().selection.selectedCount.value > 0;
     },
 
-    counts(): {tabs: number; groups: number} {
-      let tabs = 0,
-        groups = 0;
-      for (const f of this.stash_groups) {
-        tabs += f.children.length;
-        groups++;
-      }
-      return {tabs, groups};
+    counts(): FolderStats {
+      const stats = this.stash_root?.$recursiveStats;
+      if (!stats) return {bookmarkCount: 0, folderCount: 0, selectedCount: 0};
+      return stats;
     },
 
     search_placeholder(): string {
       const counts = this.counts;
-      const groups = counts.groups == 1 ? "group" : "groups";
-      const tabs = counts.tabs == 1 ? "tab" : "tabs";
-      return `Search ${counts.groups} ${groups}, ${counts.tabs} ${tabs}`;
+      const groups = counts.folderCount == 1 ? "group" : "groups";
+      const tabs = counts.bookmarkCount == 1 ? "tab" : "tabs";
+      return `Search ${counts.folderCount} ${groups}, ${counts.bookmarkCount} ${tabs}`;
     },
 
     tabStats(): {open: number; discarded: number; hidden: number} {
@@ -263,17 +263,13 @@ export default defineComponent({
     searchTooltip(): string {
       const st = this.tabStats;
       const tabs_sum = st.open + st.discarded + st.hidden;
-      return `${this.counts.groups} group${this.plural(this.counts.groups)}, ${
-        this.counts.tabs
-      } stashed tab${this.plural(
-        this.counts.tabs,
+      return `${this.counts.folderCount} group${this.plural(
+        this.counts.folderCount,
+      )}, ${this.counts.bookmarkCount} stashed tab${this.plural(
+        this.counts.bookmarkCount,
       )}\n${tabs_sum} tab${this.plural(tabs_sum)} in this window (${
         st.open
       } open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
-    },
-
-    focusSearchOnMount(): boolean {
-      return document.documentElement.classList.contains("view-popup");
     },
 
     curWindowMetadata(): BookmarkMetadataEntry {
@@ -286,6 +282,10 @@ export default defineComponent({
   },
 
   mounted() {
+    if (document.documentElement.classList.contains("view-popup")) {
+      (<any>this.$refs.search).focus();
+    }
+
     // The following block of code is just to help me test out progress
     // dialogs (since they only appear for a limited time when things are
     // happening):

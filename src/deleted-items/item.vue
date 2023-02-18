@@ -1,12 +1,13 @@
 <template>
-  <div v-if="loading" class="folder-item deleted loading">
-    <span class="item-icon icon spinner size-icon" />
-    <span class="text status-text">{{ loading }}...</span>
+  <div v-if="loading" class="forest-item deleted loading">
+    <span class="forest-icon icon spinner size-icon" />
+    <span class="forest-title status-text">{{ loading }}...</span>
   </div>
 
-  <div v-else class="folder-item deleted action-container">
+  <div v-else class="forest-item selectable deleted action-container">
     <item-icon
       :class="{
+        'forest-icon': true,
         'icon-tab':
           (!('favIconUrl' in item) || !item.favIconUrl) && 'url' in item,
         'icon-folder':
@@ -17,15 +18,17 @@
 
     <a
       v-if="'url' in item"
-      class="text"
+      class="forest-title"
       :href="item.url"
       target="_blank"
       :title="tooltip"
       ><span>{{ item.title }}</span></a
     >
-    <span v-else class="text" :title="tooltip">{{ friendlyTitle }}</span>
+    <span v-else class="forest-title" :title="tooltip">{{
+      friendlyTitle
+    }}</span>
 
-    <ButtonBox>
+    <ButtonBox class="forest-toolbar">
       <Button class="stash one" tooltip="Restore" @action="restore" />
       <Menu
         class="menu"
@@ -38,15 +41,17 @@
     </ButtonBox>
   </div>
 
-  <ul v-if="'children' in item" class="folder-item-nesting">
+  <ul v-if="'children' in item" class="forest-children">
     <li v-for="(_child, index) of item.children" :key="index">
       <Item :deletion="props.deletion" :path="[...props.path, index]" />
     </li>
-    <li v-if="item.filtered_count" class="folder-item disabled">
-      <span class="icon" />
-      <span class="text status-text hidden-count">
-        + {{ item.filtered_count }} filtered
-      </span>
+    <li v-if="item.filtered_count">
+      <div class="forest-item disabled">
+        <span class="forest-icon" />
+        <span class="forest-title status-text hidden-count">
+          + {{ item.filtered_count }} filtered
+        </span>
+      </div>
     </li>
   </ul>
 </template>

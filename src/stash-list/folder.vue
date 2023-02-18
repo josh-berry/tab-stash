@@ -1,116 +1,157 @@
 <template>
-  <section
+  <div
     :class="{
+      'forest-item': true,
+      selectable: true,
       folder: true,
       'action-container': true,
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
+      selected: folder.$selected,
+      'no-match': !folder.$visible,
     }"
     :data-id="folder.id"
   >
-    <header>
+    <item-icon
+      :class="{
+        action: true,
+        select: true,
+        'icon-folder': !folder.$selected,
+        'icon-folder-selected-inverse': folder.$selected,
+      }"
+      @click.prevent.stop="select"
+    />
+
+    <Button
+      :class="{
+        'forest-collapse': true,
+        action: true,
+        collapse: !collapsed,
+        expand: collapsed,
+      }"
+      :tooltip="`Hide the tabs for this group (hold ${altKey} to hide tabs for child folders)`"
+      @action="toggleCollapsed"
+    />
+    <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
       <Button
-        :class="{collapse: !collapsed, expand: collapsed}"
-        tooltip="Hide the tabs for this group"
-        @action="collapsed = !collapsed"
+        class="stash here"
+        @action="stash"
+        :tooltip="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
       />
-      <ButtonBox v-if="selectedCount === 0" class="folder-actions">
-        <Button
-          class="stash here"
-          @action="stash"
-          :tooltip="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
-        />
-        <Button
-          class="stash one here"
-          @action="stashOne"
-          :tooltip="
-            `Stash the active tab to this group ` +
-            `(hold ${altKey} to keep tabs open)`
-          "
-        />
-        <Button
-          class="restore"
-          @action="restoreAll"
-          :tooltip="
-            `Open all tabs in this group ` +
-            `(hold ${bgKey} to open in background)`
-          "
-        />
-        <Button
-          class="restore-remove"
-          @action="restoreAndRemove"
-          :tooltip="
-            `Open all tabs in the group and delete the group ` +
-            `(hold ${bgKey} to open in background)`
-          "
-        />
-        <Button class="remove" @action="remove" tooltip="Delete this group" />
-      </ButtonBox>
-
-      <ButtonBox v-else class="folder-actions">
-        <Button
-          class="stash here"
-          @action="move"
-          :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
-        />
-      </ButtonBox>
-
-      <span
-        v-if="!isRenaming"
-        class="folder-name ephemeral"
-        :title="tooltip"
-        @click.stop="isRenaming = true"
-        >{{ title }}</span
-      >
-      <async-text-input
-        v-else
-        class="folder-name ephemeral"
-        :title="tooltip"
-        :value="nonDefaultTitle"
-        :defaultValue="defaultTitle"
-        :save="rename"
-        @done="isRenaming = false"
+      <Button
+        class="stash one here"
+        @action="stashOne"
+        :tooltip="
+          `Stash the active tab to this group ` +
+          `(hold ${altKey} to keep tabs open)`
+        "
       />
-    </header>
+      <Button
+        class="restore"
+        @action="restoreAll"
+        :tooltip="
+          `Open all tabs in this group ` +
+          `(hold ${bgKey} to open in background)`
+        "
+      />
+      <Button
+        class="restore-remove"
+        @action="restoreAndRemove"
+        :tooltip="
+          `Open all tabs in the group and delete the group ` +
+          `(hold ${bgKey} to open in background)`
+        "
+      />
+      <Button class="remove" @action="remove" tooltip="Delete this group" />
+    </ButtonBox>
 
-    <div class="contents">
-      <dnd-list
-        class="tabs"
-        v-model="childrenWithTabs"
-        item-key="id"
-        :item-class="childClasses"
-        :accepts="accepts"
-        :drag="drag"
-        :drop="drop"
-      >
-        <template #item="{item}">
-          <bookmark
-            v-if="isValidChild(item.node)"
-            :bookmark="item.node"
-            :relatedTabs="item.tabs"
-            :class="{'folder-item': true, 'no-match': !item.node.$visible}"
-          />
-        </template>
-      </dnd-list>
+    <ButtonBox
+      v-else-if="!isRenaming && canMoveIntoFolder"
+      class="forest-toolbar"
+    >
+      <Button
+        class="stash here"
+        @action="move"
+        :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
+      />
+      <Button
+        class="stash newgroup"
+        @action="moveToChild"
+        :tooltip="`Move ${selectedCount} selected tab(s) to a new sub-group (hold ${altKey} to copy)`"
+      />
+    </ButtonBox>
+
+    <span
+      v-if="!isRenaming"
+      class="forest-title editable"
+      :title="tooltip"
+      @click.stop="isRenaming = true"
+      >{{ title }}</span
+    >
+    <async-text-input
+      v-else
+      class="forest-title editable"
+      :title="tooltip"
+      :value="nonDefaultTitle"
+      :defaultValue="defaultTitle"
+      :save="rename"
+      @done="isRenaming = false"
+    />
+  </div>
+
+  <dnd-list
+    :class="{'forest-children': true, collapsed}"
+    v-model="childrenWithTabs"
+    item-key="id"
+    :item-class="childClasses"
+    :accepts="accepts"
+    :drag="drag"
+    :drop="drop"
+  >
+    <template #item="{item}">
+      <bookmark
+        v-if="'url' in item.node"
+        :bookmark="item.node"
+        :relatedTabs="item.tabs"
+      />
+      <child-folder
+        v-else-if="'children' in item.node"
+        :folder="item.node"
+        :metadata="model().bookmark_metadata.get(item.id)"
+      />
+    </template>
+  </dnd-list>
+
+  <ul :class="{'forest-children': true, collapsed}">
+    <li>
+      <div class="forest-item selectable" @click.prevent.stop="newChildFolder">
+        <span class="forest-title status-text">+ New Folder</span>
+      </div>
+    </li>
+    <li v-if="filterCount > 0">
       <div
-        class="folder-item"
-        v-if="filterCount > 0"
+        class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
-        <span class="indent" />
-        <span class="text status-text hidden-count">
+        <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }} {{ filterCount }} filtered
         </span>
       </div>
-    </div>
-  </section>
+    </li>
+  </ul>
 </template>
 
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
-import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
+import {
+  altKeyName,
+  bgKeyName,
+  bgKeyPressed,
+  filterMap,
+  required,
+} from "../util";
 
 import type {Model, StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
@@ -126,6 +167,7 @@ import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
 import DndList from "../components/dnd-list.vue";
+import ItemIcon from "../components/item-icon.vue";
 import BookmarkVue from "./bookmark.vue";
 
 type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
@@ -133,12 +175,15 @@ type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
 const DROP_FORMATS = ["application/x-tab-stash-items"];
 
 export default defineComponent({
+  name: "child-folder",
+
   components: {
-    Button,
-    ButtonBox,
-    DndList,
     AsyncTextInput,
+    ButtonBox,
+    Button,
+    DndList,
     Bookmark: BookmarkVue,
+    ItemIcon,
   },
 
   inject: ["$model"],
@@ -247,26 +292,44 @@ export default defineComponent({
       return friendlyFolderName(this.folder.title);
     },
     tooltip(): string {
+      const bm_stats = this.folder.$stats;
       const st = this.childTabStats;
-      const child_count = this.validChildren.length;
-      const statstip = `${child_count} stashed tab${
-        child_count != 1 ? "s" : ""
+      const statstip = `${bm_stats.folderCount} sub-group${
+        bm_stats.folderCount !== 1 ? "s" : ""
+      }, ${bm_stats.bookmarkCount} stashed tab${
+        bm_stats.bookmarkCount != 1 ? "s" : ""
       } (${st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
       return `${this.title}\n${statstip}`;
     },
 
-    validChildren(): Bookmark[] {
-      return this.children.filter(c => this.isValidChild(c)) as Bookmark[];
+    validChildren(): (Bookmark | Folder)[] {
+      return filterMap(this.children, c =>
+        this.isValidChild(c) ? c : undefined,
+      );
     },
-    visibleChildren(): Bookmark[] {
+    visibleChildren(): (Bookmark | Folder)[] {
       return this.validChildren.filter(c => c.$visible);
     },
     filterCount(): number {
       return this.validChildren.length - this.visibleChildren.length;
     },
 
+    leafChildren(): Bookmark[] {
+      return filterMap(this.children, c => ("url" in c ? c : undefined));
+    },
+
     selectedCount(): number {
       return this.model().selection.selectedCount.value;
+    },
+
+    canMoveIntoFolder(): boolean {
+      // This loop is open-coded instead of using pathTo() for performance
+      let f: Folder | undefined = this.folder;
+      while (f) {
+        if (f.$selected) return false;
+        f = this.model().bookmarks.folder(f.parentId);
+      }
+      return true;
     },
   },
 
@@ -279,18 +342,54 @@ export default defineComponent({
       return this.model().attempt(fn);
     },
 
+    toggleCollapsed(ev: MouseEvent) {
+      if (!ev.altKey) {
+        // We're just toggling ourself.
+        this.collapsed = !this.collapsed;
+        return;
+      }
+
+      // Toggle the collapsed state of all the child folders
+      const folders = filterMap(this.validChildren, c =>
+        "children" in c ? c : undefined,
+      );
+      if (folders.length === 0) return;
+
+      // We just snoop on the collapsed state of the first folder because it's
+      // easier
+      const collapsed =
+        this.model().bookmark_metadata.get(folders[0].id).value?.collapsed ||
+        false;
+      for (const f of folders) {
+        this.model().bookmark_metadata.setCollapsed(f.id, !collapsed);
+      }
+    },
+
+    select(ev: MouseEvent) {
+      this.model().attempt(async () => {
+        await this.model().selection.toggleSelectFromEvent(
+          ev,
+          this.model().bookmarks,
+          this.folder,
+        );
+      });
+    },
+
     childClasses(nodet: NodeWithTabs): Record<string, boolean> {
       const node = nodet.node;
       return {
         hidden: !(
           this.isValidChild(node) &&
-          (this.showFiltered || node.$visible)
+          (this.showFiltered ||
+            node.$visible ||
+            node.$selected ||
+            ("$recursiveStats" in node && node.$recursiveStats.selectedCount))
         ),
       };
     },
 
-    isValidChild(node: Node): boolean {
-      return "url" in node;
+    isValidChild(node: Node): node is Folder | Bookmark {
+      return "url" in node || "children" in node;
     },
 
     stash(ev: MouseEvent | KeyboardEvent) {
@@ -331,9 +430,26 @@ export default defineComponent({
       );
     },
 
+    moveToChild(ev: MouseEvent | KeyboardEvent) {
+      const model = this.model();
+      const win_id = model.tabs.targetWindow.value;
+      if (!win_id) return;
+
+      model.attempt(async () => {
+        const f = await model.bookmarks.create({
+          parentId: this.folder.id,
+          title: genDefaultFolderName(new Date()),
+        });
+        await model.putSelectedInFolder({
+          copy: ev.altKey,
+          toFolderId: f.id,
+        });
+      });
+    },
+
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        await this.model().restoreTabs(this.validChildren, {
+        await this.model().restoreTabs(this.leafChildren, {
           background: bgKeyPressed(ev),
         });
       });
@@ -349,8 +465,14 @@ export default defineComponent({
       this.attempt(async () => {
         const bg = bgKeyPressed(ev);
 
-        await this.model().restoreTabs(this.validChildren, {background: bg});
-        await this.model().deleteBookmarkTree(this.folder.id);
+        await this.model().restoreTabs(this.leafChildren, {background: bg});
+
+        if (this.leafChildren.length === this.children.length) {
+          await this.model().deleteBookmarkTree(this.folder.id);
+        } else {
+          const children = this.leafChildren.map(c => c.id);
+          await this.model().deleteItems(children);
+        }
       });
     },
 
@@ -368,6 +490,15 @@ export default defineComponent({
         }
 
         await this.model().bookmarks.rename(this.folder, title);
+      });
+    },
+
+    newChildFolder() {
+      return this.attempt(async () => {
+        await this.model().bookmarks.create({
+          parentId: this.folder.id,
+          title: genDefaultFolderName(new Date()),
+        });
       });
     },
 

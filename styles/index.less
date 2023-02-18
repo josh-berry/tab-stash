@@ -56,18 +56,12 @@
 }
 
 // Ephemeral input boxes (shouldn't look like such until you click on them)
-.ephemeral {
+.editable {
   border: none;
   background: transparent;
   border-radius: var(--ctrl-border-radius);
 
-  padding: var(--input-text-ph) var(--input-text-pw);
-
-  // Negative margin ensures the text lines up when the border isn't visible,
-  // despite the padding (which is necessary so that the shadow looks right).
-  margin: calc(0px - var(--input-text-ph)) calc(0px - var(--input-text-pw));
-
-  &:hover {
+  .forest-item:hover & {
     box-shadow: var(--ephemeral-hover-shadow-metrics)
       var(--ephemeral-hover-shadow-clr);
   }
@@ -88,11 +82,8 @@
 // Toolbar buttons, aka "actions"
 @import "action";
 
-// Folders, including .folder-list, .folder, .folder-name and .folder-item.
-// Used for the "main" views (stash list, deleted items list, etc.).  For
-// historical reasons, this describes the layout used in the sidebar, and the
-// CSS for the tab view simply adds modifications on top of the sidebar view.
-@import "folders";
+// The "forest" view (i.e. grouped hierarchies)
+@import "forest";
 
 // Import/Export Dialogs
 .export-dialog output h3 {
@@ -164,32 +155,36 @@
 }
 
 // Tabs (stashed or unstashed) within the stash list
-.tab {
-  & > a,
-  & > a:visited {
+.stash-list .forest-item {
+  & > a.forest-title,
+  & > a.forest-title:visited {
     color: var(--link-fg);
     text-decoration: none;
   }
 
-  &.open > a {
+  &.open > a.forest-title {
     color: var(--userlink-fg);
+  }
+
+  &.folder > .forest-title {
+    font-weight: bold;
   }
 
   &.no-match {
     // When we are searching, dim items which wouldn't show up in a search,
     // except that their parent folder matches the search.
-    & > a,
-    & > a:visited,
-    &.open > a {
+    & > .forest-title,
+    & > .forest-title:visited,
+    &.open > .forest-title {
       .status-text();
       text-decoration: line-through;
     }
-    & > .action.select {
+    & > .forest-icon {
       opacity: 60%;
     }
   }
 
-  &.loading .item-icon {
+  &.loading > .forest-icon {
     border-radius: 50%;
     padding: calc(var(--icon-p) / 2);
     border: calc(var(--icon-p) / 2) dotted var(--page-fg);
@@ -232,13 +227,50 @@
   }
 
   &.discarded {
-    & .text,
-    .action.select,
-    .icon-tab,
-    .icon-tab-selected-inverse {
+    & .forest-title,
+    .forest-icon {
       opacity: 0.75;
       filter: saturate(0.7);
     }
+  }
+
+  // For folders with open tabs, we want to change their text color slightly
+  // to indicate this
+  &.has-open-tabs > .forest-title {
+    color: var(--userlink-fg);
+  }
+
+  // Colorize tabs that are open inside containers
+  &[data-container-color] {
+    box-shadow: var(--container-indicator-shadow-style)
+      var(--container-indicator-color);
+  }
+  &[data-container-color="blue"] {
+    --container-indicator-color: var(--container-color-blue);
+  }
+  &[data-container-color="turquoise"] {
+    --container-indicator-color: var(--container-color-turquoise);
+  }
+  &[data-container-color="green"] {
+    --container-indicator-color: var(--container-color-green);
+  }
+  &[data-container-color="yellow"] {
+    --container-indicator-color: var(--container-color-yellow);
+  }
+  &[data-container-color="orange"] {
+    --container-indicator-color: var(--container-color-orange);
+  }
+  &[data-container-color="red"] {
+    --container-indicator-color: var(--container-color-red);
+  }
+  &[data-container-color="pink"] {
+    --container-indicator-color: var(--container-color-pink);
+  }
+  &[data-container-color="purple"] {
+    --container-indicator-color: var(--container-color-purple);
+  }
+  &[data-container-color="toolbar"] {
+    --container-indicator-color: var(--container-color-toolbar);
   }
 }
 
@@ -267,11 +299,6 @@
 // Mods for specific pages/views.  All of these assume the sidebar-view styling
 // is in effect (which, for historical reasons, is the default view).
 //
-
-// For the deleted items page:
-.folder-item.deleted > .item-icon {
-  opacity: 60%;
-}
 
 html.view-tab {
   @import "view-tab";

@@ -1,5 +1,4 @@
-import type {Ref} from "vue";
-import {computed, reactive, ref, watch} from "vue";
+import {computed, reactive, ref, type Ref} from "vue";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
@@ -14,13 +13,18 @@ import {
 } from "../util";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
+import {pathTo, type Position, type Tree} from "./tree";
 
 /** A node in the bookmark tree. */
 export type Node = Bookmark | Separator | Folder;
 
 export type Bookmark = NodeBase & {url: string};
 export type Separator = NodeBase & {type: "separator"};
-export type Folder = NodeBase & {children: NodeID[]};
+export type Folder = NodeBase & {
+  children: NodeID[];
+  $stats: FolderStats;
+  $recursiveStats: FolderStats;
+};
 
 type NodeBase = {
   parentId: NodeID;
@@ -30,11 +34,18 @@ type NodeBase = {
 
   $selected: boolean;
   readonly $visible: boolean;
+  readonly $visibleChildren: boolean;
 };
 
 export type NodeID = string & {readonly __node_id: unique symbol};
 
 export type NodePosition = {parent: Folder; index: number};
+
+export type FolderStats = {
+  bookmarkCount: number;
+  folderCount: number;
+  selectedCount: number;
+};
 
 export function isBookmark(node: Node): node is Bookmark {
   return "url" in node;
@@ -59,7 +70,7 @@ const ROOT_FOLDER_HELP =
  * some slight changes to handle hierarchy in the same manner as `tabs.ts`, and
  * ensure the state is JSON-serializable.
  */
-export class Model {
+export class Model implements Tree<Folder, Bookmark | Separator> {
   private readonly by_id = new Map<NodeID, Node>();
   private readonly by_url = new Map<OpenableURL, Set<Bookmark>>();
 
@@ -86,7 +97,9 @@ export class Model {
    * The invariant is: this should only be updated by assigning to a node's
    * `$selected` field.  That will trigger a watch which will adjust the count
    * up or down by one. */
-  readonly selectedCount = ref(0);
+  readonly selectedCount = computed(
+    () => this.stash_root.value?.$recursiveStats.selectedCount || 0,
+  );
 
   /** A filter function--assign to this to filter bookmarks using the
    * function.  Each bookmark's $visible property will be updated
@@ -212,11 +225,15 @@ export class Model {
     return index;
   }
 
+  isParent(node: Node): node is Folder {
+    return isFolder(node);
+  }
+
   /** Given a child node, return its parent and the index of the child in the
    * parent's children.  Returns `undefined` if the child has no parent (i.e.
    * its `parentId === undefined`), if the parent itself cannot be located, or
    * if the child cannot be located inside the parent. */
-  positionOf(node: Node): NodePosition | undefined {
+  positionOf(node: Node): Position<Folder> | undefined {
     const parent = this.folder(node.parentId);
     if (!parent) return undefined;
 
@@ -255,34 +272,20 @@ export class Model {
   /** Given a bookmark node, return the path from the root to the node as an
    * array of NodePositions.  If the node is not present in the tree, throws
    * an exception. */
-  pathTo(node: Node): NodePosition[] {
-    const path = [];
-    while (node.parentId) {
-      const pos = expect(
-        this.positionOf(node),
-        () => `Can't find position of node: ${node.id}`,
-      );
-      path.push(pos);
-      node = pos.parent;
-    }
-    path.reverse();
-    return path;
+  pathTo(node: Node): Position<Folder>[] {
+    return pathTo(this, node);
   }
 
-  /** Checks if a particular bookmark is a direct child of a stash folder
-   * inside the stash root (i.e. it is visible in the UI).  If so, returns the
-   * parent folder of the bookmark (i.e. the stash group). */
+  /** Checks if a particular bookmark is a child of a stash folder inside the
+   * stash root (i.e. it is visible in the UI).  If so, returns the parent
+   * folder of the bookmark (i.e. the stash group). */
   stashGroupOf(node: Node): Folder | undefined {
     // istanbul ignore if -- uncommon and hard to test
     if (!this.stash_root.value) return undefined;
     const group = this.folder(node.parentId);
     if (!group) return undefined;
 
-    // The node's parent folder is not the stash root, so it's not a direct
-    // child of a stash group.
-    const root = this.folder(group.parentId);
-    if (!root) return undefined;
-    if (root !== this.stash_root.value) return undefined;
+    if (!this.isNodeInStashRoot(group)) return undefined;
     return group;
   }
 
@@ -293,11 +296,7 @@ export class Model {
     if (!stash_root) return false;
 
     for (const bm of this.bookmarksWithURL(url)) {
-      const group = this.folder(bm.parentId);
-      // istanbul ignore next -- uncommon and hard to test
-      if (!group) continue;
-      const root = this.folder(group.parentId);
-      if (root === stash_root) return true;
+      if (this.isNodeInStashRoot(bm)) return true;
     }
     return false;
   }
@@ -511,25 +510,52 @@ export class Model {
     let node = this.by_id.get(nodeId);
     if (!node) {
       const $visible = computed(() => this.filter.value(node!));
-      const $selected = ref(false);
-      watch($selected, (value, oldValue) => {
-        // INVARIANT: Nodes outside the stash root must not be selected.
-        // istanbul ignore if -- probably never happens in reality
-        if (value === oldValue) return;
-        if (value) ++this.selectedCount.value;
-        else --this.selectedCount.value;
+      const $visibleChildren = computed(() => {
+        if (!("children" in node!)) return false;
+        for (const c of this.childrenOf(node)) if (c.$visible) return true;
+        return false;
       });
+      const $selected = ref(false);
 
       if (isBrowserBTNFolder(new_bm)) {
-        node = reactive({
+        const folder: Folder = reactive({
           parentId: parentId,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
           children: [],
           $visible,
+          $visibleChildren,
           $selected,
+          $stats: computed(() => {
+            let bookmarkCount = 0;
+            let folderCount = 0;
+            let selectedCount = 0;
+            for (const c of folder.children) {
+              const n = this.node(c);
+              if (!n) continue;
+              if (isFolder(n)) ++folderCount;
+              if (isBookmark(n)) ++bookmarkCount;
+              if (n.$selected) ++selectedCount;
+            }
+            return {bookmarkCount, folderCount, selectedCount};
+          }),
+          $recursiveStats: computed(() => {
+            let bookmarkCount = folder.$stats.bookmarkCount;
+            let folderCount = folder.$stats.folderCount;
+            let selectedCount = folder.$stats.selectedCount;
+            for (const c of folder.children) {
+              const f = this.folder(c);
+              if (!f) continue;
+              const stats = f.$recursiveStats;
+              bookmarkCount += stats.bookmarkCount;
+              folderCount += stats.folderCount;
+              selectedCount += stats.selectedCount;
+            }
+            return {bookmarkCount, folderCount, selectedCount};
+          }),
         });
+        node = folder;
       } else if (new_bm.type === "separator") {
         node = reactive({
           parentId: parentId,
@@ -538,6 +564,7 @@ export class Model {
           type: "separator" as "separator",
           title: "" as "",
           $visible,
+          $visibleChildren,
           $selected,
         });
       } else {
@@ -548,6 +575,7 @@ export class Model {
           title: new_bm.title ?? "",
           url: new_bm.url ?? "",
           $visible,
+          $visibleChildren,
           $selected,
         });
         this._add_url(node);

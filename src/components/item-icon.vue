@@ -1,5 +1,5 @@
 <template>
-  <a class="item-icon">
+  <a class="forest-icon">
     <img
       v-if="props.src"
       :src="props.src"

@@ -44,7 +44,7 @@ import {
   urlToOpen,
 } from "../util";
 import {trace_fn} from "../util/debug";
-import {logError, logErrorsFrom} from "../util/oops";
+import {logError, logErrorsFrom, UserError} from "../util/oops";
 
 import * as BookmarkMetadata from "./bookmark-metadata";
 import * as Bookmarks from "./bookmarks";
@@ -297,22 +297,8 @@ export class Model {
   setFilter(text: string) {
     const filter = textMatcher(text);
 
-    this.bookmarks.filter.value = node => {
-      if (filter(node.title)) return true;
-
-      if ("url" in node) {
-        if (filter(node.url)) return true;
-      } else if ("children" in node) {
-        // Filter should pass if any of its children are not filtered
-        // (so the parent is visible in the UI)
-        const visible_child = node.children.find(
-          id => this.bookmarks.node(id)?.$visible,
-        );
-        if (visible_child) return true;
-      }
-
-      return false;
-    };
+    this.bookmarks.filter.value = node =>
+      filter(node.title) || ("url" in node && filter(node.url));
 
     this.tabs.filter.value = t =>
       (!!t.title && filter(t.title)) || (!!t.url && filter(t.url));
@@ -525,6 +511,18 @@ export class Model {
     // has presumably done this for us--and has explicitly chosen what to
     // put in the folder.
 
+    // Check if we're trying to move a parent into itself or one of its children
+    const cyclic_sources = this.bookmarks
+      .pathTo(to_folder)
+      .map(p => p.parent.id);
+    cyclic_sources.push(to_folder.id);
+    for (const i of items) {
+      if (!isFolder(i)) continue;
+      if (cyclic_sources.includes(i.id)) {
+        throw new UserError(`Cannot move a group into itself`);
+      }
+    }
+
     if (options.task) options.task.max = options.items.length;
 
     // Keep track of which bookmarks we are moving/have already stolen.  A
@@ -533,7 +531,7 @@ export class Model {
     // already moving--in this case, we "steal" the other bookmark so we
     // don't create a duplicate.
     const dont_steal_bms = new Set<Bookmarks.NodeID>(
-      filterMap(items, i => (isBookmark(i) ? i.id : undefined)),
+      filterMap(items, i => (isNode(i) ? i.id : undefined)),
     );
 
     // Now, we move everything into the folder.  `to_index` is maintained as
@@ -550,8 +548,8 @@ export class Model {
       const item = items[i];
       const model_item = isModelItem(item) ? this.item(item.id) : undefined;
 
-      // If it's a bookmark, just move it directly.
-      if (model_item && isBookmark(model_item)) {
+      // If it's a bookmark node, just move it directly.
+      if (model_item && isNode(model_item)) {
         const pos = this.bookmarks.positionOf(model_item);
         await this.bookmarks.move(model_item.id, to_folder.id, to_index);
         moved_items.push(model_item);

@@ -1,6 +1,7 @@
 // Mods for when in tab view -- uses a multi-column display format
 
-.folder-list {
+.forest {
+  display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-items: stretch;
@@ -11,18 +12,42 @@
 
   & > li {
     flex: 1 1 25rem;
+    margin: 0; // Handled by row/column gap
+    background-color: var(--group-bg);
+    border: var(--group-border);
+    box-shadow: var(--shadow);
+
+    & > .forest-item {
+      border-bottom: var(--divider-border);
+    }
+
+    & > .forest-children {
+      margin: var(--group-ph) 0;
+    }
+
+    & > .forest-item,
+    & > .forest-children {
+      &.collapsed {
+        background-color: var(--group-disabled-bg);
+      }
+    }
+  }
+
+  &.one-column {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    max-width: 40rem;
+    margin: auto;
+    & > li {
+      flex: 1 1 auto;
+    }
   }
 }
-.one-column .folder {
-  flex: 1 1 auto;
-  width: 100%;
-}
 
+/*
 .folder {
   flex: 1 1 auto;
   background-color: var(--group-bg);
-  border: var(--group-border);
-  box-shadow: var(--shadow);
 
   display: flex;
   flex-direction: column;
@@ -60,6 +85,7 @@
     }
   }
 }
+*/
 
 // Don't show the "stash this tab" button on folders when we are the
 // current tab (and not the sidebar)

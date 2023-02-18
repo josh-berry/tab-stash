@@ -1,107 +1,106 @@
 <template>
-  <section
+  <div
     :class="{
-      folder: true,
-      window: true,
       'action-container': true,
-      collapsed: collapsed,
+      'forest-item': true,
+      selectable: true,
+      collapsed,
     }"
   >
-    <header>
+    <Button
+      :class="{
+        'forest-collapse': true,
+        collapse: !collapsed,
+        expand: collapsed,
+      }"
+      tooltip="Hide the tabs for this group"
+      @action="collapsed = !collapsed"
+    />
+    <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
       <Button
-        :class="{collapse: !collapsed, expand: collapsed}"
-        tooltip="Hide the tabs for this group"
-        @action="collapsed = !collapsed"
+        class="stash"
+        @action="stash"
+        :tooltip="`Stash all ${
+          showStashedTabs ? 'open tabs' : 'unstashed tabs'
+        } to a new group (hold ${altKey} to keep tabs open)`"
       />
-      <ButtonBox v-if="selectedCount === 0" class="folder-actions">
-        <Button
-          class="stash"
-          @action="stash"
-          :tooltip="`Stash all ${
-            showStashedTabs ? 'open tabs' : 'unstashed tabs'
-          } to a new group (hold ${altKey} to keep tabs open)`"
-        />
-        <Button
-          class="stash newgroup"
-          @action="newGroup"
-          tooltip="Create a new empty group"
-        />
-        <Button
-          class="remove"
-          @action="remove"
-          :tooltip="`Close all unstashed tabs`"
-        />
-        <Button
-          class="remove stashed"
-          @action="removeStashed"
-          :tooltip="`Close all stashed tabs`"
-        />
-        <Button
-          class="remove opened"
-          @action="removeOpen"
-          :tooltip="`Click: Close all open tabs
+      <Button
+        class="stash newgroup"
+        @action="newGroup"
+        tooltip="Create a new empty group"
+      />
+      <Button
+        class="remove"
+        @action="remove"
+        :tooltip="`Close all unstashed tabs`"
+      />
+      <Button
+        class="remove stashed"
+        @action="removeStashed"
+        :tooltip="`Close all stashed tabs`"
+      />
+      <Button
+        class="remove opened"
+        @action="removeOpen"
+        :tooltip="`Click: Close all open tabs
 ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
-        />
-      </ButtonBox>
+      />
+    </nav>
 
-      <ButtonBox v-else class="folder-actions">
-        <Button
-          class="stash newgroup"
-          @action="moveToNewGroup"
-          :tooltip="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
-        />
-        <Button
-          v-if="selectedCount > 0"
-          class="restore"
-          @action="copyToWindow"
-          :tooltip="`Open ${selectedCount} tab(s)`"
-        />
-        <Button
-          v-if="selectedCount > 0"
-          class="restore-remove"
-          @action="moveToWindow"
-          :tooltip="`Unstash ${selectedCount} tab(s)`"
-        />
-      </ButtonBox>
+    <nav v-else class="action-group forest-toolbar">
+      <Button
+        class="stash newgroup"
+        @action="moveToNewGroup"
+        :tooltip="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+      />
+      <Button
+        v-if="selectedCount > 0"
+        class="restore"
+        @action="copyToWindow"
+        :tooltip="`Open ${selectedCount} tab(s)`"
+      />
+      <Button
+        v-if="selectedCount > 0"
+        class="restore-remove"
+        @action="moveToWindow"
+        :tooltip="`Unstash ${selectedCount} tab(s)`"
+      />
+    </nav>
 
-      <span
-        :class="{'folder-name': true, ephemeral: true, disabled: true}"
-        :title="tooltip"
-        @click.prevent.stop="toggleMode"
-        >{{ title }}</span
-      >
-    </header>
+    <span
+      :class="{'forest-title': true, editable: true, disabled: true}"
+      :title="tooltip"
+      @click.prevent.stop="toggleMode"
+      >{{ title }}</span
+    >
+  </div>
 
-    <div class="contents">
-      <dnd-list
-        class="tabs"
-        v-model="tabs"
-        item-key="id"
-        :item-class="childClasses"
-        :accepts="accepts"
-        :drag="drag"
-        :drop="drop"
-      >
-        <template #item="{item}">
-          <tab
-            v-if="isValidChild(item)"
-            :tab="item"
-            :class="{'folder-item': true, 'no-match': !item.$visible}"
-          />
-        </template>
-      </dnd-list>
+  <dnd-list
+    :class="{'forest-children': true, collapsed}"
+    v-model="tabs"
+    item-key="id"
+    :item-class="childClasses"
+    :accepts="accepts"
+    :drag="drag"
+    :drop="drop"
+  >
+    <template #item="{item}">
+      <tab v-if="isValidChild(item)" :tab="item" />
+    </template>
+  </dnd-list>
+
+  <ul :class="{'forest-children': true, collapsed}">
+    <li v-if="filteredCount > 0">
       <div
-        class="folder-item"
-        v-if="filteredCount > 0"
+        class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
-        <span class="indent" />
-        <span class="text status-text hidden-count">
+        <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }} {{ filteredCount }} filtered
         </span>
       </div>
-    </div>
-  </section>
+    </li>
+  </ul>
 
   <confirm-dialog
     v-if="confirmCloseTabs > 0"
@@ -131,7 +130,6 @@ import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {SyncState} from "../model/options";
 import type {Tab} from "../model/tabs";
 
-import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
 import ConfirmDialog, {
   type ConfirmDialogEvent,
@@ -153,7 +151,6 @@ const NEXT_SHOW_OPEN_TAB_STATE: Record<
 export default defineComponent({
   components: {
     Button,
-    ButtonBox,
     ConfirmDialog,
     DndList,
     Tab: TabVue,
@@ -259,7 +256,10 @@ export default defineComponent({
 
     childClasses(t: Tab): Record<string, boolean> {
       return {
-        hidden: !(this.isValidChild(t) && (this.showFiltered || t.$visible)),
+        hidden: !(
+          this.isValidChild(t) &&
+          (this.showFiltered || t.$visible || t.$selected)
+        ),
       };
     },
 

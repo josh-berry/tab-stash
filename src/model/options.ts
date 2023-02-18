@@ -18,7 +18,7 @@ import stored_object, {
   type StoredObject,
 } from "../datastore/stored-object";
 import {resolveNamed} from "../util";
-import {errorLog} from "../util/oops";
+import {errorLog, UserError} from "../util/oops";
 
 export const SHOW_WHAT_OPT = anEnum("sidebar", "tab", "popup", "none");
 export const STASH_WHAT_OPT = anEnum("all", "single", "none");
@@ -164,7 +164,10 @@ export class Model {
       }, until - this._now.value + 1);
       return false;
     }
-    return errorLog.length > 0;
+    return (
+      errorLog.length > 0 &&
+      !!errorLog.find(e => !(e.error instanceof UserError))
+    );
   });
 
   private _now = ref(Date.now());

@@ -2,13 +2,14 @@
   <div
     :class="{
       'action-container': true,
-      tab: true, // TODO fix the CSS classes...
-      saved: true,
+      'forest-item': true,
+      selectable: true,
       discarded: tabState.discarded,
       open: tabState.open,
       active: tabState.active,
       loading: tabState.loading,
       selected: bookmark.$selected,
+      'no-match': !bookmark.$visible,
     }"
     :title="bookmark.title"
     :data-id="bookmark.id"
@@ -28,7 +29,7 @@
 
     <a
       v-if="!isRenaming"
-      class="text"
+      class="forest-title"
       :href="bookmark.url"
       target="_blank"
       draggable="false"
@@ -40,14 +41,14 @@
     </a>
     <async-text-input
       v-else
-      class="text ephemeral"
+      class="forest-title editable"
       :value="bookmark.title"
       :defaultValue="defaultTitle"
       :save="rename"
       @done="isRenaming = false"
     />
 
-    <ButtonBox v-if="!isRenaming">
+    <nav v-if="!isRenaming" class="action-group forest-toolbar">
       <Button class="rename" @action="isRenaming = true" tooltip="Rename" />
       <Button
         class="restore-remove"
@@ -62,7 +63,7 @@
         @action="remove"
         tooltip="Delete this tab from the group"
       />
-    </ButtonBox>
+    </nav>
   </div>
 </template>
 
@@ -76,7 +77,6 @@ import type {Tab} from "../model/tabs";
 import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 
 import AsyncTextInput from "../components/async-text-input.vue";
-import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
 import ItemIcon from "../components/item-icon.vue";
 
@@ -89,7 +89,7 @@ type RelatedTabState = {
 };
 
 export default defineComponent({
-  components: {Button, ButtonBox, ItemIcon, AsyncTextInput},
+  components: {Button, ItemIcon, AsyncTextInput},
 
   inject: ["$model"],
 

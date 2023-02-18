@@ -155,6 +155,7 @@ export default defineComponent({
     },
 
     onFocusOut() {
+      if ((<any>globalThis).close_menu_on_blur === false) return;
       const menu = this.$refs.menu as HTMLElement;
       const bounds = this.$refs.bounds as HTMLElement;
       if (menu.closest(".menu-bounds:focus-within") !== bounds) {

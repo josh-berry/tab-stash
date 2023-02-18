@@ -9,12 +9,10 @@
     <form :id="$style.dlg" @submit.prevent.stop="">
       <label :for="$style.format" :class="$style.format">Format:</label>
       <select :id="$style.format" v-model="format">
-        <option value="html-noicons">Clickable Links</option>
-        <option value="html-icons">Clickable Links with Icons</option>
-        <option value="urls-folders">List of URLs</option>
-        <option value="urls-nofolders">List of URLs (no stash names)</option>
+        <option value="html-links">Clickable Links</option>
+        <option value="url-list">List of URLs</option>
         <option value="markdown">Markdown</option>
-        <option value="onetab">OneTab</option>
+        <option value="one-tab">OneTab</option>
       </select>
       <nav>
         <button @click.prevent.stop="select_all">Select All</button>
@@ -30,82 +28,16 @@
     </form>
 
     <output
-      v-if="format.startsWith('html-')"
-      ref="output"
-      tabindex="0"
-      :for="$style.dlg"
-    >
-      <div v-for="f of folders" :key="f.id">
-        <h3>{{ friendlyFolderName(f.title) }}</h3>
-        <ul>
-          <li v-for="bm of leaves(f)" :key="bm.id">
-            <a :href="bm.url">
-              <img
-                v-if="format.endsWith('-icons')"
-                :src="faviconFor(bm)"
-                :srcset="faviconFor(bm) && `${faviconFor(bm)} 2x`"
-                referrerpolicy="no-referrer"
-                alt=""
-                class="icon"
-              />
-              {{ format.endsWith("-icons") ? " " : "" }}
-              {{ bm.title }}
-            </a>
-          </li>
-        </ul>
-      </div>
-    </output>
-
-    <output
-      v-if="format == 'markdown'"
+      v-if="export_folders"
       ref="output"
       :for="$style.dlg"
-      :class="$style.plaintext"
+      :class="{[$style.plaintext]: format !== 'html-links'}"
       tabindex="0"
     >
-      <div v-for="f of folders" :key="f.id">
-        <div>## {{ friendlyFolderName(f.title) }}</div>
-        <div v-for="bm of leaves(f)" :key="bm.id">
-          - [{{ quote_link_md(bm.title) }}](<a :href="bm.url">{{
-            quote_url_md(bm.url)
-          }}</a
-          >)
-        </div>
-        <div><br /></div>
-      </div>
-    </output>
-
-    <output
-      v-if="format == 'onetab'"
-      ref="output"
-      :for="$style.dlg"
-      :class="$style.plaintext"
-      tabindex="0"
-    >
-      <div v-for="f of folders" :key="f.id">
-        <div v-for="bm of leaves(f)" :key="bm.id">
-          <a :href="bm.url">{{ bm.url }}</a> | {{ bm.title }}
-        </div>
-        <div><br /></div>
-      </div>
-    </output>
-
-    <output
-      v-if="format.startsWith('urls-')"
-      ref="output"
-      :for="$style.dlg"
-      :class="$style.plaintext"
-      tabindex="0"
-    >
-      <div v-for="f of folders" :key="f.id">
-        <div v-if="format.endsWith('-folders')">
-          ## {{ friendlyFolderName(f.title) }}
-        </div>
-        <div v-for="bm of leaves(f)" :key="bm.id">
-          <a :href="bm.url">{{ bm.url }}</a>
-        </div>
-        <div><br /></div>
-      </div>
+      <html-links v-if="format === 'html-links'" :folders="export_folders" />
+      <url-list v-if="format === 'url-list'" :folders="export_folders" />
+      <markdown v-if="format === 'markdown'" :folders="export_folders" />
+      <one-tab v-if="format === 'one-tab'" :folders="export_folders" />
     </output>
   </Dialog>
 </template>
@@ -124,11 +56,15 @@ import {filterMap} from "../util";
 
 import Dialog from "../components/dialog.vue";
 
-const MD_LINK_QUOTABLES_RE = /\\|\[\]|\!\[/g;
-const MD_URL_QUOTABLES_RE = /\\|\)/g;
+import {exportFolder, type ExportFolder} from "./export/model";
+
+import HtmlLinks from "./export/html-links";
+import Markdown from "./export/markdown";
+import OneTab from "./export/one-tab";
+import UrlList from "./export/url-list";
 
 export default defineComponent({
-  components: {Dialog},
+  components: {Dialog, HtmlLinks, Markdown, OneTab, UrlList},
 
   inject: ["$model"],
 
@@ -137,6 +73,11 @@ export default defineComponent({
   props: {},
 
   computed: {
+    export_folders(): ExportFolder[] | undefined {
+      const root = this.model().bookmarks.stash_root.value;
+      if (!root) return undefined;
+      return exportFolder(this.model().bookmarks, root).folders;
+    },
     stash(): Node[] {
       const m = this.model().bookmarks;
       if (!m.stash_root.value) return [];
@@ -148,7 +89,7 @@ export default defineComponent({
   },
 
   data: () => ({
-    format: "urls-folders",
+    format: "html-links",
   }),
 
   mounted(this: any) {
@@ -179,26 +120,6 @@ export default defineComponent({
     faviconFor(bm: Bookmark): string | undefined {
       if (!bm.url) return undefined;
       return this.model().favicons.get(bm.url)?.value?.favIconUrl || undefined;
-    },
-
-    quote_emphasis_md(text: string): string {
-      return text
-        .replace(
-          /(^|\s)([*_]+)(\S)/g,
-          (str, ws, emph, rest) => `${ws}${emph.replace(/./g, "\\$&")}${rest}`,
-        )
-        .replace(
-          /(\S)([*_]+)(\s|$)/g,
-          (str, rest, emph, ws) => `${rest}${emph.replace(/./g, "\\$&")}${ws}`,
-        );
-    },
-    quote_link_md(text: string): string {
-      return (<any>this).quote_emphasis_md(
-        text.replace(MD_LINK_QUOTABLES_RE, x => `\\${x}`),
-      );
-    },
-    quote_url_md(url: string): string {
-      return url.replace(MD_URL_QUOTABLES_RE, x => `\\${x}`);
     },
 
     copy() {

@@ -143,7 +143,7 @@ node_modules package-lock.json: package.json
 	npm install
 	touch node_modules package-lock.json
 
-dist/tab-stash.css: node_modules $(wildcard styles/*.less)
+dist/tab-stash.css: node_modules $(wildcard styles/*.less) $(wildcard styles/*/*.less)
 	@mkdir -p dist
 	./node_modules/.bin/lessc --math=strict styles/index.less dist/tab-stash.css
 
