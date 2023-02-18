@@ -98,17 +98,17 @@
   // above, so keep that in mind.
   //
   // 1:.forest-collapse, 2:.forest-icon, 3:.forest-title, 4:.forest-badge, 5:.forest-toolbar
-  grid-template-columns: var(--page-pw) var(--icon-btn-size) 1fr 0fr 0fr;
+  grid-template-columns: var(--collapse-btn-size) var(--icon-btn-size) 1fr 0fr 0fr;
 
   // No column-gap because we assign margins to individual items
   align-items: center;
-  padding: 0 var(--page-pw) 0 0;
+  padding: 0 var(--ctrl-pw) 0 0;
   height: var(--item-h);
 
   & > .forest-collapse {
     grid-row: 1;
     grid-column: 1;
-    width: var(--page-pw);
+    width: var(--collapse-btn-size);
   }
 
   & > .forest-icon {
@@ -266,24 +266,33 @@
 // sections/groups.
 .forest {
   & > li {
+    border-radius: var(--group-border-radius);
+
     // Make sure the sidebar/panel views have a visible gap between groups.
     // This should be overridden in the tab view.
-    margin: calc(2 * var(--page-ph)) 0;
+    margin-top: var(--group-ph);
 
     & > .forest-item {
+      border-top: var(--group-border);
+
+      // Must match the enclosing <li> or the background-color that is set on
+      // hover/selection will mess things up.
+      border-top-left-radius: var(--group-border-radius);
+      border-top-right-radius: var(--group-border-radius);
+
       // If there's no icon for the top-level group, don't leave space for it
       // (unlike what we do inside the group).
       //
       // This should match the same layout as the regular .forest-item grid
       // below.
-      grid-template-columns: var(--page-pw) 0fr 1fr 0fr 0fr;
+      grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr 0fr;
 
       margin: 0;
-      padding: var(--group-ph) var(--page-pw) var(--group-ph) 0;
+      padding: var(--group-ph) var(--ctrl-pw) var(--group-ph) 0;
       height: auto;
 
       & > .forest-title {
-        font-weight: bold;
+        font-weight: var(--group-header-font-weight);
         font-size: 13pt;
       }
 
@@ -294,6 +303,13 @@
           background-color: inherit;
         }
       }
+    }
+
+    & > .forest-children:last-child {
+      // This is here, instead of the enclosing <li>, so the bottom margin
+      // naturally disappears when the group is collapsed.  It should also be
+      // overridden in the tab view.
+      margin-bottom: calc(var(--group-ph) + var(--page-ph));
     }
   }
 

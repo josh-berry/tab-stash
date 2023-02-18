@@ -155,122 +155,130 @@
 }
 
 // Tabs (stashed or unstashed) within the stash list
-.stash-list .forest-item {
-  & > a.forest-title,
-  & > a.forest-title:visited {
-    color: var(--link-fg);
-    text-decoration: none;
-  }
-
-  &.open > a.forest-title {
-    color: var(--userlink-fg);
-  }
-
-  &.folder > .forest-title {
+.stash-list {
+  .forest .forest-children .forest-item.folder > .forest-title {
+    // Make folders a little heavier than top-level groups, because they use a
+    // smaller font size and need to stand out more.
     font-weight: bold;
   }
 
-  &.no-match {
-    // When we are searching, dim items which wouldn't show up in a search,
-    // except that their parent folder matches the search.
-    & > .forest-title,
-    & > .forest-title:visited,
-    &.open > .forest-title {
-      .status-text();
-      text-decoration: line-through;
+  .forest-item {
+    &.folder > .forest-title {
+      font-weight: var(--group-header-font-weight);
     }
-    & > .forest-icon {
-      opacity: 60%;
+
+    & > a.forest-title,
+    & > a.forest-title:visited {
+      color: var(--link-fg);
+      text-decoration: none;
     }
-  }
 
-  &.loading > .forest-icon {
-    border-radius: 50%;
-    padding: calc(var(--icon-p) / 2);
-    border: calc(var(--icon-p) / 2) dotted var(--page-fg);
-    border-top-color: var(--disabled-fg);
-    border-bottom-color: var(--disabled-fg);
-    animation-name: tab-loading-spinner;
-    animation-duration: 1s;
-    animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
-    animation-direction: normal;
+    &.open > a.forest-title {
+      color: var(--userlink-fg);
+    }
 
-    & > img {
+    &.no-match {
+      // When we are searching, dim items which wouldn't show up in a search,
+      // except that their parent folder matches the search.
+      & > .forest-title,
+      & > .forest-title:visited,
+      &.open > .forest-title {
+        .status-text();
+        text-decoration: line-through;
+      }
+      & > .forest-icon {
+        opacity: 60%;
+      }
+    }
+
+    &.loading > .forest-icon {
       border-radius: 50%;
+      padding: calc(var(--icon-p) / 2);
+      border: calc(var(--icon-p) / 2) dotted var(--page-fg);
+      border-top-color: var(--disabled-fg);
+      border-bottom-color: var(--disabled-fg);
+      animation-name: tab-loading-spinner;
+      animation-duration: 1s;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
+      animation-direction: normal;
+
+      & > img {
+        border-radius: 50%;
+      }
     }
-  }
 
-  &.active {
-    font-weight: bold;
-    background: linear-gradient(
-      to right,
-      var(--userlink-fg) var(--active-marker-bw),
-      transparent var(--active-marker-bw)
-    );
-
-    &.selected {
+    &.active {
+      font-weight: bold;
       background: linear-gradient(
         to right,
         var(--userlink-fg) var(--active-marker-bw),
-        var(--selected-bg) var(--active-marker-bw)
+        transparent var(--active-marker-bw)
       );
+
+      &.selected {
+        background: linear-gradient(
+          to right,
+          var(--userlink-fg) var(--active-marker-bw),
+          var(--selected-bg) var(--active-marker-bw)
+        );
+      }
+
+      &:hover {
+        background: linear-gradient(
+          to right,
+          var(--userlink-fg) var(--active-marker-bw),
+          var(--item-hover-bg) var(--active-marker-bw)
+        );
+      }
     }
 
-    &:hover {
-      background: linear-gradient(
-        to right,
-        var(--userlink-fg) var(--active-marker-bw),
-        var(--item-hover-bg) var(--active-marker-bw)
-      );
+    &.discarded {
+      & .forest-title,
+      .forest-icon {
+        opacity: 0.75;
+        filter: saturate(0.7);
+      }
     }
-  }
 
-  &.discarded {
-    & .forest-title,
-    .forest-icon {
-      opacity: 0.75;
-      filter: saturate(0.7);
+    // For folders with open tabs, we want to change their text color slightly
+    // to indicate this
+    &.has-open-tabs > .forest-title {
+      color: var(--userlink-fg);
     }
-  }
 
-  // For folders with open tabs, we want to change their text color slightly
-  // to indicate this
-  &.has-open-tabs > .forest-title {
-    color: var(--userlink-fg);
-  }
-
-  // Colorize tabs that are open inside containers
-  &[data-container-color] {
-    box-shadow: var(--container-indicator-shadow-style)
-      var(--container-indicator-color);
-  }
-  &[data-container-color="blue"] {
-    --container-indicator-color: var(--container-color-blue);
-  }
-  &[data-container-color="turquoise"] {
-    --container-indicator-color: var(--container-color-turquoise);
-  }
-  &[data-container-color="green"] {
-    --container-indicator-color: var(--container-color-green);
-  }
-  &[data-container-color="yellow"] {
-    --container-indicator-color: var(--container-color-yellow);
-  }
-  &[data-container-color="orange"] {
-    --container-indicator-color: var(--container-color-orange);
-  }
-  &[data-container-color="red"] {
-    --container-indicator-color: var(--container-color-red);
-  }
-  &[data-container-color="pink"] {
-    --container-indicator-color: var(--container-color-pink);
-  }
-  &[data-container-color="purple"] {
-    --container-indicator-color: var(--container-color-purple);
-  }
-  &[data-container-color="toolbar"] {
-    --container-indicator-color: var(--container-color-toolbar);
+    // Colorize tabs that are open inside containers
+    &[data-container-color] {
+      box-shadow: var(--container-indicator-shadow-style)
+        var(--container-indicator-color);
+    }
+    &[data-container-color="blue"] {
+      --container-indicator-color: var(--container-color-blue);
+    }
+    &[data-container-color="turquoise"] {
+      --container-indicator-color: var(--container-color-turquoise);
+    }
+    &[data-container-color="green"] {
+      --container-indicator-color: var(--container-color-green);
+    }
+    &[data-container-color="yellow"] {
+      --container-indicator-color: var(--container-color-yellow);
+    }
+    &[data-container-color="orange"] {
+      --container-indicator-color: var(--container-color-orange);
+    }
+    &[data-container-color="red"] {
+      --container-indicator-color: var(--container-color-red);
+    }
+    &[data-container-color="pink"] {
+      --container-indicator-color: var(--container-color-pink);
+    }
+    &[data-container-color="purple"] {
+      --container-indicator-color: var(--container-color-purple);
+    }
+    &[data-container-color="toolbar"] {
+      --container-indicator-color: var(--container-color-toolbar);
+    }
   }
 }
 
