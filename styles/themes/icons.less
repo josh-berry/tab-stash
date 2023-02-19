@@ -1,20 +1,14 @@
 .icon {
   display: inline-block;
   box-sizing: border-box;
-  width: var(--icon-btn-size);
-  height: var(--icon-btn-size);
-  padding: var(--icon-p);
+  width: var(--icon-size);
+  height: var(--icon-size);
 
   background-size: var(--icon-size) var(--icon-size);
   background-position: center;
   background-repeat: no-repeat;
   background-color: transparent;
   border: none;
-
-  // If we place the icon inline with text inside an item, we want the center of
-  // the icon to pass through the center of the line.  Oddly enough, this only
-  // happens with a "top" vertical alignment...
-  vertical-align: top;
 }
 
 // Function to define the set of icons used in each theme.  Must be called from

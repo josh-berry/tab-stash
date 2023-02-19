@@ -85,10 +85,6 @@ details.menu {
       display: none;
     } // no triangle on Chrome
   }
-  &[open] > summary {
-    // Shadow the menu button to match the menu (below)
-    box-shadow: var(--shadow);
-  }
   &[open] > summary.action {
     // They should also be colorized to show the menu is open.
     background-color: var(--button-hover-bg);
@@ -107,7 +103,7 @@ details.menu {
   padding: var(--menu-mh) 0;
   background-color: var(--group-bg);
   box-shadow: var(--shadow);
-  border: var(--group-border);
+  border-radius: var(--ctrl-border-radius);
   display: flex;
   flex-direction: column;
   overflow: auto;

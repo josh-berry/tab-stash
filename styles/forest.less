@@ -210,46 +210,48 @@
       background-color: transparent;
     }
   }
+}
 
-  & > .forest-badge {
-    height: var(--item-h);
-    line-height: var(--item-h);
-    opacity: 50%;
-    &.icon {
-      /* Similar to .action... */
-      box-sizing: border-box;
-      width: var(--icon-btn-size);
-      height: var(--icon-btn-size);
-      padding: var(--icon-p);
-    }
+.forest-badge {
+  height: var(--item-h);
+  line-height: var(--item-h);
+  &.icon {
+    /* Similar to .action... */
+    box-sizing: border-box;
+    width: var(--icon-btn-size);
+    height: var(--icon-btn-size);
+    padding: var(--icon-p);
+    vertical-align: top;
   }
 }
 
 .forest-icon {
   // Similar to .action's sizing
-  display: flex;
   box-sizing: border-box;
   width: var(--icon-btn-size);
   height: var(--icon-btn-size);
   padding: var(--icon-p);
 
-  background-size: var(--icon-size) var(--icon-size);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: transparent;
-  border: none;
-
   & > img {
-    flex: 1 1 auto;
-
     // Stretch non-square icons in a way that's compatible with how Firefox does
     // it in its actual UI.
     object-fit: fill;
 
     // Make sure non-square icons don't overflow the container
-    max-width: var(--icon-size);
-    max-height: var(--icon-size);
+    width: var(--icon-size);
+    height: var(--icon-size);
   }
+}
+
+// Like .forest-icon and .forest-badge but without the horizontal padding.  It
+// gets the item-height though, and is aligned for putting inline with text.
+.forest-inline-icon {
+  // Similar to .action's sizing
+  box-sizing: border-box;
+  width: var(--icon-size);
+  height: var(--item-h);
+  padding: var(--icon-p) 0;
+  vertical-align: top;
 }
 
 .text-overflow-ellipsis() {

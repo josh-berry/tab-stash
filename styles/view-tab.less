@@ -44,12 +44,13 @@
   }
 
   &.one-column {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    max-width: 40rem;
-    margin: var(--page-pw) auto;
+    display: grid;
+    grid-template-columns: 1fr minmax(0, 40rem) 1fr;
+    column-gap: 0;
+
     & > li {
-      flex: 1 1 auto;
+      grid-column: 2;
+      flex-basis: 40rem;
     }
   }
 }

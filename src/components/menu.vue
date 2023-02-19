@@ -4,8 +4,10 @@
     :open="isOpen"
     :class="{
       [$style.details]: true,
-      [horizontal]: true,
-      [vertical]: true,
+      above: vertical === 'above',
+      below: vertical === 'below',
+      left: horizontal === 'left',
+      right: horizontal === 'right',
     }"
     @toggle="onToggle"
     @click.prevent.stop="open"
@@ -40,8 +42,10 @@
           :class="{
             'menu-bounds': true,
             [$style.bounds]: true,
-            [vertical]: true,
-            [horizontal]: true,
+            above: vertical === 'above',
+            below: vertical === 'below',
+            left: horizontal === 'left',
+            right: horizontal === 'right',
           }"
         >
           <nav
@@ -79,8 +83,8 @@ export default defineComponent({
   data: () => ({
     viewport: undefined as DOMRect | undefined,
     origin: undefined as DOMRect | undefined,
-    vertical: "below" as "above" | "below",
-    horizontal: "left" as "left" | "right",
+    vertical: undefined as "above" | "below" | undefined,
+    horizontal: undefined as "left" | "right" | undefined,
     isOpen: false,
   }),
 
@@ -140,6 +144,8 @@ export default defineComponent({
       (<HTMLElement>this.$refs.summary).focus();
       this.$nextTick(() => {
         this.isOpen = false;
+        this.vertical = undefined;
+        this.horizontal = undefined;
         this.$emit("close");
         (<HTMLElement>this.$refs.summary).blur();
       });

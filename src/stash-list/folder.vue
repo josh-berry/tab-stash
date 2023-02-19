@@ -136,9 +136,10 @@
     </li>
     <li>
       <div class="forest-item selectable" @click.prevent.stop="newChildFolder">
-        <span class="forest-title status-text"
-          ><span class="icon icon-new-empty-group" /> New Folder</span
-        >
+        <span class="forest-title status-text">
+          <span class="forest-inline-icon icon icon-new-empty-group" />
+          New Folder
+        </span>
       </div>
     </li>
   </ul>
