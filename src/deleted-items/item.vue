@@ -47,7 +47,7 @@
     </li>
     <li v-if="item.filtered_count">
       <div class="forest-item disabled">
-        <span class="forest-icon" />
+        <span class="forest-icon icon" />
         <span class="forest-title status-text hidden-count">
           + {{ item.filtered_count }} filtered
         </span>

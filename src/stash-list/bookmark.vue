@@ -18,6 +18,7 @@
   >
     <item-icon
       :class="{
+        'forest-icon': true,
         action: true,
         select: true,
         'icon-tab': !bookmark.$selected,

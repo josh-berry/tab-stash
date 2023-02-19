@@ -41,11 +41,12 @@
 }
 
 .status-text {
-  color: var(--disabled-fg);
+  color: var(--page-fg);
   font-style: italic;
+  opacity: 0.5;
 
   a {
-    color: var(--disabled-fg);
+    color: var(--page-fg);
     text-decoration: dotted underline;
 
     &:hover {
@@ -289,15 +290,6 @@
   to {
     transform: rotate(1turn);
   }
-}
-
-// Icons (which aren't toolbar buttons)
-.icon {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  background-position: 50% 50%;
-  background-size: var(--icon-size) var(--icon-size);
-  background-repeat: no-repeat;
 }
 
 // A Tab Stash-themed progress/loading spinner.

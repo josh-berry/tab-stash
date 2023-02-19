@@ -14,6 +14,7 @@
   >
     <item-icon
       :class="{
+        'forest-icon': true,
         action: true,
         select: true,
         'icon-folder': !folder.$selected,
@@ -123,11 +124,6 @@
   </dnd-list>
 
   <ul :class="{'forest-children': true, collapsed}">
-    <li>
-      <div class="forest-item selectable" @click.prevent.stop="newChildFolder">
-        <span class="forest-title status-text">+ New Folder</span>
-      </div>
-    </li>
     <li v-if="filterCount > 0">
       <div
         class="forest-item selectable"
@@ -136,6 +132,13 @@
         <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }} {{ filterCount }} filtered
         </span>
+      </div>
+    </li>
+    <li>
+      <div class="forest-item selectable" @click.prevent.stop="newChildFolder">
+        <span class="forest-title status-text"
+          ><span class="icon icon-new-empty-group" /> New Folder</span
+        >
       </div>
     </li>
   </ul>
