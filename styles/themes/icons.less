@@ -9,6 +9,12 @@
   background-repeat: no-repeat;
   background-color: transparent;
   border: none;
+
+  & > img {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    object-fit: fill;
+  }
 }
 
 // Function to define the set of icons used in each theme.  Must be called from
@@ -28,6 +34,7 @@
     .icon(delete);
     .icon(folder);
     .icon(folder-selected);
+    .icon(item-menu);
     .icon(mainmenu);
     .icon(move-menu);
     .icon(new-empty-group);
@@ -52,9 +59,11 @@
 
 // Vanilla icons (separate from actions, which are handled in action.less)
 .def-icon(delete);
+.def-icon(delete-stashed);
 .def-icon(folder);
 .def-icon(folder-selected);
 .def-icon(folder-selected-inverse);
+.def-icon(item-menu);
 .def-icon(move-menu-inverse);
 .def-icon(new-empty-group);
 .def-icon(restore-del);

@@ -63,7 +63,50 @@
           `(hold ${bgKey} to open in background)`
         "
       />
-      <Button class="remove" @action="remove" tooltip="Delete this group" />
+      <Menu
+        class="menu"
+        summaryClass="action neutral icon-item-menu last-toolbar-button"
+        inPlace
+        h-position="right"
+      >
+        <button
+          @click.prevent="newChildFolder"
+          :title="`Create a new sub-group within this group`"
+        >
+          <span class="icon icon-new-empty-group"></span>
+          <span>New Child Group</span>
+        </button>
+        <hr />
+        <div class="menu-item disabled status-text">Stash here:</div>
+        <ul class="menu-scrollable-list">
+          <li v-for="tab of unstashedTabs" :key="tab.id">
+            <a
+              :href="tab.url"
+              :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
+              @click.prevent.stop="stashSpecificTab($event, tab)"
+            >
+              <item-icon is="span" :src="tab.favIconUrl" />
+              <span>{{ tab.title }}</span>
+            </a>
+          </li>
+        </ul>
+        <hr />
+        <button
+          @click.prevent="closeStashedTabs"
+          :title="`Close any open tabs that are stashed in this group`"
+        >
+          <span class="icon icon-delete-stashed" />
+          <span>Close Stashed Tabs</span>
+        </button>
+        <hr />
+        <button
+          title="Delete the whole group and all its sub-groups"
+          @click.prevent="remove"
+        >
+          <span class="icon icon-delete"></span>
+          <span>Delete Group</span>
+        </button>
+      </Menu>
     </ButtonBox>
 
     <ButtonBox
@@ -123,22 +166,14 @@
     </template>
   </dnd-list>
 
-  <ul :class="{'forest-children': true, collapsed}">
-    <li v-if="filterCount > 0">
+  <ul v-if="filterCount > 0" :class="{'forest-children': true, collapsed}">
+    <li>
       <div
         class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
         <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }} {{ filterCount }} filtered
-        </span>
-      </div>
-    </li>
-    <li>
-      <div class="forest-item selectable" @click.prevent.stop="newChildFolder">
-        <span class="forest-title status-text">
-          <span class="forest-inline-icon icon icon-new-empty-group" />
-          New Folder
         </span>
       </div>
     </li>
@@ -172,6 +207,7 @@ import ButtonBox from "../components/button-box.vue";
 import Button from "../components/button.vue";
 import DndList from "../components/dnd-list.vue";
 import ItemIcon from "../components/item-icon.vue";
+import Menu from "../components/menu.vue";
 import BookmarkVue from "./bookmark.vue";
 
 type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
@@ -188,6 +224,7 @@ export default defineComponent({
     DndList,
     Bookmark: BookmarkVue,
     ItemIcon,
+    Menu,
   },
 
   inject: ["$model"],
@@ -269,6 +306,23 @@ export default defineComponent({
           collapsed,
         );
       },
+    },
+
+    // Used to populate a menu of tabs to select for stashing here
+    unstashedTabs(): Tab[] {
+      const model = this.model();
+      const target_win = model.tabs.targetWindow.value;
+      if (!target_win) return [];
+      const win = model.tabs.window(target_win);
+      if (!win) return [];
+
+      return filterMap(win.tabs, id => model.tabs.tab(id)).filter(
+        t =>
+          !t.pinned &&
+          !t.hidden &&
+          model.isURLStashable(t.url) &&
+          !model.bookmarks.isURLStashed(t.url),
+      );
     },
 
     /** Returns a "default" name to use if no explicit name is set.  This
@@ -411,9 +465,13 @@ export default defineComponent({
     },
 
     stashOne(ev: MouseEvent | KeyboardEvent) {
+      const tab = this.model().tabs.activeTab();
+      if (!tab) return;
+      this.stashSpecificTab(ev, tab);
+    },
+
+    stashSpecificTab(ev: MouseEvent | KeyboardEvent, tab: Tab) {
       this.attempt(async () => {
-        const tab = this.model().tabs.activeTab();
-        if (!tab) return;
         await this.model().putItemsInFolder({
           items: this.model().copyIf(ev.altKey, [tab]),
           toFolderId: this.folder.id,
@@ -503,6 +561,16 @@ export default defineComponent({
           parentId: this.folder.id,
           title: genDefaultFolderName(new Date()),
         });
+      });
+    },
+
+    closeStashedTabs() {
+      return this.attempt(async () => {
+        const model = this.model();
+        const openTabs = this.childrenWithTabs
+          .flatMap(c => c.tabs)
+          .filter(t => !t.hidden && !t.pinned);
+        await model.hideOrCloseStashedTabs(openTabs.map(t => t.id));
       });
     },
 

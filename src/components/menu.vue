@@ -64,7 +64,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, Teleport, type Component} from "vue";
+import {defineComponent, Teleport, type Component, type PropType} from "vue";
 
 export default defineComponent({
   components: {
@@ -78,6 +78,8 @@ export default defineComponent({
     modalClass: String,
     inPlace: Boolean,
     persist: Boolean,
+    hPosition: String as PropType<"left" | "right">,
+    vPosition: String as PropType<"above" | "below">,
   },
 
   data: () => ({
@@ -114,14 +116,16 @@ export default defineComponent({
 
       this.viewport = document.body.getBoundingClientRect();
       const pos = summary.getBoundingClientRect();
-      const center = {
+      const focus = {
         x: this.viewport.width / 2,
-        y: this.viewport.height / 2,
+        y: (2 * this.viewport.height) / 3,
       };
 
       this.origin = pos;
-      this.vertical = pos.bottom < center.y ? "below" : "above";
-      this.horizontal = pos.right < center.x ? "left" : "right";
+      this.vertical =
+        this.vPosition ?? (pos.bottom < focus.y ? "below" : "above");
+      this.horizontal =
+        this.hPosition ?? (pos.right < focus.x ? "left" : "right");
     },
 
     open() {

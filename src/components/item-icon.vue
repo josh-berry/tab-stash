@@ -1,5 +1,5 @@
 <template>
-  <a class="icon">
+  <component :is="is || 'a'" class="icon">
     <img
       v-if="props.src"
       :src="props.src"
@@ -7,9 +7,9 @@
       referrerpolicy="no-referrer"
       alt=""
     />
-  </a>
+  </component>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{src?: string}>();
+const props = defineProps<{is?: string; src?: string}>();
 </script>

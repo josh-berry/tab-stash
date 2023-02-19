@@ -103,6 +103,7 @@ details.menu {
   padding: var(--menu-mh) 0;
   background-color: var(--group-bg);
   box-shadow: var(--shadow);
+  border: var(--group-border);
   border-radius: var(--ctrl-border-radius);
   display: flex;
   flex-direction: column;
@@ -161,5 +162,24 @@ details.menu {
     padding: 0;
     border: none;
     border-top: var(--divider-border);
+  }
+
+  & ul {
+    padding-left: var(--menu-mw);
+  }
+
+  & li {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  & .menu-scrollable-list {
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    padding-right: 0;
   }
 }

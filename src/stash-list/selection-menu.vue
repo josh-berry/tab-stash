@@ -49,7 +49,7 @@
 
     <select-folder
       v-if="model().bookmarks.stash_root.value"
-      :class="$style.list"
+      class="menu-scrollable-list"
       :tree="filteredTree"
       :folder="filteredTree.wrappedParent(model().bookmarks.stash_root.value!)"
       :tooltips="
@@ -202,22 +202,3 @@ export default defineComponent({
   },
 });
 </script>
-
-<style module>
-.list {
-  overflow-x: hidden;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-.list ul {
-  padding-left: var(--menu-mw);
-}
-.list li {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-}
-</style>

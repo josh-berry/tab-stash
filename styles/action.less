@@ -85,6 +85,9 @@ nav.action-group {
       background-color: var(e("--@{color}-active-bg"));
     }
   }
+  &.neutral {
+    .def(button);
+  }
   &.rename {
     .def(update);
   }
@@ -106,9 +109,6 @@ nav.action-group {
 .action {
   &.mainmenu {
     background-image: var(--icon-mainmenu);
-  }
-  &.menu {
-    background-image: var(--icon-menu);
   }
   &.collapse {
     background-image: var(--icon-collapse-open);
