@@ -236,7 +236,7 @@ export class KVSCache<K extends Key, V extends Value> {
   private async _fetch() {
     const map = this._needs_fetch;
     this._needs_fetch = new Map();
-    for (const batch of batchesOf(100, map.keys())) {
+    for (const batch of batchesOf(25, map.keys())) {
       const entries = await this.kvs.get(batch);
       for (const e of entries) this._update(e.key, e.value);
     }
@@ -245,7 +245,7 @@ export class KVSCache<K extends Key, V extends Value> {
   private async _flush() {
     const map = this._needs_flush;
     this._needs_flush = new Map();
-    for (const batch of batchesOf(100, map.values())) {
+    for (const batch of batchesOf(25, map.values())) {
       // Capture all values to write and strip off any reactivity.  If we
       // don't strip the reactivity, we will not be able to send the
       // values via IPC (if this.kvs is a KVSClient, for example).
