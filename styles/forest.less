@@ -102,7 +102,13 @@
 
   // No column-gap because we assign margins to individual items
   align-items: center;
-  padding: 0 var(--ctrl-pw) 0 0;
+
+  // We pad to --collapse-btn-size so that the left and right margins appear
+  // symmetric, and because --collapse-btn-size is wide enough that the
+  // auto-hiding scrollbars on macOS don't intrude on the right-side toolbar
+  // buttons.  (Funny how macOS messed with their scrollbars and now we all just
+  // have to work around it...)
+  padding: 0 var(--collapse-btn-size) 0 0;
   height: var(--item-h);
 
   & > .forest-collapse {
@@ -290,7 +296,7 @@
       grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr 0fr;
 
       margin: 0;
-      padding: var(--group-ph) var(--ctrl-pw) var(--group-ph) 0;
+      padding: var(--group-ph) var(--collapse-btn-size) var(--group-ph) 0;
       height: auto;
 
       & > .forest-title {
