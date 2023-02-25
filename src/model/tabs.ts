@@ -567,10 +567,11 @@ export class Model {
 
   whenTabMoved(tabId: number, info: {windowId: number; toIndex: number}) {
     trace("event tabMoved", tabId, info);
-    const t = expect(
-      this.tab(tabId as TabID),
-      () => `Got move event for unknown tab ${tabId}`,
-    );
+    const t = this.tab(tabId as TabID);
+    if (!t) {
+      console.warn(`Got move event for unknown tab ${tabId}`);
+      return;
+    }
 
     const oldPos = this.positionOf(t);
     if (oldPos) oldPos.window.tabs.splice(oldPos.index, 1);
@@ -598,10 +599,11 @@ export class Model {
 
   whenTabReplaced(newId: number, oldId: number) {
     trace("event tabReplaced", oldId, "=>", newId);
-    const t = expect(
-      this.tab(oldId as TabID),
-      () => `Got replace event for unknown tab ${oldId} (-> ${newId})`,
-    );
+    const t = this.tab(oldId as TabID);
+    if (!t) {
+      console.warn(`Got replace event for unknown tab ${oldId} (-> ${newId})`);
+      return;
+    }
 
     const pos = this.positionOf(t);
     if (pos) pos.window.tabs[pos.index] = newId as TabID;
@@ -613,10 +615,11 @@ export class Model {
 
   whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
     trace("event tabActivated", info.tabId, info);
-    const tab = expect(
-      this.tab(info.tabId as TabID),
-      () => `Got activated event for unknown tab ${info.tabId}`,
-    );
+    const tab = this.tab(info.tabId as TabID);
+    if (!tab) {
+      console.warn(`Got activated event for unknown tab ${info.tabId}`);
+      return;
+    }
 
     // Chrome doesn't tell us which tab was deactivated, so we have to
     // find it and mark it deactivated ourselves...
@@ -628,10 +631,12 @@ export class Model {
 
   whenTabsHighlighted(info: Tabs.OnHighlightedHighlightInfoType) {
     trace("event tabsHighlighted", info);
-    const win = expect(
-      this.window(info.windowId as WindowID),
-      () => `Got highlighted event for unknown window ${info.windowId}`,
-    );
+    const win = this.window(info.windowId as WindowID);
+    if (!win) {
+      console.log(`Got highlighted event for unknown window ${info.windowId}`);
+      return;
+    }
+
     for (const t of this.tabsIn(win)) {
       t.highlighted = info.tabIds.findIndex(id => id === t.id) !== -1;
     }
