@@ -8,7 +8,7 @@ export interface Tree<P extends object, C extends object> {
   positionOf(node: P | C): Position<P> | undefined;
 
   /** Return a list of child nodes directly beneath this parent. */
-  childrenOf(parent: P): (P | C)[];
+  childrenOf(parent: P): readonly (P | C)[];
 }
 
 /** A position within a parent node's list of children. */

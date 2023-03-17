@@ -67,7 +67,7 @@ export class FilteredTree<P extends object, C extends object>
 
   childrenOf(
     parent: FilteredParent<P, C>,
-  ): (FilteredParent<P, C> | FilteredChild<C>)[] {
+  ): readonly (FilteredParent<P, C> | FilteredChild<C>)[] {
     return this.tree
       .childrenOf(parent.unfiltered)
       .map(i => this.wrappedNode(i));
@@ -100,7 +100,7 @@ export class FilteredTree<P extends object, C extends object>
     const filteredCount = computed(() => {
       let count = 0;
       children.value.forEach(i => {
-        if (i.isMatching.value) ++count;
+        if (!i.isMatching.value) ++count;
       });
       return count;
     });
