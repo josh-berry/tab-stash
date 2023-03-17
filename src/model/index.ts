@@ -297,9 +297,6 @@ export class Model {
   setFilter(text: string) {
     const filter = textMatcher(text);
 
-    this.bookmarks.filter.value = node =>
-      filter(node.title) || ("url" in node && filter(node.url));
-
     this.tabs.filter.value = t =>
       (!!t.title && filter(t.title)) || (!!t.url && filter(t.url));
   }

@@ -104,7 +104,7 @@
       <li><window :tabs="tabs" :metadata="curWindowMetadata" /></li>
     </ul>
 
-    <folder-list ref="stashed" v-if="stash_root" :parentFolder="stash_root" />
+    <folder-list ref="stashed" v-if="stashRoot" :parentFolder="stashRoot" />
 
     <footer class="page status-text">
       Tab Stash {{ my_version }} &mdash;
@@ -134,12 +134,15 @@ import {
 } from "../model/bookmark-metadata";
 import {
   friendlyFolderName,
+  type Bookmark,
   type Folder,
   type FolderStats,
+  type Node,
+  type Separator,
 } from "../model/bookmarks";
 import type {Tab} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
-import {parseVersion, required, TaskMonitor} from "../util";
+import {parseVersion, required, TaskMonitor, textMatcher} from "../util";
 
 import Button from "../components/button.vue";
 import Menu from "../components/menu.vue";
@@ -147,6 +150,7 @@ import Notification from "../components/notification.vue";
 import OopsNotification from "../components/oops-notification.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
 import SearchInput from "../components/search-input.vue";
+import {FilteredTree, type FilteredParent} from "../model/filtered-tree";
 import ExportDialog from "../tasks/export.vue";
 import ImportDialog from "../tasks/import.vue";
 import FolderList from "./folder-list.vue";
@@ -181,6 +185,22 @@ export default defineComponent({
   }),
 
   computed: {
+    filteredBookmarks(): FilteredTree<Folder, Bookmark | Separator> {
+      const f = new FilteredTree<Folder, Bookmark | Separator>(
+        this.model().bookmarks,
+        node => this.bookmarkFilterFn(node),
+      );
+      (<any>globalThis).filtered_bookmarks = f;
+      return f;
+    },
+
+    bookmarkFilterFn(): (node: Node) => boolean {
+      if (!this.searchText) return _ => true;
+      const matcher = textMatcher(this.searchText);
+      return node =>
+        matcher(node.title) || ("url" in node && matcher(node.url));
+    },
+
     stash_root_warning(): {text: string; help: () => void} | undefined {
       return this.model().bookmarks.stash_root_warning.value;
     },
@@ -194,14 +214,10 @@ export default defineComponent({
       if (!win) return [];
       return m.tabsIn(win);
     },
-    stash_root(): Folder | undefined {
-      return this.model().bookmarks.stash_root.value;
-    },
-    stash_groups(): Folder[] {
-      if (!this.stash_root?.children) return [];
-      return this.model()
-        .bookmarks.childrenOf(this.stash_root)
-        .filter(c => "children" in c) as Folder[];
+    stashRoot(): FilteredParent<Folder, Bookmark | Separator> | undefined {
+      const root = this.model().bookmarks.stash_root.value;
+      if (!root) return undefined;
+      return this.filteredBookmarks.wrappedParent(root);
     },
 
     recently_updated(): undefined | "features" | "fixes" {
@@ -231,7 +247,7 @@ export default defineComponent({
     },
 
     counts(): FolderStats {
-      const stats = this.stash_root?.$recursiveStats;
+      const stats = this.stashRoot?.unfiltered.$recursiveStats;
       if (!stats) return {bookmarkCount: 0, folderCount: 0, selectedCount: 0};
       return stats;
     },
@@ -338,8 +354,8 @@ export default defineComponent({
       this.collapsed = !this.collapsed;
       const metadata = this.model().bookmark_metadata;
       metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
-      for (const f of this.stash_groups) {
-        metadata.setCollapsed(f.id, this.collapsed);
+      for (const f of this.stashRoot?.unfiltered.children || []) {
+        metadata.setCollapsed(f, this.collapsed);
       }
     },
 

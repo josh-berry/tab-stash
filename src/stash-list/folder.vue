@@ -7,18 +7,19 @@
       'action-container': true,
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
-      selected: folder.$selected,
-      'no-match': !folder.$visible,
+      selected: folder.unfiltered.$selected,
+      'no-match': !folder.isMatching.value,
+      'has-matching-children': folder.hasMatchingChildren.value,
     }"
-    :data-id="folder.id"
+    :data-id="folder.unfiltered.id"
   >
     <item-icon
       :class="{
         'forest-icon': true,
         action: true,
         select: true,
-        'icon-folder': !folder.$selected,
-        'icon-folder-selected-inverse': folder.$selected,
+        'icon-folder': !folder.unfiltered.$selected,
+        'icon-folder-selected-inverse': folder.unfiltered.$selected,
       }"
       @click.prevent.stop="select"
     />
@@ -152,28 +153,28 @@
     :drag="drag"
     :drop="drop"
   >
-    <template #item="{item}">
+    <template #item="{item}: {item: NodeWithTabs}">
+      <child-folder v-if="'children' in item.node" :folder="item.node" />
       <bookmark
-        v-if="'url' in item.node"
-        :bookmark="item.node"
+        v-else-if="'url' in item.node.unfiltered"
+        :bookmark="item.node as FilteredChild<Bookmark>"
         :relatedTabs="item.tabs"
-      />
-      <child-folder
-        v-else-if="'children' in item.node"
-        :folder="item.node"
-        :metadata="model().bookmark_metadata.get(item.id)"
       />
     </template>
   </dnd-list>
 
-  <ul v-if="filterCount > 0" :class="{'forest-children': true, collapsed}">
+  <ul
+    v-if="folder.filteredCount.value > 0"
+    :class="{'forest-children': true, collapsed}"
+  >
     <li>
       <div
         class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
         <span class="forest-title status-text">
-          {{ showFiltered ? "-" : "+" }} {{ filterCount }} filtered
+          {{ showFiltered ? "-" : "+" }}
+          {{ folder.filteredCount.value }} filtered
         </span>
       </div>
     </li>
@@ -194,12 +195,17 @@ import {
 
 import type {Model, StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import type {Bookmark, Folder, Node, NodeID} from "../model/bookmarks";
+import type {Bookmark, Folder, Node, Separator} from "../model/bookmarks";
 import {
   friendlyFolderName,
   genDefaultFolderName,
   getDefaultFolderNameISODate,
 } from "../model/bookmarks";
+import type {
+  FilteredChild,
+  FilteredItem,
+  FilteredParent,
+} from "../model/filtered-tree";
 import type {Tab} from "../model/tabs";
 
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -210,7 +216,10 @@ import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
 import BookmarkVue from "./bookmark.vue";
 
-type NodeWithTabs = {node: Node; id: NodeID; tabs: Tab[]};
+type NodeWithTabs = {
+  node: FilteredItem<Folder, Bookmark | Separator>;
+  tabs: Tab[];
+};
 
 const DROP_FORMATS = ["application/x-tab-stash-items"];
 
@@ -230,10 +239,9 @@ export default defineComponent({
   inject: ["$model"],
 
   props: {
-    // Bookmark folder
-    folder: required(Object as PropType<Folder>),
-
-    metadata: required(Object as PropType<BookmarkMetadataEntry>),
+    folder: required(
+      Object as PropType<FilteredParent<Folder, Bookmark | Separator>>,
+    ),
   },
 
   data: () => ({
@@ -249,18 +257,21 @@ export default defineComponent({
       return DROP_FORMATS;
     },
 
+    metadata(): BookmarkMetadataEntry {
+      return this.model().bookmark_metadata.get(this.folder.unfiltered.id);
+    },
+
     targetWindow(): number | undefined {
       return this.model().tabs.targetWindow.value;
     },
 
     childrenWithTabs(): readonly NodeWithTabs[] {
-      const mtabs = this.model().tabs;
-      return this.children.map(n => ({
-        id: n.id,
+      const tab_model = this.model().tabs;
+      return this.folder.children.value.map(n => ({
         node: n,
         tabs:
-          "url" in n && n.url
-            ? Array.from(mtabs.tabsWithURL(n.url)).filter(
+          "url" in n.unfiltered && n.unfiltered.url
+            ? Array.from(tab_model.tabsWithURL(n.unfiltered.url)).filter(
                 t => t.windowId === this.targetWindow,
               )
             : [],
@@ -290,10 +301,6 @@ export default defineComponent({
 
     openTabsCount(): number {
       return this.childTabStats.open + this.childTabStats.discarded;
-    },
-
-    children(): readonly Node[] {
-      return this.model().bookmarks.childrenOf(this.folder);
     },
 
     collapsed: {
@@ -335,22 +342,23 @@ export default defineComponent({
      * elsewhere and thus have a creation time that isn't their actual
      * creation time. */
     defaultTitle(): string {
-      if (getDefaultFolderNameISODate(this.folder.title) !== null) {
-        return friendlyFolderName(this.folder.title);
+      const unfiltered = this.folder.unfiltered;
+      if (getDefaultFolderNameISODate(unfiltered.title) !== null) {
+        return friendlyFolderName(unfiltered.title);
       } else {
-        return `Saved ${new Date(this.folder.dateAdded || 0).toLocaleString()}`;
+        return `Saved ${new Date(unfiltered.dateAdded || 0).toLocaleString()}`;
       }
     },
     nonDefaultTitle(): string {
-      return getDefaultFolderNameISODate(this.folder.title) !== null
+      return getDefaultFolderNameISODate(this.folder.unfiltered.title) !== null
         ? ""
-        : this.folder.title;
+        : this.folder.unfiltered.title;
     },
     title(): string {
-      return friendlyFolderName(this.folder.title);
+      return friendlyFolderName(this.folder.unfiltered.title);
     },
     tooltip(): string {
-      const bm_stats = this.folder.$stats;
+      const bm_stats = this.folder.unfiltered.$stats;
       const st = this.childTabStats;
       const statstip = `${bm_stats.folderCount} sub-group${
         bm_stats.folderCount !== 1 ? "s" : ""
@@ -360,20 +368,10 @@ export default defineComponent({
       return `${this.title}\n${statstip}`;
     },
 
-    validChildren(): (Bookmark | Folder)[] {
-      return filterMap(this.children, c =>
-        this.isValidChild(c) ? c : undefined,
-      );
-    },
-    visibleChildren(): (Bookmark | Folder)[] {
-      return this.validChildren.filter(c => c.$visible);
-    },
-    filterCount(): number {
-      return this.validChildren.length - this.visibleChildren.length;
-    },
-
     leafChildren(): Bookmark[] {
-      return filterMap(this.children, c => ("url" in c ? c : undefined));
+      return filterMap(this.folder.children.value, c =>
+        "url" in c.unfiltered ? c.unfiltered : undefined,
+      );
     },
 
     selectedCount(): number {
@@ -381,8 +379,7 @@ export default defineComponent({
     },
 
     canMoveIntoFolder(): boolean {
-      // This loop is open-coded instead of using pathTo() for performance
-      let f: Folder | undefined = this.folder;
+      let f: Folder | undefined = this.folder.unfiltered;
       while (f) {
         if (f.$selected) return false;
         f = this.model().bookmarks.folder(f.parentId);
@@ -408,8 +405,8 @@ export default defineComponent({
       }
 
       // Toggle the collapsed state of all the child folders
-      const folders = filterMap(this.validChildren, c =>
-        "children" in c ? c : undefined,
+      const folders = filterMap(this.folder.children.value, c =>
+        "children" in c.unfiltered ? c.unfiltered : undefined,
       );
       if (folders.length === 0) return;
 
@@ -428,7 +425,7 @@ export default defineComponent({
         await this.model().selection.toggleSelectFromEvent(
           ev,
           this.model().bookmarks,
-          this.folder,
+          this.folder.unfiltered,
         );
       });
     },
@@ -437,11 +434,13 @@ export default defineComponent({
       const node = nodet.node;
       return {
         hidden: !(
-          this.isValidChild(node) &&
+          this.isValidChild(node.unfiltered) &&
           (this.showFiltered ||
-            node.$visible ||
-            node.$selected ||
-            ("$recursiveStats" in node && node.$recursiveStats.selectedCount))
+            node.isMatching.value ||
+            ("hasMatchingChildren" in node && node.hasMatchingChildren.value) ||
+            node.unfiltered.$selected ||
+            ("$recursiveStats" in node.unfiltered &&
+              node.unfiltered.$recursiveStats.selectedCount))
         ),
       };
     },
@@ -459,7 +458,7 @@ export default defineComponent({
         async () =>
           await model.putItemsInFolder({
             items: model.copyIf(ev.altKey, model.stashableTabsInWindow(win_id)),
-            toFolderId: this.folder.id,
+            toFolderId: this.folder.unfiltered.id,
           }),
       );
     },
@@ -474,7 +473,7 @@ export default defineComponent({
       this.attempt(async () => {
         await this.model().putItemsInFolder({
           items: this.model().copyIf(ev.altKey, [tab]),
-          toFolderId: this.folder.id,
+          toFolderId: this.folder.unfiltered.id,
         });
       });
     },
@@ -487,7 +486,7 @@ export default defineComponent({
       model.attempt(() =>
         model.putSelectedInFolder({
           copy: ev.altKey,
-          toFolderId: this.folder.id,
+          toFolderId: this.folder.unfiltered.id,
         }),
       );
     },
@@ -499,7 +498,7 @@ export default defineComponent({
 
       model.attempt(async () => {
         const f = await model.bookmarks.create({
-          parentId: this.folder.id,
+          parentId: this.folder.unfiltered.id,
           title: genDefaultFolderName(new Date()),
         });
         await model.putSelectedInFolder({
@@ -519,7 +518,7 @@ export default defineComponent({
 
     remove() {
       this.attempt(async () => {
-        await this.model().deleteBookmarkTree(this.folder.id);
+        await this.model().deleteBookmarkTree(this.folder.unfiltered.id);
       });
     },
 
@@ -529,8 +528,8 @@ export default defineComponent({
 
         await this.model().restoreTabs(this.leafChildren, {background: bg});
 
-        if (this.leafChildren.length === this.children.length) {
-          await this.model().deleteBookmarkTree(this.folder.id);
+        if (this.leafChildren.length === this.folder.children.value.length) {
+          await this.model().deleteBookmarkTree(this.folder.unfiltered.id);
         } else {
           const children = this.leafChildren.map(c => c.id);
           await this.model().deleteItems(children);
@@ -541,24 +540,28 @@ export default defineComponent({
     rename(title: string) {
       return this.attempt(async () => {
         if (title === "") {
-          if (getDefaultFolderNameISODate(this.folder.title) !== null) {
+          if (
+            getDefaultFolderNameISODate(this.folder.unfiltered.title) !== null
+          ) {
             // It already has a default name; leave it alone so we don't
             // lose track of when the folder was actually created.
             return;
           }
 
           // Else give it a default name based on the creation time
-          title = genDefaultFolderName(new Date(this.folder.dateAdded || 0));
+          title = genDefaultFolderName(
+            new Date(this.folder.unfiltered.dateAdded || 0),
+          );
         }
 
-        await this.model().bookmarks.rename(this.folder, title);
+        await this.model().bookmarks.rename(this.folder.unfiltered, title);
       });
     },
 
     newChildFolder() {
       return this.attempt(async () => {
         await this.model().bookmarks.create({
-          parentId: this.folder.id,
+          parentId: this.folder.unfiltered.id,
           title: genDefaultFolderName(new Date()),
         });
       });
@@ -575,9 +578,9 @@ export default defineComponent({
     },
 
     drag(ev: DragAction<NodeWithTabs>) {
-      const items = ev.value.node.$selected
+      const items = ev.value.node.unfiltered.$selected
         ? Array.from(this.model().selectedItems())
-        : [ev.value.node];
+        : [ev.value.node.unfiltered];
       ev.dataTransfer.setData(
         "application/x-tab-stash-items",
         JSON.stringify(items),
@@ -592,7 +595,7 @@ export default defineComponent({
       await model.attempt(() =>
         this.model().putItemsInFolder({
           items,
-          toFolderId: this.folder.id,
+          toFolderId: this.folder.unfiltered.id,
           toIndex: ev.toIndex,
         }),
       );

@@ -1,12 +1,9 @@
 <template>
   <dnd-list
     class="forest"
-    v-model="children"
+    v-model="parentFolder.children.value"
     item-key="id"
-    :item-class="(f: Node) => ({
-      hidden: ! ('children' in f) || !(
-        f.$visible || f.$visibleChildren || f.$recursiveStats.selectedCount > 0)
-    })"
+    :item-class="itemClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
@@ -14,12 +11,7 @@
     ghost-mimics-height
   >
     <template #item="{item: f}">
-      <Folder
-        v-if="'children' in f"
-        ref="folders"
-        :folder="f"
-        :metadata="model().bookmark_metadata.get(f.id)"
-      />
+      <Folder v-if="'children' in f" ref="folders" :folder="f" />
     </template>
   </dnd-list>
 </template>
@@ -31,7 +23,8 @@ import {required} from "../util";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
 import type {Model} from "../model";
-import type {Folder, Node, NodeID} from "../model/bookmarks";
+import type {Bookmark, Folder, NodeID, Separator} from "../model/bookmarks";
+import type {FilteredItem, FilteredParent} from "../model/filtered-tree";
 
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
@@ -44,21 +37,34 @@ export default defineComponent({
   inject: ["$model"],
 
   props: {
-    parentFolder: required(Object as PropType<Folder>),
+    parentFolder: required(
+      Object as PropType<FilteredParent<Folder, Bookmark | Separator>>,
+    ),
   },
 
   computed: {
     accepts() {
       return DROP_FORMAT;
     },
-    children(): readonly Node[] {
-      return this.model().bookmarks.childrenOf(this.parentFolder);
-    },
   },
 
   methods: {
     model(): Model {
       return (<any>this).$model as Model;
+    },
+
+    itemClasses(
+      f: FilteredItem<Folder, Bookmark | Separator>,
+    ): Record<string, boolean> {
+      return {
+        hidden:
+          !("children" in f) ||
+          !(
+            f.isMatching.value ||
+            f.hasMatchingChildren.value ||
+            f.unfiltered.$recursiveStats.selectedCount > 0
+          ),
+      };
     },
 
     drag(ev: DragAction<Folder>) {
@@ -69,7 +75,7 @@ export default defineComponent({
       const id = ev.dataTransfer.getData(DROP_FORMAT);
       await this.model().bookmarks.move(
         id as NodeID,
-        this.parentFolder.id,
+        this.parentFolder.unfiltered.id,
         ev.toIndex,
       );
     },

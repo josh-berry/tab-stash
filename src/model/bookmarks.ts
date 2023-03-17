@@ -33,8 +33,6 @@ type NodeBase = {
   title: string;
 
   $selected: boolean;
-  readonly $visible: boolean;
-  readonly $visibleChildren: boolean;
 };
 
 export type NodeID = string & {readonly __node_id: unique symbol};
@@ -100,11 +98,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   readonly selectedCount = computed(
     () => this.stash_root.value?.$recursiveStats.selectedCount || 0,
   );
-
-  /** A filter function--assign to this to filter bookmarks using the
-   * function.  Each bookmark's $visible property will be updated
-   * automatically when a function is assigned to this ref. */
-  readonly filter: Ref<(node: Node) => boolean> = ref((_: Node) => true);
 
   /** Tracks folders which are candidates to be the stash root, and their
    * parents (up to the root).  Any changes to these folders should recompute
@@ -509,12 +502,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
     let node = this.by_id.get(nodeId);
     if (!node) {
-      const $visible = computed(() => this.filter.value(node!));
-      const $visibleChildren = computed(() => {
-        if (!("children" in node!)) return false;
-        for (const c of this.childrenOf(node)) if (c.$visible) return true;
-        return false;
-      });
       const $selected = ref(false);
 
       if (isBrowserBTNFolder(new_bm)) {
@@ -524,8 +511,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
           children: [],
-          $visible,
-          $visibleChildren,
           $selected,
           $stats: computed(() => {
             let bookmarkCount = 0;
@@ -563,8 +548,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
           dateAdded: new_bm.dateAdded,
           type: "separator" as "separator",
           title: "" as "",
-          $visible,
-          $visibleChildren,
           $selected,
         });
       } else {
@@ -574,8 +557,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
           url: new_bm.url ?? "",
-          $visible,
-          $visibleChildren,
           $selected,
         });
         this._add_url(node);
@@ -853,7 +834,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     return filterMap(
       startPos.parent.children.slice(startPos.index, endPos.index + 1),
       id => this.node(id),
-    ).filter(t => t.$visible);
+    );
   }
 
   private _add_url(bm: Bookmark) {
