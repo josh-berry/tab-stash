@@ -93,10 +93,10 @@
         :placeholder="search_placeholder"
         v-model="searchText"
       />
-      <Button
-        :class="{collapse: !collapsed, expand: collapsed}"
+      <a
+        :class="{action: true, collapse: !collapsed, expand: collapsed}"
         title="Hide all tabs so only group names are showing"
-        @action="collapseAll"
+        @click.prevent.stop="collapseAll"
       />
     </header>
 
@@ -144,7 +144,6 @@ import type {Tab} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
 import {parseVersion, required, TaskMonitor, textMatcher} from "../util";
 
-import Button from "../components/button.vue";
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
 import OopsNotification from "../components/oops-notification.vue";
@@ -160,7 +159,6 @@ import Window from "./window.vue";
 
 export default defineComponent({
   components: {
-    Button,
     ExportDialog,
     Folder: FolderVue,
     FolderList,

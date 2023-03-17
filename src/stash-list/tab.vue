@@ -47,13 +47,17 @@
     />
 
     <nav class="action-group forest-toolbar">
-      <Button
+      <a
         v-if="isStashable"
-        class="stash one"
-        @action="stash"
-        :tooltip="`Stash this tab (hold ${altKey} to keep tab open)`"
+        class="action stash one"
+        :title="`Stash this tab (hold ${altKey} to keep tab open)`"
+        @click.prevent.stop="stash"
       />
-      <Button class="remove" @action="remove" tooltip="Close this tab" />
+      <a
+        class="action remove"
+        title="Close this tab"
+        @click.prevent.stop="remove"
+      />
     </nav>
   </div>
 </template>
@@ -68,11 +72,10 @@ import type {Container} from "../model/containers";
 import type {Tab} from "../model/tabs";
 import {altKeyName, bgKeyName, required} from "../util";
 
-import Button from "../components/button.vue";
 import ItemIcon from "../components/item-icon.vue";
 
 export default defineComponent({
-  components: {Button, ItemIcon},
+  components: {ItemIcon},
 
   inject: ["$model"],
 

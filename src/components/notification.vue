@@ -7,11 +7,11 @@
       <slot></slot>
     </div>
     <ButtonBox>
-      <Button
-        class="cancel"
+      <a
+        class="action cancel"
         name="Dismiss"
-        tooltip="Dismiss notification"
-        @action="dismiss"
+        title="Dismiss notification"
+        @click.prevent.stop="dismiss"
       />
     </ButtonBox>
   </aside>
@@ -21,10 +21,9 @@
 import {defineComponent} from "vue";
 
 import ButtonBox from "./button-box.vue";
-import Button from "./button.vue";
 
 export default defineComponent({
-  components: {ButtonBox, Button},
+  components: {ButtonBox},
 
   emits: ["activate", "dismiss"],
 

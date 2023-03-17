@@ -24,45 +24,45 @@
       @click.prevent.stop="select"
     />
 
-    <Button
+    <a
       :class="{
         'forest-collapse': true,
         action: true,
         collapse: !collapsed,
         expand: collapsed,
       }"
-      :tooltip="`Hide the tabs for this group (hold ${altKey} to hide tabs for child folders)`"
-      @action="toggleCollapsed"
+      :title="`Hide the tabs for this group (hold ${altKey} to hide tabs for child folders)`"
+      @click.prevent.stop="toggleCollapsed"
     />
     <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
-      <Button
-        class="stash here"
-        @action="stash"
-        :tooltip="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
+      <a
+        class="action stash here"
+        :title="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
+        @click.prevent.stop="stash"
       />
-      <Button
-        class="stash one here"
-        @action="stashOne"
-        :tooltip="
+      <a
+        class="action stash one here"
+        :title="
           `Stash the active tab to this group ` +
           `(hold ${altKey} to keep tabs open)`
         "
+        @click.prevent.stop="stashOne"
       />
-      <Button
-        class="restore"
-        @action="restoreAll"
-        :tooltip="
+      <a
+        class="action restore"
+        :title="
           `Open all tabs in this group ` +
           `(hold ${bgKey} to open in background)`
         "
+        @click.prevent.stop="restoreAll"
       />
-      <Button
-        class="restore-remove"
-        @action="restoreAndRemove"
-        :tooltip="
+      <a
+        class="action restore-remove"
+        :title="
           `Open all tabs in the group and delete the group ` +
           `(hold ${bgKey} to open in background)`
         "
+        @click.prevent.stop="restoreAndRemove"
       />
       <Menu
         class="menu"
@@ -114,15 +114,15 @@
       v-else-if="!isRenaming && canMoveIntoFolder"
       class="forest-toolbar"
     >
-      <Button
-        class="stash here"
-        @action="move"
-        :tooltip="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
+      <a
+        class="action stash here"
+        :title="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
+        @click.prevent.stop="move"
       />
-      <Button
-        class="stash newgroup"
-        @action="moveToChild"
-        :tooltip="`Move ${selectedCount} selected tab(s) to a new sub-group (hold ${altKey} to copy)`"
+      <a
+        class="action stash newgroup"
+        :title="`Move ${selectedCount} selected tab(s) to a new sub-group (hold ${altKey} to copy)`"
+        @click.prevent.stop="moveToChild"
       />
     </ButtonBox>
 
@@ -210,7 +210,6 @@ import type {Tab} from "../model/tabs";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
-import Button from "../components/button.vue";
 import DndList from "../components/dnd-list.vue";
 import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
@@ -229,7 +228,6 @@ export default defineComponent({
   components: {
     AsyncTextInput,
     ButtonBox,
-    Button,
     DndList,
     Bookmark: BookmarkVue,
     ItemIcon,

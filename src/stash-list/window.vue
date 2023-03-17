@@ -7,63 +7,64 @@
       collapsed,
     }"
   >
-    <Button
+    <a
       :class="{
+        action: true,
         'forest-collapse': true,
         collapse: !collapsed,
         expand: collapsed,
       }"
-      tooltip="Hide the tabs for this group"
-      @action="collapsed = !collapsed"
+      title="Hide the tabs for this group"
+      @click.prevent.stop="collapsed = !collapsed"
     />
     <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
-      <Button
-        class="stash"
-        @action="stash"
-        :tooltip="`Stash all ${
+      <a
+        class="action stash"
+        :title="`Stash all ${
           showStashedTabs ? 'open tabs' : 'unstashed tabs'
         } to a new group (hold ${altKey} to keep tabs open)`"
+        @click.prevent.stop="stash"
       />
-      <Button
-        class="stash newgroup"
-        @action="newGroup"
-        tooltip="Create a new empty group"
+      <a
+        class="action stash newgroup"
+        title="Create a new empty group"
+        @click.prevent.stop="newGroup"
       />
-      <Button
-        class="remove"
-        @action="remove"
-        :tooltip="`Close all unstashed tabs`"
+      <a
+        class="action remove"
+        :title="`Close all unstashed tabs`"
+        @click.prevent.stop="remove"
       />
-      <Button
-        class="remove stashed"
-        @action="removeStashed"
-        :tooltip="`Close all stashed tabs`"
+      <a
+        class="action remove stashed"
+        :title="`Close all stashed tabs`"
+        @click.prevent.stop="removeStashed"
       />
-      <Button
-        class="remove opened"
-        @action="removeOpen"
-        :tooltip="`Click: Close all open tabs
+      <a
+        class="action remove opened"
+        :title="`Click: Close all open tabs
 ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
+        @click.prevent.stop="removeOpen"
       />
     </nav>
 
     <nav v-else class="action-group forest-toolbar">
-      <Button
-        class="stash newgroup"
-        @action="moveToNewGroup"
-        :tooltip="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+      <a
+        class="action stash newgroup"
+        :title="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+        @click.prevent.stop="moveToNewGroup"
       />
-      <Button
+      <a
         v-if="selectedCount > 0"
-        class="restore"
-        @action="copyToWindow"
-        :tooltip="`Open ${selectedCount} tab(s)`"
+        class="action restore"
+        :title="`Open ${selectedCount} tab(s)`"
+        @click.prevent.stop="copyToWindow"
       />
-      <Button
+      <a
         v-if="selectedCount > 0"
-        class="restore-remove"
-        @action="moveToWindow"
-        :tooltip="`Unstash ${selectedCount} tab(s)`"
+        class="action restore-remove"
+        :title="`Unstash ${selectedCount} tab(s)`"
+        @click.prevent.stop="moveToWindow"
       />
     </nav>
 
@@ -130,7 +131,6 @@ import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {SyncState} from "../model/options";
 import type {Tab} from "../model/tabs";
 
-import Button from "../components/button.vue";
 import ConfirmDialog, {
   type ConfirmDialogEvent,
 } from "../components/confirm-dialog.vue";
@@ -150,7 +150,6 @@ const NEXT_SHOW_OPEN_TAB_STATE: Record<
 
 export default defineComponent({
   components: {
-    Button,
     ConfirmDialog,
     DndList,
     Tab: TabVue,

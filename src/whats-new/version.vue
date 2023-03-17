@@ -8,14 +8,14 @@
       }"
     >
       <span class="forest-title">Version {{ v }}</span>
-      <Button
+      <a
         :class="{
-          'forest-collapse': true,
           action: true,
+          'forest-collapse': true,
           collapse: !is_collapsed,
           expand: is_collapsed,
         }"
-        @action="collapsed = !is_collapsed"
+        @click.prevent.stop="collapsed = !is_collapsed"
       />
     </div>
     <ul
@@ -34,11 +34,7 @@
 import {defineComponent} from "vue";
 import {cmpVersions, required} from "../util";
 
-import Button from "../components/button.vue";
-
 export default defineComponent({
-  components: {Button},
-
   props: {v: required(String)},
   inject: ["last_notified_version"],
   data: () => ({collapsed: undefined as boolean | undefined}),

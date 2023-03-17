@@ -52,19 +52,23 @@
     />
 
     <nav v-if="!isRenaming" class="action-group forest-toolbar">
-      <Button class="rename" @action="isRenaming = true" tooltip="Rename" />
-      <Button
-        class="restore-remove"
-        @action="openRemove"
-        :tooltip="
+      <a
+        class="action rename"
+        title="Rename"
+        @click.prevent.stop="isRenaming = true"
+      />
+      <a
+        class="action restore-remove"
+        :title="
           `Open this tab and delete it from the group ` +
           `(hold ${bgKey} to open in background)`
         "
+        @click.prevent.stop="openRemove"
       />
-      <Button
-        class="remove"
-        @action="remove"
-        tooltip="Delete this tab from the group"
+      <a
+        class="action remove"
+        title="Delete this tab from the group"
+        @click.prevent.stop="remove"
       />
     </nav>
   </div>
@@ -82,7 +86,6 @@ import type {FilteredChild} from "../model/filtered-tree";
 import type {Tab} from "../model/tabs";
 
 import AsyncTextInput from "../components/async-text-input.vue";
-import Button from "../components/button.vue";
 import ItemIcon from "../components/item-icon.vue";
 
 type RelatedTabState = {
@@ -94,7 +97,7 @@ type RelatedTabState = {
 };
 
 export default defineComponent({
-  components: {Button, ItemIcon, AsyncTextInput},
+  components: {ItemIcon, AsyncTextInput},
 
   inject: ["$model"],
 

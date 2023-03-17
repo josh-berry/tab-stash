@@ -29,7 +29,11 @@
     }}</span>
 
     <ButtonBox class="forest-toolbar">
-      <Button class="stash one" tooltip="Restore" @action="restore" />
+      <a
+        class="action stash one"
+        title="Restore"
+        @click.prevent.stop="restore"
+      />
       <Menu
         class="menu"
         summaryClass="action remove last-toolbar-button"
@@ -64,7 +68,6 @@ import {friendlyFolderName} from "@/model/bookmarks";
 import {findChildItem} from "@/model/deleted-items";
 
 import ButtonBox from "@/components/button-box.vue";
-import Button from "@/components/button.vue";
 import ItemIcon from "@/components/item-icon.vue";
 import Menu from "@/components/menu.vue";
 import type {FilteredDeletedItem, FilteredDeletion} from "./schema";
