@@ -4,7 +4,7 @@
     @close="$emit('close')"
     show-close-button
   >
-    <template #title><span class="group-title">Export</span></template>
+    <template #title>Export</template>
 
     <form :id="$style.dlg" @submit.prevent.stop="">
       <label :for="$style.format" :class="$style.format">Format:</label>

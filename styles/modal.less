@@ -22,7 +22,8 @@
 // Dialogs themselves
 .dialog {
   background-color: var(--group-bg);
-  border: var(--group-border);
+  // border: var(--group-border);
+  border-radius: var(--group-border-radius);
   box-shadow: var(--shadow);
   overflow: hidden;
 
@@ -37,6 +38,9 @@
     display: grid;
     grid-template-columns: 1fr 0fr;
     align-items: center;
+
+    font-weight: var(--group-header-font-weight);
+    font-size: var(--group-header-font-size);
 
     & > .dialog-close {
       grid-row: 1;

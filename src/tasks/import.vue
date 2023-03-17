@@ -6,7 +6,7 @@
     @close="$emit('close')"
     show-close-button
   >
-    <template #title><span class="group-title">Import</span></template>
+    <template #title>Import</template>
 
     <label for="data">
       Paste anything containing links or URLs here. Links and URLs will be
