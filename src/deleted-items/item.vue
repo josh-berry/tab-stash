@@ -40,7 +40,9 @@
         title="Delete Forever"
         inPlace
       >
-        <button @click.prevent.stop="remove">Delete Forever</button>
+        <button @click.prevent.stop="remove">
+          <span>Delete Forever</span>
+        </button>
       </Menu>
     </ButtonBox>
   </div>

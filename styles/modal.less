@@ -109,10 +109,6 @@ details.menu {
   flex-direction: column;
   overflow: auto;
 
-  & > * {
-    margin: 0;
-  }
-
   & > input,
   & > .search-input {
     margin: var(--ctrl-mh) var(--ctrl-mw);
@@ -122,8 +118,8 @@ details.menu {
   & button,
   & .menu-item {
     cursor: default;
-    // Extra 16px is for scroll bars, should they appear...
-    padding: 0 calc(var(--menu-mw) + 16px) 0 var(--menu-mw);
+    // The 16px is for scroll bars, should they appear...
+    padding: 0 max(var(--menu-mw), 16px) 0 var(--menu-mw);
 
     display: flex;
     align-items: center;
@@ -132,11 +128,20 @@ details.menu {
     border: none;
     border-radius: 0;
     text-decoration: none;
-    text-align: left;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
     background: inherit;
+
+    & .icon {
+      flex: 0 0 auto;
+      grid-column: 1;
+    }
+
+    & span:not(.icon) {
+      flex: 1 1 auto;
+      text-align: left;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
 
     // Needed because the above background change overrides the global
     // .selected rules.
@@ -181,5 +186,6 @@ details.menu {
     flex-direction: column;
     padding-left: 0;
     padding-right: 0;
+    margin: 0;
   }
 }

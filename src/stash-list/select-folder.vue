@@ -10,7 +10,7 @@
         :title="props.tooltips(folder.unfiltered)"
         @click.prevent="emit('select', $event, folder.unfiltered)"
       >
-        {{ friendlyFolderName(folder.unfiltered.title) }}
+        <span>{{ friendlyFolderName(folder.unfiltered.title) }}</span>
       </button>
       <Self
         :tree="props.tree"

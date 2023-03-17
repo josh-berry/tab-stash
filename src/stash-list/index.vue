@@ -57,32 +57,36 @@
 
     <header class="page action-container" @click.stop="">
       <Menu class="menu main-menu" summaryClass="action mainmenu">
-        <button @click.prevent="showOptions">Options...</button>
+        <button @click.prevent="showOptions"><span>Options...</span></button>
         <hr />
         <button @click.prevent="dialog = {class: 'ImportDialog'}">
-          Import...
+          <span>Import...</span>
         </button>
-        <button @click.prevent="showExportDialog">Export...</button>
+        <button @click.prevent="showExportDialog">
+          <span>Export...</span>
+        </button>
         <hr />
         <a tabindex="0" :href="pageref('deleted-items.html')"
-          >Deleted Items...</a
+          ><span>Deleted Items...</span></a
         >
         <button @click.prevent="fetchMissingFavicons">
-          Fetch Missing Icons
+          <span>Fetch Missing Icons</span>
         </button>
         <hr />
         <a tabindex="0" href="https://josh-berry.github.io/tab-stash/tips.html"
-          >Tips and Tricks</a
+          ><span>Tips and Tricks</span></a
         >
         <a tabindex="0" href="https://github.com/josh-berry/tab-stash/wiki"
-          >Wiki</a
+          ><span>Wiki</span></a
         >
         <a
           tabindex="0"
           href="https://josh-berry.github.io/tab-stash/support.html"
-          >Help and Support</a
+          ><span>Help and Support</span></a
         >
-        <a tabindex="0" :href="pageref('whats-new.html')">What's New?</a>
+        <a tabindex="0" :href="pageref('whats-new.html')"
+          ><span>What's New?</span></a
+        >
       </Menu>
 
       <SelectionMenu v-if="selection_active" />

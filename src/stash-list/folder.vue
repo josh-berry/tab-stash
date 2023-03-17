@@ -80,7 +80,7 @@
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <div class="menu-item disabled status-text">
-            Stash to "{{ title }}":
+            <span>Stash to "{{ title }}":</span>
           </div>
           <ul class="menu-scrollable-list">
             <li v-for="tab of unstashedOrOpenTabs" :key="tab.id">
