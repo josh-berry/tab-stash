@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install inkscape
+      run: sudo apt-get install -y inkscape
+    - uses: actions/checkout@v1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+    - name: Build
+      run: |
+        make debug
+    - name: Firefox artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: firefox
+        path: dist/**/*
+    - name: Chrome artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: chrome
+        path: dist-chrome/**/*
