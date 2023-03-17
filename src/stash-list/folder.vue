@@ -76,20 +76,26 @@
           <span class="icon icon-new-empty-group"></span>
           <span>New Child Group</span>
         </button>
-        <hr />
-        <div class="menu-item disabled status-text">Stash here:</div>
-        <ul class="menu-scrollable-list">
-          <li v-for="tab of unstashedTabs" :key="tab.id">
-            <a
-              :href="tab.url"
-              :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
-              @click.prevent.stop="stashSpecificTab($event, tab)"
-            >
-              <item-icon is="span" :src="tab.favIconUrl" />
-              <span>{{ tab.title }}</span>
-            </a>
-          </li>
-        </ul>
+
+        <template v-if="unstashedOrOpenTabs.length > 0">
+          <hr />
+          <div class="menu-item disabled status-text">
+            Stash to "{{ title }}":
+          </div>
+          <ul class="menu-scrollable-list">
+            <li v-for="tab of unstashedOrOpenTabs" :key="tab.id">
+              <a
+                :href="tab.url"
+                :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
+                @click.prevent.stop="stashSpecificTab($event, tab)"
+              >
+                <item-icon is="span" :src="tab.favIconUrl" />
+                <span>{{ tab.title }}</span>
+              </a>
+            </li>
+          </ul>
+        </template>
+
         <hr />
         <button
           @click.prevent="closeStashedTabs"
@@ -314,7 +320,7 @@ export default defineComponent({
     },
 
     // Used to populate a menu of tabs to select for stashing here
-    unstashedTabs(): Tab[] {
+    unstashedOrOpenTabs(): Tab[] {
       const model = this.model();
       const target_win = model.tabs.targetWindow.value;
       if (!target_win) return [];
@@ -326,7 +332,8 @@ export default defineComponent({
           !t.pinned &&
           !t.hidden &&
           model.isURLStashable(t.url) &&
-          !model.bookmarks.isURLStashed(t.url),
+          (!model.bookmarks.isURLStashed(t.url) ||
+            model.options.sync.state.show_open_tabs !== "unstashed"),
       );
     },
 
