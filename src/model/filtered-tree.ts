@@ -8,27 +8,27 @@ export type FilteredItem<P extends object, C extends object> =
 
 export type FilteredParent<P extends object, C extends object> = {
   /** The underlying tree node. */
-  readonly node: P;
+  readonly unfiltered: P;
 
   /** All the direct children of this node, wrapped in FilteredItem objects. */
   children: ComputedRef<FilteredItem<P, C>[]>;
 
   /** Does this node match the predicate function? */
-  visible: ComputedRef<boolean>;
+  isMatching: ComputedRef<boolean>;
 
   /** Do any of the nodes in this node's sub-tree match the predicate? */
-  hasVisibleChildren: ComputedRef<boolean>;
+  hasMatchingChildren: ComputedRef<boolean>;
 
   /** How many direct children of this node do not match the predicate? */
-  hiddenCount: ComputedRef<number>;
+  filteredCount: ComputedRef<number>;
 };
 
 export type FilteredChild<C extends object> = {
   /** The underlying tree node. */
-  readonly node: C;
+  readonly unfiltered: C;
 
   /** Does this node match the predicate function? */
-  visible: ComputedRef<boolean>;
+  isMatching: ComputedRef<boolean>;
 };
 
 /** A Tree whose nodes have been filtered by a predicate function. */
@@ -54,13 +54,13 @@ export class FilteredTree<P extends object, C extends object>
   isParent(
     node: FilteredParent<P, C> | FilteredChild<C>,
   ): node is FilteredParent<P, C> {
-    return this.tree.isParent(node.node);
+    return this.tree.isParent(node.unfiltered);
   }
 
   positionOf(
     node: FilteredParent<P, C> | FilteredChild<C>,
   ): Position<FilteredParent<P, C>> | undefined {
-    const pos = this.tree.positionOf(node.node);
+    const pos = this.tree.positionOf(node.unfiltered);
     if (!pos) return undefined;
     return {parent: this.wrappedParent(pos?.parent), index: pos.index};
   }
@@ -68,52 +68,64 @@ export class FilteredTree<P extends object, C extends object>
   childrenOf(
     parent: FilteredParent<P, C>,
   ): (FilteredParent<P, C> | FilteredChild<C>)[] {
-    return this.tree.childrenOf(parent.node).map(i => this.wrappedNode(i));
+    return this.tree
+      .childrenOf(parent.unfiltered)
+      .map(i => this.wrappedNode(i));
   }
 
   /** Given a node from the underlying tree, wrap it in a FilteredItem. */
-  wrappedNode(node: P | C): FilteredItem<P, C> {
-    return this.tree.isParent(node)
-      ? this.wrappedParent(node)
-      : this.wrappedChild(node);
+  wrappedNode(unfiltered: P | C): FilteredItem<P, C> {
+    return this.tree.isParent(unfiltered)
+      ? this.wrappedParent(unfiltered)
+      : this.wrappedChild(unfiltered);
   }
 
   /** Given a parent node from the underlying tree, wrap it in a FilteredParent. */
-  wrappedParent(node: P): FilteredParent<P, C> {
-    const w = this.nodes.get(node);
+  wrappedParent(unfiltered: P): FilteredParent<P, C> {
+    const w = this.nodes.get(unfiltered);
     if (w) return w as FilteredParent<P, C>;
 
     const children = computed(() =>
-      this.tree.childrenOf(node).map(i => this.wrappedNode(i)),
+      this.tree.childrenOf(unfiltered).map(i => this.wrappedNode(i)),
     );
-    const visible = computed(() => this.predicate(node));
-    const hasVisibleChildren = computed(
+    const isMatching = computed(() => this.predicate(unfiltered));
+    const hasMatchingChildren = computed(
       () =>
         !!children.value.find(
           i =>
-            i.visible.value || (this.isParent(i) && i.hasVisibleChildren.value),
+            i.isMatching.value ||
+            (this.isParent(i) && i.hasMatchingChildren.value),
         ),
     );
-    const hiddenCount = computed(() => {
+    const filteredCount = computed(() => {
       let count = 0;
       children.value.forEach(i => {
-        if (i.visible.value) ++count;
+        if (i.isMatching.value) ++count;
       });
       return count;
     });
 
-    const p = {node, visible, hasVisibleChildren, children, hiddenCount};
-    this.nodes.set(node, p);
+    const p = {
+      unfiltered,
+      isMatching,
+      hasMatchingChildren,
+      children,
+      filteredCount,
+    };
+    this.nodes.set(unfiltered, p);
     return p;
   }
 
   /** Given a child node from the underlying tree, wrap it in a FilteredChild. */
-  wrappedChild(node: C): FilteredChild<C> {
-    const w = this.nodes.get(node);
+  wrappedChild(unfiltered: C): FilteredChild<C> {
+    const w = this.nodes.get(unfiltered);
     if (w) return w as FilteredChild<C>;
 
-    const c = {node, visible: computed(() => this.predicate(node))};
-    this.nodes.set(node, c);
+    const c = {
+      unfiltered,
+      isMatching: computed(() => this.predicate(unfiltered)),
+    };
+    this.nodes.set(unfiltered, c);
     return c;
   }
 }

@@ -2,15 +2,15 @@
   <ul>
     <li
       v-for="folder of children.filter(
-        f => f.visible.value || f.hasVisibleChildren.value,
+        f => f.isMatching.value || f.hasMatchingChildren.value,
       )"
     >
       <button
-        :class="props.buttonClasses(folder.node)"
-        :title="props.tooltips(folder.node)"
-        @click.prevent="emit('select', $event, folder.node)"
+        :class="props.buttonClasses(folder.unfiltered)"
+        :title="props.tooltips(folder.unfiltered)"
+        @click.prevent="emit('select', $event, folder.unfiltered)"
       >
-        {{ friendlyFolderName(folder.node.title) }}
+        {{ friendlyFolderName(folder.unfiltered.title) }}
       </button>
       <Self
         :tree="props.tree"
