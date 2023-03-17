@@ -2,7 +2,7 @@
   <dnd-list
     class="forest"
     v-model="parentFolder.children.value"
-    item-key="id"
+    :item-key="(item: FilteredItem<Folder, Bookmark | Separator>) => item.unfiltered.id"
     :item-class="itemClasses"
     :accepts="accepts"
     :drag="drag"
@@ -10,8 +10,10 @@
     ghost-displaces-items
     ghost-mimics-height
   >
-    <template #item="{item: f}">
-      <Folder v-if="'children' in f" ref="folders" :folder="f" />
+    <template
+      #item="{item}: {item: FilteredItem<Folder, Bookmark | Separator>}"
+    >
+      <Folder v-if="'children' in item" ref="folders" :folder="item" />
     </template>
   </dnd-list>
 </template>

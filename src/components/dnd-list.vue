@@ -7,7 +7,7 @@
     @dragover="itemDragOver"
     @drop="doDrop"
   >
-    <template v-for="(item, index) of displayItems" :key="item[itemKey]">
+    <template v-for="(item, index) of displayItems" :key="itemKey(item)">
       <component
         v-if="index === ghostIndex"
         :is="itemIs || 'li'"
@@ -16,6 +16,7 @@
           'dnd-list-ghost': true,
           'dropping-here': index === ghostIndex,
         }"
+        :data-key="itemKey(item)"
         @dragenter="ghostDragEnter($event, index)"
         @dragover="ghostDragOver($event)"
         @drop="doDrop"
@@ -26,6 +27,7 @@
       <component
         :is="itemIs || 'li'"
         :class="itemClassFor(item, index)"
+        :data-key="itemKey(item)"
         ref="dndElements"
         @mousedown.stop="enableDrag"
         @mouseup.stop="disableDrag"
@@ -40,8 +42,9 @@
     </template>
 
     <component
+      v-if="ghostIndex === displayItems.length"
       :is="itemIs || 'li'"
-      :style="ghostIndex === displayItems.length && ghostStyle"
+      :style="ghostStyle"
       :class="{
         'dnd-list-ghost': true,
         'dropping-here': ghostIndex === displayItems.length,
@@ -92,7 +95,7 @@ export default defineComponent({
   props: {
     is: String,
     itemIs: String,
-    itemKey: required(String),
+    itemKey: required(Function as PropType<(item: any) => string | number>),
     itemClass: Function as PropType<
       (item: any, index: number) => Record<string, boolean>
     >,

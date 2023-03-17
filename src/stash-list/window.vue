@@ -79,7 +79,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   <dnd-list
     :class="{'forest-children': true, collapsed}"
     v-model="tabs"
-    item-key="id"
+    :item-key="item => item.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"

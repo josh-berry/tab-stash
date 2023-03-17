@@ -13,7 +13,6 @@
       'no-match': !tab.$visible,
     }"
     :title="tab.title"
-    :data-id="tab.id"
     :data-container-color="containerColor"
     @click.prevent.stop="select"
   >

@@ -11,7 +11,6 @@
       'no-match': !folder.isMatching.value,
       'has-matching-children': folder.hasMatchingChildren.value,
     }"
-    :data-id="folder.unfiltered.id"
   >
     <item-icon
       :class="{
@@ -146,19 +145,20 @@
 
   <dnd-list
     :class="{'forest-children': true, collapsed}"
-    v-model="childrenWithTabs"
-    item-key="id"
+    v-model="folder.children.value"
+    :item-key="(item: FilteredItem<Folder, Bookmark | Separator>) => item.unfiltered.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
-    <template #item="{item}: {item: NodeWithTabs}">
-      <child-folder v-if="'children' in item.node" :folder="item.node" />
+    <template
+      #item="{item}: {item: FilteredItem<Folder, Bookmark | Separator>}"
+    >
+      <child-folder v-if="'children' in item" :folder="item" />
       <bookmark
-        v-else-if="'url' in item.node.unfiltered"
-        :bookmark="item.node as FilteredChild<Bookmark>"
-        :relatedTabs="item.tabs"
+        v-else-if="'url' in item.unfiltered"
+        :bookmark="item as FilteredChild<Bookmark>"
       />
     </template>
   </dnd-list>
@@ -428,8 +428,9 @@ export default defineComponent({
       });
     },
 
-    childClasses(nodet: NodeWithTabs): Record<string, boolean> {
-      const node = nodet.node;
+    childClasses(
+      node: FilteredItem<Folder, Bookmark | Separator>,
+    ): Record<string, boolean> {
       return {
         hidden: !(
           this.isValidChild(node.unfiltered) &&
@@ -575,10 +576,10 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<NodeWithTabs>) {
-      const items = ev.value.node.unfiltered.$selected
+    drag(ev: DragAction<FilteredItem<Folder, Bookmark | Separator>>) {
+      const items = ev.value.unfiltered.$selected
         ? Array.from(this.model().selectedItems())
-        : [ev.value.node.unfiltered];
+        : [ev.value.unfiltered];
       ev.dataTransfer.setData(
         "application/x-tab-stash-items",
         JSON.stringify(items),

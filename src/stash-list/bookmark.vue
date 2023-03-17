@@ -12,7 +12,6 @@
       'no-match': !bookmark.isMatching.value,
     }"
     :title="bookmark.unfiltered.title"
-    :data-id="bookmark.unfiltered.id"
     :data-container-color="related_container_color"
     @click.prevent.stop="select"
   >
@@ -103,12 +102,19 @@ export default defineComponent({
 
   props: {
     bookmark: required(Object as PropType<FilteredChild<Bookmark>>),
-    relatedTabs: required(Object as PropType<Tab[]>),
   },
 
   computed: {
     altkey: altKeyName,
     bgKey: bgKeyName,
+
+    relatedTabs(): readonly Tab[] {
+      const tab_model = this.model().tabs;
+      const target_window = tab_model.targetWindow.value;
+      return Array.from(
+        tab_model.tabsWithURL(this.bookmark.unfiltered.url),
+      ).filter(t => t.windowId === target_window);
+    },
 
     related_container_color(): string | undefined {
       const containers = this.model().containers;
