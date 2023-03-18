@@ -78,26 +78,27 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 
   <dnd-list
     :class="{'forest-children': true, collapsed}"
-    v-model="tabs"
-    :item-key="item => item.id"
+    v-model="targetWindow.children.value"
+    :item-key="(item: FilteredChild<Tab>) => item.unfiltered.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
-    <template #item="{item}">
-      <tab v-if="isValidChild(item)" :tab="item" />
+    <template #item="{item}: {item: FilteredChild<Tab>}">
+      <tab v-if="isValidChild(item.unfiltered)" :tab="item" />
     </template>
   </dnd-list>
 
   <ul :class="{'forest-children': true, collapsed}">
-    <li v-if="filteredCount > 0">
+    <li v-if="targetWindow.filteredCount.value > 0">
       <div
         class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
         <span class="forest-title status-text">
-          {{ showFiltered ? "-" : "+" }} {{ filteredCount }} filtered
+          {{ showFiltered ? "-" : "+" }}
+          {{ targetWindow.filteredCount.value }} filtered
         </span>
       </div>
     </li>
@@ -128,8 +129,9 @@ import type {DragAction, DropAction} from "../components/dnd-list";
 
 import type {Model, StashItem} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
+import type {FilteredChild, FilteredParent} from "../model/filtered-tree";
 import type {SyncState} from "../model/options";
-import type {Tab} from "../model/tabs";
+import type {Tab, Window} from "../model/tabs";
 
 import ConfirmDialog, {
   type ConfirmDialogEvent,
@@ -160,7 +162,7 @@ export default defineComponent({
 
   props: {
     // Window contents
-    tabs: required(Array as PropType<readonly Tab[]>),
+    targetWindow: required(Object as PropType<FilteredParent<Window, Tab>>),
 
     // Metadata (for collapsed state)
     metadata: required(Object as PropType<BookmarkMetadataEntry>),
@@ -179,6 +181,10 @@ export default defineComponent({
       return DROP_FORMATS;
     },
 
+    tabs(): Tab[] {
+      return this.targetWindow.children.value.map(t => t.unfiltered as Tab);
+    },
+
     showStashedTabs(): boolean {
       return this.model().options.sync.state.show_open_tabs === "all";
     },
@@ -190,8 +196,10 @@ export default defineComponent({
 
     tooltip(): string {
       return (
-        `${this.validChildren.length} ${this.title}\n` +
-        `Click to change which tabs are shown.`
+        `${
+          this.targetWindow.children.value.length -
+          this.targetWindow.filteredCount.value
+        } ${this.title}\n` + `Click to change which tabs are shown.`
       );
     },
 
@@ -205,16 +213,6 @@ export default defineComponent({
           collapsed,
         );
       },
-    },
-
-    validChildren(): Tab[] {
-      return this.tabs.filter(t => this.isValidChild(t));
-    },
-    visibleChildren(): Tab[] {
-      return this.validChildren.filter(t => t.$visible);
-    },
-    filteredCount(): number {
-      return this.validChildren.length - this.visibleChildren.length;
     },
 
     selectedCount(): number {
@@ -253,11 +251,11 @@ export default defineComponent({
       });
     },
 
-    childClasses(t: Tab): Record<string, boolean> {
+    childClasses(t: FilteredChild<Tab>): Record<string, boolean> {
       return {
         hidden: !(
-          this.isValidChild(t) &&
-          (this.showFiltered || t.$visible || t.$selected)
+          this.isValidChild(t.unfiltered) &&
+          (this.showFiltered || t.isMatching.value || t.unfiltered.$selected)
         ),
       };
     },
@@ -280,13 +278,13 @@ export default defineComponent({
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         const model = this.model();
-        const stashable_visible_children = this.visibleChildren.filter(t =>
+        const stashable_children = this.tabs.filter(t =>
           model.isURLStashable(t.url),
         );
 
-        if (stashable_visible_children.length === 0) return;
+        if (stashable_children.length === 0) return;
         await model.putItemsInFolder({
-          items: model.copyIf(ev.altKey, stashable_visible_children),
+          items: model.copyIf(ev.altKey, stashable_children),
           toFolderId: (await model.bookmarks.createStashFolder()).id,
         });
       });
@@ -297,7 +295,7 @@ export default defineComponent({
         const model = this.model();
         // This filter keeps the active tab if it's the Tab Stash tab, or a
         // new tab (so we can avoid creating new tabs unnecessarily).
-        const to_remove = this.visibleChildren
+        const to_remove = this.tabs
           .filter(t => !t.active || model.isURLStashable(t.url))
           .filter(t => !model.bookmarks.isURLStashed(t.url));
         if (!(await this.confirmRemove(to_remove.length))) return;

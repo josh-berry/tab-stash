@@ -15,6 +15,7 @@ import {
 import {trace_fn} from "../util/debug";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
+import type {Position, Tree} from "./tree";
 
 export type Window = {
   readonly id: WindowID;
@@ -35,13 +36,10 @@ export type Tab = {
   discarded: boolean;
 
   $selected: boolean;
-  readonly $visible: boolean;
 };
 
 export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
-
-export type TabPosition = {window: Window; index: number};
 
 const trace = trace_fn("tabs");
 
@@ -60,7 +58,7 @@ const MAX_LOADING_TABS = navigator.hardwareConcurrency ?? 4;
  * We avoid any classes or circular references in the data itself so it is
  * JSON-serializable (for transmission between contexts).
  */
-export class Model {
+export class Model implements Tree<Window, Tab> {
   private readonly windows = new Map<WindowID, Window>();
   private readonly tabs = new Map<TabID, Tab>();
   private readonly tabs_by_url = new Map<OpenableURL, Set<Tab>>();
@@ -79,11 +77,6 @@ export class Model {
   readonly targetWindow = computed(
     () => this.initialWindow.value ?? this.focusedWindow.value,
   );
-
-  /** Ref to a function which filters tabs--if the function returns true, the
-   * tab should be visible in the UI.  Each tab's `$visible` property will be
-   * updated automatically when a function is assigned to this ref. */
-  readonly filter: Ref<(t: Tab) => boolean> = ref((_: Tab) => true);
 
   /** The number of selected tabs. */
   readonly selectedCount = computed(() => {
@@ -208,17 +201,25 @@ export class Model {
     return filterMap(win.tabs, cid => this.tab(cid));
   }
 
+  isParent(node: Window | Tab): node is Window {
+    return "tabs" in node;
+  }
+
   /** Returns the parent window of the tab, and the index of the tab in that
    * parent window's .tabs array. */
-  positionOf(tab: Tab): TabPosition | undefined {
-    const window = this.window(tab.windowId);
-    if (!window) return undefined;
+  positionOf(tab: Tab): Position<Window> | undefined {
+    const parent = this.window(tab.windowId);
+    if (!parent) return undefined;
 
-    const index = window.tabs.findIndex(tid => tid === tab.id);
+    const index = parent.tabs.findIndex(tid => tid === tab.id);
     // istanbul ignore next -- internal sanity
     if (index === -1) return undefined;
 
-    return {window, index};
+    return {parent, index};
+  }
+
+  childrenOf(parent: Window): readonly Tab[] {
+    return filterMap(parent.tabs, tid => this.tab(tid));
   }
 
   /** Returns the active tab in the specified window (or in
@@ -324,7 +325,7 @@ export class Model {
     await shortPoll(() => {
       const pos = this.positionOf(tab);
       if (!pos) tryAgain();
-      if (pos.window.id !== toWindow || pos.index !== toIndex) tryAgain();
+      if (pos.parent.id !== toWindow || pos.index !== toIndex) tryAgain();
     });
   }
 
@@ -485,14 +486,13 @@ export class Model {
         discarded: tab.discarded ?? false,
 
         $selected: false,
-        $visible: computed(() => this.filter.value(t!)),
       });
       this.tabs.set(tab.id as TabID, t);
     } else {
       // Remove this tab from its prior position
       if (this.windows.get(tab.windowId as WindowID)) {
         const pos = this.positionOf(t);
-        if (pos) pos.window.tabs.splice(pos.index, 1);
+        if (pos) pos.parent.tabs.splice(pos.index, 1);
       }
       this._remove_url(t);
       if (t.status === "loading") --this.loadingCount.value;
@@ -574,7 +574,7 @@ export class Model {
     }
 
     const oldPos = this.positionOf(t);
-    if (oldPos) oldPos.window.tabs.splice(oldPos.index, 1);
+    if (oldPos) oldPos.parent.tabs.splice(oldPos.index, 1);
 
     let newWindow = this.window(info.windowId as WindowID);
     if (!newWindow) {
@@ -606,7 +606,7 @@ export class Model {
     }
 
     const pos = this.positionOf(t);
-    if (pos) pos.window.tabs[pos.index] = newId as TabID;
+    if (pos) pos.parent.tabs[pos.index] = newId as TabID;
 
     t.id = newId as TabID;
     this.tabs.delete(oldId as TabID);
@@ -652,7 +652,7 @@ export class Model {
     trace("event ...tabRemoved", tabId, pos);
 
     this.tabs.delete(t.id);
-    if (pos) pos.window.tabs.splice(pos.index, 1);
+    if (pos) pos.parent.tabs.splice(pos.index, 1);
     this._remove_url(t);
     if (t.status === "loading") --this.loadingCount.value;
   }
@@ -731,6 +731,6 @@ export class Model {
 
     return this.tabsIn(win)
       .slice(startPos.index, endPos.index + 1)
-      .filter(t => !t.hidden && !t.pinned && t.$visible);
+      .filter(t => !t.hidden && !t.pinned);
   }
 }

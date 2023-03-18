@@ -3,7 +3,6 @@ import browser from "webextension-polyfill";
 
 import * as events from "../mock/events";
 
-import {nextTick} from "../util";
 import {B, make_tabs, type TabFixture} from "./fixtures.testlib";
 import * as M from "./tabs";
 
@@ -38,7 +37,6 @@ describe("model/tabs", () => {
         highlighted: !!tab.highlighted,
         discarded: !!tab.discarded,
         cookieStoreId: tab.cookieStoreId,
-        $visible: true,
         $selected: false,
       });
     }
@@ -75,7 +73,6 @@ describe("model/tabs", () => {
       highlighted: false,
       discarded: false,
       cookieStoreId: undefined,
-      $visible: true,
       $selected: false,
     });
 
@@ -192,7 +189,6 @@ describe("model/tabs", () => {
       highlighted: false,
       discarded: false,
       cookieStoreId: tab.cookieStoreId,
-      $visible: true,
       $selected: false,
     });
     expect(Array.from(model.tabsWithURL("hi"))).to.deep.equal([
@@ -239,7 +235,6 @@ describe("model/tabs", () => {
       highlighted: !!tab.highlighted,
       discarded: !!tab.discarded,
       cookieStoreId: tab.cookieStoreId,
-      $visible: true,
       $selected: false,
     });
     expect(model.tabsWithURL("cats")).to.deep.equal(new Set([model.tab(tid)]));
@@ -554,26 +549,6 @@ describe("model/tabs", () => {
           model.tab(tabs.right_adam.id)!,
         ),
       ).to.be.null;
-    });
-
-    it("removes filtered and hidden tabs from ranges", async () => {
-      model.filter.value = node =>
-        !("url" in node) || !node.url.includes("estelle");
-      await nextTick(); // to update the filter
-
-      expect(model.tab(tabs.real_doug.id)!.$visible).to.be.true;
-      expect(model.tab(tabs.real_estelle.id)!.$visible).to.be.false;
-      expect(
-        model.itemsInRange(
-          model.tab(tabs.real_patricia.id)!,
-          model.tab(tabs.real_francis.id)!,
-        ),
-      ).to.deep.equal([
-        model.tab(tabs.real_blank.id),
-        model.tab(tabs.real_bob.id),
-        model.tab(tabs.real_doug.id),
-        model.tab(tabs.real_francis.id),
-      ]);
     });
   });
 });

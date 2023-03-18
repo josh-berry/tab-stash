@@ -104,8 +104,10 @@
       />
     </header>
 
-    <ul class="forest one-column">
-      <li><window :tabs="tabs" :metadata="curWindowMetadata" /></li>
+    <ul v-if="targetWindow" class="forest one-column">
+      <li>
+        <window :target-window="targetWindow" :metadata="curWindowMetadata" />
+      </li>
     </ul>
 
     <folder-list ref="stashed" v-if="stashRoot" :parentFolder="stashRoot" />
@@ -144,7 +146,7 @@ import {
   type Node,
   type Separator,
 } from "../model/bookmarks";
-import type {Tab} from "../model/tabs";
+import type {Tab, Window} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
 import {parseVersion, required, TaskMonitor, textMatcher} from "../util";
 
@@ -159,7 +161,7 @@ import ImportDialog from "../tasks/import.vue";
 import FolderList from "./folder-list.vue";
 import FolderVue from "./folder.vue";
 import SelectionMenu from "./selection-menu.vue";
-import Window from "./window.vue";
+import WindowVue from "./window.vue";
 
 export default defineComponent({
   components: {
@@ -173,7 +175,7 @@ export default defineComponent({
     ProgressDialog,
     SearchInput,
     SelectionMenu,
-    Window,
+    Window: WindowVue,
   },
 
   props: {
@@ -187,27 +189,38 @@ export default defineComponent({
   }),
 
   computed: {
+    filteredTabs(): FilteredTree<Window, Tab> {
+      const f = new FilteredTree<Window, Tab>(this.model().tabs, node =>
+        this.filterFn(node),
+      );
+      (<any>globalThis).filtered_tabs = f;
+      return f;
+    },
+
     filteredBookmarks(): FilteredTree<Folder, Bookmark | Separator> {
       const f = new FilteredTree<Folder, Bookmark | Separator>(
         this.model().bookmarks,
-        node => this.bookmarkFilterFn(node),
+        node => this.filterFn(node),
       );
       (<any>globalThis).filtered_bookmarks = f;
       return f;
     },
 
-    bookmarkFilterFn(): (node: Node) => boolean {
+    filterFn(): (node: Window | Tab | Node) => boolean {
       if (!this.searchText) return _ => true;
       const matcher = textMatcher(this.searchText);
       return node =>
-        matcher(node.title) || ("url" in node && matcher(node.url));
+        ("title" in node && matcher(node.title)) ||
+        ("url" in node && matcher(node.url));
     },
 
     stash_root_warning(): {text: string; help: () => void} | undefined {
       return this.model().bookmarks.stash_root_warning.value;
     },
     targetWindow() {
-      return this.model().tabs.targetWindow.value;
+      const m = this.model().tabs;
+      if (!m.targetWindow.value) return undefined;
+      return this.filteredTabs.wrappedParent(m.window(m.targetWindow.value)!);
     },
     tabs(): readonly Tab[] {
       const m = this.model().tabs;
@@ -266,7 +279,7 @@ export default defineComponent({
         discarded = 0,
         hidden = 0;
       for (const tab of this.tabs) {
-        if (tab.windowId !== this.targetWindow) continue;
+        if (tab.windowId !== this.targetWindow?.unfiltered.id) continue;
         if (tab.hidden) {
           hidden += 1;
         } else if (tab.discarded) {
@@ -337,12 +350,6 @@ export default defineComponent({
       },
     };
     */
-  },
-
-  watch: {
-    searchText(text) {
-      this.model().setFilter(text);
-    },
   },
 
   methods: {

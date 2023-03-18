@@ -39,7 +39,6 @@ import {
   filterMap,
   shortPoll,
   TaskMonitor,
-  textMatcher,
   tryAgain,
   urlToOpen,
 } from "../util";
@@ -293,13 +292,6 @@ export class Model {
   //
   // Mutators
   //
-
-  setFilter(text: string) {
-    const filter = textMatcher(text);
-
-    this.tabs.filter.value = t =>
-      (!!t.title && filter(t.title)) || (!!t.url && filter(t.url));
-  }
 
   /** Garbage-collect various caches and deleted items. */
   async gc() {
@@ -730,7 +722,7 @@ export class Model {
         moved_items.push(model_item);
         dont_steal_tabs.add(model_item.id);
 
-        if (pos && pos.window === win && pos.index < to_index) {
+        if (pos && pos.parent === win && pos.index < to_index) {
           // This is a rotation in the same window; since move() first
           // removes and then adds the tab, we need to decrement
           // toIndex so the moved tab ends up in the right place.
@@ -787,7 +779,7 @@ export class Model {
 
         // console.log('new layout:', this.tabs.window(t.windowId)?.tabs);
 
-        if (pos && pos.window === win && pos.index < to_index) --to_index;
+        if (pos && pos.parent === win && pos.index < to_index) --to_index;
         moved_items.push(t);
         dont_steal_tabs.add(t.id);
         await this.tabs.setSelected([t], isModelItem(item) && item.$selected);
