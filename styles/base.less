@@ -188,8 +188,8 @@ label {
   &.drag-in-progress {
     & > .dnd-list-ghost {
       display: block;
-      height: var(--item-h);
-      margin: calc(-1 * var(--item-h) / 2) 0;
+      height: var(--ghost-border-width);
+      margin: calc(-1 * var(--ghost-border-width) / 2) 0;
       z-index: 1;
 
       // Uncomment for debugging DnD ghost placement:
