@@ -170,7 +170,7 @@
 
     & > a.forest-title,
     & > a.forest-title:visited {
-      color: var(--link-fg);
+      color: var(--page-fg);
       text-decoration: none;
     }
 
@@ -227,6 +227,14 @@
           var(--userlink-fg) var(--active-marker-bw),
           var(--selected-bg) var(--active-marker-bw)
         );
+
+        &:hover {
+          background: linear-gradient(
+            to right,
+            var(--userlink-fg) var(--active-marker-bw),
+            var(--selected-hover-bg) var(--active-marker-bw)
+          );
+        }
       }
 
       &:hover {

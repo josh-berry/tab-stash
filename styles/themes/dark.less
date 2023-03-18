@@ -2,62 +2,30 @@
 there first. */
 
 & {
-  --modal-bg: rgba(0, 0, 0, 0.5);
+  --modal-bg: hsla(240deg, 10%, 12%, 50%);
 
-  --page-bg: #2a2a2e;
-  --page-fg: #fbfbfe;
-  --disabled-fg: #a0a4ac;
-  --link-fg: #e0e0e2;
-  --userlink-fg: #80bfff;
-  --userlink-hover-fg: #57abff;
-  --userlink-hover-bg: var(--button-bg);
-  --userlink-active-fg: #2e96ff;
-  --userlink-active-bg: var(--button-bg);
+  --page-bg: hsl(240deg, 10%, 12%);
+  --page-fg: hsl(0deg, 0%, 93%);
+  --disabled-fg: hsl(0deg, 0%, 66%);
+  --userlink-fg: hsl(188deg, 100%, 50%);
+  --userlink-hover-fg: hsl(188deg, 100%, 70%);
+  --userlink-active-fg: hsl(188deg, 100%, 90%);
 
-  --selected-bg: #3d6899;
-  --selected-hover-bg: #518acc;
+  --selected-bg: hsl(188deg, 100%, 20%);
+  --selected-hover-bg: hsl(188deg, 100%, 30%);
 
-  --scroll-bar: #242426;
-  --scroll-handle: #48484e;
+  --ctrl-bg: hsl(240deg, 10%, 12%);
+  --ctrl-border-clr: hsla(0deg, 0%, 93%, 34%);
+  --button-bg: hsl(240deg, 8%, 31%);
+  --button-hover-bg: hsl(240deg, 8%, 41%);
+  --button-active-bg: hsl(240deg, 8%, 51%);
 
-  --ctrl-bg: #2a2a2e;
-  --ctrl-border-clr: rgba(255, 255, 255, 0.34);
-  --button-bg: rgba(255, 255, 255, 0.2);
-  --button-hover-bg: rgba(255, 255, 255, 0.27);
-  --button-active-bg: rgba(255, 255, 255, 0.34);
+  --ephemeral-hover-shadow-clr: hsla(0, 0%, 93%, 15%);
 
-  --ephemeral-hover-shadow-clr: rgba(255, 255, 255, 0.27);
-
-  --group-bg: #48484e;
-  --group-border-clr: #3a3a3e;
-  --group-disabled-bg: #3a3a3e;
-  --group-disabled-border: 1px solid #3a3a3e;
-
-  /* CRUD colors */
-  --create-bg: #3d6899;
-  --create-hover-bg: #4779b2;
-  --create-active-bg: #518acc;
-  --read-bg: #337f42;
-  --read-hover-bg: #3d994f;
-  --read-active-bg: #47b25c;
-  --update-bg: #727216;
-  --update-hover-bg: #8c8c1c;
-  --update-active-bg: #a5a521;
-  --delete-bg: #7f5151;
-  --delete-hover-bg: #996161;
-  --delete-active-bg: #b27272;
-
-  // Spinner colors (which should be more saturated CRUD colors)
-  --spinner-gradient: conic-gradient(
-    hsl(0, 60%, 50%),
-    hsl(60, 60%, 50%),
-    hsl(132, 60%, 50%),
-    hsl(200, 60%, 50%),
-    hsl(0, 60%, 50%)
-  );
-
-  // "Advanced" options background
-  --advanced-bg: rgba(127, 81, 81, 0.5);
+  --group-bg: hsl(240deg, 10%, 20%);
+  --group-border-clr: hsl(240deg, 10%, 35%);
+  --group-disabled-bg: hsl(240deg, 10%, 15%);
+  --group-disabled-border: 1px solid hsl(240deg, 10%, 25%);
 
   // Container colors and styles.  (Colors are the same in light and dark
   // mode, but the thickness is different due to differing contrast.  This
@@ -66,8 +34,7 @@ there first. */
 }
 
 &.view-tab {
-  --page-bg: #2a2a2e;
-  --scroll-bar: #2a2a2e;
+  --page-bg: hsl(250deg, 10%, 12%);
 }
 
 .icon-vars(@theme: dark, @inverse: light);

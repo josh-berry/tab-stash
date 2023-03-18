@@ -1,60 +1,60 @@
 & {
-  --modal-bg: rgba(0, 0, 0, 0.3);
+  --modal-bg: hsla(240deg, 4%, 5%, 30%);
 
-  --page-bg: #ffffff;
-  --page-fg: #222426;
-  --disabled-fg: #889099;
-  --link-fg: #44484c;
-  --userlink-fg: #287acc;
-  --userlink-hover-fg: #448fda;
+  --page-bg: hsl(240deg, 1%, 100%);
+  --page-fg: hsl(240deg, 4%, 5%);
+  --disabled-fg: hsl(0deg, 0%, 45%);
+  --userlink-fg: hsl(214deg, 100%, 44%);
+  --userlink-hover-fg: hsl(214deg, 100%, 60%);
   --userlink-hover-bg: var(--button-bg);
-  --userlink-active-fg: #66a3e1;
-  --userlink-active-bg: var(--button-bg);
+  --userlink-active-fg: hsl(214deg, 100%, 70%);
+  --userlink-active-bg: var(--button-hover-bg);
 
-  --selected-bg: #cce5ff;
-  --selected-hover-bg: #a5d0ff;
+  --selected-bg: hsl(214deg, 100%, 90%);
+  --selected-hover-bg: hsl(214deg, 100%, 80%);
 
-  --scroll-bar: #efefef;
-  --scroll-handle: #d8d8d8;
+  --ctrl-bg: hsl(240deg, 1%, 100%);
+  --ctrl-border-clr: hsla(240deg, 4%, 5%, 25%);
+  --button-bg: hsla(240deg, 4%, 5%, 10%);
+  --button-hover-bg: hsla(240deg, 4%, 5%, 20%);
+  --button-active-bg: hsla(240deg, 4%, 5%, 30%);
 
-  --ctrl-bg: #ffffff;
-  --ctrl-border-clr: rgba(0, 0, 0, 0.21);
-  --button-bg: rgba(0, 0, 0, 0.07);
-  --button-hover-bg: rgba(0, 0, 0, 0.14);
-  --button-active-bg: rgba(0, 0, 0, 0.21);
+  --ephemeral-hover-shadow-clr: hsla(240deg, 4%, 5%, 15%);
 
-  --ephemeral-hover-shadow-clr: rgba(0, 0, 0, 0.14);
+  --group-bg: hsl(240deg, 1%, 100%);
+  --group-border-clr: hsl(240deg, 1%, 80%);
+  --group-disabled-bg: hsl(240deg, 15%, 90%);
+  --group-disabled-border-clr: hsl(240deg, 15%, 85%);
 
-  --group-bg: #ffffff;
-  --group-border-clr: #c0c0c0;
-  --group-disabled-bg: #f4f4f4;
-  --group-disabled-border-clr: #d8d8d8;
+  --action-bg-alpha: 40%;
+  --action-hover-bg-alpha: 60%;
+  --action-active-bg-alpha: 90%;
 
   /* CRUD colors */
-  --create-bg: #cce5ff;
-  --create-hover-bg: #b7cee5;
-  --create-active-bg: #a3b7cc;
-  --read-bg: #b0ffc0;
-  --read-hover-bg: #9ee5ac;
-  --read-active-bg: #8ccc99;
-  --update-bg: #f0f090;
-  --update-hover-bg: #d6d680;
-  --update-active-bg: #bcbc71;
-  --delete-bg: #ffe0e0;
-  --delete-hover-bg: #e5c9c9;
-  --delete-active-bg: #ccb3b3;
+  --create-bg: hsla(214deg, 100%, 80%, var(--action-bg-alpha));
+  --create-hover-bg: hsla(214deg, 100%, 75%, var(--action-hover-bg-alpha));
+  --create-active-bg: hsla(214deg, 100%, 70%, var(--action-active-bg-alpha));
+  --read-bg: hsla(154deg, 100%, 50%, var(--action-bg-alpha));
+  --read-hover-bg: hsla(154deg, 100%, 45%, var(--action-hover-bg-alpha));
+  --read-active-bg: hsla(154deg, 100%, 40%, var(--action-active-bg-alpha));
+  --update-bg: hsla(54deg, 100%, 45%, var(--action-bg-alpha));
+  --update-hover-bg: hsla(54deg, 100%, 40%, var(--action-hover-bg-alpha));
+  --update-active-bg: hsla(54deg, 100%, 35%, var(--action-active-bg-alpha));
+  --delete-bg: hsla(354deg, 100%, 80%, var(--action-bg-alpha));
+  --delete-hover-bg: hsla(354deg, 100%, 75%, var(--action-hover-bg-alpha));
+  --delete-active-bg: hsla(354deg, 100%, 70%, var(--action-active-bg-alpha));
 
   // Spinner colors (which should be more saturated CRUD colors)
   --spinner-gradient: conic-gradient(
-    hsl(0, 90%, 70%),
-    hsl(60, 90%, 70%),
-    hsl(132, 90%, 70%),
-    hsl(200, 90%, 70%),
-    hsl(0, 90%, 70%)
+    hsl(354, 100%, 80%),
+    hsl(54, 100%, 45%),
+    hsl(154, 100%, 50%),
+    hsl(214, 100%, 80%),
+    hsl(354, 100%, 80%)
   );
 
   // "Advanced" options background
-  --advanced-bg: rgba(255, 224, 224, 0.5);
+  --advanced-bg: hsla(354deg, 100%, 80%, 25%);
 
   // Container colors and styles.  Colors are chosen to be the same as
   // Firefox's to align with FF's visual style.
@@ -78,7 +78,7 @@
 }
 
 &.view-tab {
-  --page-bg: #efefef;
+  --page-bg: hsl(240deg, 15%, 95%);
 }
 
 .icon-vars(@theme: light, @inverse: dark);
