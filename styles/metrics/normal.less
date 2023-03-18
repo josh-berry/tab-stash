@@ -1,11 +1,11 @@
 html {
-  --page-pw: 16px;
+  --page-pw: 12px;
   --page-ph: 12px;
 
   --icon-size: 16px;
   --icon-p: 4px;
   --icon-btn-size: calc(var(--icon-size) + 2 * var(--icon-p));
-  --collapse-btn-size: var(--icon-size);
+  --collapse-btn-size: calc(var(--icon-size) + var(--icon-p));
 
   --focus-shadow: 0 0 2px 2px highlight;
   --ephemeral-hover-shadow-metrics: 0 0 1px 1px;
@@ -52,8 +52,12 @@ html {
   // to the icon size.
   --text-list-indent-w: var(--icon-btn-size);
 
-  --group-disabled-border: 1px solid var(--group-disabled-border-clr);
-
   --item-h: var(--icon-btn-size); /* must match because items have favicons */
   --item-gap-w: var(--ctrl-pw);
+
+  // Nested children should be indented such that the left side of the icon
+  // lines up with the beginning of the title in the container.
+  --item-indent-w: calc(
+    var(--icon-btn-size) + var(--item-gap-w) - var(--icon-p)
+  );
 }

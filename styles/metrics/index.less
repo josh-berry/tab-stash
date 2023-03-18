@@ -7,8 +7,10 @@
 //   -border - a full border: definition (including a theme color)
 //
 
+@use-narrow-metrics: 30rem;
+
 @import "normal.less";
-@media (max-width: 30rem) {
+@media (max-width: @use-narrow-metrics) {
   @import "narrow.less";
 }
 html.metrics-compact {

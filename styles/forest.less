@@ -73,16 +73,17 @@
 }
 
 .forest-children {
-  // Nested children should be indented such that the left side of the icon
-  // lines up with the beginning of the title in the container.
   .forest-children {
-    padding-left: calc(
-      var(--icon-btn-size) + var(--item-gap-w) - var(--icon-p)
-    );
-    .forest-item {
-      border-top-left-radius: var(--ctrl-border-radius);
-      border-bottom-left-radius: var(--ctrl-border-radius);
-    }
+    margin-left: var(--item-indent-w);
+
+    // Show an indent guide
+    border-left: 1px solid var(--indent-guide-border-clr);
+
+    // Give ourselves a little space at the bottom of each child list, with a
+    // nice curl to the indent guide--this makes drag-and-drop easier when
+    // appending inside a child vs. inserting below the child
+    border-bottom-left-radius: calc(var(--item-h) / 4);
+    padding-bottom: calc(var(--item-h) / 4);
   }
 
   // Nested children should be hidden if the child is collapsed
@@ -108,7 +109,7 @@
   // auto-hiding scrollbars on macOS don't intrude on the right-side toolbar
   // buttons.  (Funny how macOS messed with their scrollbars and now we all just
   // have to work around it...)
-  padding: 0 var(--collapse-btn-size) 0 0;
+  padding: 0 var(--page-pw) 0 0;
   height: var(--item-h);
 
   & > .forest-collapse {
@@ -296,7 +297,8 @@
       grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr 0fr;
 
       margin: 0;
-      padding: var(--group-ph) var(--collapse-btn-size) var(--group-ph) 0;
+      padding-top: var(--group-ph);
+      padding-bottom: var(--group-ph);
       height: auto;
 
       & > .forest-title {
