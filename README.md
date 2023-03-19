@@ -1,6 +1,7 @@
 # Tab Stash
 
 [![ci](https://github.com/josh-berry/tab-stash/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/josh-berry/tab-stash/actions?query=branch%3Amaster+)
+[![codecov](https://codecov.io/gh/josh-berry/tab-stash/branch/master/graph/badge.svg)](https://codecov.io/gh/josh-berry/tab-stash)
 
 Can't keep all your tabs straight? Need to clear your plate, but want to come
 back to your tabs later?
