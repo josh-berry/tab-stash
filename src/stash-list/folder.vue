@@ -8,8 +8,8 @@
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
       selected: folder.unfiltered.$selected,
-      'no-match': !folder.isMatching.value,
-      'has-matching-children': folder.hasMatchingChildren.value,
+      'no-match': !folder.isMatching,
+      'has-matching-children': folder.hasMatchingChildren,
     }"
   >
     <item-icon
@@ -151,7 +151,7 @@
 
   <dnd-list
     :class="{'forest-children': true, collapsed}"
-    v-model="folder.children.value"
+    v-model="folder.children"
     :item-key="(item: FilteredItem<Folder, Bookmark | Separator>) => item.unfiltered.id"
     :item-class="childClasses"
     :accepts="accepts"
@@ -170,7 +170,7 @@
   </dnd-list>
 
   <ul
-    v-if="folder.filteredCount.value > 0"
+    v-if="folder.filteredCount > 0"
     :class="{'forest-children': true, collapsed}"
   >
     <li>
@@ -180,7 +180,7 @@
       >
         <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }}
-          {{ folder.filteredCount.value }} filtered
+          {{ folder.filteredCount }} filtered
         </span>
       </div>
     </li>
@@ -271,7 +271,7 @@ export default defineComponent({
 
     childrenWithTabs(): readonly NodeWithTabs[] {
       const tab_model = this.model().tabs;
-      return this.folder.children.value.map(n => ({
+      return this.folder.children.map(n => ({
         node: n,
         tabs:
           "url" in n.unfiltered && n.unfiltered.url
@@ -374,7 +374,7 @@ export default defineComponent({
     },
 
     leafChildren(): Bookmark[] {
-      return filterMap(this.folder.children.value, c =>
+      return filterMap(this.folder.children, c =>
         "url" in c.unfiltered ? c.unfiltered : undefined,
       );
     },
@@ -410,7 +410,7 @@ export default defineComponent({
       }
 
       // Toggle the collapsed state of all the child folders
-      const folders = filterMap(this.folder.children.value, c =>
+      const folders = filterMap(this.folder.children, c =>
         "children" in c.unfiltered ? c.unfiltered : undefined,
       );
       if (folders.length === 0) return;
@@ -442,8 +442,8 @@ export default defineComponent({
         hidden: !(
           this.isValidChild(node.unfiltered) &&
           (this.showFiltered ||
-            node.isMatching.value ||
-            ("hasMatchingChildren" in node && node.hasMatchingChildren.value) ||
+            node.isMatching ||
+            ("hasMatchingChildren" in node && node.hasMatchingChildren) ||
             node.unfiltered.$selected ||
             ("$recursiveStats" in node.unfiltered &&
               node.unfiltered.$recursiveStats.selectedCount))
@@ -534,7 +534,7 @@ export default defineComponent({
 
         await this.model().restoreTabs(this.leafChildren, {background: bg});
 
-        if (this.leafChildren.length === this.folder.children.value.length) {
+        if (this.leafChildren.length === this.folder.children.length) {
           await this.model().deleteBookmarkTree(this.folder.unfiltered.id);
         } else {
           const children = this.leafChildren.map(c => c.id);

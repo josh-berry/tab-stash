@@ -1,4 +1,4 @@
-import {computed, type ComputedRef} from "vue";
+import {computed, shallowReadonly} from "vue";
 
 import type {Position, Tree} from "./tree";
 
@@ -11,16 +11,16 @@ export type FilteredParent<P extends object, C extends object> = {
   readonly unfiltered: P;
 
   /** All the direct children of this node, wrapped in FilteredItem objects. */
-  children: ComputedRef<FilteredItem<P, C>[]>;
+  readonly children: readonly FilteredItem<P, C>[];
 
   /** Does this node match the predicate function? */
-  isMatching: ComputedRef<boolean>;
+  readonly isMatching: boolean;
 
   /** Do any of the nodes in this node's sub-tree match the predicate? */
-  hasMatchingChildren: ComputedRef<boolean>;
+  readonly hasMatchingChildren: boolean;
 
   /** How many direct children of this node do not match the predicate? */
-  filteredCount: ComputedRef<number>;
+  readonly filteredCount: number;
 };
 
 export type FilteredChild<C extends object> = {
@@ -28,7 +28,7 @@ export type FilteredChild<C extends object> = {
   readonly unfiltered: C;
 
   /** Does this node match the predicate function? */
-  isMatching: ComputedRef<boolean>;
+  readonly isMatching: boolean;
 };
 
 /** A Tree whose nodes have been filtered by a predicate function. */
@@ -92,26 +92,33 @@ export class FilteredTree<P extends object, C extends object>
     const hasMatchingChildren = computed(
       () =>
         !!children.value.find(
-          i =>
-            i.isMatching.value ||
-            (this.isParent(i) && i.hasMatchingChildren.value),
+          i => i.isMatching || (this.isParent(i) && i.hasMatchingChildren),
         ),
     );
     const filteredCount = computed(() => {
       let count = 0;
       children.value.forEach(i => {
-        if (!i.isMatching.value) ++count;
+        if (!i.isMatching) ++count;
       });
       return count;
     });
 
-    const p = {
+    // Ugh, I wish shallowReadonly() actually unwrapped the top-level refs...
+    const p = shallowReadonly({
       unfiltered,
-      isMatching,
-      hasMatchingChildren,
-      children,
-      filteredCount,
-    };
+      get isMatching() {
+        return isMatching.value;
+      },
+      get hasMatchingChildren() {
+        return hasMatchingChildren.value;
+      },
+      get children() {
+        return children.value;
+      },
+      get filteredCount() {
+        return filteredCount.value;
+      },
+    });
     this.nodes.set(unfiltered, p);
     return p;
   }
@@ -121,10 +128,15 @@ export class FilteredTree<P extends object, C extends object>
     const w = this.nodes.get(unfiltered);
     if (w) return w as FilteredChild<C>;
 
-    const c = {
+    const isMatching = computed(() => this.predicate(unfiltered));
+
+    // Ugh, I wish shallowReadonly() actually unwrapped the top-level refs...
+    const c = shallowReadonly({
       unfiltered,
-      isMatching: computed(() => this.predicate(unfiltered)),
-    };
+      get isMatching() {
+        return isMatching.value;
+      },
+    });
     this.nodes.set(unfiltered, c);
     return c;
   }

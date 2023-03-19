@@ -78,7 +78,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 
   <dnd-list
     :class="{'forest-children': true, collapsed}"
-    v-model="targetWindow.children.value"
+    v-model="targetWindow.children"
     :item-key="(item: FilteredChild<Tab>) => item.unfiltered.id"
     :item-class="childClasses"
     :accepts="accepts"
@@ -91,14 +91,14 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   </dnd-list>
 
   <ul :class="{'forest-children': true, collapsed}">
-    <li v-if="targetWindow.filteredCount.value > 0">
+    <li v-if="targetWindow.filteredCount > 0">
       <div
         class="forest-item selectable"
         @click.prevent.stop="showFiltered = !showFiltered"
       >
         <span class="forest-title status-text">
           {{ showFiltered ? "-" : "+" }}
-          {{ targetWindow.filteredCount.value }} filtered
+          {{ targetWindow.filteredCount }} filtered
         </span>
       </div>
     </li>
@@ -182,7 +182,7 @@ export default defineComponent({
     },
 
     tabs(): Tab[] {
-      return this.targetWindow.children.value.map(t => t.unfiltered as Tab);
+      return this.targetWindow.children.map(t => t.unfiltered as Tab);
     },
 
     showStashedTabs(): boolean {
@@ -197,8 +197,7 @@ export default defineComponent({
     tooltip(): string {
       return (
         `${
-          this.targetWindow.children.value.length -
-          this.targetWindow.filteredCount.value
+          this.targetWindow.children.length - this.targetWindow.filteredCount
         } ${this.title}\n` + `Click to change which tabs are shown.`
       );
     },
@@ -255,7 +254,7 @@ export default defineComponent({
       return {
         hidden: !(
           this.isValidChild(t.unfiltered) &&
-          (this.showFiltered || t.isMatching.value || t.unfiltered.$selected)
+          (this.showFiltered || t.isMatching || t.unfiltered.$selected)
         ),
       };
     },

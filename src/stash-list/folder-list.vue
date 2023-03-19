@@ -1,7 +1,7 @@
 <template>
   <dnd-list
     class="forest"
-    v-model="parentFolder.children.value"
+    v-model="parentFolder.children"
     :item-key="(item: FilteredItem<Folder, Bookmark | Separator>) => item.unfiltered.id"
     :item-class="itemClasses"
     :accepts="accepts"
@@ -62,8 +62,8 @@ export default defineComponent({
         hidden:
           !("children" in f) ||
           !(
-            f.isMatching.value ||
-            f.hasMatchingChildren.value ||
+            f.isMatching ||
+            f.hasMatchingChildren ||
             f.unfiltered.$recursiveStats.selectedCount > 0
           ),
       };

@@ -10,7 +10,7 @@
       loading: isLoading,
       stashed: stashedIn.length > 0,
       selected: tab.unfiltered.$selected,
-      'no-match': !tab.isMatching.value,
+      'no-match': !tab.isMatching,
     }"
     :title="tab.unfiltered.title"
     :data-container-color="containerColor"

@@ -9,7 +9,7 @@
       active: tabState.active,
       loading: tabState.loading,
       selected: bookmark.unfiltered.$selected,
-      'no-match': !bookmark.isMatching.value,
+      'no-match': !bookmark.isMatching,
     }"
     :title="bookmark.unfiltered.title"
     :data-container-color="related_container_color"

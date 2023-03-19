@@ -2,7 +2,7 @@
   <ul>
     <li
       v-for="folder of children.filter(
-        f => f.isMatching.value || f.hasMatchingChildren.value,
+        f => f.isMatching || f.hasMatchingChildren,
       )"
     >
       <button

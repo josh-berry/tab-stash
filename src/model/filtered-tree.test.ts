@@ -81,7 +81,7 @@ describe("model/filtered-tree", () => {
 
   function checkFilterInvariants() {
     const visit = (n: FilteredItem<Parent, Child>) => {
-      expect(n.isMatching.value).to.equal(
+      expect(n.isMatching).to.equal(
         predicate.value(n.unfiltered),
         `${n.unfiltered.id}: Predicate does not match`,
       );
@@ -89,20 +89,21 @@ describe("model/filtered-tree", () => {
       if (!("children" in n)) return;
       let hasMatchingChildren = false;
       let filteredCount = 0;
-      for (const c of n.children.value) {
+      for (const c of n.children) {
         visit(c);
         if (
-          c.isMatching.value ||
-          (filteredTree.isParent(c) && c.hasMatchingChildren.value)
-        )
+          c.isMatching ||
+          (filteredTree.isParent(c) && c.hasMatchingChildren)
+        ) {
           hasMatchingChildren = true;
-        if (!c.isMatching.value) ++filteredCount;
+        }
+        if (!c.isMatching) ++filteredCount;
       }
-      expect(n.hasMatchingChildren.value).to.equal(
+      expect(n.hasMatchingChildren).to.equal(
         hasMatchingChildren,
         `${n.unfiltered.id}: Incorrect hasMatchingChildren`,
       );
-      expect(n.filteredCount.value).to.equal(
+      expect(n.filteredCount).to.equal(
         filteredCount,
         `${n.unfiltered.id}: Incorrect filteredCount`,
       );
@@ -137,13 +138,13 @@ describe("model/filtered-tree", () => {
         return;
       }
       expect(t.children.length).to.equal(
-        f.children.value.length,
+        f.children.length,
         `id ${t.id} has differing lengths`,
       );
       const computedChildren = filteredTree.childrenOf(f);
       for (let i = 0; i < t.children.length; ++i) {
-        checkNode(t.children[i], f.children.value[i]);
-        expect(f.children.value[i]).to.equal(computedChildren[i]);
+        checkNode(t.children[i], f.children[i]);
+        expect(f.children[i]).to.equal(computedChildren[i]);
       }
     };
     checkNode(tree.root, filteredRoot);
@@ -164,7 +165,7 @@ describe("model/filtered-tree", () => {
     predicate.value = _ => false;
     for (const v of tree.by_id.values()) {
       const f = filteredTree.wrappedNode(v);
-      expect(f.isMatching.value).to.be.false;
+      expect(f.isMatching).to.be.false;
     }
     checkFilterInvariants();
   });
@@ -175,7 +176,7 @@ describe("model/filtered-tree", () => {
 
     for (const v of tree.by_id.values()) {
       const f = filteredTree.wrappedNode(v);
-      expect(f.isMatching.value).to.be.true;
+      expect(f.isMatching).to.be.true;
     }
     checkFilterInvariants();
   });
@@ -193,9 +194,9 @@ describe("model/filtered-tree", () => {
       ["e", false],
       ["e2", true],
     ] as const) {
-      expect(
-        filteredTree.wrappedNode(tree.by_id.get(id)!).isMatching.value,
-      ).to.equal(val);
+      expect(filteredTree.wrappedNode(tree.by_id.get(id)!).isMatching).to.equal(
+        val,
+      );
     }
 
     checkFilterInvariants();
