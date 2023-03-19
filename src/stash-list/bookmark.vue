@@ -13,7 +13,6 @@
     }"
     :title="bookmark.unfiltered.title"
     :data-container-color="related_container_color"
-    @click.prevent.stop="select"
   >
     <item-icon
       :class="{

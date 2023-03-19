@@ -14,7 +14,6 @@
     }"
     :title="tab.unfiltered.title"
     :data-container-color="containerColor"
-    @click.prevent.stop="select"
   >
     <item-icon
       :class="{
