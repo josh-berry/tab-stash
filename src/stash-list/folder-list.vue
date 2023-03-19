@@ -69,8 +69,8 @@ export default defineComponent({
       };
     },
 
-    drag(ev: DragAction<Folder>) {
-      ev.dataTransfer.setData(DROP_FORMAT, ev.value.id);
+    drag(ev: DragAction<FilteredItem<Folder, Bookmark | Separator>>) {
+      ev.dataTransfer.setData(DROP_FORMAT, ev.value.unfiltered.id);
     },
 
     async drop(ev: DropAction) {
