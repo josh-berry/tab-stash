@@ -174,15 +174,10 @@
     :class="{'forest-children': true, collapsed}"
   >
     <li>
-      <div
-        class="forest-item selectable"
-        @click.prevent.stop="showFiltered = !showFiltered"
-      >
-        <span class="forest-title status-text">
-          {{ showFiltered ? "-" : "+" }}
-          {{ folder.filteredCount }} filtered
-        </span>
-      </div>
+      <show-filtered-item
+        v-model:visible="showFiltered"
+        :count="folder.filteredCount"
+      />
     </li>
   </ul>
 </template>
@@ -219,6 +214,7 @@ import ButtonBox from "../components/button-box.vue";
 import DndList from "../components/dnd-list.vue";
 import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
+import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 
 type NodeWithTabs = {
@@ -238,6 +234,7 @@ export default defineComponent({
     Bookmark: BookmarkVue,
     ItemIcon,
     Menu,
+    ShowFilteredItem,
   },
 
   inject: ["$model"],

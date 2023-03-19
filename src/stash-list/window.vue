@@ -90,17 +90,12 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
     </template>
   </dnd-list>
 
-  <ul :class="{'forest-children': true, collapsed}">
-    <li v-if="targetWindow.filteredCount > 0">
-      <div
-        class="forest-item selectable"
-        @click.prevent.stop="showFiltered = !showFiltered"
-      >
-        <span class="forest-title status-text">
-          {{ showFiltered ? "-" : "+" }}
-          {{ targetWindow.filteredCount }} filtered
-        </span>
-      </div>
+  <ul v-if="filteredCount > 0" :class="{'forest-children': true, collapsed}">
+    <li>
+      <show-filtered-item
+        v-model:visible="showFiltered"
+        :count="filteredCount"
+      />
     </li>
   </ul>
 
@@ -137,6 +132,7 @@ import ConfirmDialog, {
   type ConfirmDialogEvent,
 } from "../components/confirm-dialog.vue";
 import DndList from "../components/dnd-list.vue";
+import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
@@ -156,6 +152,7 @@ export default defineComponent({
     DndList,
     Tab: TabVue,
     Bookmark,
+    ShowFilteredItem,
   },
 
   inject: ["$model"],
@@ -212,6 +209,18 @@ export default defineComponent({
           collapsed,
         );
       },
+    },
+
+    // We ignore the built-in filteredCount because it includes invalid things
+    // like hidden tabs
+    filteredCount(): number {
+      return this.targetWindow.children.reduce(
+        (count, t) =>
+          !("children" in t) && !t.isMatching && this.isValidChild(t.unfiltered)
+            ? count + 1
+            : count,
+        0,
+      );
     },
 
     selectedCount(): number {

@@ -82,8 +82,10 @@
     // Give ourselves a little space at the bottom of each child list, with a
     // nice curl to the indent guide--this makes drag-and-drop easier when
     // appending inside a child vs. inserting below the child
-    border-bottom-left-radius: calc(var(--item-h) / 4);
-    padding-bottom: calc(var(--item-h) / 4);
+    &:last-child {
+      border-bottom-left-radius: calc(var(--item-h) / 4);
+      padding-bottom: calc(var(--item-h) / 4);
+    }
   }
 
   // Nested children should be hidden if the child is collapsed
