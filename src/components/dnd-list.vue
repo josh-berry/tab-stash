@@ -42,10 +42,13 @@
     </template>
 
     <component
-      v-if="ghostIndex === displayItems.length"
       :is="itemIs || 'li'"
-      :style="ghostStyle"
+      :style="ghostIndex === displayItems.length && ghostStyle"
       :class="{
+        // NOTE: This ghost must always be present when dragging so we have a
+        // drop target for the end of the list.  Otherwise, it's impossible for
+        // a user to drag a ghost to the end of the list unless the list has
+        // some padding at the end.
         'dnd-list-ghost': true,
         'dropping-here': ghostIndex === displayItems.length,
       }"

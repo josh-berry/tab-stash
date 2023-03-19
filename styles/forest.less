@@ -48,7 +48,8 @@
   padding: 0;
 
   & > li {
-    display: block;
+    display: flex;
+    flex-direction: column;
     list-style: none;
 
     // Hide empty list items in the forest (as a workaround so that indexes in
@@ -321,7 +322,11 @@
       // This is here, instead of the enclosing <li>, so the bottom margin
       // naturally disappears when the group is collapsed.  It should also be
       // overridden in the tab view.
-      margin-bottom: calc(var(--group-ph) + var(--page-ph));
+      //
+      // We use padding instead of margin here to give a bigger drop target for
+      // drag-and-drop operations.
+      padding-bottom: calc(var(--group-ph) + var(--page-ph));
+      flex: auto; // Fill all leftover space so we're a bigger drop target
     }
   }
 
