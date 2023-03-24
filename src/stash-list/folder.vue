@@ -83,14 +83,21 @@
             <span>Stash to "{{ title }}":</span>
           </div>
           <ul class="menu-scrollable-list">
-            <li v-for="tab of unstashedOrOpenTabs" :key="tab.id">
+            <li v-for="t of unstashedOrOpenTabs" :key="t.tab.id">
               <a
-                :href="tab.url"
+                :href="t.tab.url"
                 :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
-                @click.prevent.stop="stashSpecificTab($event, tab)"
+                @click.prevent.stop="stashSpecificTab($event, t.tab)"
               >
-                <item-icon is="span" :src="tab.favIconUrl" />
-                <span>{{ tab.title }}</span>
+                <item-icon is="span" :src="t.tab.favIconUrl" />
+                <span>{{ t.tab.title }}</span>
+                <span
+                  v-if="t.stashedIn.length > 0"
+                  class="icon icon-stashed status-text"
+                  :title="
+                    ['This tab is stashed in:', ...t.stashedIn].join('\n')
+                  "
+                />
               </a>
             </li>
           </ul>
@@ -317,21 +324,28 @@ export default defineComponent({
     },
 
     // Used to populate a menu of tabs to select for stashing here
-    unstashedOrOpenTabs(): Tab[] {
+    unstashedOrOpenTabs(): {tab: Tab; stashedIn: string[]}[] {
       const model = this.model();
       const target_win = model.tabs.targetWindow.value;
       if (!target_win) return [];
       const win = model.tabs.window(target_win);
       if (!win) return [];
 
-      return filterMap(win.tabs, id => model.tabs.tab(id)).filter(
-        t =>
-          !t.pinned &&
-          !t.hidden &&
-          model.isURLStashable(t.url) &&
-          (!model.bookmarks.isURLStashed(t.url) ||
-            model.options.sync.state.show_open_tabs !== "unstashed"),
-      );
+      return filterMap(win.tabs, id => model.tabs.tab(id))
+        .filter(
+          t =>
+            !t.pinned &&
+            !t.hidden &&
+            model.isURLStashable(t.url) &&
+            (!model.bookmarks.isURLStashed(t.url) ||
+              model.options.sync.state.show_open_tabs !== "unstashed"),
+        )
+        .map(tab => ({
+          tab,
+          stashedIn: model.bookmarks
+            .foldersInStashContainingURL(tab.url)
+            .map(f => friendlyFolderName(f.title)),
+        }));
     },
 
     /** Returns a "default" name to use if no explicit name is set.  This

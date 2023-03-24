@@ -125,6 +125,11 @@ const BOOKMARKS = {
               ],
             },
             {id: "nested_2", title: "Nested 2", url: `${B}#nested_2`},
+            {
+              id: "nested_3",
+              title: "Extra",
+              children: [{id: "two_two", title: "Two", url: `${B}#2`}],
+            },
           ],
         },
       ],

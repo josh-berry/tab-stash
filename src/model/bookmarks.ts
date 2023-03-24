@@ -243,7 +243,8 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   }
 
   /** Check if `node` is contained, directly or indirectly, by the folder with
-   * the specified ID. */
+   * the specified ID.  (Folders contain themselves; that is, if `node.id ===
+   * folder_id`, this function returns `true`.)*/
   isNodeInFolder(node: Node, folder_id: NodeID): boolean {
     let item: Node | undefined = node;
     while (item) {
@@ -292,6 +293,26 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
       if (this.isNodeInStashRoot(bm)) return true;
     }
     return false;
+  }
+
+  /** Given a URL, find and return all the folders under the stash root which
+   * contain bookmarks with that URL.  (This is used by the UI to show "Stashed
+   * in ..." tooltips on tabs.) */
+  foldersInStashContainingURL(url: string): Folder[] {
+    const stash_root = this.stash_root.value;
+    // istanbul ignore if -- uncommon and hard to test
+    if (!stash_root) return [];
+
+    const ret: Folder[] = [];
+    for (const bm of this.bookmarksWithURL(url)) {
+      const parent = this.positionOf(bm)?.parent;
+      // istanbul ignore next -- should never happen in practice; it's not
+      // possible to place bookmarks directly under the root folder
+      if (!parent) continue;
+      if (!this.isNodeInFolder(parent, stash_root.id)) continue;
+      ret.push(parent);
+    }
+    return ret;
   }
 
   /** Return all the URLs present in the stash root. */

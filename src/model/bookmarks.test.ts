@@ -276,6 +276,27 @@ describe("model/bookmarks", () => {
       ]);
     });
 
+    describe("folders in the stash containing a URL", () => {
+      function test(
+        name: string,
+        url: string,
+        result: (keyof BookmarkFixture)[],
+      ) {
+        it(name, () =>
+          expect(
+            model.foldersInStashContainingURL(url).map(f => f.id),
+          ).to.deep.equal(result.map(id => bms[id].id)),
+        );
+      }
+
+      test("not bookmarked", "sir-not-appearing-in-this-film.com", []);
+      test("outside the stash", `${B}#alice`, []);
+      test("inside the stash in one place", `${B}#helen`, ["names"]);
+      test("both inside and outside the stash", `${B}#doug`, ["names"]);
+      test("in nested folders", `${B}#nested_child_1`, ["nested_child"]);
+      test("stashed in multiple places", `${B}#2`, ["big_stash", "nested_3"]);
+    });
+
     describe("stash group of a bookmark", () => {
       it("outside of the stash", async () => {
         expect(model.stashGroupOf(model.node(bms.bob.id)!)).to.be.undefined;

@@ -119,15 +119,9 @@ export default defineComponent({
       if (this.isLoading) return [];
       if (!this.tab.unfiltered.url) return [];
 
-      const bookmarks = this.model().bookmarks;
-
-      const ret = [];
-      for (const bm of bookmarks.bookmarksWithURL(this.tab.unfiltered.url)) {
-        const group = bookmarks.stashGroupOf(bm);
-        if (!group) continue;
-        ret.push(friendlyFolderName(group.title));
-      }
-      return ret;
+      return this.model()
+        .bookmarks.foldersInStashContainingURL(this.tab.unfiltered.url)
+        .map(f => friendlyFolderName(f.title));
     },
     container(): Container | undefined {
       if (this.tab.unfiltered.cookieStoreId === undefined) return;
