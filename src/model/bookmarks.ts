@@ -270,19 +270,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     return pathTo(this, node);
   }
 
-  /** Checks if a particular bookmark is a child of a stash folder inside the
-   * stash root (i.e. it is visible in the UI).  If so, returns the parent
-   * folder of the bookmark (i.e. the stash group). */
-  stashGroupOf(node: Node): Folder | undefined {
-    // istanbul ignore if -- uncommon and hard to test
-    if (!this.stash_root.value) return undefined;
-    const group = this.folder(node.parentId);
-    if (!group) return undefined;
-
-    if (!this.isNodeInStashRoot(group)) return undefined;
-    return group;
-  }
-
   /** Returns true if a particular URL is present in the stash. */
   isURLStashed(url: string): boolean {
     const stash_root = this.stash_root.value;

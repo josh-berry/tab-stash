@@ -297,47 +297,6 @@ describe("model/bookmarks", () => {
       test("stashed in multiple places", `${B}#2`, ["big_stash", "nested_3"]);
     });
 
-    describe("stash group of a bookmark", () => {
-      it("outside of the stash", async () => {
-        expect(model.stashGroupOf(model.node(bms.bob.id)!)).to.be.undefined;
-      });
-
-      it("inside the stash", async () => {
-        const group = model.stashGroupOf(model.node(bms.five.id)!);
-        expect(group).to.not.be.undefined;
-        expect(group).to.equal(model.node(bms.big_stash.id)!);
-      });
-
-      it("grandchild of the stash", async () => {
-        expect(bms.nested_child_1.parentId).to.equal(bms.nested_child.id);
-        expect(bms.nested_child.parentId).to.equal(bms.nested.id);
-        expect(bms.nested.parentId).to.equal(bms.stash_root.id);
-
-        expect(
-          model.stashGroupOf(model.node(bms.nested_child_1.id)!)?.id,
-        ).to.equal(bms.nested_child.id);
-      });
-
-      it("the bookmark root folder", async () => {
-        expect(model.stashGroupOf(model.node(model.root_id!)!)).to.be.undefined;
-      });
-
-      it("a direct child of the root", async () => {
-        expect(model.stashGroupOf(model.node(bms.root.id)!)).to.be.undefined;
-      });
-
-      it("the stash root itself", async () => {
-        expect(model.stashGroupOf(model.node(bms.stash_root.id)!)).to.be
-          .undefined;
-      });
-
-      it("a stash group itself", async () => {
-        expect(model.stashGroupOf(model.node(bms.big_stash.id)!)?.id).to.equal(
-          bms.stash_root.id,
-        );
-      });
-    });
-
     describe("lookup URL in stash", () => {
       it("returns false for URLs not in bookmarks", async () => {
         expect(model.isURLStashed(`${B}#not-in-bookmarks`)).to.be.false;
