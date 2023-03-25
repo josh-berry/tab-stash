@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Install Inkscape
-        run: sudo apt-get install -y inkscape
+        run: sudo apt-get update -y && sudo apt-get install -y inkscape
       - uses: actions/checkout@v1
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
