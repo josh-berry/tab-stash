@@ -286,9 +286,7 @@ export default defineComponent({
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         const model = this.model();
-        const stashable_children = this.tabs.filter(t =>
-          model.isURLStashable(t.url),
-        );
+        const stashable_children = this.tabs.filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
         await model.putItemsInFolder({
