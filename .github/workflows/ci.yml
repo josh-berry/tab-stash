@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Inkscape
-        run: sudo apt-get update -y && sudo apt-get install -y inkscape
       - uses: actions/checkout@v1
+      - name: Install Dependencies
+        run: sh ./install-deps.sh
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
