@@ -10,6 +10,9 @@ deps_apt() {
         fi
     fi
 
+    # Make sure we have the latest packages
+    sudo apt-get update
+
     # Inkscape
     if type snap; then
         if snap list inkscape 2>/dev/null; then
@@ -25,7 +28,7 @@ deps_apt() {
             sudo add-apt-repository universe
             sudo apt-get update
         fi
-        sudo apt install -y inkscape
+        sudo apt-get install -y inkscape
     fi
 
     # Build tools
