@@ -2,7 +2,6 @@ import {computed, reactive, ref, type Ref} from "vue";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import type {OpenableURL} from "../util";
 import {
   backingOff,
   expect,
@@ -10,7 +9,9 @@ import {
   shortPoll,
   tryAgain,
   urlToOpen,
+  type OpenableURL,
 } from "../util";
+import {trace_fn} from "../util/debug";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
 import {pathTo, type Position, type Tree} from "./tree";
@@ -54,6 +55,8 @@ export function isFolder(node: Node): node is Folder {
 export function isSeparator(node: Node): node is Separator {
   return "type" in node && node.type === "separator";
 }
+
+const trace = trace_fn("bookmarks");
 
 /** The name of the stash root folder.  This name must match exactly (including
  * in capitalization). */
@@ -103,6 +106,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
    * parents (up to the root).  Any changes to these folders should recompute
    * the stash root. */
   private _stash_root_watch = new Set<Folder>();
+
+  /** Are we in the middle of a reload? */
+  private _is_reloading = false;
 
   /** Did we receive an event since the last (re)load of the model? */
   private _event_since_load: boolean = false;
@@ -166,21 +172,26 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     // concurrent events from the browser--if we get a concurrent event, we
     // need to try loading again, since we don't know how the event was
     // ordered with respect to the getTree().
-    this._event_since_load = true;
-    while (this._event_since_load) {
-      this._event_since_load = false;
+    this._is_reloading = true;
+    try {
+      this._event_since_load = true;
+      while (this._event_since_load) {
+        this._event_since_load = false;
 
-      const tree = await browser.bookmarks.getTree();
-      const root = tree[0]!;
-      this.root_id = root.id as NodeID;
-      this.whenBookmarkCreated(root.id, root);
+        const tree = await browser.bookmarks.getTree();
+        const root = tree[0]!;
+        this.root_id = root.id as NodeID;
+        this.whenBookmarkCreated(root.id, root);
 
-      // Clean up bookmarks that don't exist anymore
-      const marked = new Set<string>();
-      mark(marked, root);
-      for (const id of this.by_id.keys()) {
-        if (!marked.has(id)) this.whenBookmarkRemoved(id);
+        // Clean up bookmarks that don't exist anymore
+        const marked = new Set<string>();
+        mark(marked, root);
+        for (const id of this.by_id.keys()) {
+          if (!marked.has(id)) this.whenBookmarkRemoved(id);
+        }
       }
+    } finally {
+      this._is_reloading = false;
     }
   });
 
@@ -502,6 +513,8 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     // must conform to browser.bookmarks.onCreated...
     if (id !== new_bm.id) throw new Error(`Bookmark IDs don't match`);
 
+    trace("whenBookmarkCreated", new_bm);
+
     const nodeId = id as NodeID;
     const parentId = (new_bm.parentId ?? "") as NodeID;
 
@@ -573,10 +586,16 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
       this.by_id.set(node.id, node);
 
       if (new_bm.parentId) {
-        const parent = expect(
-          this.folder(parentId),
-          () => `Don't know about parent folder ${parentId}`,
-        );
+        const parent = this.folder(parentId);
+        if (!parent) {
+          if (!this._is_reloading) {
+            throw new Error(`Don't know about parent folder ${parentId}`);
+          }
+          // Ignore a missing parent if we're reloading--this is probably an
+          // event for a child we haven't processed yet, and we'll just pick it
+          // up next time around.
+          return;
+        }
         parent.children.splice(new_bm.index!, 0, node.id);
       }
     } else {
@@ -592,10 +611,16 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
         }
 
         // Add to new parent
-        const parent = expect(
-          this.folder(parentId),
-          () => `Don't know about parent folder ${parentId}`,
-        );
+        const parent = this.folder(parentId);
+        if (!parent) {
+          if (!this._is_reloading) {
+            throw new Error(`Don't know about parent folder ${parentId}`);
+          }
+          // Ignore a missing parent if we're reloading--this is probably an
+          // event for a child we haven't processed yet, and we'll just pick it
+          // up next time around.
+          return;
+        }
         parent.children.splice(new_bm.index!, 0, node.id);
       }
 
@@ -623,6 +648,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   }
 
   whenBookmarkChanged(id: string, info: Bookmarks.OnChangedChangeInfoType) {
+    trace("whenBookmarkChanged", id, info);
+    if (this._is_reloading) return;
+
     const node = expect(
       this.by_id.get(id as NodeID),
       () => `Got change event for unknown node ${id}: ${JSON.stringify(info)}`,
@@ -650,6 +678,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   }
 
   whenBookmarkMoved(id: string, info: {parentId: string; index: number}) {
+    trace("whenBookmarkMoved", id, info);
+    if (this._is_reloading) return;
+
     const node = expect(
       this.by_id.get(id as NodeID),
       () => `Got move event for unknown node ${id}: ${JSON.stringify(info)}`,
@@ -685,6 +716,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   }
 
   whenBookmarkRemoved(id: string) {
+    trace("whenBookmarkRemoved", id);
+    if (this._is_reloading) return;
+
     const node = this.by_id.get(id as NodeID);
     if (!node) return;
 
