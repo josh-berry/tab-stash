@@ -56,7 +56,11 @@
     </transition-group>
 
     <header class="page action-container" @click.stop="">
-      <Menu class="menu main-menu" summaryClass="action mainmenu">
+      <Menu
+        v-if="view !== 'popup'"
+        class="menu main-menu"
+        summaryClass="action mainmenu"
+      >
         <button @click.prevent="showOptions"><span>Options...</span></button>
         <hr />
         <button @click.prevent="dialog = {class: 'ImportDialog'}">
@@ -88,6 +92,13 @@
           ><span>What's New?</span></a
         >
       </Menu>
+
+      <a
+        v-else
+        class="action icon icon-pop-out"
+        title="Show stashed tabs in a tab"
+        @click.prevent="showTabUI"
+      />
 
       <SelectionMenu v-if="selection_active" />
 
@@ -189,6 +200,10 @@ export default defineComponent({
   }),
 
   computed: {
+    view(): string {
+      return document.documentElement.dataset!.view ?? "tab";
+    },
+
     filteredTabs(): FilteredTree<Window, Tab> {
       const f = new FilteredTree<Window, Tab>(this.model().tabs, node =>
         this.filterFn(node),
@@ -382,6 +397,21 @@ export default defineComponent({
 
     showOptions() {
       browser.runtime.openOptionsPage().catch(console.log);
+    },
+
+    showTabUI() {
+      this.model().attempt(async () => {
+        await this.model().restoreTabs(
+          [
+            {
+              title: "Tab Stash",
+              url: browser.runtime.getURL("stash-list.html"),
+            },
+          ],
+          {},
+        );
+        window.close();
+      });
     },
 
     go(page: string) {
