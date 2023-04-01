@@ -63,7 +63,10 @@
               show the stash in the sidebar
             </option>
             <option value="tab">show the stash in a tab</option>
-            <option v-if="local.ff_popup_view" value="popup">
+            <option
+              :disabled="sync.browser_action_stash !== 'none'"
+              value="popup"
+            >
               show the stash in a popup
             </option>
             <option
@@ -409,18 +412,6 @@
           comment on the issue linked in [brackets] below.</em
         >
       </p>
-
-      <FeatureFlag
-        name="ff_popup_view"
-        v-model="local.ff_popup_view"
-        :default_value="local_def().ff_popup_view.default"
-        :issue="115"
-      >
-        <template v-slot:summary>Popup View</template>
-        Enables additional options (configurable above) to show the Tab Stash UI
-        in a popup panel instead of {{ hasSidebar ? "the sidebar or " : "" }}a
-        tab.
-      </FeatureFlag>
 
       <FeatureFlag
         name="ff_restore_closed_tabs"

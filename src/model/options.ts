@@ -122,7 +122,6 @@ export const LOCAL_DEF = {
   hide_crash_reports_until: {default: undefined, is: maybeUndef(aNumber)},
 
   // Feature flags
-  ff_popup_view: {default: false, is: aBoolean},
 
   /** Re-open a recently-closed tab if one can't be found.  Disabled by
    * default because of bugs in Firefox.  See #188. */
