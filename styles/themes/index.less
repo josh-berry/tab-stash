@@ -10,16 +10,16 @@
 
 @import "icons.less";
 
-html.theme-system {
+html[data-theme="system"] {
   @import (multiple) "light.less";
   @media (prefers-color-scheme: dark) {
     @import (multiple) "dark.less";
   }
 }
-html.theme-light {
+html[data-theme="light"] {
   @import (multiple) "light.less";
 }
-html.theme-dark {
+html[data-theme="dark"] {
   // We import BOTH themes here so that dark variables override light
   // variables, just like in theme-system.
   @import (multiple) "light.less";

@@ -8,7 +8,7 @@ body {
   overscroll-behavior: contain;
 }
 
-html.view-popup {
+html[data-view="popup"] {
   // NOTE: The weird widths here are so that everything looks right when Tab
   // Stash is moved to Firefox's popup menu (which for some reason STILL,
   // after who knows how many years, doesn't change width to accommodate
@@ -20,21 +20,21 @@ html.view-popup {
     height: 600px;
   }
 
-  &.os-mac > body {
+  &[data-os="mac"] > body {
     width: 378px;
   }
 
-  &.os-win > body {
+  &[data-os="win"] > body {
     width: 348px;
   }
 }
 
-html.browser-chrome > body {
+html[data-browser="chrome"] > body {
   font: initial;
   font-family: system-ui, sans-serif;
   font-size: 9.5pt;
 }
-html.browser-chrome.os-win > body {
+html[data-browser="chrome"][data-os="win"] > body {
   font-size: 9pt;
 }
 

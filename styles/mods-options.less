@@ -1,9 +1,9 @@
-&.theme-system,
-&.theme-light {
+&[data-theme="system"],
+&[data-theme="light"] {
   --page-bg: #ffffff;
 }
 
-&.theme-dark {
+&[data-theme="dark"] {
   --page-bg: #202023;
   --page-fg: #f9f9fa;
   --scroll-bar: #48484e;
@@ -11,7 +11,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  &.theme-system {
+  &[data-theme="system"] {
     --page-bg: #202023;
     --page-fg: #f9f9fa;
     --scroll-bar: #48484e;

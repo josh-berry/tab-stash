@@ -31,17 +31,8 @@ export default function launch<
   }
 
   const loader = async function () {
-    switch (loc.searchParams.get("view")) {
-      case "sidebar":
-        document.documentElement.classList.add("view-sidebar");
-        break;
-      case "popup":
-        document.documentElement.classList.add("view-popup");
-        break;
-      default:
-        document.documentElement.classList.add("view-tab");
-        break;
-    }
+    document.documentElement.dataset!.view =
+      loc.searchParams.get("view") ?? "tab";
 
     const plat = await resolveNamed({
       browser: browser.runtime.getBrowserInfo
@@ -53,20 +44,12 @@ export default function launch<
       options: Options.Model.live(),
     });
 
-    document.documentElement.classList.add(
-      `browser-${plat.browser.name.toLowerCase()}`,
-    );
-    document.documentElement.classList.add(`os-${plat.platform.os}`);
+    document.documentElement.dataset!.browser = plat.browser.name.toLowerCase();
+    document.documentElement.dataset!.os = plat.platform.os;
 
     function updateStyle(opts: Options.SyncModel) {
-      const classes = document.documentElement.classList;
-      for (const c of Array.from(classes)) {
-        if (c.startsWith("metrics-") || c.startsWith("theme-")) {
-          classes.remove(c);
-        }
-      }
-      classes.add(`metrics-${opts.state.ui_metrics}`);
-      classes.add(`theme-${opts.state.ui_theme}`);
+      document.documentElement.dataset!.metrics = opts.state.ui_metrics;
+      document.documentElement.dataset!.theme = opts.state.ui_theme;
     }
     updateStyle(plat.options.sync);
     plat.options.sync.onChanged.addListener(updateStyle);
