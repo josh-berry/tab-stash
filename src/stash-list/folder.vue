@@ -13,6 +13,7 @@
     }"
   >
     <item-icon
+      v-if="!isToplevel"
       :class="{
         'forest-icon': true,
         action: true,
