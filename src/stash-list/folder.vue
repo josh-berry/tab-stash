@@ -85,6 +85,18 @@
           <span>Stash to New Child Group</span>
         </button>
 
+        <template v-if="!isToplevel">
+          <hr />
+
+          <button
+            @click.prevent="moveSelfToTopLevel"
+            title="Move this group to the top level"
+          >
+            <span class="icon icon-pop-out" />
+            <span>Move to Top Level</span>
+          </button>
+        </template>
+
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <div class="menu-item disabled status-text">
@@ -258,6 +270,7 @@ export default defineComponent({
     folder: required(
       Object as PropType<FilteredParent<Folder, Bookmark | Separator>>,
     ),
+    isToplevel: Boolean,
   },
 
   data: () => ({
@@ -500,6 +513,25 @@ export default defineComponent({
           items: this.model().copyIf(ev.altKey, [tab]),
           toFolderId: this.folder.unfiltered.id,
         });
+      });
+    },
+
+    moveSelfToTopLevel() {
+      this.attempt(async () => {
+        const model = this.model().bookmarks;
+        const root = model.stash_root.value!;
+
+        // We put it directly above its parent in the stash root, so it's easy
+        // to find and continue interacting with.
+        const rootPos = model
+          .pathTo(this.folder.unfiltered)
+          .find(p => p.parent === root);
+
+        await model.move(
+          this.folder.unfiltered.id,
+          root.id,
+          rootPos?.index ?? 0,
+        );
       });
     },
 

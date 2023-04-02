@@ -13,7 +13,12 @@
     <template
       #item="{item}: {item: FilteredItem<Folder, Bookmark | Separator>}"
     >
-      <Folder v-if="'children' in item" ref="folders" :folder="item" />
+      <Folder
+        v-if="'children' in item"
+        ref="folders"
+        :folder="item"
+        is-toplevel
+      />
     </template>
   </dnd-list>
 </template>
