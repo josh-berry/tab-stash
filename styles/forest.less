@@ -292,11 +292,10 @@
       border-top-left-radius: var(--group-border-radius);
       border-top-right-radius: var(--group-border-radius);
 
-      // If there's no icon for the top-level group, don't leave space for it
-      // (unlike what we do inside the group).
-      //
-      // This should match the same layout as the regular .forest-item grid
-      // below.
+      // Since there's no icon for the top-level group, don't leave space for it
+      // (unlike what we do inside the group).  This should match the same
+      // layout as the regular .forest-item grid above, or the other columns
+      // won't line up properly.
       grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr 0fr;
 
       margin: 0;
@@ -307,6 +306,7 @@
       & > .forest-title {
         font-weight: var(--group-header-font-weight);
         font-size: var(--group-header-font-size);
+        margin-left: 0; // To align with the icons in children
       }
 
       // Don't change the background color as if the group were a regular item
