@@ -7,7 +7,7 @@
       :title="props.tooltip"
       :placeholder="props.placeholder"
       v-model="modelValue"
-      @keydown.esc.prevent.stop="clear"
+      @keydown.esc.prevent="clear"
     />
     <button
       v-if="modelValue !== ''"
@@ -54,7 +54,13 @@ defineExpose({
   },
 });
 
-function clear() {
-  emit("update:modelValue", "");
+function clear(ev: KeyboardEvent | MouseEvent) {
+  if (modelValue.value !== "") {
+    // We consume the "clear" event only if we want to clear the search box,
+    // because if the search box is present in a dialog/menu/etc., hitting "Esc"
+    // twice will both clear the search AND close the parent modal.
+    ev.stopPropagation();
+    emit("update:modelValue", "");
+  }
 }
 </script>
