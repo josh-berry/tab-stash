@@ -58,6 +58,9 @@ html {
   // Nested children should be indented such that the left side of the icon
   // lines up with the beginning of the title in the container.
   --item-indent-w: calc(
-    var(--icon-btn-size) + var(--item-gap-w) - var(--icon-p)
+    var(--icon-btn-size) + var(--item-gap-w) - var(--icon-p) -
+      var(--indent-guide-w)
   );
+
+  --indent-guide-w: 1px;
 }

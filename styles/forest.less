@@ -78,7 +78,7 @@
     margin-left: var(--item-indent-w);
 
     // Show an indent guide
-    border-left: 1px solid var(--indent-guide-border-clr);
+    border-left: var(--indent-guide-w) solid var(--indent-guide-border-clr);
 
     // Give ourselves a little space at the bottom of each child list, with a
     // nice curl to the indent guide--this makes drag-and-drop easier when
@@ -306,7 +306,7 @@
       & > .forest-title {
         font-weight: var(--group-header-font-weight);
         font-size: var(--group-header-font-size);
-        margin-left: 0; // To align with the icons in children
+        margin-left: 0; // To align with the icons in child items
       }
 
       // Don't change the background color as if the group were a regular item
