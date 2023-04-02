@@ -316,6 +316,31 @@ export class Model {
     );
   }
 
+  /** Stashes all eligible tabs in the specified window, leaving the existing
+   * tabs open if `copy` is true. */
+  async stashAllTabsInWindow(
+    window: Tabs.WindowID,
+    options: {
+      copy?: boolean;
+      parent?: Bookmarks.NodeID;
+      position?: "top" | "bottom";
+    },
+  ) {
+    const tabs = this.stashableTabsInWindow(window);
+    if (tabs.length === 0) return;
+
+    await this.putItemsInFolder({
+      items: this.copyIf(!!options.copy, tabs),
+      toFolderId: (
+        await this.bookmarks.createStashFolder(
+          undefined,
+          options.parent,
+          options.position,
+        )
+      ).id,
+    });
+  }
+
   /** Put the set of currently-selected items in the specified folder
    * when the toFolderId option is set, otherwise the current window.
    *

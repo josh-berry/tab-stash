@@ -77,6 +77,14 @@
           <span>New Child Group</span>
         </button>
 
+        <button
+          @click.prevent="stashToNewChildFolder"
+          title="Stash all open tabs to a new child group"
+        >
+          <span class="icon icon-stash" />
+          <span>Stash to New Child Group</span>
+        </button>
+
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <div class="menu-item disabled status-text">
@@ -580,6 +588,18 @@ export default defineComponent({
         await this.model().bookmarks.create({
           parentId: this.folder.unfiltered.id,
           title: genDefaultFolderName(new Date()),
+        });
+      });
+    },
+
+    stashToNewChildFolder(ev: KeyboardEvent | MouseEvent) {
+      this.attempt(async () => {
+        const model = this.model();
+        if (model.tabs.targetWindow.value === undefined) return;
+        await model.stashAllTabsInWindow(model.tabs.targetWindow.value, {
+          copy: ev.altKey,
+          parent: this.folder.unfiltered.id,
+          position: "bottom",
         });
       });
     },

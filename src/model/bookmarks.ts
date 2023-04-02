@@ -474,12 +474,20 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   /** Create a new folder at the top of the stash root (creating the stash
    * root itself if it does not exist).  If the name is not specified, a
    * default name will be assigned based on the folder's creation time. */
-  async createStashFolder(name?: string): Promise<Folder> {
+  async createStashFolder(
+    name?: string,
+    parent?: NodeID,
+    position?: "top" | "bottom",
+  ): Promise<Folder> {
     const stash_root = await this.ensureStashRoot();
+    parent ??= stash_root.id;
+    position ??= "top";
+
     const bm = await this.create({
-      parentId: stash_root.id,
+      parentId: parent,
       title: name ?? genDefaultFolderName(new Date()),
-      index: 0,
+      // !-cast: this.create() will check the existence of the parent for us
+      index: position === "top" ? 0 : this.folder(parent)!.children.length,
     });
     return bm as Folder;
   }

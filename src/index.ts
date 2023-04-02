@@ -214,14 +214,8 @@ logErrorsFrom(async () => {
 
     switch (options.what) {
       case "all":
-        const tabs = model.stashableTabsInWindow(
-          options.tab.windowId as WindowID,
-        );
-        if (tabs.length === 0) return;
-
-        await model.putItemsInFolder({
-          items: model.copyIf(!!options.copy, tabs),
-          toFolderId: (await model.bookmarks.createStashFolder()).id,
+        await model.stashAllTabsInWindow(options.tab.windowId as WindowID, {
+          copy: !!options.copy,
         });
         break;
 
