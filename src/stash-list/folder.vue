@@ -86,17 +86,24 @@
           <span>Stash to New Child Group</span>
         </button>
 
-        <template v-if="!isToplevel">
-          <hr />
+        <hr />
 
-          <button
-            @click.prevent="moveSelfToTopLevel"
-            title="Move this group to the top level"
-          >
-            <span class="icon icon-pop-out" />
-            <span>Move to Top Level</span>
-          </button>
-        </template>
+        <button
+          v-if="isToplevel"
+          @click.prevent="moveSelfToChild"
+          title="Convert this group into a child group"
+        >
+          <span class="icon icon-pop-in" />
+          <span>Convert to Child Group</span>
+        </button>
+        <button
+          v-else
+          @click.prevent="moveSelfToTopLevel"
+          title="Move this group to the top level"
+        >
+          <span class="icon icon-pop-out" />
+          <span>Move to Top Level</span>
+        </button>
 
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
@@ -533,6 +540,26 @@ export default defineComponent({
           root.id,
           rootPos?.index ?? 0,
         );
+      });
+    },
+
+    moveSelfToChild() {
+      this.attempt(async () => {
+        const model = this.model().bookmarks;
+        const root = model.stash_root.value!;
+        const pos = model.positionOf(this.folder.unfiltered)!;
+
+        // Create a new parent first, positioned at our current index
+        const newParent = await model.create({
+          // We give the parent a default name so it will go away automatically
+          // when emptied.
+          title: genDefaultFolderName(new Date()),
+          parentId: root.id,
+          index: pos.index,
+        });
+
+        // Then move ourselves into the parent
+        await model.move(this.folder.unfiltered.id, newParent.id, 0);
       });
     },
 
