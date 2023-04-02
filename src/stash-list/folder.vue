@@ -83,7 +83,7 @@
           title="Stash all open tabs to a new child group"
         >
           <span class="icon icon-stash" />
-          <span>Stash to New Child Group</span>
+          <span>Stash Tabs to New Child Group</span>
         </button>
 
         <hr />
@@ -91,7 +91,7 @@
         <button
           v-if="isToplevel"
           @click.prevent="moveSelfToChild"
-          title="Convert this group into a child group"
+          title="Move this group inside a new top-level group"
         >
           <span class="icon icon-pop-in" />
           <span>Convert to Child Group</span>
@@ -99,10 +99,10 @@
         <button
           v-else
           @click.prevent="moveSelfToTopLevel"
-          title="Move this group to the top level"
+          title="Move this group up to the top level"
         >
           <span class="icon icon-pop-out" />
-          <span>Move to Top Level</span>
+          <span>Convert to Top-Level Group</span>
         </button>
 
         <template v-if="unstashedOrOpenTabs.length > 0">
