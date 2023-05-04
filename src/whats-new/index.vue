@@ -10,6 +10,17 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="2.12.1">
+        <L v="Improved" :issue="335"
+          >loading of website icons to avoid crashes when your system is running
+          slowly.</L
+        >
+
+        <L v="Fixed" :issue="308"
+          >the color of the Tab Stash tab's icon when in dark mode.</L
+        >
+      </Version>
+
       <Version v="2.12.0.1">
         <L v="Fixed">a packaging issue preventing upload to Mozilla.</L>
       </Version>
