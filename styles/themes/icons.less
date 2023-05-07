@@ -1,20 +1,42 @@
+.item-icon {
+  .icon-wrapper();
+  .icon-background-setup();
+
+  & > img,
+  & > span {
+    .icon();
+  }
+}
+
+.icon-wrapper {
+  display: inline-block;
+  box-sizing: border-box;
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  padding: var(--icon-p);
+  text-align: center;
+  vertical-align: middle;
+  border: none;
+  border-radius: var(--ctrl-border-radius);
+}
+
+.icon-background-setup {
+  background-size: var(--icon-size) var(--icon-size);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+}
+
 .icon {
   display: inline-block;
   box-sizing: border-box;
   width: var(--icon-size);
   height: var(--icon-size);
+  object-fit: fill;
 
-  background-size: var(--icon-size) var(--icon-size);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: transparent;
+  .icon-background-setup();
+
   border: none;
-
-  & > img {
-    width: var(--icon-size);
-    height: var(--icon-size);
-    object-fit: fill;
-  }
 }
 
 // Function to define the set of icons used in each theme.  Must be called from
@@ -35,7 +57,6 @@
     .icon(filtered-hidden);
     .icon(filtered-visible);
     .icon(folder);
-    .icon(folder-selected);
     .icon(item-menu);
     .icon(mainmenu);
     .icon(move-menu);
@@ -45,11 +66,12 @@
     .icon(rename);
     .icon(restore-del);
     .icon(restore);
+    .icon(select);
+    .icon(select-selected);
     .icon(stash-one);
     .icon(stash);
     .icon(stashed);
     .icon(tab);
-    .icon(tab-selected);
     .icon(warning);
   }
 }
@@ -67,8 +89,6 @@
 .def-icon(filtered-hidden);
 .def-icon(filtered-visible);
 .def-icon(folder);
-.def-icon(folder-selected);
-.def-icon(folder-selected-inverse);
 .def-icon(item-menu);
 .def-icon(move-menu-inverse);
 .def-icon(new-empty-group);
@@ -76,9 +96,9 @@
 .def-icon(pop-out);
 .def-icon(restore-del);
 .def-icon(restore);
+.def-icon(select);
+.def-icon(select-selected-inverse);
 .def-icon(stash);
 .def-icon(stashed);
-.def-icon(tab-selected-inverse);
-.def-icon(tab-selected);
 .def-icon(tab);
 .def-icon(warning);

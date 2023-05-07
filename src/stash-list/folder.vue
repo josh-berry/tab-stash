@@ -18,9 +18,10 @@
         'forest-icon': true,
         action: true,
         select: true,
-        'icon-folder': !folder.unfiltered.$selected,
-        'icon-folder-selected-inverse': folder.unfiltered.$selected,
       }"
+      default-icon="folder"
+      selectable
+      :selected="folder.unfiltered.$selected"
       @click.prevent.stop="select"
     />
 
@@ -117,7 +118,7 @@
                 :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
                 @click.prevent.stop="stashSpecificTab($event, t.tab)"
               >
-                <item-icon is="span" :src="t.tab.favIconUrl" />
+                <item-icon default-icon="tab" :src="t.tab.favIconUrl" />
                 <span>{{ t.tab.title }}</span>
                 <span
                   v-if="t.stashedIn.length > 0"

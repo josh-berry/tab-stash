@@ -1,18 +1,7 @@
 // The prototypical toolbar button, or "action".
 .action {
-  display: inline-block;
-  box-sizing: border-box;
-  width: var(--icon-btn-size);
-  height: var(--icon-btn-size);
-  padding: var(--icon-p);
-  text-align: center;
-  vertical-align: middle;
-  background-size: var(--icon-size) var(--icon-size);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: transparent;
-  border: none;
-  border-radius: var(--ctrl-border-radius);
+  .icon-wrapper();
+  .icon-background-setup();
   color: var(--page-fg);
   cursor: default;
 

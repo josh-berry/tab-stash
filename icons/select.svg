@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="svg10"
+   version="1.1"
+   viewBox="0 0 96 96"
+   height="96"
+   width="96"
+   sodipodi:docname="select.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   inkscape:export-filename="/Users/des/src/tab-stash/dist/icons/logo-64.png"
+   inkscape:export-xdpi="64"
+   inkscape:export-ydpi="64"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1390"
+     inkscape:window-height="1027"
+     id="namedview9"
+     showgrid="true"
+     inkscape:zoom="8.84375"
+     inkscape:cx="48.113074"
+     inkscape:cy="48.113074"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg10"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid817"
+       empspacing="2"
+       spacingx="3"
+       spacingy="3" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata16">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs14" />
+  <path
+     style="color:#000000;opacity:0.994;fill:#808080;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     d="M 30,6 C 15,6 6,15 6,30 v 36 c 0,15 9,24 24,23.999999 L 66,90 C 81,90 90,81 90,66 V 30 C 90,15 81,6 66,6 Z m 0,6 h 36 c 12,0 18,6 18,18 V 66 C 84,78 75,84 66,84 H 30 C 18,84 12,78 12,66 V 30 C 12,18 18,12 30,12 Z"
+     id="rect480"
+     sodipodi:nodetypes="cccccccccccccccccc" />
+</svg>

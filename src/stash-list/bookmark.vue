@@ -19,12 +19,13 @@
         'forest-icon': true,
         action: true,
         select: true,
-        'icon-tab': !bookmark.unfiltered.$selected,
-        'icon-tab-selected-inverse': bookmark.unfiltered.$selected,
       }"
+      default-icon="tab"
       :src="
         !bookmark.unfiltered.$selected ? favicon?.value?.favIconUrl || '' : ''
       "
+      selectable
+      :selected="bookmark.unfiltered.$selected"
       @click.prevent.stop="select"
     />
 

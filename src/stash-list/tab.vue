@@ -20,10 +20,11 @@
         'forest-icon': true,
         action: true,
         select: true,
-        'icon-tab': !tab.unfiltered.$selected,
-        'icon-tab-selected-inverse': tab.unfiltered.$selected,
       }"
+      default-icon="tab"
       :src="favIcon"
+      selectable
+      :selected="tab.unfiltered.$selected"
       @click.prevent.stop="select"
     />
 

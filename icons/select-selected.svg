@@ -5,7 +5,7 @@
    viewBox="0 0 96 96"
    height="96"
    width="96"
-   sodipodi:docname="tab-selected.svg"
+   sodipodi:docname="select-selected.svg"
    inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
    inkscape:export-filename="/Users/des/src/tab-stash/dist/icons/logo-64.png"
    inkscape:export-xdpi="64"
@@ -26,22 +26,19 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1179"
-     inkscape:window-height="751"
+     inkscape:window-width="1390"
+     inkscape:window-height="1027"
      id="namedview9"
      showgrid="true"
-     inkscape:zoom="5.53125"
-     inkscape:cx="47.909605"
-     inkscape:cy="48"
-     inkscape:window-x="542"
-     inkscape:window-y="172"
+     inkscape:zoom="8.84375"
+     inkscape:cx="48.113074"
+     inkscape:cy="48.113074"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg10"
-     inkscape:pagecheckerboard="0"
-     inkscape:snap-grids="true"
-     inkscape:snap-to-guides="false"
-     inkscape:document-rotation="0"
      inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1">
     <inkscape:grid
        type="xygrid"
@@ -65,7 +62,12 @@
      id="defs14" />
   <path
      style="color:#000000;opacity:0.994;fill:#808080;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
-     d="m 33,30 c -12,0 -21,12 -21,24 0,3 -3,6 -6,6 -6,0 -6,6 0,6 h 84 c 6,0 6,-6 0,-6 -3,0 -6,-3 -6,-6 C 84,42 75,30 63,30 Z"
-     id="rect480-5"
+     d="M 30,6 C 15,6 6,15 6,30 v 36 c 0,15 9,24 24,23.999999 L 66,90 C 81,90 90,81 90,66 V 30 C 90,15 81,6 66,6 Z m 0,6 h 36 c 12,0 18,6 18,18 V 66 C 84,78 75,84 66,84 H 30 C 18,84 12,78 12,66 V 30 C 12,18 18,12 30,12 Z"
+     id="rect480"
+     sodipodi:nodetypes="cccccccccccccccccc" />
+  <path
+     style="color:#000000;opacity:0.994;fill:#808080;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     d="m 39,24 c -9,0 -15,6 -15,15 v 18 c 0,9 6,15.000001 15,15 h 18 c 9,0 15,-6 15,-15 V 39 C 72,30 66,24 57,24 Z"
+     id="rect480-7"
      sodipodi:nodetypes="ccccccccc" />
 </svg>

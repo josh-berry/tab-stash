@@ -8,11 +8,8 @@
     <item-icon
       :class="{
         'forest-icon': true,
-        'icon-tab':
-          (!('favIconUrl' in item) || !item.favIconUrl) && 'url' in item,
-        'icon-folder':
-          (!('favIconUrl' in item) || !item.favIconUrl) && 'children' in item,
       }"
+      :defaultIcon="'url' in item ? 'tab' : 'folder'"
       :src="'favIconUrl' in item ? item.favIconUrl : undefined"
     />
 

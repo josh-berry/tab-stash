@@ -150,6 +150,15 @@
 
     &.selected .action.select {
       background-color: var(--userlink-fg);
+
+      // When an item is selected, always show an icon indicating this instead
+      // of the actual item icon.
+      .icon-select-selected-inverse();
+      & > img,
+      & > span {
+        display: none;
+      }
+
       &:hover {
         background-color: var(--userlink-hover-fg);
       }
@@ -157,19 +166,6 @@
       &:focus-within {
         background-color: var(--userlink-active-fg);
       }
-
-      // Always hide the custom icon while the item is selected
-      & > img {
-        display: none;
-      }
-    }
-
-    &:not(.selected):not(:hover):not(:focus-within) .action.select:not(:empty) {
-      // Hide the default image when the custom <img> is visible.
-      // Govern when the <img> inside the <item-icon> is visible and when to use
-      // the (default) background-image.  We always use the background-image on
-      // hover/focus, and not at other times if we have an <img>.
-      background-image: none;
     }
 
     &:hover,
@@ -182,16 +178,21 @@
 
       .action.select {
         box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
-
-        // Hide the custom image when hovering/focusing on an item.
-        & > img {
-          display: none;
-        }
       }
 
       // Special highlighting behavior for using the icon to select the tab.
       &:not(.selected) .action.select {
         background-color: var(--button-bg);
+
+        // On hover/activation, show the "select me" icon instead of whatever
+        // actual icon is present.
+        .icon-select();
+        & > img,
+        & > span {
+          display: none;
+        }
+
+        &:focus-within,
         &:hover {
           background-color: var(--button-hover-bg);
         }
@@ -226,30 +227,7 @@
   height: var(--item-h);
   line-height: var(--item-h);
   &.icon {
-    /* Similar to .action... */
-    box-sizing: border-box;
-    width: var(--icon-btn-size);
-    height: var(--icon-btn-size);
-    padding: var(--icon-p);
-    vertical-align: top;
-  }
-}
-
-.forest-icon {
-  // Similar to .action's sizing
-  box-sizing: border-box;
-  width: var(--icon-btn-size);
-  height: var(--icon-btn-size);
-  padding: var(--icon-p);
-
-  & > img {
-    // Stretch non-square icons in a way that's compatible with how Firefox does
-    // it in its actual UI.
-    object-fit: fill;
-
-    // Make sure non-square icons don't overflow the container
-    width: var(--icon-size);
-    height: var(--icon-size);
+    .icon-wrapper();
   }
 }
 
