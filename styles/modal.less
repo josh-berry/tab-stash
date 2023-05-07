@@ -134,11 +134,15 @@ details.menu {
     text-decoration: none;
     background: inherit;
 
-    & .icon {
+    & .menu-icon {
       flex: 0 0 auto;
+      // Override padding from .item-icon
+      padding-left: 0;
+      padding-right: 0;
+      width: var(--icon-size);
     }
 
-    & span:not(.icon) {
+    & span:not(.menu-icon) {
       flex: 1 1 auto;
       text-align: left;
       white-space: nowrap;

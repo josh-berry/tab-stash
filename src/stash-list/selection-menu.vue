@@ -15,7 +15,7 @@
       title="Open stashed tabs"
       @click.prevent="copyToWindow"
     >
-      <span class="icon icon-restore"></span>
+      <span class="menu-icon icon icon-restore"></span>
       <span>Open</span>
     </button>
     <button
@@ -23,7 +23,7 @@
       title="Open tabs and delete them from the stash"
       @click.prevent="moveToWindow"
     >
-      <span class="icon icon-restore-del"></span>
+      <span class="menu-icon icon icon-restore-del"></span>
       <span>Unstash</span>
     </button>
 
@@ -41,7 +41,7 @@
     />
 
     <button :title="createTooltip" @click.prevent="create">
-      <span class="icon icon-new-empty-group"></span>
+      <span class="menu-icon icon icon-new-empty-group"></span>
       <span>{{ createTitle }}</span>
     </button>
 
@@ -68,7 +68,7 @@
       title="Delete stashed tabs and close unstashed tabs"
       @click.prevent="remove"
     >
-      <span class="icon icon-delete"></span>
+      <span class="menu-icon icon icon-delete"></span>
       <span>Delete or Close</span>
     </button>
   </Menu>

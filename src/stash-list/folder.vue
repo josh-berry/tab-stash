@@ -75,7 +75,7 @@
           @click.prevent="newChildFolder"
           :title="`Create a new sub-group within this group`"
         >
-          <span class="icon icon-new-empty-group"></span>
+          <span class="menu-icon icon icon-new-empty-group"></span>
           <span>New Child Group</span>
         </button>
 
@@ -83,7 +83,7 @@
           @click.prevent="stashToNewChildFolder"
           title="Stash all open tabs to a new child group"
         >
-          <span class="icon icon-stash" />
+          <span class="menu-icon icon icon-stash" />
           <span>Stash Tabs to New Child Group</span>
         </button>
 
@@ -94,7 +94,7 @@
           @click.prevent="moveSelfToChild"
           title="Move this group inside a new top-level group"
         >
-          <span class="icon icon-pop-in" />
+          <span class="menu-icon icon icon-pop-in" />
           <span>Convert to Child Group</span>
         </button>
         <button
@@ -102,7 +102,7 @@
           @click.prevent="moveSelfToTopLevel"
           title="Move this group up to the top level"
         >
-          <span class="icon icon-pop-out" />
+          <span class="menu-icon icon icon-pop-out" />
           <span>Convert to Top-Level Group</span>
         </button>
 
@@ -118,11 +118,15 @@
                 :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
                 @click.prevent.stop="stashSpecificTab($event, t.tab)"
               >
-                <item-icon default-icon="tab" :src="t.tab.favIconUrl" />
+                <item-icon
+                  class="menu-icon"
+                  default-icon="tab"
+                  :src="t.tab.favIconUrl"
+                />
                 <span>{{ t.tab.title }}</span>
                 <span
                   v-if="t.stashedIn.length > 0"
-                  class="icon icon-stashed status-text"
+                  class="menu-icon icon icon-stashed status-text"
                   :title="
                     ['This tab is stashed in:', ...t.stashedIn].join('\n')
                   "
@@ -137,7 +141,7 @@
           @click.prevent="closeStashedTabs"
           :title="`Close any open tabs that are stashed in this group`"
         >
-          <span class="icon icon-delete-stashed" />
+          <span class="menu-icon icon icon-delete-stashed" />
           <span>Close Stashed Tabs</span>
         </button>
         <hr />
@@ -145,7 +149,7 @@
           title="Delete the whole group and all its sub-groups"
           @click.prevent="remove"
         >
-          <span class="icon icon-delete"></span>
+          <span class="menu-icon icon icon-delete"></span>
           <span>Delete Group</span>
         </button>
       </Menu>
