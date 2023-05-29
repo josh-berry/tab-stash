@@ -1,3 +1,10 @@
+<!--
+  NOTE: This is the single most widely-used component in Tab Stash, so it's
+  important to keep it as simple and fast to render as possible.  There are
+  several situations (e.g. searching) where we will re-render every single
+  bookmark in the tree, and we need to do so very quickly.
+-->
+
 <template>
   <div
     :class="{
@@ -50,7 +57,11 @@
       @done="isRenaming = false"
     />
 
-    <nav v-if="!isRenaming" class="action-group forest-toolbar">
+    <nav
+      v-memo="[isRenaming]"
+      v-if="!isRenaming"
+      class="action-group forest-toolbar"
+    >
       <a
         class="action rename"
         title="Rename"
