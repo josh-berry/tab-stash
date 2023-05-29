@@ -1,4 +1,4 @@
-import {computed, shallowReadonly} from "vue";
+import {computed, ref, shallowReadonly, watchEffect} from "vue";
 
 import type {Position, Tree} from "./tree";
 
@@ -88,7 +88,18 @@ export class FilteredTree<P extends object, C extends object>
     const children = computed(() =>
       this.tree.childrenOf(unfiltered).map(i => this.wrappedNode(i)),
     );
-    const isMatching = computed(() => this.predicate(unfiltered));
+
+    // PERF: We don't use computed() here because we have to recompute
+    // isMatching for the whole tree every time the predicate changes, and this
+    // can have a huge cascading effect downstream--instead, we only want to
+    // write to isMatching when the value actually changes, to avoid triggering
+    // re-renders unnecessarily.
+    const isMatching = ref(this.predicate(unfiltered));
+    watchEffect(() => {
+      const res = this.predicate(unfiltered);
+      if (isMatching.value !== res) isMatching.value = res;
+    });
+
     const hasMatchingChildren = computed(
       () =>
         !!children.value.find(
@@ -128,7 +139,16 @@ export class FilteredTree<P extends object, C extends object>
     const w = this.nodes.get(unfiltered);
     if (w) return w as FilteredChild<C>;
 
-    const isMatching = computed(() => this.predicate(unfiltered));
+    // PERF: We don't use computed() here because we have to recompute
+    // isMatching for the whole tree every time the predicate changes, and this
+    // can have a huge cascading effect downstream--instead, we only want to
+    // write to isMatching when the value actually changes, to avoid triggering
+    // re-renders unnecessarily.
+    const isMatching = ref(this.predicate(unfiltered));
+    watchEffect(() => {
+      const res = this.predicate(unfiltered);
+      if (isMatching.value !== res) isMatching.value = res;
+    });
 
     // Ugh, I wish shallowReadonly() actually unwrapped the top-level refs...
     const c = shallowReadonly({
