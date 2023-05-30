@@ -395,10 +395,10 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<Tab>) {
-      const items = ev.value.$selected
+    drag(ev: DragAction<FilteredChild<Tab>>) {
+      const items = ev.value.unfiltered.$selected
         ? Array.from(this.model().selectedItems())
-        : [ev.value];
+        : [ev.value.unfiltered];
       ev.dataTransfer.setData(
         "application/x-tab-stash-items",
         JSON.stringify(items),
