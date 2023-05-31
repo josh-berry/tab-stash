@@ -191,10 +191,13 @@ header.page {
   & button {
     background-color: var(--userlink-hover-fg);
     color: var(--page-bg);
-    &:hover {
+    &:disabled {
+      opacity: 60%;
+    }
+    &:not(:disabled):hover {
       background-color: var(--userlink-active-fg);
     }
-    &:active {
+    &:not(:disabled):active {
       background-color: var(--userlink-fg);
     }
   }

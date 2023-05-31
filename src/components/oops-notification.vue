@@ -18,7 +18,17 @@
           Show Troubleshooting Guide
         </button>
         <button @click.stop="searchGitHub">Search for Similar Issues</button>
-        <button @click.stop="copyErrorLog">Copy Crash Details</button>
+        <button
+          :disabled="!searchedForCrashes"
+          :title="
+            !searchedForCrashes
+              ? `Please search for similar issues before reporting a crash, to be sure you're not about to report a duplicate.`
+              : ''
+          "
+          @click.stop="reportCrash"
+        >
+          Report Crash
+        </button>
       </p>
 
       <p>
@@ -102,6 +112,8 @@ const model = inject<Model>("$model")!;
 
 const err_log_el: Ref<object | null> = ref(null);
 
+const searchedForCrashes = ref(false);
+
 const showTroubleshooting = () =>
   logErrorsFrom(() => browser.tabs.create({url: TROUBLESHOOTING_URL}));
 
@@ -119,15 +131,21 @@ const searchGitHub = () => {
   const url = `https://github.com/josh-berry/tab-stash/issues?q=is%3Aissue+${encodeURIComponent(
     terms,
   )}`;
+  searchedForCrashes.value = true;
   logErrorsFrom(() => browser.tabs.create({url}));
 };
 
-const copyErrorLog = async () => {
+const reportCrash = () => {
   const el = <HTMLElement>err_log_el.value;
-
-  el.focus();
-  window.getSelection()!.selectAllChildren(el);
-  document.execCommand("copy");
+  const crashText = el.innerText;
+  const summary = errorLog[0].summary;
+  logErrorsFrom(() =>
+    browser.tabs.create({
+      url: `https://github.com/josh-berry/tab-stash/issues/new?assignees=&labels=&projects=&template=1-crash-report.yml&crash-details=${encodeURIComponent(
+        crashText,
+      )}&title=${encodeURIComponent(`[Crash] ${summary}`)}`,
+    }),
+  );
 };
 
 const hideCrashReports = (ms: number) =>

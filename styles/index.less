@@ -29,10 +29,10 @@
   box-shadow: 0 0 4px 0px var(--userlink-fg);
   background-color: var(--userlink-fg);
   color: var(--page-bg);
-  &:not([disabled]):hover {
+  &:not(:disabled):hover {
     background-color: var(--userlink-hover-fg);
   }
-  &:not([disabled]):active {
+  &:not(:disabled):active {
     background-color: var(--userlink-active-fg);
   }
   &:focus-within {
