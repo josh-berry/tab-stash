@@ -21,7 +21,7 @@
 
   --ephemeral-hover-shadow-clr: hsla(240deg, 4%, 5%, 15%);
 
-  --group-bg: hsl(240deg, 1%, 100%);
+  --group-bg: hsl(240deg, 1%, 95%);
   --group-border-clr: hsl(240deg, 1%, 80%);
   --group-disabled-bg: hsl(240deg, 15%, 90%);
 
@@ -74,12 +74,9 @@
   --container-indicator-shadow-style: inset -3px 0px 0px 0px;
 }
 
-&[data-view="popup"] {
-  --page-bg: var(--group-bg);
-}
-
 &[data-view="tab"] {
   --page-bg: hsl(240deg, 15%, 95%);
+  --group-bg: hsl(240deg, 1%, 100%);
 }
 
 .icon-vars(@theme: light, @inverse: dark);
