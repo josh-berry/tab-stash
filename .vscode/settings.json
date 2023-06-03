@@ -3,6 +3,7 @@
   "editor.rulers": [80],
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.insertFinalNewline": true,
   "files.eol": "\n",
