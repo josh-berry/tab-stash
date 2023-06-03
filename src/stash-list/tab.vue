@@ -71,7 +71,7 @@ import type {Model} from "../model";
 import {friendlyFolderName} from "../model/bookmarks";
 import type {Container} from "../model/containers";
 import type {FilteredChild} from "../model/filtered-tree";
-import type {Tab} from "../model/tabs";
+import type {Tab, Window} from "../model/tabs";
 
 import ItemIcon from "../components/item-icon.vue";
 
@@ -81,7 +81,7 @@ export default defineComponent({
   inject: ["$model"],
 
   props: {
-    tab: required(Object as PropType<FilteredChild<Tab>>),
+    tab: required(Object as PropType<FilteredChild<Window, Tab>>),
   },
 
   computed: {
@@ -111,7 +111,7 @@ export default defineComponent({
     isActive(): boolean {
       return (
         this.tab.unfiltered.active &&
-        this.tab.unfiltered.windowId === this.targetWindow
+        this.tab.unfiltered.position?.parent.id === this.targetWindow
       );
     },
     stashedIn(): string[] {

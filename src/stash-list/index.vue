@@ -151,11 +151,10 @@ import {
 } from "../model/bookmark-metadata";
 import {
   friendlyFolderName,
-  type Bookmark,
+  isFolder,
   type Folder,
   type FolderStats,
   type Node,
-  type Separator,
 } from "../model/bookmarks";
 import type {Tab, Window} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
@@ -205,18 +204,29 @@ export default defineComponent({
     },
 
     filteredTabs(): FilteredTree<Window, Tab> {
-      const f = new FilteredTree<Window, Tab>(this.model().tabs, node =>
-        this.filterFn(node),
-      );
+      const self = this;
+      const f = new FilteredTree<Window, Tab>({
+        isParent(node): node is Window {
+          return "children" in node;
+        },
+        predicate(node) {
+          return self.filterFn(node);
+        },
+      });
       (<any>globalThis).filtered_tabs = f;
       return f;
     },
 
-    filteredBookmarks(): FilteredTree<Folder, Bookmark | Separator> {
-      const f = new FilteredTree<Folder, Bookmark | Separator>(
-        this.model().bookmarks,
-        node => this.filterFn(node),
-      );
+    filteredBookmarks(): FilteredTree<Folder, Node> {
+      const self = this;
+      const f = new FilteredTree<Folder, Node>({
+        isParent(node): node is Folder {
+          return isFolder(node);
+        },
+        predicate(node) {
+          return self.filterFn(node);
+        },
+      });
       (<any>globalThis).filtered_bookmarks = f;
       return f;
     },
@@ -242,9 +252,9 @@ export default defineComponent({
       if (m.targetWindow.value === undefined) return [];
       const win = m.window(m.targetWindow.value);
       if (!win) return [];
-      return m.tabsIn(win);
+      return win.children;
     },
-    stashRoot(): FilteredParent<Folder, Bookmark | Separator> | undefined {
+    stashRoot(): FilteredParent<Folder, Node> | undefined {
       const root = this.model().bookmarks.stash_root.value;
       if (!root) return undefined;
       return this.filteredBookmarks.wrappedParent(root);
@@ -294,7 +304,7 @@ export default defineComponent({
         discarded = 0,
         hidden = 0;
       for (const tab of this.tabs) {
-        if (tab.windowId !== this.targetWindow?.unfiltered.id) continue;
+        if (tab.position?.parent !== this.targetWindow?.unfiltered) continue;
         if (tab.hidden) {
           hidden += 1;
         } else if (tab.discarded) {
@@ -379,7 +389,7 @@ export default defineComponent({
       const metadata = this.model().bookmark_metadata;
       metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
       for (const f of this.stashRoot?.unfiltered.children || []) {
-        metadata.setCollapsed(f, this.collapsed);
+        metadata.setCollapsed(f.id, this.collapsed);
       }
     },
 

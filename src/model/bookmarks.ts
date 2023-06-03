@@ -14,27 +14,35 @@ import {
 import {trace_fn} from "../util/debug";
 import {logErrorsFrom} from "../util/oops";
 import {EventWiring} from "../util/wiring";
-import {pathTo, type Position, type Tree} from "./tree";
+import {
+  isChildInParent,
+  pathTo,
+  setPosition,
+  type TreeNode,
+  type TreeParent,
+} from "./tree";
 
 /** A node in the bookmark tree. */
-export type Node = Bookmark | Separator | Folder;
-
-export type Bookmark = NodeBase & {url: string};
-export type Separator = NodeBase & {type: "separator"};
-export type Folder = NodeBase & {
-  children: NodeID[];
-  $stats: FolderStats;
-  $recursiveStats: FolderStats;
-};
-
-type NodeBase = {
-  parentId: NodeID;
+export interface Node extends TreeNode<Folder, Node> {
   id: NodeID;
   dateAdded?: number;
   title: string;
 
   $selected: boolean;
-};
+}
+
+export interface Folder extends Node, TreeParent<Folder, Node> {
+  $stats: FolderStats;
+  $recursiveStats: FolderStats;
+}
+
+export interface Bookmark extends Node {
+  url: string;
+}
+
+export interface Separator extends Node {
+  type: "separator";
+}
 
 export type NodeID = string & {readonly __node_id: unique symbol};
 
@@ -71,7 +79,7 @@ const ROOT_FOLDER_HELP =
  * some slight changes to handle hierarchy in the same manner as `tabs.ts`, and
  * ensure the state is JSON-serializable.
  */
-export class Model implements Tree<Folder, Bookmark | Separator> {
+export class Model {
   private readonly by_id = new Map<NodeID, Node>();
   private readonly by_url = new Map<OpenableURL, Set<Bookmark>>();
 
@@ -208,14 +216,14 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
    * does not exist or is not a bookmark. */
   bookmark(id: string): Bookmark | undefined {
     const node = this.node(id);
-    if (node && "url" in node) return node;
+    if (node && isBookmark(node)) return node;
     return undefined;
   }
 
   /** Retrieves the folder with the specified ID.  Returns `undefined` if it does not exist or is not a folder. */
   folder(id: string): Folder | undefined {
     const node = this.node(id);
-    if (node && "children" in node) return node;
+    if (node && isFolder(node)) return node;
     return undefined;
   }
 
@@ -233,52 +241,12 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     return isFolder(node);
   }
 
-  /** Given a child node, return its parent and the index of the child in the
-   * parent's children.  Returns `undefined` if the child has no parent (i.e.
-   * its `parentId === undefined`), if the parent itself cannot be located, or
-   * if the child cannot be located inside the parent. */
-  positionOf(node: Node): Position<Folder> | undefined {
-    const parent = this.folder(node.parentId);
-    if (!parent) return undefined;
-
-    const index = parent.children.findIndex(id => id === node.id);
-    // istanbul ignore if -- internal sanity
-    if (index === -1) return undefined;
-
-    return {parent, index};
-  }
-
-  /** Given a parent folder, return all the child nodes in the parent. */
-  childrenOf(folder: Folder): Node[] {
-    return filterMap(folder.children, cid => this.node(cid));
-  }
-
-  /** Check if `node` is contained, directly or indirectly, by the folder with
-   * the specified ID.  (Folders contain themselves; that is, if `node.id ===
-   * folder_id`, this function returns `true`.)*/
-  isNodeInFolder(node: Node, folder_id: NodeID): boolean {
-    let item: Node | undefined = node;
-    while (item) {
-      if (item.id === folder_id) return true;
-      if (!item.parentId) break;
-      item = this.by_id.get(item.parentId);
-    }
-    return false;
-  }
-
   /** Check if `node` is contained, directly or indirectly, by the stash root.
    * If there is no stash root, always returns `false`. */
   isNodeInStashRoot(node: Node): boolean {
     // istanbul ignore if -- we always have a root in tests
     if (!this.stash_root.value) return false;
-    return this.isNodeInFolder(node, this.stash_root.value.id);
-  }
-
-  /** Given a bookmark node, return the path from the root to the node as an
-   * array of NodePositions.  If the node is not present in the tree, throws
-   * an exception. */
-  pathTo(node: Node): Position<Folder>[] {
-    return pathTo(this, node);
+    return isChildInParent(node, this.stash_root.value);
   }
 
   /** Returns true if a particular URL is present in the stash. */
@@ -303,11 +271,11 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
     const ret: Folder[] = [];
     for (const bm of this.bookmarksWithURL(url)) {
-      const parent = this.positionOf(bm)?.parent;
+      const parent = bm.position?.parent;
       // istanbul ignore next -- should never happen in practice; it's not
       // possible to place bookmarks directly under the root folder
       if (!parent) continue;
-      if (!this.isNodeInFolder(parent, stash_root.id)) continue;
+      if (!isChildInParent(parent as Node, stash_root)) continue;
       ret.push(parent);
     }
     return ret;
@@ -319,10 +287,8 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
     const urlsInChildren = (folder: Folder) => {
       for (const c of folder.children) {
-        const node = this.node(c);
-        if (!node) continue;
-        if ("url" in node) urls.add(node.url);
-        else if ("children" in node) urlsInChildren(node);
+        if (isBookmark(c)) urls.add(c.url);
+        else if (isFolder(c)) urlsInChildren(c);
       }
     };
 
@@ -364,7 +330,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     const node = this.node(id);
     if (!node) return;
 
-    const pos = this.positionOf(node);
+    const pos = node.position;
 
     await browser.bookmarks.remove(id);
 
@@ -403,7 +369,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     // we account for this below.
     const node = expect(this.node(id), () => `No such bookmark node: ${id}`);
     const position = expect(
-      this.positionOf(node),
+      node.position,
       () => `Unable to locate node ${id} in its parent`,
     );
 
@@ -421,13 +387,13 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     // istanbul ignore else
     if (!!browser.runtime.getBrowserInfo) {
       // We're using Firefox
-      if (node.parentId === toParent) {
+      if (position.parent.id === toParent) {
         if (toIndex > position.index) toIndex--;
       }
     }
     await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
     await shortPoll(() => {
-      const pos = this.positionOf(node);
+      const pos = node.position;
       if (!pos) tryAgain();
       if (pos.parent.id !== toParent || pos.index !== toIndex) tryAgain();
     });
@@ -498,7 +464,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     if (getDefaultFolderNameISODate(folder.title) === null) return;
     if (folder.children.length > 0) return;
     if (!this.stash_root.value) return;
-    if (!this.isNodeInFolder(folder, this.stash_root.value.id)) return;
+    if (!isChildInParent(folder as Node, this.stash_root.value)) return;
 
     // NOTE: This will never be recursive because remove() only calls us if
     // we're removing a leaf node, which we are never doing here.
@@ -527,7 +493,16 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     const parentId = (new_bm.parentId ?? "") as NodeID;
 
     // The parent must already exist and be a folder
-    if (parentId) this.folder(parentId);
+    const parent = this.folder(parentId);
+    if (parentId && !parent) {
+      // We ignore missing parents if we're reloading--this is probably an event
+      // for a child whose parent we haven't processed yet, and we'll just pick
+      // it up next time around.
+      if (this._is_reloading) return;
+      throw new Error(
+        `Trying to create a non-root bookmark "${id}" whose parent "${parentId}" doesn't exist`,
+      );
+    }
 
     let node = this.by_id.get(nodeId);
     if (!node) {
@@ -535,7 +510,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
       if (isBrowserBTNFolder(new_bm)) {
         const folder: Folder = reactive({
-          parentId: parentId,
+          position: undefined,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
@@ -546,11 +521,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
             let folderCount = 0;
             let selectedCount = 0;
             for (const c of folder.children) {
-              const n = this.node(c);
-              if (!n) continue;
-              if (isFolder(n)) ++folderCount;
-              if (isBookmark(n)) ++bookmarkCount;
-              if (n.$selected) ++selectedCount;
+              if (isFolder(c)) ++folderCount;
+              if (isBookmark(c)) ++bookmarkCount;
+              if (c.$selected) ++selectedCount;
             }
             return {bookmarkCount, folderCount, selectedCount};
           }),
@@ -559,9 +532,8 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
             let folderCount = folder.$stats.folderCount;
             let selectedCount = folder.$stats.selectedCount;
             for (const c of folder.children) {
-              const f = this.folder(c);
-              if (!f) continue;
-              const stats = f.$recursiveStats;
+              if (!isFolder(c)) continue;
+              const stats = c.$recursiveStats;
               bookmarkCount += stats.bookmarkCount;
               folderCount += stats.folderCount;
               selectedCount += stats.selectedCount;
@@ -572,7 +544,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
         node = folder;
       } else if (new_bm.type === "separator") {
         node = reactive({
-          parentId: parentId,
+          position: undefined,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
           type: "separator" as "separator",
@@ -581,75 +553,41 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
         });
       } else {
         node = reactive({
-          parentId: parentId,
+          position: undefined,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
           url: new_bm.url ?? "",
           $selected,
         });
-        this._add_url(node);
+        this._add_url(node as Bookmark);
       }
 
       this.by_id.set(node.id, node);
-
-      if (new_bm.parentId) {
-        const parent = this.folder(parentId);
-        if (!parent) {
-          if (!this._is_reloading) {
-            throw new Error(`Don't know about parent folder ${parentId}`);
-          }
-          // Ignore a missing parent if we're reloading--this is probably an
-          // event for a child we haven't processed yet, and we'll just pick it
-          // up next time around.
-          return;
-        }
-        parent.children.splice(new_bm.index!, 0, node.id);
-      }
     } else {
       // For idempotency, if the bookmark already exists, we merge the new
       // info we got with the existing record.
-
-      // See if we have a parent, and insert/move ourselves there
-      if (parentId) {
-        // Remove from old parent
-        if (node.parentId) {
-          const pos = this.positionOf(node);
-          if (pos) pos.parent.children.splice(pos.index, 1);
-        }
-
-        // Add to new parent
-        const parent = this.folder(parentId);
-        if (!parent) {
-          if (!this._is_reloading) {
-            throw new Error(`Don't know about parent folder ${parentId}`);
-          }
-          // Ignore a missing parent if we're reloading--this is probably an
-          // event for a child we haven't processed yet, and we'll just pick it
-          // up next time around.
-          return;
-        }
-        parent.children.splice(new_bm.index!, 0, node.id);
-      }
-
-      // Merge title and URL
-      if ("title" in node) node.title = new_bm.title;
-      if ("url" in node) {
+      node.title = new_bm.title;
+      if (isBookmark(node)) {
         this._remove_url(node);
         node.url = new_bm.url ?? "";
         this._add_url(node);
       }
-      if ("dateAdded" in node) node.dateAdded = new_bm.dateAdded;
+      node.dateAdded = new_bm.dateAdded;
     }
+
+    // Move ourselves to the correct position in the tree.
+    setPosition(node, parent ? {parent, index: new_bm.index!} : undefined);
 
     // If we got children, bring them in as well.
     if (isBrowserBTNFolder(new_bm) && new_bm.children) {
-      for (const child of new_bm.children)
+      for (const child of new_bm.children) {
         this.whenBookmarkCreated(child.id, child);
+      }
     }
 
     // Finally, see if this folder is a candidate for being a stash root.
-    if ("children" in node) {
+    if (isFolder(node)) {
       if (node.title === this.stash_root_name) this._stash_root_watch.add(node);
       if (this._stash_root_watch.has(node)) this._maybeUpdateStashRoot();
     }
@@ -666,12 +604,12 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
     if ("title" in info) {
       node.title = info.title;
-      if ("children" in node && node.title === this.stash_root_name) {
+      if (isFolder(node) && node.title === this.stash_root_name) {
         this._stash_root_watch.add(node);
       }
     }
 
-    if (info.url !== undefined && "url" in node) {
+    if (info.url !== undefined && isBookmark(node)) {
       this._remove_url(node);
       node.url = info.url;
       this._add_url(node);
@@ -680,7 +618,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     // If this bookmark has been renamed to != this.stash_root_name,
     // _maybeUpdateStashRoot() will remove it from the watch set
     // automatically.
-    if ("children" in node && this._stash_root_watch.has(node)) {
+    if (isFolder(node) && this._stash_root_watch.has(node)) {
       this._maybeUpdateStashRoot();
     }
   }
@@ -701,13 +639,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
     const wasInRoot = this.isNodeInStashRoot(node);
 
-    const pos = this.positionOf(node);
-    if (pos) pos.parent.children.splice(pos.index, 1);
+    setPosition(node, {parent: new_parent, index: info.index});
 
-    node.parentId = info.parentId as NodeID;
-    new_parent.children.splice(info.index, 0, node.id);
-
-    if ("children" in node && this._stash_root_watch.has(node)) {
+    if (isFolder(node) && this._stash_root_watch.has(node)) {
       this._maybeUpdateStashRoot();
     }
 
@@ -717,7 +651,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     if (wasInRoot !== isInRoot && !isInRoot) {
       const clear = (n: Node) => {
         n.$selected = false;
-        if ("children" in n) for (const c of this.childrenOf(n)) clear(c);
+        if (isFolder(n)) for (const c of n.children) clear(c);
       };
       clear(node);
     }
@@ -732,20 +666,19 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
 
     // We must remove children before their parents, so that we never have a
     // child referencing a parent that doesn't exist.
-    if ("children" in node) {
-      for (const c of Array.from(node.children)) this.whenBookmarkRemoved(c);
+    if (isFolder(node)) {
+      for (const c of Array.from(node.children)) this.whenBookmarkRemoved(c.id);
     }
 
     // Make sure the selectedCount gets updated correctly.
     node.$selected = false;
 
-    const pos = this.positionOf(node);
-    if (pos) pos.parent.children.splice(pos.index, 1);
+    setPosition(node, undefined);
 
     this.by_id.delete(node.id);
-    if ("url" in node) this._remove_url(node);
+    if (isBookmark(node)) this._remove_url(node);
 
-    if ("children" in node && this._stash_root_watch.has(node)) {
+    if (isFolder(node) && this._stash_root_watch.has(node)) {
       // We must explicitly remove `node` here because its title is
       // still "Tab Stash" even after it is deleted.
       this._stash_root_watch.delete(node);
@@ -772,7 +705,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
     // again).
     const paths = filterMap(candidates, c => ({
       folder: c,
-      path: this.pathTo(c),
+      path: pathTo<Folder, Node>(c),
     }));
     this._stash_root_watch = new Set(candidates);
     for (const p of paths) {
@@ -843,7 +776,6 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   }
 
   *selectedItems(): Generator<Node> {
-    const self = this;
     function* walk(bm: Node): Generator<Node> {
       if (bm.$selected) {
         yield bm;
@@ -854,10 +786,9 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
         // children, and so on (effectively flattening the tree).
         return;
       }
-      if ("children" in bm) {
+      if (isFolder(bm)) {
         for (const c of bm.children) {
-          const node = self.node(c);
-          if (node) yield* walk(node);
+          yield* walk(c);
         }
       }
     }
@@ -869,8 +800,8 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
   }
 
   itemsInRange(start: Node, end: Node): Node[] | null {
-    let startPos = this.positionOf(start);
-    let endPos = this.positionOf(end);
+    let startPos = start.position;
+    let endPos = end.position;
 
     if (!startPos || !endPos) return null;
     if (startPos.parent !== endPos.parent) return null;
@@ -881,10 +812,7 @@ export class Model implements Tree<Folder, Bookmark | Separator> {
       startPos = tmp;
     }
 
-    return filterMap(
-      startPos.parent.children.slice(startPos.index, endPos.index + 1),
-      id => this.node(id),
-    );
+    return startPos.parent.children.slice(startPos.index, endPos.index + 1);
   }
 
   private _add_url(bm: Bookmark) {

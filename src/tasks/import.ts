@@ -1,9 +1,11 @@
 import browser from "webextension-polyfill";
 
-import type {Model, NewFolder, NewTab} from "../model";
-import type * as BM from "../model/bookmarks";
 import {AsyncChannel, filterMap, TaskMonitor} from "../util";
 import {trace_fn} from "../util/debug";
+
+import type {Model, NewFolder, NewTab} from "../model";
+import * as BM from "../model/bookmarks";
+
 import {fetchInfoForSites, type SiteInfo} from "./siteinfo";
 
 const trace = trace_fn("import");
@@ -221,7 +223,7 @@ export async function importURLs(options: {
     return {
       bookmarks: flat(
         bm_groups.map(g =>
-          filterMap(g.bookmarks, bm => ("url" in bm ? bm : undefined)),
+          filterMap(g.bookmarks, bm => (BM.isBookmark(bm) ? bm : undefined)),
         ),
       ),
       folderIds: <string[]>bm_groups.map(g => g.folder.id).filter(id => id),

@@ -24,9 +24,12 @@ describe("model/tabs", () => {
     for (const t in tabs) {
       const tab = tabs[t as keyof typeof tabs];
       // istanbul ignore next -- the ?? operators always short-circuit
-      expect(model.tab(tab.id)).to.deep.equal({
-        windowId: tab.windowId,
+      expect(model.tab(tab.id)).to.deep.include({
         id: tab.id,
+        position: {
+          parent: model.window(tab.windowId!),
+          index: tab.index,
+        },
         status: "complete",
         title: tab.title ?? "",
         url: tab.url ?? "",
@@ -45,7 +48,7 @@ describe("model/tabs", () => {
   it("tracks tabs by window", async () => {
     for (const w in windows) {
       const win = windows[w as keyof typeof windows];
-      expect(model.window(win.id)!.tabs).to.deep.equal(
+      expect(model.window(win.id)!.children.map(t => t.id)).to.deep.equal(
         win.tabs!.map(t => t.id),
       );
     }
@@ -60,9 +63,8 @@ describe("model/tabs", () => {
     });
     await events.next(browser.tabs.onCreated);
 
-    expect(model.tab(t.id! as M.TabID)).to.deep.equal({
+    expect(model.tab(t.id! as M.TabID)).to.deep.include({
       id: t.id,
-      windowId: windows.left.id,
       status: "loading",
       title: "",
       url: "a",
@@ -75,23 +77,34 @@ describe("model/tabs", () => {
       cookieStoreId: undefined,
       $selected: false,
     });
+    expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
+      parent: model.window(windows.left.id),
+      index: 3,
+    });
 
     await events.next(browser.tabs.onUpdated);
     expect(model.tab(t.id! as M.TabID)).to.deep.include({
       id: t.id,
-      windowId: windows.left.id,
       status: "complete",
       title: "",
       url: "a",
     });
+    expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
+      parent: model.window(windows.left.id),
+      index: 3,
+    });
 
-    expect(model.window(windows.left.id)!.tabs).to.deep.equal([
+    expect(
+      model.window(windows.left.id)!.children.map(t => t.id),
+    ).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_betty.id,
       tabs.left_charlotte.id,
       t.id!,
     ]);
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
+    expect(
+      model.window(windows.right.id)!.children.map(t => t.id),
+    ).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
@@ -140,13 +153,15 @@ describe("model/tabs", () => {
 
     expect(model.tab(tid)).to.deep.include({
       id: tid,
-      windowId: win.id!,
+      position: {parent: model.window(win.id!)!, index: 0},
       url: `${B}#hi`,
     });
     expect(model.tabsWithURL(`${B}#hi`)).to.deep.equal(
       new Set([model.tab(tid)]),
     );
-    expect(model.window(win.id as M.WindowID)!.tabs).to.deep.equal([tid]);
+    expect(
+      model.window(win.id as M.WindowID)!.children.map(t => t.id),
+    ).to.deep.equal([tid]);
 
     // Cleanup for running this test in a live environment - close the
     // window we just created
@@ -177,8 +192,11 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onCreated);
 
     expect(model.tab(16384 as M.TabID)).to.deep.equal({
-      windowId: tab.windowId,
       id: tab.id,
+      position: {
+        parent: model.window(16590 as M.WindowID)!,
+        index: 0,
+      },
       status: "loading",
       title: "",
       url: "hi",
@@ -194,7 +212,9 @@ describe("model/tabs", () => {
     expect(Array.from(model.tabsWithURL("hi"))).to.deep.equal([
       model.tab(16384 as M.TabID),
     ]);
-    expect(model.window(16590 as M.WindowID)!.tabs).to.deep.equal([tab.id]);
+    expect(
+      model.window(16590 as M.WindowID)!.children.map(t => t.id),
+    ).to.deep.equal([tab.id]);
   });
 
   it("handles duplicate tab-creation events gracefully", async () => {
@@ -222,8 +242,7 @@ describe("model/tabs", () => {
     tab.url = "cats";
 
     // istanbul ignore next -- the ?? operators always short-circuit
-    expect(model.tab(tid)).to.deep.equal({
-      windowId: tab.windowId,
+    expect(model.tab(tid)).to.deep.include({
       id: tid,
       status: tab.status ?? "loading",
       title: tab.title ?? "",
@@ -237,8 +256,13 @@ describe("model/tabs", () => {
       cookieStoreId: tab.cookieStoreId,
       $selected: false,
     });
+    expect(model.tab(tid)).to.deep.include({
+      position: {parent: model.window(win.id!)!, index: 0},
+    });
     expect(model.tabsWithURL("cats")).to.deep.equal(new Set([model.tab(tid)]));
-    expect(model.window(win.id! as M.WindowID)!.tabs).to.deep.equal([tid]);
+    expect(
+      model.window(win.id! as M.WindowID)!.children.map(t => t.id),
+    ).to.deep.equal([tid]);
 
     // Cleanup when running in a live environment - close the window we just
     // created
@@ -256,10 +280,9 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onRemoved);
 
     expect(model.tab(tabs.right_adam.id)).to.be.undefined;
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
-      tabs.right_blank.id,
-      tabs.right_doug.id,
-    ]);
+    expect(
+      model.window(windows.right.id)!.children.map(t => t.id),
+    ).to.deep.equal([tabs.right_blank.id, tabs.right_doug.id]);
   });
 
   it("handles duplicate tab-close events gracefully", async () => {
@@ -270,10 +293,9 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onRemoved);
 
     expect(model.tab(tabs.right_adam.id)).to.be.undefined;
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
-      tabs.right_blank.id,
-      tabs.right_doug.id,
-    ]);
+    expect(
+      model.window(windows.right.id)!.children.map(t => t.id),
+    ).to.deep.equal([tabs.right_blank.id, tabs.right_doug.id]);
   });
 
   it("drops tabs in a window when the window is closed", async () => {
@@ -297,34 +319,36 @@ describe("model/tabs", () => {
     });
     await events.next(browser.tabs.onMoved);
 
-    expect(model.window(windows.left.id)!.tabs).to.deep.equal([
+    const left = model.window(windows.left.id)!;
+    expect(left.children.map(t => t.id)).to.deep.equal([
       tabs.left_betty.id,
       tabs.left_charlotte.id,
       tabs.left_alice.id,
     ]);
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 1},
     });
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 2},
     });
 
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
+    const right = model.window(windows.right.id)!;
+    expect(right.children.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 0},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 2},
     });
   });
 
@@ -335,34 +359,36 @@ describe("model/tabs", () => {
     });
     await events.next(browser.tabs.onMoved);
 
-    expect(model.window(windows.left.id)!.tabs).to.deep.equal([
+    const left = model.window(windows.left.id)!;
+    expect(left.children.map(t => t.id)).to.deep.equal([
       tabs.left_charlotte.id,
       tabs.left_alice.id,
       tabs.left_betty.id,
     ]);
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 1},
     });
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 2},
     });
 
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
+    const right = model.window(windows.right.id)!;
+    expect(right.children.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 0},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 2},
     });
   });
 
@@ -373,34 +399,36 @@ describe("model/tabs", () => {
     });
     await events.next(browser.tabs.onAttached);
 
-    expect(model.window(windows.left.id)!.tabs).to.deep.equal([
+    const left = model.window(windows.left.id)!;
+    expect(left.children.map(t => t.id)).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_charlotte.id,
     ]);
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      windowId: windows.left.id,
+      position: {parent: left, index: 1},
     });
 
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
+    const right = model.window(windows.right.id)!;
+    expect(right.children.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.left_betty.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 0},
     });
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 2},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      windowId: windows.right.id,
+      position: {parent: right, index: 3},
     });
   });
 
@@ -413,12 +441,12 @@ describe("model/tabs", () => {
     expect(model.tab(tabs.left_charlotte.id)).to.be.undefined;
     expect(model.tab(16384 as M.TabID)).to.equal(tab);
 
-    expect(model.window(windows.left.id)!.tabs).to.deep.equal([
-      tabs.left_alice.id,
-      tabs.left_betty.id,
-      16384 as M.TabID,
-    ]);
-    expect(model.window(windows.right.id)!.tabs).to.deep.equal([
+    expect(
+      model.window(windows.left.id)!.children.map(t => t.id),
+    ).to.deep.equal([tabs.left_alice.id, tabs.left_betty.id, 16384 as M.TabID]);
+    expect(
+      model.window(windows.right.id)!.children.map(t => t.id),
+    ).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
@@ -429,6 +457,7 @@ describe("model/tabs", () => {
     const t = {
       id: 16384,
       windowId: 16590,
+      index: 0,
       title: "",
       url: "",
       active: false,
@@ -436,13 +465,16 @@ describe("model/tabs", () => {
       highlighted: false,
       hidden: false,
       discarded: false,
-    } as M.Tab;
+    };
     events.send(browser.tabs.onCreated, JSON.parse(JSON.stringify(t)));
     await events.next(browser.tabs.onCreated);
 
     expect(model.tab(16384 as M.TabID)).to.deep.include({
       id: 16384,
-      windowId: 16590,
+      position: {
+        parent: model.window(16590 as M.WindowID),
+        index: 0,
+      },
     });
 
     t.url = "hi";

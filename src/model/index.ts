@@ -54,6 +54,7 @@ import * as Favicons from "./favicons";
 import * as Options from "./options";
 import * as Selection from "./selection";
 import * as Tabs from "./tabs";
+import {pathTo} from "./tree";
 
 export {
   BrowserSettings,
@@ -227,13 +228,10 @@ export class Model {
     const root = this.bookmarks.stash_root.value;
     if (!root) return undefined;
 
-    const topmost =
-      root.children && root.children[0] !== undefined
-        ? this.bookmarks.node(root.children[0])
-        : undefined;
+    const topmost: Bookmarks.Node | undefined = root.children[0];
 
     // Is there a top-most item under the root folder, and is it a folder?
-    if (!topmost || !("children" in topmost)) return undefined;
+    if (!topmost || !isFolder(topmost)) return undefined;
 
     // Does the folder have a name which looks like a default name?
     if (!Bookmarks.getDefaultFolderNameISODate(topmost.title)) return undefined;
@@ -270,7 +268,7 @@ export class Model {
       this.tabs.window(windowId),
       () => `Trying to stash tabs to unknown window ${windowId}`,
     );
-    const tabs = this.tabs.tabsIn(win).filter(t => !t.hidden);
+    const tabs = win.children.filter(t => !t.hidden);
 
     let selected = tabs.filter(t => t.highlighted);
     if (selected.length <= 1) {
@@ -443,7 +441,7 @@ export class Model {
     // disturb the ordering of tabs in the browser window.)
     if (!options.background && items.length === 1 && items[0].url) {
       const t = Array.from(this.tabs.tabsWithURL(items[0].url)).find(
-        t => !t.hidden && t.windowId === toWindowId,
+        t => !t.hidden && t.position?.parent.id === toWindowId,
       );
       if (t) {
         await browser.tabs.update(t.id, {active: true});
@@ -453,7 +451,7 @@ export class Model {
 
     // We want to know what tabs are currently open in the window, so we can
     // avoid opening duplicates.
-    const win_tabs = this.tabs.tabsIn(cur_win);
+    const win_tabs = cur_win.children;
 
     // We want to know which tab the user is currently looking at so we can
     // close it if it's just the new-tab page.
@@ -526,9 +524,9 @@ export class Model {
     // put in the folder.
 
     // Check if we're trying to move a parent into itself or one of its children
-    const cyclic_sources = this.bookmarks
-      .pathTo(to_folder)
-      .map(p => p.parent.id);
+    const cyclic_sources = pathTo<Bookmarks.Folder, Bookmarks.Node>(
+      to_folder,
+    ).map(p => p.parent.id);
     cyclic_sources.push(to_folder.id);
     for (const i of items) {
       if (!isFolder(i)) continue;
@@ -564,7 +562,7 @@ export class Model {
 
       // If it's a bookmark node, just move it directly.
       if (model_item && isNode(model_item)) {
-        const pos = this.bookmarks.positionOf(model_item);
+        const pos = model_item.position;
         await this.bookmarks.move(model_item.id, to_folder.id, to_index);
         moved_items.push(model_item);
         dont_steal_bms.add(model_item.id);
@@ -591,21 +589,19 @@ export class Model {
       let node;
       const already_there =
         "url" in item && !options.allowDuplicates
-          ? this.bookmarks
-              .childrenOf(to_folder)
-              .filter(
-                bm =>
-                  !dont_steal_bms.has(bm.id) &&
-                  "url" in bm &&
-                  bm.url === item.url &&
-                  (item.title ? item.title === bm.title : true),
-              )
+          ? to_folder.children.filter(
+              bm =>
+                !dont_steal_bms.has(bm.id) &&
+                "url" in bm &&
+                bm.url === item.url &&
+                (item.title ? item.title === bm.title : true),
+            )
           : [];
       if (already_there.length > 0) {
         // We found a duplicate in the folder already; move it into position.
         node = already_there[0];
 
-        const pos = this.bookmarks.positionOf(node);
+        const pos = node.position;
         await this.bookmarks.move(node.id, to_folder.id, to_index);
         if (pos && pos.parent === to_folder && pos.index < to_index) --to_index;
       } else {
@@ -731,7 +727,7 @@ export class Model {
     const delete_bm_ids: Bookmarks.Bookmark[] = [];
 
     for (
-      let i = 0, to_index = options.toIndex ?? win.tabs.length;
+      let i = 0, to_index = options.toIndex ?? win.children.length;
       i < items.length;
       ++i, ++to_index, options.task && ++options.task.value
     ) {
@@ -742,7 +738,7 @@ export class Model {
 
       // If the item we're moving is a tab, just move it into place.
       if (model_item && isTab(model_item)) {
-        const pos = this.tabs.positionOf(model_item);
+        const pos = model_item.position;
         await this.tabs.move(model_item.id, to_win_id, to_index);
         moved_items.push(model_item);
         dont_steal_tabs.add(model_item.id);
@@ -786,12 +782,12 @@ export class Model {
           t =>
             !dont_steal_tabs.has(t.id) &&
             !t.pinned &&
-            (t.hidden || t.windowId === to_win_id),
+            (t.hidden || t.position?.parent.id === to_win_id),
         )
         .sort((a, b) => -a.hidden - -b.hidden); // prefer hidden tabs
       if (already_open.length > 0) {
         const t = already_open[0];
-        const pos = this.tabs.positionOf(t);
+        const pos = t.position;
         // console.log('already-open tab: ', t, pos);
         // console.log('existing layout:', this.tabs.window(t.windowId)?.tabs);
 
@@ -822,7 +818,7 @@ export class Model {
         console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
         // Remember the active tab in this window (if any), because
         // restoring a recently-closed tab will disturb the focus.
-        const active_tab = this.tabs.tabsIn(win).find(t => t.active);
+        const active_tab = win.children.find(t => t.active);
 
         const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
         await browser.tabs.move(t.id!, {windowId: to_win_id, index: to_index});
@@ -881,9 +877,9 @@ export class Model {
         const node = this.bookmarks.node(id);
         if (!node) continue;
 
-        if ("children" in node) {
+        if (isFolder(node)) {
           await this.deleteBookmarkTree(id, now);
-        } else if ("url" in node) {
+        } else if (isBookmark(node)) {
           await this.deleteBookmark(node, now);
         } else {
           // separator
@@ -906,22 +902,21 @@ export class Model {
     if (!bm) return; // Already deleted?
 
     const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
-      if ("children" in item)
+      if (isFolder(item)) {
         return {
           title: item.title,
-          children: filterMap(
-            item.children,
-            i => i && this.bookmarks.node(i),
-          ).map(i => toDelItem(i)),
+          children: item.children.map(i => toDelItem(i)),
         };
+      }
 
-      if ("url" in item)
+      if (isBookmark(item)) {
         return {
           title: item.title,
           url: item.url,
           favIconUrl:
             this.favicons.get(item.url!).value?.favIconUrl || undefined,
         };
+      }
 
       return {title: "", url: ""};
     };
@@ -934,7 +929,7 @@ export class Model {
    * the last bookmark in its parent folder, AND the parent folder has a
    * "default" name, removes the parent folder as well. */
   async deleteBookmark(bm: Bookmarks.Bookmark, deleted_at?: Date) {
-    const parent = this.bookmarks.folder(bm.parentId!);
+    const parent = bm.position?.parent;
 
     await this.deleted_items.add(
       {
@@ -989,9 +984,9 @@ export class Model {
       } else {
         // Search for an existing folder inside the stash root with
         // the same name as the folder it was deleted from.
-        const child = this.bookmarks
-          .childrenOf(stash_root)
-          .find(c => "children" in c && c.title === from.title);
+        const child = stash_root.children.find(
+          c => "children" in c && c.title === from.title,
+        );
         if (child) toFolderId = child.id;
       }
     }
@@ -1051,10 +1046,10 @@ export class Model {
         if (Bookmarks.isBookmark(item)) {
           return {title: item.title, url: item.url};
         }
-        if (Bookmarks.isFolder(item)) {
+        if (isFolder(item)) {
           return {
             title: item.title,
-            children: this.copying(this.bookmarks.childrenOf(item)),
+            children: this.copying(item.children),
           };
         }
         // Separators are excluded

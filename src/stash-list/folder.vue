@@ -192,19 +192,17 @@
   <dnd-list
     :class="{'forest-children': true, collapsed}"
     v-model="folder.children"
-    :item-key="(item: FilteredItem<Folder, Bookmark | Separator>) => item.unfiltered.id"
+    :item-key="(item: FilteredItem<Folder, Node>) => item.unfiltered.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
-    <template
-      #item="{item}: {item: FilteredItem<Folder, Bookmark | Separator>}"
-    >
-      <child-folder v-if="'children' in item" :folder="item" />
+    <template #item="{item}: {item: FilteredItem<Folder, Node>}">
+      <child-folder v-if="isFolder(item.unfiltered)" :folder="item" />
       <bookmark
-        v-else-if="'url' in item.unfiltered"
-        :bookmark="item as FilteredChild<Bookmark>"
+        v-else-if="isBookmark(item.unfiltered)"
+        :bookmark="(item as FilteredBookmark)"
       />
     </template>
   </dnd-list>
@@ -225,7 +223,6 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import type {DragAction, DropAction} from "../components/dnd-list";
 import {
   altKeyName,
   bgKeyName,
@@ -234,20 +231,21 @@ import {
   required,
 } from "../util";
 
-import type {Model, StashItem} from "../model";
+import type {Model} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import type {Bookmark, Folder, Node, Separator} from "../model/bookmarks";
 import {
   friendlyFolderName,
   genDefaultFolderName,
   getDefaultFolderNameISODate,
+  isBookmark,
+  isFolder,
+  type Bookmark,
+  type Folder,
+  type Node,
 } from "../model/bookmarks";
-import type {
-  FilteredChild,
-  FilteredItem,
-  FilteredParent,
-} from "../model/filtered-tree";
+import type {FilteredItem, FilteredParent} from "../model/filtered-tree";
 import type {Tab} from "../model/tabs";
+import {pathTo} from "../model/tree";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
@@ -255,14 +253,15 @@ import DndList from "../components/dnd-list.vue";
 import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
-import BookmarkVue from "./bookmark.vue";
+import BookmarkVue, {type FilteredBookmark} from "./bookmark.vue";
+
+import type {DragAction, DropAction} from "../components/dnd-list";
+import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
 
 type NodeWithTabs = {
-  node: FilteredItem<Folder, Bookmark | Separator>;
+  node: FilteredItem<Folder, Node>;
   tabs: Tab[];
 };
-
-const DROP_FORMATS = ["application/x-tab-stash-items"];
 
 export default defineComponent({
   name: "child-folder",
@@ -280,9 +279,7 @@ export default defineComponent({
   inject: ["$model"],
 
   props: {
-    folder: required(
-      Object as PropType<FilteredParent<Folder, Bookmark | Separator>>,
-    ),
+    folder: required(Object as PropType<FilteredParent<Folder, Node>>),
     isToplevel: Boolean,
   },
 
@@ -296,7 +293,7 @@ export default defineComponent({
     bgKey: bgKeyName,
 
     accepts() {
-      return DROP_FORMATS;
+      return ACCEPTS;
     },
 
     metadata(): BookmarkMetadataEntry {
@@ -312,9 +309,9 @@ export default defineComponent({
       return this.folder.children.map(n => ({
         node: n,
         tabs:
-          "url" in n.unfiltered && n.unfiltered.url
+          isBookmark(n.unfiltered) && n.unfiltered.url
             ? Array.from(tab_model.tabsWithURL(n.unfiltered.url)).filter(
-                t => t.windowId === this.targetWindow,
+                t => t.position?.parent.id === this.targetWindow,
               )
             : [],
       }));
@@ -326,7 +323,7 @@ export default defineComponent({
         hidden = 0;
       for (const nwt of this.childrenWithTabs) {
         for (const tab of nwt.tabs) {
-          if (tab.windowId !== this.targetWindow) {
+          if (tab.position?.parent.id !== this.targetWindow) {
             continue;
           }
           if (tab.hidden) {
@@ -365,7 +362,7 @@ export default defineComponent({
       const win = model.tabs.window(target_win);
       if (!win) return [];
 
-      return filterMap(win.tabs, id => model.tabs.tab(id))
+      return win.children
         .filter(
           t =>
             !t.pinned &&
@@ -420,7 +417,7 @@ export default defineComponent({
 
     leafChildren(): Bookmark[] {
       return filterMap(this.folder.children, c =>
-        "url" in c.unfiltered ? c.unfiltered : undefined,
+        isBookmark(c.unfiltered) ? c.unfiltered : undefined,
       );
     },
 
@@ -432,7 +429,7 @@ export default defineComponent({
       let f: Folder | undefined = this.folder.unfiltered;
       while (f) {
         if (f.$selected) return false;
-        f = this.model().bookmarks.folder(f.parentId);
+        f = f.position?.parent;
       }
       return true;
     },
@@ -446,6 +443,9 @@ export default defineComponent({
     attempt(fn: () => Promise<void>): Promise<void> {
       return this.model().attempt(fn);
     },
+
+    isFolder,
+    isBookmark,
 
     toggleCollapsed(ev: MouseEvent) {
       if (!ev.altKey) {
@@ -480,9 +480,7 @@ export default defineComponent({
       });
     },
 
-    childClasses(
-      node: FilteredItem<Folder, Bookmark | Separator>,
-    ): Record<string, boolean> {
+    childClasses(node: FilteredItem<Folder, Node>): Record<string, boolean> {
       return {
         hidden: !(
           this.isValidChild(node.unfiltered) &&
@@ -536,9 +534,9 @@ export default defineComponent({
 
         // We put it directly above its parent in the stash root, so it's easy
         // to find and continue interacting with.
-        const rootPos = model
-          .pathTo(this.folder.unfiltered)
-          .find(p => p.parent === root);
+        const rootPos = pathTo<Folder, Node>(this.folder.unfiltered).find(
+          p => p.parent === root,
+        );
 
         await model.move(
           this.folder.unfiltered.id,
@@ -552,7 +550,7 @@ export default defineComponent({
       this.attempt(async () => {
         const model = this.model().bookmarks;
         const root = model.stash_root.value!;
-        const pos = model.positionOf(this.folder.unfiltered)!;
+        const pos = this.folder.unfiltered.position!;
 
         // Create a new parent first, positioned at our current index
         const newParent = await model.create({
@@ -679,21 +677,17 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<FilteredItem<Folder, Bookmark | Separator>>) {
+    drag(ev: DragAction<FilteredItem<Folder, Node>>) {
       const items = ev.value.unfiltered.$selected
         ? Array.from(this.model().selectedItems())
         : [ev.value.unfiltered];
-      ev.dataTransfer.setData(
-        "application/x-tab-stash-items",
-        JSON.stringify(items),
-      );
+      sendDragData(ev.dataTransfer, items);
     },
 
     async drop(ev: DropAction) {
-      const data = ev.dataTransfer.getData("application/x-tab-stash-items");
-      const items = JSON.parse(data) as StashItem[];
-
       const model = this.model();
+      const items = recvDragData(ev.dataTransfer, model);
+
       await model.attempt(() =>
         this.model().putItemsInFolder({
           items,

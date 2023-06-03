@@ -79,13 +79,13 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   <dnd-list
     :class="{'forest-children': true, collapsed}"
     v-model="targetWindow.children"
-    :item-key="(item: FilteredChild<Tab>) => item.unfiltered.id"
+    :item-key="(item: FilteredChild<Window, Tab>) => item.unfiltered.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
-    <template #item="{item}: {item: FilteredChild<Tab>}">
+    <template #item="{item}: {item: FilteredChild<Window, Tab>}">
       <tab v-if="isValidChild(item.unfiltered)" :tab="item" />
     </template>
   </dnd-list>
@@ -122,7 +122,7 @@ import {altKeyName, filterMap, required} from "../util";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
 
-import type {Model, StashItem} from "../model";
+import type {Model} from "../model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {FilteredChild, FilteredParent} from "../model/filtered-tree";
 import type {SyncState} from "../model/options";
@@ -136,7 +136,7 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
-const DROP_FORMATS = ["application/x-tab-stash-items"];
+import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
   SyncState["show_open_tabs"],
@@ -175,7 +175,7 @@ export default defineComponent({
     altKey: altKeyName,
 
     accepts() {
-      return DROP_FORMATS;
+      return ACCEPTS;
     },
 
     tabs(): Tab[] {
@@ -259,7 +259,7 @@ export default defineComponent({
       });
     },
 
-    childClasses(t: FilteredChild<Tab>): Record<string, boolean> {
+    childClasses(t: FilteredChild<Window, Tab>): Record<string, boolean> {
       return {
         hidden: !(
           this.isValidChild(t.unfiltered) &&
@@ -395,21 +395,17 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<FilteredChild<Tab>>) {
+    drag(ev: DragAction<FilteredChild<Window, Tab>>) {
       const items = ev.value.unfiltered.$selected
         ? Array.from(this.model().selectedItems())
         : [ev.value.unfiltered];
-      ev.dataTransfer.setData(
-        "application/x-tab-stash-items",
-        JSON.stringify(items),
-      );
+      sendDragData(ev.dataTransfer, items);
     },
 
     async drop(ev: DropAction) {
-      const data = ev.dataTransfer.getData("application/x-tab-stash-items");
-      const items = JSON.parse(data) as StashItem[];
-
       const model = this.model();
+      const items = recvDragData(ev.dataTransfer, model);
+
       await model.attempt(() =>
         model.putItemsInWindow({
           items,

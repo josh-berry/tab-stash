@@ -26,22 +26,22 @@
 <script lang="ts">
 import {computed} from "vue";
 
-import {
-  friendlyFolderName,
-  type Bookmark,
-  type Folder,
-  type Separator,
-} from "@/model/bookmarks";
-import type {FilteredParent, FilteredTree} from "@/model/filtered-tree";
 import {filterMap} from "@/util";
+
+import {friendlyFolderName, type Folder, type Node} from "@/model/bookmarks";
+import {
+  isFilteredParent,
+  type FilteredParent,
+  type FilteredTree,
+} from "@/model/filtered-tree";
 
 import Self from "./select-folder.vue";
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{
-  tree: FilteredTree<Folder, Bookmark | Separator>;
-  folder: FilteredParent<Folder, Bookmark | Separator>;
+  tree: FilteredTree<Folder, Node>;
+  folder: FilteredParent<Folder, Node>;
   tooltips: (f: Folder) => string;
   buttonClasses: (f: Folder) => Record<string, boolean> | string;
 }>();
@@ -51,8 +51,6 @@ const emit = defineEmits<{
 }>();
 
 const children = computed(() =>
-  filterMap(props.tree.childrenOf(props.folder), c =>
-    props.tree.isParent(c) ? c : undefined,
-  ),
+  filterMap(props.folder.children, c => (isFilteredParent(c) ? c : undefined)),
 );
 </script>

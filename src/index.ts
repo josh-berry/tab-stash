@@ -210,13 +210,14 @@ logErrorsFrom(async () => {
     copy?: boolean;
     tab?: Tab;
   }) {
-    if (!options.tab || options.tab.windowId === undefined) return;
+    if (!options.tab || options.tab.position === undefined) return;
 
     switch (options.what) {
       case "all":
-        await model.stashAllTabsInWindow(options.tab.windowId as WindowID, {
-          copy: !!options.copy,
-        });
+        await model.stashAllTabsInWindow(
+          options.tab.position.parent.id as WindowID,
+          {copy: !!options.copy},
+        );
         break;
 
       case "single":

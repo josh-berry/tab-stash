@@ -3,87 +3,40 @@ import {nextTick, ref, type Ref} from "vue";
 
 import {
   FilteredTree,
+  isFilteredParent,
   type FilteredItem,
   type FilteredParent,
+  type FilteredTreeAccessors,
 } from "./filtered-tree";
-import {pathTo, type Position, type Tree} from "./tree";
+import {pathTo} from "./tree";
 
-class TestTree implements Tree<Parent, Child> {
-  readonly root: Parent;
-  readonly by_id = new Map<string, Parent | Child>();
+import {makeDefaultTree, type TestNode, type TestParent} from "./tree.test";
 
-  constructor() {
-    this.root = {
-      id: "root",
-      children: [
-        {id: "a"},
-        {id: "b", children: [{id: "b1"}, {id: "b2"}]},
-        {
-          id: "c",
-          children: [
-            {id: "c1", children: [{id: "c1a"}, {id: "c1b"}, {id: "c1c"}]},
-            {
-              id: "c2",
-              children: [
-                {id: "c2a"},
-                {
-                  id: "c2b",
-                  children: [{id: "c2b1"}, {id: "c2b2"}, {id: "c2b3"}],
-                },
-              ],
-            },
-          ],
-        },
-        {id: "d"},
-        {id: "e", children: [{id: "e1"}, {id: "e2"}]},
-      ],
-    };
-
-    const setup = (n: Parent | Child) => {
-      this.by_id.set(n.id, n);
-      if ("children" in n) {
-        for (const c of n.children) {
-          c.parent = n;
-          setup(c);
-        }
-      }
-    };
-    setup(this.root);
-  }
-
-  isParent(node: Parent | Child): node is Parent {
-    return "children" in node;
-  }
-
-  positionOf(node: Parent | Child): Position<Parent> | undefined {
-    if (!node.parent) return undefined;
-    return {parent: node.parent, index: node.parent.children.indexOf(node)};
-  }
-
-  childrenOf(parent: Parent): readonly (Parent | Child)[] {
-    return parent.children;
-  }
-}
-
-type Parent = {
-  readonly id: string;
-  parent?: Parent;
-  readonly children: (Parent | Child)[];
-};
-type Child = {readonly id: string; parent?: Parent};
+type Parent = TestParent;
+type Child = TestNode;
 
 describe("model/filtered-tree", () => {
-  const tree = new TestTree();
+  const [root, _parents, nodes] = makeDefaultTree();
+
   let filteredTree: FilteredTree<Parent, Child>;
   let filteredRoot: FilteredParent<Parent, Child>;
   // istanbul ignore next
   const predicate: Ref<(n: Parent | Child) => boolean> = ref(_ => false);
 
+  const accessors: FilteredTreeAccessors<TestParent, TestNode> = {
+    isParent(node): node is TestParent {
+      return "children" in node;
+    },
+    predicate(node): boolean {
+      return predicate.value(node);
+    },
+  };
+
   function checkFilterInvariants() {
     const visit = (n: FilteredItem<Parent, Child>) => {
       expect(n.isMatching).to.equal(
         predicate.value(n.unfiltered),
-        `${n.unfiltered.id}: Predicate does not match`,
+        `${n.unfiltered.name}: Predicate does not match`,
       );
 
       if (!("children" in n)) return;
@@ -91,21 +44,18 @@ describe("model/filtered-tree", () => {
       let filteredCount = 0;
       for (const c of n.children) {
         visit(c);
-        if (
-          c.isMatching ||
-          (filteredTree.isParent(c) && c.hasMatchingChildren)
-        ) {
+        if (c.isMatching || (isFilteredParent(c) && c.hasMatchingChildren)) {
           hasMatchingChildren = true;
         }
         if (!c.isMatching) ++filteredCount;
       }
       expect(n.hasMatchingChildren).to.equal(
         hasMatchingChildren,
-        `${n.unfiltered.id}: Incorrect hasMatchingChildren`,
+        `${n.unfiltered.name}: Incorrect hasMatchingChildren`,
       );
       expect(n.filteredCount).to.equal(
         filteredCount,
-        `${n.unfiltered.id}: Incorrect filteredCount`,
+        `${n.unfiltered.name}: Incorrect filteredCount`,
       );
     };
     visit(filteredRoot);
@@ -114,57 +64,60 @@ describe("model/filtered-tree", () => {
   beforeEach(() => {
     // istanbul ignore next
     predicate.value = _ => false;
-    filteredTree = new FilteredTree(tree, n => predicate.value(n));
-    filteredRoot = filteredTree.wrappedParent(tree.root);
+    filteredTree = new FilteredTree(accessors);
+    filteredRoot = filteredTree.wrappedParent(root);
   });
 
   it("mirrors the structure correctly", () => {
     const checkNode = (t: Parent | Child, f: FilteredItem<Parent, Child>) => {
       expect(f.unfiltered).to.equal(
         t,
-        `${t.id}: f.unfiltered returns wrong node`,
+        `${t.name}: f.unfiltered returns wrong node`,
       );
       expect(filteredTree.wrappedNode(t)).to.equal(
         f,
-        `${t.id}: wrapped node is wrong`,
+        `${t.name}: wrapped node is wrong`,
       );
-      if (!tree.isParent(t)) {
+      if (!("children" in t)) {
         expect("children" in f).to.be.false;
         return;
       }
       // istanbul ignore if -- this is just for type safety
-      if (!filteredTree.isParent(f)) {
-        expect("children" in t).to.be.false;
+      if (!isFilteredParent(f)) {
+        expect(
+          "children" in t,
+          `${t.name}: ! isFilteredParent(f) => ! children in t`,
+        ).to.be.false;
         return;
       }
       expect(t.children.length).to.equal(
         f.children.length,
-        `id ${t.id} has differing lengths`,
+        `id ${t.name} has differing lengths`,
       );
-      const computedChildren = filteredTree.childrenOf(f);
+      const computedChildren = f.children;
       for (let i = 0; i < t.children.length; ++i) {
         checkNode(t.children[i], f.children[i]);
         expect(f.children[i]).to.equal(computedChildren[i]);
       }
     };
-    checkNode(tree.root, filteredRoot);
+    checkNode(root, filteredRoot);
   });
 
   it("maps positions correctly", () => {
-    const n = tree.by_id.get("c1b")!;
+    const n = nodes.c1b;
     const fn = filteredTree.wrappedNode(n);
-    const path = pathTo(filteredTree, fn);
+    const path = pathTo(fn);
     expect(path).to.deep.equal([
-      {parent: filteredTree.wrappedNode(tree.by_id.get("root")!), index: 2},
-      {parent: filteredTree.wrappedNode(tree.by_id.get("c")!), index: 0},
-      {parent: filteredTree.wrappedNode(tree.by_id.get("c1")!), index: 1},
+      {parent: filteredTree.wrappedNode(nodes.root!), index: 2},
+      {parent: filteredTree.wrappedNode(nodes.c!), index: 0},
+      {parent: filteredTree.wrappedNode(nodes.c1!), index: 1},
     ]);
   });
 
   it("reports when nothing matches the filter", () => {
     predicate.value = _ => false;
-    for (const v of tree.by_id.values()) {
-      const f = filteredTree.wrappedNode(v);
+    for (const v in nodes) {
+      const f = filteredTree.wrappedNode(nodes[v]);
       expect(f.isMatching).to.be.false;
     }
     checkFilterInvariants();
@@ -174,15 +127,15 @@ describe("model/filtered-tree", () => {
     predicate.value = _ => true;
     await nextTick();
 
-    for (const v of tree.by_id.values()) {
-      const f = filteredTree.wrappedNode(v);
+    for (const v in nodes) {
+      const f = filteredTree.wrappedNode(nodes[v]);
       expect(f.isMatching).to.be.true;
     }
     checkFilterInvariants();
   });
 
   it("reports when some things match the filter", async () => {
-    predicate.value = n => n.id.endsWith("2");
+    predicate.value = n => n.name.endsWith("2");
     await nextTick();
 
     for (const [id, val] of [
@@ -194,9 +147,7 @@ describe("model/filtered-tree", () => {
       ["e", false],
       ["e2", true],
     ] as const) {
-      expect(filteredTree.wrappedNode(tree.by_id.get(id)!).isMatching).to.equal(
-        val,
-      );
+      expect(filteredTree.wrappedNode(nodes[id]!).isMatching).to.equal(val);
     }
 
     checkFilterInvariants();

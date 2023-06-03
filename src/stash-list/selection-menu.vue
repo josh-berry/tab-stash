@@ -77,16 +77,17 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
+import {altKeyName, textMatcher} from "../util";
+
 import type {Model} from "../model";
 import {
   friendlyFolderName,
-  type Bookmark,
+  isFolder,
   type Folder,
-  type Separator,
+  type Node,
 } from "../model/bookmarks";
-import {altKeyName, textMatcher} from "../util";
+import {FilteredTree} from "../model/filtered-tree";
 
-import {FilteredTree} from "@/model/filtered-tree";
 import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";
 import SelectFolder from "./select-folder.vue";
@@ -109,13 +110,16 @@ export default defineComponent({
   computed: {
     altKey: altKeyName,
 
-    filteredTree(): FilteredTree<Folder, Bookmark | Separator> {
-      const bm = this.model().bookmarks;
-      return new FilteredTree<Folder, Bookmark | Separator>(
-        bm,
-        node =>
-          bm.isParent(node) && this.filter(friendlyFolderName(node.title)),
-      );
+    filteredTree(): FilteredTree<Folder, Node> {
+      const self = this;
+      return new FilteredTree<Folder, Node>({
+        isParent(node): node is Folder {
+          return isFolder(node);
+        },
+        predicate(node) {
+          return isFolder(node) && self.filter(friendlyFolderName(node.title));
+        },
+      });
     },
 
     selectedCount(): number {

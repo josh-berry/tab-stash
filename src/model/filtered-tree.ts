@@ -1,17 +1,19 @@
 import {computed, ref, shallowReadonly, watchEffect} from "vue";
 
-import type {Position, Tree} from "./tree";
+import type {TreeNode, TreeParent} from "./tree";
 
-export type FilteredItem<P extends object, C extends object> =
-  | FilteredParent<P, C>
-  | FilteredChild<C>;
+export type FilteredItem<
+  P extends TreeParent<P, C>,
+  C extends TreeNode<P, C>,
+> = FilteredParent<P, C> | FilteredChild<P, C>;
 
-export type FilteredParent<P extends object, C extends object> = {
+export interface FilteredParent<
+  P extends TreeParent<P, C>,
+  C extends TreeNode<P, C>,
+> extends TreeParent<FilteredParent<P, C>, FilteredChild<P, C>>,
+    TreeNode<FilteredParent<P, C>, FilteredChild<P, C>> {
   /** The underlying tree node. */
   readonly unfiltered: P;
-
-  /** All the direct children of this node, wrapped in FilteredItem objects. */
-  readonly children: readonly FilteredItem<P, C>[];
 
   /** Does this node match the predicate function? */
   readonly isMatching: boolean;
@@ -21,61 +23,59 @@ export type FilteredParent<P extends object, C extends object> = {
 
   /** How many direct children of this node do not match the predicate? */
   readonly filteredCount: number;
-};
+}
 
-export type FilteredChild<C extends object> = {
+export interface FilteredChild<
+  P extends TreeParent<P, C>,
+  C extends TreeNode<P, C>,
+> extends TreeNode<FilteredParent<P, C>, FilteredChild<P, C>> {
   /** The underlying tree node. */
   readonly unfiltered: C;
 
   /** Does this node match the predicate function? */
   readonly isMatching: boolean;
-};
+}
 
-/** A Tree whose nodes have been filtered by a predicate function. */
-export class FilteredTree<P extends object, C extends object>
-  implements Tree<FilteredParent<P, C>, FilteredChild<C>>
-{
-  /** The underlying tree. */
-  readonly tree: Tree<P, C>;
+export interface FilteredTreeAccessors<
+  P extends TreeParent<P, C>,
+  C extends TreeNode<P, C>,
+> {
+  /** Check if this node is a parent node or not. */
+  isParent(node: P | C): node is P;
 
   /** The predicate function.  This function is called from within a Vue
    * computed() context, so if the predicate function relies on any reactive
    * values to compute the result, it will automatically be re-run when those
    * values change. */
+  predicate(node: P | C): boolean;
+}
+
+export function isFilteredParent<
+  P extends TreeParent<P, C>,
+  C extends TreeNode<P, C>,
+>(
+  node: FilteredParent<P, C> | FilteredChild<P, C>,
+): node is FilteredParent<P, C> {
+  return "children" in node;
+}
+
+/** A Tree whose nodes have been filtered by a predicate function. */
+export class FilteredTree<P extends TreeParent<P, C>, C extends TreeNode<P, C>>
+  implements FilteredTreeAccessors<P, C>
+{
+  readonly isParent: (node: P | C) => node is P;
   readonly predicate: (node: P | C) => boolean;
 
   private readonly nodes = new WeakMap<P | C, FilteredItem<P, C>>();
 
-  constructor(tree: Tree<P, C>, predicate: (node: P | C) => boolean) {
-    this.tree = tree;
-    this.predicate = predicate;
-  }
-
-  isParent(
-    node: FilteredParent<P, C> | FilteredChild<C>,
-  ): node is FilteredParent<P, C> {
-    return this.tree.isParent(node.unfiltered);
-  }
-
-  positionOf(
-    node: FilteredParent<P, C> | FilteredChild<C>,
-  ): Position<FilteredParent<P, C>> | undefined {
-    const pos = this.tree.positionOf(node.unfiltered);
-    if (!pos) return undefined;
-    return {parent: this.wrappedParent(pos?.parent), index: pos.index};
-  }
-
-  childrenOf(
-    parent: FilteredParent<P, C>,
-  ): readonly (FilteredParent<P, C> | FilteredChild<C>)[] {
-    return this.tree
-      .childrenOf(parent.unfiltered)
-      .map(i => this.wrappedNode(i));
+  constructor(accessors: FilteredTreeAccessors<P, C>) {
+    this.isParent = accessors.isParent;
+    this.predicate = accessors.predicate;
   }
 
   /** Given a node from the underlying tree, wrap it in a FilteredItem. */
   wrappedNode(unfiltered: P | C): FilteredItem<P, C> {
-    return this.tree.isParent(unfiltered)
+    return this.isParent(unfiltered)
       ? this.wrappedParent(unfiltered)
       : this.wrappedChild(unfiltered);
   }
@@ -85,8 +85,14 @@ export class FilteredTree<P extends object, C extends object>
     const w = this.nodes.get(unfiltered);
     if (w) return w as FilteredParent<P, C>;
 
+    const position = computed(() => {
+      const pos = unfiltered.position;
+      if (!pos) return undefined;
+      return {parent: this.wrappedParent(pos.parent), index: pos.index};
+    });
+
     const children = computed(() =>
-      this.tree.childrenOf(unfiltered).map(i => this.wrappedNode(i)),
+      unfiltered.children.map(i => this.wrappedNode(i)),
     );
 
     // PERF: We don't use computed() here because we have to recompute
@@ -103,7 +109,9 @@ export class FilteredTree<P extends object, C extends object>
     const hasMatchingChildren = computed(
       () =>
         !!children.value.find(
-          i => i.isMatching || (this.isParent(i) && i.hasMatchingChildren),
+          i =>
+            i.isMatching ||
+            ("hasMatchingChildren" in i && i.hasMatchingChildren),
         ),
     );
     const filteredCount = computed(() => {
@@ -117,6 +125,9 @@ export class FilteredTree<P extends object, C extends object>
     // Ugh, I wish shallowReadonly() actually unwrapped the top-level refs...
     const p = shallowReadonly({
       unfiltered,
+      get position() {
+        return position.value;
+      },
       get isMatching() {
         return isMatching.value;
       },
@@ -135,9 +146,17 @@ export class FilteredTree<P extends object, C extends object>
   }
 
   /** Given a child node from the underlying tree, wrap it in a FilteredChild. */
-  wrappedChild(unfiltered: C): FilteredChild<C> {
+  wrappedChild(unfiltered: C): FilteredChild<P, C> {
     const w = this.nodes.get(unfiltered);
-    if (w) return w as FilteredChild<C>;
+    if (w) return w as FilteredChild<P, C>;
+
+    const position = computed(() => {
+      if (!unfiltered.position) return undefined;
+      return {
+        parent: this.wrappedParent(unfiltered.position.parent),
+        index: unfiltered.position.index,
+      };
+    });
 
     // PERF: We don't use computed() here because we have to recompute
     // isMatching for the whole tree every time the predicate changes, and this
@@ -153,6 +172,9 @@ export class FilteredTree<P extends object, C extends object>
     // Ugh, I wish shallowReadonly() actually unwrapped the top-level refs...
     const c = shallowReadonly({
       unfiltered,
+      get position() {
+        return position.value;
+      },
       get isMatching() {
         return isMatching.value;
       },

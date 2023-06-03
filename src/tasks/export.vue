@@ -45,14 +45,16 @@
 <script lang="ts">
 import {defineComponent, nextTick} from "vue";
 
+import {filterMap} from "../util";
+
 import type {Model} from "../model";
 import {
   friendlyFolderName,
+  isBookmark,
   type Bookmark,
   type Folder,
   type Node,
 } from "../model/bookmarks";
-import {filterMap} from "../util";
 
 import Dialog from "../components/dialog.vue";
 
@@ -81,7 +83,7 @@ export default defineComponent({
     stash(): Node[] {
       const m = this.model().bookmarks;
       if (!m.stash_root.value) return [];
-      return m.childrenOf(m.stash_root.value);
+      return m.stash_root.value.children;
     },
     folders(): Folder[] {
       return this.stash.filter(t => "children" in t) as Folder[];
@@ -109,10 +111,8 @@ export default defineComponent({
 
     friendlyFolderName,
     leaves(folder: Folder): Bookmark[] {
-      const bookmarks = this.model().bookmarks;
-      return filterMap(folder.children, cid => {
-        const child = bookmarks.node(cid);
-        if (child && "url" in child) return child;
+      return filterMap(folder.children, node => {
+        if (isBookmark(node)) return node;
         return undefined;
       });
     },

@@ -90,13 +90,17 @@ import {defineComponent, type PropType} from "vue";
 import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 
 import type {Model} from "../model";
-import type {Bookmark} from "../model/bookmarks";
+import type {Bookmark, Folder, Node} from "../model/bookmarks";
 import type {FaviconEntry} from "../model/favicons";
 import type {FilteredChild} from "../model/filtered-tree";
 import type {Tab} from "../model/tabs";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ItemIcon from "../components/item-icon.vue";
+
+export type FilteredBookmark = FilteredChild<Folder, Node> & {
+  readonly unfiltered: Bookmark;
+};
 
 type RelatedTabState = {
   open: boolean;
@@ -112,7 +116,7 @@ export default defineComponent({
   inject: ["$model"],
 
   props: {
-    bookmark: required(Object as PropType<FilteredChild<Bookmark>>),
+    bookmark: required(Object as PropType<FilteredBookmark>),
   },
 
   computed: {
@@ -124,7 +128,7 @@ export default defineComponent({
       const target_window = tab_model.targetWindow.value;
       return Array.from(
         tab_model.tabsWithURL(this.bookmark.unfiltered.url),
-      ).filter(t => t.windowId === target_window);
+      ).filter(t => t.position?.parent.id === target_window);
     },
 
     related_container_color(): string | undefined {
