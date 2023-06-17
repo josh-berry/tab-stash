@@ -338,7 +338,7 @@ export default defineComponent({
   },
 
   mounted() {
-    if (document.documentElement.classList.contains("view-popup")) {
+    if (document.documentElement.dataset.view === "popup") {
       (<any>this.$refs.search).focus();
     }
 
