@@ -148,6 +148,7 @@ export class FilteredTree<P extends TreeParent<P, C>, C extends TreeNode<P, C>>
     if (w) return w as FilteredChild<P, C>;
 
     const position = computed(() => {
+      // istanbul ignore next -- trivial case for singleton nodes
       if (!unfiltered.position) return undefined;
       return {
         parent: this.wrappedParent(unfiltered.position.parent),

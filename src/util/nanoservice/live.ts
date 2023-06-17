@@ -40,9 +40,9 @@ export class SvcRegistry {
       return not_implemented();
     };
     nport.onNotify = msg => {
+      // istanbul ignore else
       if (svc.onNotify) svc.onNotify(nport, msg);
-      /* istanbul ignore else */ else if (svc.onRequest)
-        svc.onRequest(nport, msg);
+      else if (svc.onRequest) svc.onRequest(nport, msg);
     };
 
     trace(`[listener] Accepted connection for ${port.name} as ${nport.name}`);

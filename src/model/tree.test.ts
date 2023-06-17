@@ -175,8 +175,9 @@ describe("model/tree", () => {
 
     for (const [pos, index] of [
       ["beginning", 0],
-      ["middle", 1],
-      ["end", 3],
+      ["middle", 2],
+      ["end-1", 4],
+      ["end-1", 5],
     ] as const) {
       test(
         `inserts a node at the ${pos} of its parent`,
@@ -195,7 +196,7 @@ describe("model/tree", () => {
     for (const [pos, child] of [
       ["beginning", "a"],
       ["middle", "c"],
-      ["end", "d"],
+      ["end", "e"],
     ] as const) {
       test(
         `removes a node at the ${pos} of its parent`,

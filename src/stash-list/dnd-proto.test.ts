@@ -40,10 +40,8 @@ class TestDT implements DataTransfer {
   }
 
   getData(format: string): string {
-    return (
-      /* istanbul ignore else -- tests won't ask for data that isn't there */
-      this.data[format] || ""
-    );
+    // istanbul ignore next -- tests won't ask for data that isn't there
+    return this.data[format] || "";
   }
   setData(format: string, data: string): void {
     this.data[format] = data;
