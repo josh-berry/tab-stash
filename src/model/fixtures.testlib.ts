@@ -207,7 +207,7 @@ export type TabFixture = {
   tabs: {[k in TabName]: Tabs.Tab & {id: TabID}};
 };
 type WindowName = keyof typeof WINDOWS;
-type TabName = typeof WINDOWS[WindowName][any]["id"];
+type TabName = (typeof WINDOWS)[WindowName][any]["id"];
 
 export type BookmarkFixture = {
   [k in BookmarkName]: Bookmarks.BookmarkTreeNode & {

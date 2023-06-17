@@ -57,14 +57,14 @@ import * as Tabs from "./tabs";
 import {pathTo} from "./tree";
 
 export {
-  BrowserSettings,
-  Options,
-  Tabs,
+  BookmarkMetadata,
   Bookmarks,
+  BrowserSettings,
+  Containers,
   DeletedItems,
   Favicons,
-  BookmarkMetadata,
-  Containers,
+  Options,
+  Tabs,
 };
 
 const trace = trace_fn("model");

@@ -78,12 +78,12 @@ onMounted(() => {
 
 function answer(confirmed: boolean) {
   if (confirmed) {
-    emit("answer", {confirmed, confirmNextTime: confirmNextTime.value});
-    emit("confirm", {confirmed, confirmNextTime: confirmNextTime.value});
+    emit("answer", {confirmed: true, confirmNextTime: confirmNextTime.value});
+    emit("confirm", {confirmed: true, confirmNextTime: confirmNextTime.value});
   } else {
     // If the user cancelled, we always confirmNextTime to avoid confusion.
-    emit("answer", {confirmed, confirmNextTime: true});
-    emit("cancel", {confirmed, confirmNextTime: true});
+    emit("answer", {confirmed: false, confirmNextTime: true});
+    emit("cancel", {confirmed: false, confirmNextTime: true});
   }
 }
 </script>

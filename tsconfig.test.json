@@ -2,9 +2,9 @@
   "extends": "./tsconfig.json",
 
   "compilerOptions": {
-    "module": "commonjs",
-    "preserveValueImports": false,
+    "module": "CommonJS",
     "removeComments": false,
+    "verbatimModuleSyntax": false,
 
     "outDir": "build.test"
   },

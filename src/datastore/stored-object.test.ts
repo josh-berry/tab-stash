@@ -11,13 +11,13 @@ import type {
   StoredObject,
 } from "./stored-object";
 import {
+  _StoredObjectFactory,
   aBoolean,
-  anEnum,
   aNumber,
   aString,
+  anEnum,
   maybeNull,
   maybeUndef,
-  _StoredObjectFactory,
 } from "./stored-object";
 
 describe("stored-object", function () {
@@ -27,6 +27,7 @@ describe("stored-object", function () {
       await browser.storage.local.set(obj);
       expect(await browser.storage.local.get("foo")).to.deep.equal(obj);
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
     });
 
     it("stores and retrieves multiple values", async function () {
@@ -39,6 +40,7 @@ describe("stored-object", function () {
         obj,
       );
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
     });
 
     it("deletes single values", async function () {
@@ -46,6 +48,7 @@ describe("stored-object", function () {
       await browser.storage.local.remove("foo");
       expect(await browser.storage.local.get()).to.deep.equal({});
       await events.nextN(browser.storage.onChanged, 2);
+      await events.nextN(browser.storage.local.onChanged, 2);
     });
 
     it("deletes multiple values", async function () {
@@ -53,6 +56,7 @@ describe("stored-object", function () {
       await browser.storage.local.remove(["foo", "bar"]);
       expect(await browser.storage.local.get()).to.deep.equal({});
       await events.nextN(browser.storage.onChanged, 2);
+      await events.nextN(browser.storage.local.onChanged, 2);
     });
 
     it("is empty on startup", async function () {
@@ -69,6 +73,7 @@ describe("stored-object", function () {
       });
       await browser.storage.local.set({foo: 5});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(fired).to.equal(1);
     });
 
@@ -76,6 +81,7 @@ describe("stored-object", function () {
       let fired = 0;
       await browser.storage.local.set({foo: 5});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       browser.storage.onChanged.addListener((changes, area) => {
         expect(changes.foo.oldValue).to.equal(5);
@@ -85,6 +91,7 @@ describe("stored-object", function () {
       });
       await browser.storage.local.set({foo: 10});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(fired).to.equal(1);
     });
 
@@ -92,6 +99,7 @@ describe("stored-object", function () {
       let fired = 0;
       await browser.storage.local.set({foo: 5});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       browser.storage.onChanged.addListener((changes, area) => {
         expect(changes.foo.oldValue).to.equal(5);
@@ -101,6 +109,7 @@ describe("stored-object", function () {
       });
       await browser.storage.local.remove("foo");
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(fired).to.equal(1);
     });
   });
@@ -157,6 +166,7 @@ describe("stored-object", function () {
       const o = await factory.get("local", "foo", DEF);
       expect(o.state).to.deep.equal(defaults(DEF));
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
     });
 
@@ -165,6 +175,7 @@ describe("stored-object", function () {
 
       await browser.storage.local.set({foo: OVERRIDES});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
       expect(o.state).to.deep.equal(
@@ -177,6 +188,7 @@ describe("stored-object", function () {
 
       await browser.storage.local.set({foo: {a: 42}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(o.state).to.deep.equal(Object.assign({}, defaults(DEF), {a: 42}));
@@ -185,11 +197,13 @@ describe("stored-object", function () {
     it("updates objects which have been updated out-of-band", async function () {
       await browser.storage.local.set({foo: {a: 42}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await browser.storage.local.set({foo: {a: 17}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(o.state).to.deep.equal(Object.assign({}, defaults(DEF), {a: 17}));
@@ -198,11 +212,13 @@ describe("stored-object", function () {
     it("updates objects which have been deleted out-of-band", async function () {
       await browser.storage.local.set({foo: {a: 42}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await browser.storage.local.remove("foo");
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(o.state).to.deep.equal(defaults(DEF));
@@ -213,6 +229,7 @@ describe("stored-object", function () {
 
       await browser.storage.local.set({foo: {a: 42}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(await events.next(o.onChanged)).to.deep.equal([o]);
       expect(o.state).to.deep.equal(Object.assign({}, defaults(DEF), {a: 42}));
     });
@@ -220,11 +237,13 @@ describe("stored-object", function () {
     it("fires events for objects which have been updated out-of-band", async function () {
       await browser.storage.local.set({foo: {a: 42}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await browser.storage.local.set({foo: {a: 17}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(await events.next(o.onChanged)).to.deep.equal([o]);
       expect(o.state).to.deep.equal(Object.assign({}, defaults(DEF), {a: 17}));
     });
@@ -232,11 +251,13 @@ describe("stored-object", function () {
     it("fires events for objects which have been deleted out-of-band", async function () {
       await browser.storage.local.set({foo: {a: 42}});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await browser.storage.local.remove("foo");
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(await events.next(o.onChanged)).to.deep.equal([o]);
       expect(o.state).to.deep.equal(Object.assign({}, defaults(DEF)));
     });
@@ -248,6 +269,7 @@ describe("stored-object", function () {
 
       await o.set(OVERRIDES);
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       expect(await events.next(o.onChanged)).to.deep.equal([o]);
 
       expect(await browser.storage.local.get("foo")).to.deep.equal({
@@ -262,11 +284,13 @@ describe("stored-object", function () {
       const OVERRIDES = {a: 42, bar: "fred"};
       await browser.storage.local.set({foo: OVERRIDES});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await o.set({a: 17});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(await browser.storage.local.get("foo")).to.deep.equal({
@@ -281,6 +305,7 @@ describe("stored-object", function () {
       const OVERRIDES = {a: "42"};
       await browser.storage.local.set({foo: OVERRIDES});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
       expect(o.state).to.deep.include({a: 42});
@@ -290,11 +315,13 @@ describe("stored-object", function () {
       const OVERRIDES = {a: 42};
       await browser.storage.local.set({foo: OVERRIDES});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await o.set({a: "17" as any});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(await browser.storage.local.get("foo")).to.deep.equal({
@@ -306,11 +333,13 @@ describe("stored-object", function () {
       const OVERRIDES = {a: 42, bar: "fred"};
       await browser.storage.local.set({foo: OVERRIDES});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await o.set({a: 1});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(await browser.storage.local.get("foo")).to.deep.equal({
@@ -325,11 +354,13 @@ describe("stored-object", function () {
       const OVERRIDES = {a: 42, bar: "fred"};
       await browser.storage.local.set({foo: OVERRIDES});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
 
       const o = await factory.get("local", "foo", DEF);
 
       await o.set({a: "1" as any});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(o.onChanged);
 
       expect(await browser.storage.local.get("foo")).to.deep.equal({
@@ -345,6 +376,7 @@ describe("stored-object", function () {
 
       await o.delete();
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
       await events.next(o.onChanged);
 
       expect(await browser.storage.local.get()).to.deep.equal({});
@@ -356,7 +388,14 @@ describe("stored-object", function () {
 
       await o.set({a: 2});
       await o.delete();
-      await events.nextN<any>([browser.storage.onChanged, o.onChanged], 5);
+      await events.nextN<any>(
+        [
+          browser.storage.onChanged,
+          browser.storage.sync.onChanged,
+          o.onChanged,
+        ],
+        7,
+      );
 
       expect(await browser.storage.local.get()).to.deep.equal({});
       expect(o.state).to.deep.include(defaults(DEF));
@@ -367,10 +406,12 @@ describe("stored-object", function () {
 
       await o.delete();
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
       await events.next(o.onChanged);
 
       await o.set({a: 2});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
       await events.next(o.onChanged);
 
       const o2 = await factory.get("sync", "foo", DEF);
@@ -382,6 +423,7 @@ describe("stored-object", function () {
       const DATA = {foo: {asdf: "qwer"}};
       await browser.storage.sync.set(DATA);
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
 
       const o = await factory.get("sync", "foo", DEF);
       expect(o.state).to.deep.equal(defaults(DEF));
@@ -389,6 +431,7 @@ describe("stored-object", function () {
 
       await o.set({a: 1});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
       await events.next(o.onChanged);
 
       expect(await browser.storage.sync.get()).to.deep.equal({foo: {}});
@@ -400,6 +443,7 @@ describe("stored-object", function () {
         it(`converts invalid ${name}`, async () => {
           await browser.storage.local.set({obj});
           await events.next(browser.storage.onChanged);
+          await events.next(browser.storage.local.onChanged);
           const o = await factory.get("local", "obj", DEF);
           expect(o.state[field]).to.equal(DEF[field].default);
         });

@@ -9,14 +9,17 @@ type ChangeDict = StorageObject;
 class MockStorageArea {
   _area: StorageAreaName;
   _storage: {[k: string]: string} = {};
-  _events: events.MockEvent<StorageChangedFn>;
+  _all_events: events.MockEvent<StorageChangedFn>;
+
+  readonly onChanged: events.MockEvent<StorageChangedFn>;
 
   constructor(
     area: StorageAreaName,
-    events: events.MockEvent<StorageChangedFn>,
+    all_events: events.MockEvent<StorageChangedFn>,
   ) {
     this._area = area;
-    this._events = events;
+    this._all_events = all_events;
+    this.onChanged = new events.MockEvent(`browser.storage.${area}.onChanged`);
   }
 
   // istanbul ignore next - implemented only to conform to the interface
@@ -52,7 +55,8 @@ class MockStorageArea {
       this._storage[k] = v;
     }
 
-    this._events.send(ev, this._area);
+    this._all_events.send(ev, this._area);
+    this.onChanged.send(ev, this._area);
   }
 
   async remove(keys: string | string[]): Promise<void> {
@@ -67,7 +71,8 @@ class MockStorageArea {
       }
     }
 
-    this._events.send(ev, this._area);
+    this._all_events.send(ev, this._area);
+    this.onChanged.send(ev, this._area);
   }
 
   // istanbul ignore next - implemented only to conform to the interface

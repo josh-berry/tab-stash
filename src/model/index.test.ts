@@ -9,12 +9,12 @@ import * as events from "../mock/events";
 import type {BookmarkFixture, TabFixture} from "./fixtures.testlib";
 import {
   B,
-  make_bookmarks,
+  STASH_ROOT_NAME,
   make_bookmark_metadata,
+  make_bookmarks,
   make_deleted_items,
   make_favicons,
   make_tabs,
-  STASH_ROOT_NAME,
 } from "./fixtures.testlib";
 
 import {filterMap, later} from "../util";
@@ -267,6 +267,7 @@ describe("model", () => {
       it("hides tabs but keeps them loaded", async () => {
         await model.options.local.set({after_stashing_tab: "hide"});
         await events.next(browser.storage.onChanged);
+        await events.next(browser.storage.local.onChanged);
         await events.next(model.options.local.onChanged);
         expect(model.options.local.state.after_stashing_tab).to.equal("hide");
 
@@ -288,6 +289,7 @@ describe("model", () => {
       it("hides and unloads tabs", async () => {
         await model.options.local.set({after_stashing_tab: "hide_discard"});
         await events.next(browser.storage.onChanged);
+        await events.next(browser.storage.local.onChanged);
         await events.next(model.options.local.onChanged);
         expect(model.options.local.state.after_stashing_tab).to.equal(
           "hide_discard",
@@ -312,6 +314,7 @@ describe("model", () => {
       it("closes tabs", async () => {
         await model.options.local.set({after_stashing_tab: "close"});
         await events.next(browser.storage.onChanged);
+        await events.next(browser.storage.local.onChanged);
         await events.next(model.options.local.onChanged);
         expect(model.options.local.state.after_stashing_tab).to.equal("close");
 
@@ -331,6 +334,7 @@ describe("model", () => {
     it("opens a new empty tab if needed to keep the window open", async () => {
       await model.options.local.set({after_stashing_tab: "hide"});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next(model.options.local.onChanged);
       expect(model.options.local.state.after_stashing_tab).to.equal("hide");
 
@@ -1315,6 +1319,7 @@ describe("model", () => {
     it("immediately loads tabs if so requested", async () => {
       await model.options.local.set({load_tabs_on_restore: "immediately"});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next("StoredObject.onChanged");
       expect(model.options.local.state.load_tabs_on_restore).to.equal(
         "immediately",
@@ -1350,6 +1355,7 @@ describe("model", () => {
     it("copies external items into the window", async () => {
       await model.options.local.set({load_tabs_on_restore: "lazily"});
       await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.local.onChanged);
       await events.next("StoredObject.onChanged");
       expect(model.options.local.state.load_tabs_on_restore).to.equal("lazily");
 

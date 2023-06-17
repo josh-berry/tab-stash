@@ -158,7 +158,7 @@ import {
 } from "../model/bookmarks";
 import type {Tab, Window} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
-import {parseVersion, required, TaskMonitor, textMatcher} from "../util";
+import {TaskMonitor, parseVersion, required, textMatcher} from "../util";
 
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";

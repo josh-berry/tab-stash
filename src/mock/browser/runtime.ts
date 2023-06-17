@@ -171,6 +171,10 @@ export default (() => {
         onMessageExternal: new events.MockEvent(
           "browser.runtime.onMessageExternal",
         ),
+        onSuspend: new events.MockEvent("browser.runtime.onSuspend"),
+        onSuspendCanceled: new events.MockEvent(
+          "browser.runtime.onSuspendCanceled",
+        ),
 
         id: "testing",
       };

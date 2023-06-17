@@ -8,7 +8,8 @@ import Client from "./client";
 import type {Entry, Key, MaybeEntry, Value} from "./proto";
 import Service from "./service";
 
-export {Client, Service, Entry, MaybeEntry, Key, Value};
+export {Client, Service};
+export type {Entry, Key, MaybeEntry, Value};
 
 export interface KeyValueStore<K extends Key, V extends Value> {
   readonly name: string;
