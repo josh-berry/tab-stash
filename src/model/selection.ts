@@ -1,5 +1,6 @@
 import type {Ref} from "vue";
-import {computed} from "vue";
+
+import {computedLazyEq} from "../util";
 
 /** A model which allows for its elements to be selected must implement a few
  * things so that the selection model itself can report selected items in the
@@ -51,9 +52,7 @@ export interface SelectableModel<T = any> {
 export class Model {
   readonly models: readonly SelectableModel[];
 
-  readonly selectedCount = computed(() =>
-    this.models.reduce((count, m) => count + m.selectedCount.value, 0),
-  );
+  readonly selectedCount: Ref<number>;
 
   /** The last item that was selected. */
   lastSelected?: {
@@ -71,6 +70,9 @@ export class Model {
    * they appear in the UI. */
   constructor(models: SelectableModel[]) {
     this.models = Array.from(models);
+    this.selectedCount = computedLazyEq(() =>
+      this.models.reduce((count, m) => count + m.selectedCount.value, 0),
+    );
   }
 
   /** Clear all selections, including any that may not be visible to the user.

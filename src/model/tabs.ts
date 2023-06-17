@@ -1,10 +1,11 @@
-import {computed, reactive, ref, watch, type Ref} from "vue";
+import {reactive, ref, watch, type Ref} from "vue";
 import type {Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
 import {
   AsyncTaskQueue,
   backingOff,
+  computedLazyEq,
   expect,
   filterMap,
   shortPoll,
@@ -76,12 +77,12 @@ export class Model {
    * precisely the same as `focusedWindow`, because it accounts for the fact
    * that the user could tear off the Tab Stash tab into a new window, and yet
    * still want to manage the window that the tab was originally opened in. */
-  readonly targetWindow = computed(
+  readonly targetWindow = computedLazyEq(
     () => this.initialWindow.value ?? this.focusedWindow.value,
   );
 
   /** The number of selected tabs. */
-  readonly selectedCount = computed(() => {
+  readonly selectedCount = computedLazyEq(() => {
     let count = 0;
     for (const _ of this.selectedItems()) ++count;
     return count;

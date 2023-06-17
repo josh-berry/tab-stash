@@ -1,5 +1,6 @@
-import {computed, ref, shallowReadonly, watchEffect} from "vue";
+import {computed, shallowReadonly} from "vue";
 
+import {computedLazyEq} from "../util";
 import type {TreeNode, TreeParent} from "./tree";
 
 export type FilteredItem<
@@ -100,13 +101,9 @@ export class FilteredTree<P extends TreeParent<P, C>, C extends TreeNode<P, C>>
     // can have a huge cascading effect downstream--instead, we only want to
     // write to isMatching when the value actually changes, to avoid triggering
     // re-renders unnecessarily.
-    const isMatching = ref(this.predicate(unfiltered));
-    watchEffect(() => {
-      const res = this.predicate(unfiltered);
-      if (isMatching.value !== res) isMatching.value = res;
-    });
+    const isMatching = computedLazyEq(() => this.predicate(unfiltered));
 
-    const hasMatchingChildren = computed(
+    const hasMatchingChildren = computedLazyEq(
       () =>
         !!children.value.find(
           i =>
@@ -114,7 +111,7 @@ export class FilteredTree<P extends TreeParent<P, C>, C extends TreeNode<P, C>>
             ("hasMatchingChildren" in i && i.hasMatchingChildren),
         ),
     );
-    const filteredCount = computed(() => {
+    const filteredCount = computedLazyEq(() => {
       let count = 0;
       children.value.forEach(i => {
         if (!i.isMatching) ++count;
@@ -163,11 +160,7 @@ export class FilteredTree<P extends TreeParent<P, C>, C extends TreeNode<P, C>>
     // can have a huge cascading effect downstream--instead, we only want to
     // write to isMatching when the value actually changes, to avoid triggering
     // re-renders unnecessarily.
-    const isMatching = ref(this.predicate(unfiltered));
-    watchEffect(() => {
-      const res = this.predicate(unfiltered);
-      if (isMatching.value !== res) isMatching.value = res;
-    });
+    const isMatching = computedLazyEq(() => this.predicate(unfiltered));
 
     // Ugh, I wish shallowReadonly() actually unwrapped the top-level refs...
     const c = shallowReadonly({
