@@ -9,12 +9,12 @@ import * as events from "../mock/events";
 import type {BookmarkFixture, TabFixture} from "./fixtures.testlib";
 import {
   B,
-  STASH_ROOT_NAME,
-  make_bookmark_metadata,
   make_bookmarks,
+  make_bookmark_metadata,
   make_deleted_items,
   make_favicons,
   make_tabs,
+  STASH_ROOT_NAME,
 } from "./fixtures.testlib";
 
 import {filterMap, later} from "../util";
@@ -87,6 +87,11 @@ describe("model", () => {
       bookmark_metadata: new M.BookmarkMetadata.Model(
         new KVSCache(bookmark_metadata),
       ),
+    });
+
+    // Cleanup timeouts
+    afterEach(() => {
+      model.deleted_items.clearRecentlyDeletedItems();
     });
 
     // We also need to wait for the favicon cache to update itself

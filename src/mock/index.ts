@@ -37,7 +37,7 @@ import * as mock_browser from "./browser";
 // Reset the mocks before each test, and make sure all events have drained after
 // each test.
 export const mochaHooks: RootHookObject = {
-  async beforeEach() {
+  beforeEach() {
     (<any>globalThis).indexedDB = new IDBFactory();
     events.beforeTest();
     mock_browser.runtime.reset();

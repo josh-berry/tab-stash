@@ -23,6 +23,7 @@ describe("model/deleted-items", () => {
   afterEach(() => {
     if (clock) clock.uninstall();
     clock = undefined;
+    model.clearRecentlyDeletedItems(); // Clear timers
   });
 
   // NOT TESTED: src2state(), because it's trivial
@@ -89,6 +90,8 @@ describe("model/deleted-items", () => {
     expect(model.state.entries[0]).to.deep.include({
       item: {title: "Foo", url: "http://foo"},
     });
+
+    m2.clearRecentlyDeletedItems();
   });
 
   it("observes items which were dropped elsewhere", async () => {
@@ -106,6 +109,8 @@ describe("model/deleted-items", () => {
     await m2.drop(item.key);
     await events.next(source.onSet);
     expect(model.state.entries).to.deep.equal([]);
+
+    m2.clearRecentlyDeletedItems();
   });
 
   it("observes item children which were dropped elsewhere", async () => {
@@ -147,6 +152,8 @@ describe("model/deleted-items", () => {
         ],
       },
     });
+
+    m2.clearRecentlyDeletedItems();
   });
 
   it("drops nested folders correctly", async () => {

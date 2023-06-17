@@ -342,6 +342,14 @@ export class Model {
     }
   }
 
+  clearRecentlyDeletedItems() {
+    if (this._clear_recently_deleted_timeout) {
+      clearTimeout(this._clear_recently_deleted_timeout);
+    }
+    this.state.recentlyDeleted = 0;
+    this._clear_recently_deleted_timeout = undefined;
+  }
+
   /** Insert and return a reactive entry in the model state.  This could be a
    * completely new item we just got an event for, or it could be called as
    * part of loading additional items on demand. */

@@ -176,6 +176,7 @@ export class Port<S extends Send, R extends Send> implements NanoPort<S, R> {
     for (const [tag, pending] of this.pending) {
       this._trace("flush on disconnect", tag);
       pending.reject(new NanoDisconnectedError(this.name, tag));
+      clearTimeout(pending.timeout_id);
     }
     this.pending.clear();
   }
@@ -226,6 +227,7 @@ export class Port<S extends Send, R extends Send> implements NanoPort<S, R> {
     const handler = this.pending.get(msg.tag);
     if (!handler) return;
 
+    clearTimeout(handler.timeout_id);
     if ("response" in msg) {
       handler.resolve(msg.response);
     } else {
