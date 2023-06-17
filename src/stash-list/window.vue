@@ -286,7 +286,13 @@ export default defineComponent({
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         const model = this.model();
-        const stashable_children = this.tabs.filter(t => this.isValidChild(t));
+        // NOTE: isValidChild() is slightly different from
+        // stashableTabsInWindow()--we need to check both, because
+        // isValidChild() will exclude already-stashed tabs if the user is in
+        // "Unstashed Tabs" mode (i.e. ! this.showStashedTabs).
+        const stashable_children = model
+          .stashableTabsInWindow(this.targetWindow.unfiltered.id)
+          .filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
         await model.putItemsInFolder({
