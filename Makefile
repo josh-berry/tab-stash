@@ -123,8 +123,8 @@ build-chrome-dbg: build-dbg
 .PHONY: build-chrome-dbg
 
 build-dbg: node_modules icons dist/tab-stash.css
-	./node_modules/.bin/vite build -c vite.config.html.ts -m development
-	./node_modules/.bin/vite build -c vite.config.lib.ts -m development
+	NODE_ENV=development ./node_modules/.bin/vite build -c vite.config.html.ts -m development
+	NODE_ENV=development ./node_modules/.bin/vite build -c vite.config.lib.ts -m development
 	./node_modules/.bin/copyfiles -u 1 'assets/**/*' dist
 .PHONY: build-dbg
 
@@ -132,8 +132,8 @@ build-rel:
 	$(MAKE) clean
 	$(MAKE) node_modules icons dist/tab-stash.css
 	$(MAKE) check
-	./node_modules/.bin/vite build -c vite.config.html.ts -m production
-	./node_modules/.bin/vite build -c vite.config.lib.ts -m production
+	NODE_ENV=production ./node_modules/.bin/vite build -c vite.config.html.ts -m production
+	NODE_ENV=production ./node_modules/.bin/vite build -c vite.config.lib.ts -m production
 	./node_modules/.bin/copyfiles -u 1 'assets/**/*' dist
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel

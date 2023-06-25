@@ -15,7 +15,7 @@ export default {
 
   clearScreen: false,
 
-  plugins: [vue()],
+  plugins: [vue({isProduction: prod})],
 
   resolve: {
     alias: {
