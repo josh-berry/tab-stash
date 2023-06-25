@@ -87,7 +87,7 @@ export default defineComponent({
   computed: {
     altKey: altKeyName,
     bgKey: bgKeyName,
-    targetWindow(): number | undefined {
+    targetWindow(): Window | undefined {
       return this.model().tabs.targetWindow.value;
     },
     favIcon(): string {
@@ -111,7 +111,7 @@ export default defineComponent({
     isActive(): boolean {
       return (
         this.tab.unfiltered.active &&
-        this.tab.unfiltered.position?.parent.id === this.targetWindow
+        this.tab.unfiltered.position?.parent === this.targetWindow
       );
     },
     stashedIn(): string[] {

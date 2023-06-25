@@ -245,14 +245,12 @@ export default defineComponent({
     targetWindow() {
       const m = this.model().tabs;
       if (!m.targetWindow.value) return undefined;
-      return this.filteredTabs.wrappedParent(m.window(m.targetWindow.value)!);
+      return this.filteredTabs.wrappedParent(m.targetWindow.value);
     },
     tabs(): readonly Tab[] {
       const m = this.model().tabs;
       if (m.targetWindow.value === undefined) return [];
-      const win = m.window(m.targetWindow.value);
-      if (!win) return [];
-      return win.children;
+      return m.targetWindow.value.children;
     },
     stashRoot(): FilteredParent<Folder, Node> | undefined {
       const root = this.model().bookmarks.stash_root.value;

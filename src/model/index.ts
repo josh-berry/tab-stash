@@ -427,21 +427,17 @@ export class Model {
     items: StashLeaf[],
     options: {background?: boolean},
   ): Promise<Tabs.Tab[]> {
-    const toWindowId = this.tabs.targetWindow.value;
-    if (toWindowId === undefined) {
+    const toWindow = this.tabs.targetWindow.value;
+    if (toWindow === undefined) {
       throw new Error(`No target window; not sure where to restore tabs`);
     }
-    const cur_win = expect(
-      this.tabs.window(toWindowId),
-      () => `Target window ${toWindowId} is unknown to the model`,
-    );
 
     // As a special case, if we are restoring just a single tab, first check
     // if we already have the tab open and just switch to it.  (No need to
     // disturb the ordering of tabs in the browser window.)
     if (!options.background && items.length === 1 && items[0].url) {
       const t = Array.from(this.tabs.tabsWithURL(items[0].url)).find(
-        t => !t.hidden && t.position?.parent.id === toWindowId,
+        t => !t.hidden && t.position?.parent === toWindow,
       );
       if (t) {
         await browser.tabs.update(t.id, {active: true});
@@ -451,7 +447,7 @@ export class Model {
 
     // We want to know what tabs are currently open in the window, so we can
     // avoid opening duplicates.
-    const win_tabs = cur_win.children;
+    const win_tabs = toWindow.children;
 
     // We want to know which tab the user is currently looking at so we can
     // close it if it's just the new-tab page.
@@ -459,7 +455,7 @@ export class Model {
 
     const tabs = await this.putItemsInWindow({
       items: this.copying(items),
-      toWindowId,
+      toWindowId: toWindow.id,
     });
 
     if (!options.background) {
@@ -680,7 +676,7 @@ export class Model {
     toIndex?: number;
     task?: TaskMonitor;
   }): Promise<Tabs.Tab[]> {
-    const to_win_id = options.toWindowId ?? this.tabs.targetWindow.value;
+    const to_win_id = options.toWindowId ?? this.tabs.targetWindow.value?.id;
     if (to_win_id === undefined) {
       throw new Error(`No target window available: ${to_win_id}`);
     }

@@ -1576,7 +1576,9 @@ describe("model", () => {
 
   describe("restores tabs", () => {
     beforeEach(() => {
-      expect(model.tabs.initialWindow.value).to.equal(windows.real.id);
+      expect(model.tabs.initialWindow.value).to.equal(
+        model.tabs.window(windows.real.id),
+      );
       expect(model.tabs.activeTab()!.url).to.equal(B);
     });
 

@@ -244,7 +244,7 @@ import {
   type Node,
 } from "../model/bookmarks";
 import type {FilteredItem, FilteredParent} from "../model/filtered-tree";
-import type {Tab} from "../model/tabs";
+import type {Tab, Window} from "../model/tabs";
 import {pathTo} from "../model/tree";
 
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -300,7 +300,7 @@ export default defineComponent({
       return this.model().bookmark_metadata.get(this.folder.unfiltered.id);
     },
 
-    targetWindow(): number | undefined {
+    targetWindow(): Window | undefined {
       return this.model().tabs.targetWindow.value;
     },
 
@@ -359,10 +359,8 @@ export default defineComponent({
       const model = this.model();
       const target_win = model.tabs.targetWindow.value;
       if (!target_win) return [];
-      const win = model.tabs.window(target_win);
-      if (!win) return [];
 
-      return win.children
+      return target_win.children
         .filter(
           t =>
             !t.pinned &&
@@ -500,13 +498,13 @@ export default defineComponent({
 
     stash(ev: MouseEvent | KeyboardEvent) {
       const model = this.model();
-      const win_id = model.tabs.targetWindow.value;
-      if (!win_id) return;
+      const win = model.tabs.targetWindow.value;
+      if (!win) return;
 
       model.attempt(
         async () =>
           await model.putItemsInFolder({
-            items: model.copyIf(ev.altKey, model.stashableTabsInWindow(win_id)),
+            items: model.copyIf(ev.altKey, model.stashableTabsInWindow(win.id)),
             toFolderId: this.folder.unfiltered.id,
           }),
       );
@@ -659,7 +657,7 @@ export default defineComponent({
       this.attempt(async () => {
         const model = this.model();
         if (model.tabs.targetWindow.value === undefined) return;
-        await model.stashAllTabsInWindow(model.tabs.targetWindow.value, {
+        await model.stashAllTabsInWindow(model.tabs.targetWindow.value.id, {
           copy: ev.altKey,
           parent: this.folder.unfiltered.id,
           position: "bottom",

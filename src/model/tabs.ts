@@ -1,4 +1,4 @@
-import {reactive, ref, watch, type Ref} from "vue";
+import {computed, reactive, ref, watch, type Ref} from "vue";
 import type {Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
@@ -67,19 +67,25 @@ export class Model {
   private readonly tabs_by_url = new Map<OpenableURL, Set<Tab>>();
 
   /** The initial window that this model was opened with (if it still exists). */
-  readonly initialWindow: Ref<WindowID | undefined> = ref();
+  readonly initialWindow: Ref<Window | WindowID | undefined> = ref();
 
   /** The window that currently has the focus (if any). */
-  readonly focusedWindow: Ref<WindowID | undefined> = ref();
+  readonly focusedWindow: Ref<Window | WindowID | undefined> = ref();
 
   /** The "target" window that this model should be for.  Controls for things
    * like which window is shown in the UI, tab selection, etc.  This isn't
    * precisely the same as `focusedWindow`, because it accounts for the fact
    * that the user could tear off the Tab Stash tab into a new window, and yet
    * still want to manage the window that the tab was originally opened in. */
-  readonly targetWindow = computedLazyEq(
-    () => this.initialWindow.value ?? this.focusedWindow.value,
-  );
+  readonly targetWindow = computed(() => {
+    if (typeof this.initialWindow.value === "object") {
+      return this.initialWindow.value;
+    }
+    if (typeof this.focusedWindow.value === "object") {
+      return this.focusedWindow.value;
+    }
+    return undefined;
+  });
 
   /** The number of selected tabs. */
   readonly selectedCount = computedLazyEq(() => {
@@ -203,7 +209,7 @@ export class Model {
   /** Returns the active tab in the specified window (or in
    * `this.current_window`, if no window is specified). */
   activeTab(windowId?: WindowID): Tab | undefined {
-    if (windowId === undefined) windowId = this.targetWindow.value;
+    if (windowId === undefined) windowId = this.targetWindow.value?.id;
     if (windowId === undefined) return undefined;
 
     const window = this.window(windowId);
@@ -405,14 +411,29 @@ export class Model {
     if (win.tabs !== undefined) {
       for (const t of win.tabs) this.whenTabCreated(t);
     }
+
+    // HACK: If we know the window ID, but not the window object, for the
+    // initial window, we must update here, otherwise reactive effects that
+    // depend on the contents of the initialWindow will never happen.  Same goes
+    // for focusedWindow.
+    if (window.id === this.initialWindow.value) {
+      this.initialWindow.value = window;
+    }
+    if (window.id === this.focusedWindow.value) {
+      this.focusedWindow.value = window;
+    }
+
     return window;
   }
 
   whenWindowFocusChanged(winId: number) {
-    this.focusedWindow.value =
-      winId !== browser.windows.WINDOW_ID_NONE
-        ? (winId as WindowID)
-        : undefined;
+    if (winId === browser.windows.WINDOW_ID_NONE) {
+      this.focusedWindow.value = undefined;
+      return;
+    }
+
+    const win = this.window(winId);
+    this.focusedWindow.value = win ?? (winId as WindowID);
   }
 
   whenWindowRemoved(winId: number) {
@@ -420,10 +441,12 @@ export class Model {
     trace("event windowRemoved", winId, win);
     if (!win) return;
 
-    if (this.initialWindow.value === winId)
+    if (this.initialWindow.value === winId) {
       this.initialWindow.value = undefined;
-    if (this.focusedWindow.value === winId)
+    }
+    if (this.focusedWindow.value === winId) {
       this.focusedWindow.value = undefined;
+    }
 
     // We clone the array to avoid disturbances while iterating
     for (const t of Array.from(win.children)) this.whenTabRemoved(t.id);
@@ -667,26 +690,20 @@ export class Model {
     // We only allow tabs in the current window to be selected
     // istanbul ignore if -- shouldn't occur in tests
     if (this.targetWindow.value === undefined) return;
-
-    const win = this.window(this.targetWindow.value);
-    if (!win) return;
-
-    for (const t of win.children) if (t.$selected) yield t;
+    for (const t of this.targetWindow.value.children) if (t.$selected) yield t;
   }
 
   itemsInRange(start: Tab, end: Tab): Tab[] | null {
     // istanbul ignore if -- shouldn't occur in tests
     if (this.targetWindow.value === undefined) return null;
 
+    const win = this.targetWindow.value;
     let startPos = start.position;
     let endPos = end.position;
     if (!startPos || !endPos) return null;
 
-    if (startPos.parent.id !== this.targetWindow.value) return null;
-    if (endPos.parent.id !== this.targetWindow.value) return null;
-
-    const win = this.window(this.targetWindow.value);
-    if (!win) return null;
+    if (startPos.parent !== this.targetWindow.value) return null;
+    if (endPos.parent !== this.targetWindow.value) return null;
 
     if (endPos.index < startPos.index) {
       const tmp = endPos;

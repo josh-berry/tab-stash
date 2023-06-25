@@ -104,12 +104,15 @@ export function cmpVersions(a: string, b: string): number {
  * This is generally more efficient than using computed() for primitive
  * values--using it with objects/arrays is not recommended; it is likely to
  * perform strictly worse than computed(). */
-export function computedLazyEq<T>(f: () => T): Vue.Ref<T> {
+export function computedLazyEq<T>(
+  f: () => T,
+  options?: Vue.WatchOptionsBase,
+): Vue.Ref<T> {
   const ref: Vue.Ref<T> = Vue.ref(undefined!);
   Vue.watchEffect(() => {
     const newValue = f();
     if (ref.value !== newValue) ref.value = newValue;
-  });
+  }, options);
   return ref;
 }
 
