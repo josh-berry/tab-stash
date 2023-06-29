@@ -344,7 +344,9 @@ export default defineComponent({
 
     collapsed: {
       get(): boolean {
-        return !!this.metadata.value?.collapsed;
+        return typeof this.metadata.value === "undefined"
+          ? true
+          : !!this.metadata.value.collapsed;
       },
       set(collapsed: boolean) {
         this.model().bookmark_metadata.setCollapsed(
