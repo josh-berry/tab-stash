@@ -193,7 +193,7 @@ export default defineComponent({
   },
 
   data: () => ({
-    collapsed: true,
+    collapsed: false,
     searchText: "",
     dialog: undefined as undefined | {class: string; props?: any},
   }),
