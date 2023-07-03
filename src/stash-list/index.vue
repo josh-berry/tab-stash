@@ -147,7 +147,6 @@ import {
 } from "../model/bookmark-metadata";
 import {
   friendlyFolderName,
-  isFolder,
   type Folder,
   type FolderStats,
   type Node,
@@ -161,7 +160,6 @@ import Notification from "../components/notification.vue";
 import OopsNotification from "../components/oops-notification.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
 import SearchInput from "../components/search-input.vue";
-import {FilteredTree, type FilteredParent} from "../model/filtered-tree";
 import ExportDialog from "../tasks/export.vue";
 import ImportDialog from "../tasks/import.vue";
 import FolderList from "./folder-list.vue";
@@ -199,34 +197,6 @@ export default defineComponent({
       return document.documentElement.dataset!.view ?? "tab";
     },
 
-    filteredTabs(): FilteredTree<Window, Tab> {
-      const self = this;
-      const f = new FilteredTree<Window, Tab>({
-        isParent(node): node is Window {
-          return "children" in node;
-        },
-        predicate(node) {
-          return self.filterFn(node);
-        },
-      });
-      (<any>globalThis).filtered_tabs = f;
-      return f;
-    },
-
-    filteredBookmarks(): FilteredTree<Folder, Node> {
-      const self = this;
-      const f = new FilteredTree<Folder, Node>({
-        isParent(node): node is Folder {
-          return isFolder(node);
-        },
-        predicate(node) {
-          return self.filterFn(node);
-        },
-      });
-      (<any>globalThis).filtered_bookmarks = f;
-      return f;
-    },
-
     filterFn(): (node: Window | Tab | Node) => boolean {
       if (!this.searchText) return _ => true;
       const matcher = textMatcher(this.searchText);
@@ -239,19 +209,15 @@ export default defineComponent({
       return the.model.bookmarks.stash_root_warning.value;
     },
     targetWindow() {
-      const m = the.model.tabs;
-      if (!m.targetWindow.value) return undefined;
-      return this.filteredTabs.wrappedParent(m.targetWindow.value);
+      return the.model.tabs.targetWindow.value;
     },
     tabs(): readonly Tab[] {
       const m = the.model.tabs;
       if (m.targetWindow.value === undefined) return [];
       return m.targetWindow.value.children;
     },
-    stashRoot(): FilteredParent<Folder, Node> | undefined {
-      const root = the.model.bookmarks.stash_root.value;
-      if (!root) return undefined;
-      return this.filteredBookmarks.wrappedParent(root);
+    stashRoot(): Folder | undefined {
+      return the.model.bookmarks.stash_root.value;
     },
 
     recently_updated(): undefined | "features" | "fixes" {
@@ -280,7 +246,7 @@ export default defineComponent({
     },
 
     counts(): FolderStats {
-      const stats = this.stashRoot?.unfiltered.$recursiveStats;
+      const stats = this.stashRoot?.$recursiveStats;
       if (!stats) return {bookmarkCount: 0, folderCount: 0, selectedCount: 0};
       return stats;
     },
@@ -297,7 +263,7 @@ export default defineComponent({
         discarded = 0,
         hidden = 0;
       for (const tab of this.tabs) {
-        if (tab.position?.parent !== this.targetWindow?.unfiltered) continue;
+        if (tab.position?.parent !== this.targetWindow) continue;
         if (tab.hidden) {
           hidden += 1;
         } else if (tab.discarded) {
@@ -370,6 +336,12 @@ export default defineComponent({
     */
   },
 
+  watch: {
+    filterFn() {
+      the.filter_fn.value = this.filterFn;
+    },
+  },
+
   methods: {
     pageref,
 
@@ -377,7 +349,7 @@ export default defineComponent({
       this.collapsed = !this.collapsed;
       const metadata = the.model.bookmark_metadata;
       metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
-      for (const f of this.stashRoot?.unfiltered.children || []) {
+      for (const f of this.stashRoot?.children || []) {
         metadata.setCollapsed(f.id, this.collapsed);
       }
     },

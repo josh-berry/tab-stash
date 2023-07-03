@@ -50,8 +50,7 @@
     <select-folder
       v-if="stashRoot"
       class="menu-scrollable-list"
-      :tree="filteredTree"
-      :folder="filteredTree.wrappedParent(stashRoot)"
+      :folder="stashRoot"
       :tooltips="
         f =>
           `Move to &quot;${friendlyFolderName(
@@ -80,13 +79,13 @@ import {defineComponent} from "vue";
 import {altKeyName, textMatcher} from "../util";
 
 import the from "@/globals-ui";
+import {TreeFilter} from "@/model/tree-filter";
 import {
   friendlyFolderName,
   isFolder,
   type Folder,
   type Node,
 } from "../model/bookmarks";
-import {FilteredTree} from "../model/filtered-tree";
 
 import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";
@@ -105,23 +104,25 @@ export default defineComponent({
     searchText: "",
   }),
 
-  computed: {
-    altKey: altKeyName,
-
-    stashRoot(): Folder | undefined {
-      return the.model.bookmarks.stash_root.value;
-    },
-
-    filteredTree(): FilteredTree<Folder, Node> {
-      const self = this;
-      return new FilteredTree<Folder, Node>({
+  provide() {
+    const self = this;
+    return {
+      bookmark_filter: new TreeFilter<Folder, Node>({
         isParent(node): node is Folder {
           return isFolder(node);
         },
         predicate(node) {
           return isFolder(node) && self.filter(friendlyFolderName(node.title));
         },
-      });
+      }),
+    };
+  },
+
+  computed: {
+    altKey: altKeyName,
+
+    stashRoot(): Folder | undefined {
+      return the.model.bookmarks.stash_root.value;
     },
 
     selectedCount(): number {

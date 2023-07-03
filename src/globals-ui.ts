@@ -1,5 +1,6 @@
 // istanbul ignore file -- global state for the UI
 
+import {ref} from "vue";
 import browser from "webextension-polyfill";
 
 import {KVSCache} from "@/datastore/kvs";
@@ -8,10 +9,35 @@ import * as M from "@/model";
 import type {BookmarkMetadata} from "@/model/bookmark-metadata";
 import type {Favicon} from "@/model/favicons";
 import {resolveNamed} from "@/util";
+import {isFolder, type Folder, type Node} from "./model/bookmarks";
+import type {Tab, Window} from "./model/tabs";
+import {TreeFilter} from "./model/tree-filter";
+
+const filter_fn = ref((_: Window | Tab | Node) => true as boolean);
 
 const the = {
   version: undefined! as string,
   model: undefined! as M.Model,
+
+  filter_fn,
+
+  bookmark_filter: new TreeFilter<Folder, Node>({
+    isParent(node): node is Folder {
+      return isFolder(node);
+    },
+    predicate(node) {
+      return filter_fn.value(node);
+    },
+  }),
+
+  tab_filter: new TreeFilter<Window, Tab>({
+    isParent(node): node is Window {
+      return "children" in node;
+    },
+    predicate(node) {
+      return filter_fn.value(node);
+    },
+  }),
 };
 
 (<any>globalThis).the = the;

@@ -4,15 +4,15 @@
       'action-container': true,
       'forest-item': true,
       selectable: true,
-      open: !tab.unfiltered.hidden,
-      active: !!tab.unfiltered.active,
-      discarded: tab.unfiltered.discarded,
+      open: !tab.hidden,
+      active: !!tab.active,
+      discarded: tab.discarded,
       loading: isLoading,
       stashed: stashedIn.length > 0,
-      selected: tab.unfiltered.$selected,
-      'no-match': !tab.isMatching,
+      selected: tab.$selected,
+      'no-match': !filterInfo.isMatching,
     }"
-    :title="tab.unfiltered.title"
+    :title="tab.title"
     :data-container-color="containerColor"
   >
     <item-icon
@@ -24,19 +24,19 @@
       default-icon="tab"
       :src="favIcon"
       selectable
-      :selected="tab.unfiltered.$selected"
+      :selected="tab.$selected"
       @click.prevent.stop="select"
     />
 
     <a
       class="forest-title"
-      :href="tab.unfiltered.url"
+      :href="tab.url"
       target="_blank"
       draggable="false"
       ref="a"
       @click.left.prevent.stop="open"
       @auxclick.middle.exact.prevent.stop="remove"
-      >{{ tab.unfiltered.title }}</a
+      >{{ tab.title }}</a
     >
 
     <span
@@ -70,7 +70,6 @@ import {altKeyName, bgKeyName, required} from "../util";
 import the from "@/globals-ui";
 import {friendlyFolderName} from "../model/bookmarks";
 import type {Container} from "../model/containers";
-import type {FilteredChild} from "../model/filtered-tree";
 import type {Tab, Window} from "../model/tabs";
 
 import ItemIcon from "../components/item-icon.vue";
@@ -79,52 +78,52 @@ export default defineComponent({
   components: {ItemIcon},
 
   props: {
-    tab: required(Object as PropType<FilteredChild<Window, Tab>>),
+    tab: required(Object as PropType<Tab>),
   },
 
   computed: {
+    filterInfo() {
+      return the.tab_filter.info(this.tab);
+    },
+
     altKey: altKeyName,
     bgKey: bgKeyName,
     targetWindow(): Window | undefined {
       return the.model.tabs.targetWindow.value;
     },
     favIcon(): string {
-      if (this.tab.unfiltered.$selected) {
+      if (this.tab.$selected) {
         return "";
-      } else if (this.tab.unfiltered.favIconUrl) {
-        return this.tab.unfiltered.favIconUrl;
+      } else if (this.tab.favIconUrl) {
+        return this.tab.favIconUrl;
       }
       return (
-        the.model.favicons.getIfExists(this.tab.unfiltered.url)?.value
-          ?.favIconUrl ?? ""
+        the.model.favicons.getIfExists(this.tab.url)?.value?.favIconUrl ?? ""
       );
     },
     isStashable(): boolean {
-      const t = this.tab.unfiltered;
+      const t = this.tab;
       return !t.hidden && !t.pinned && the.model.isURLStashable(t.url);
     },
     isLoading(): boolean {
-      return this.tab.unfiltered.status === "loading";
+      return this.tab.status === "loading";
     },
     isActive(): boolean {
-      return (
-        this.tab.unfiltered.active &&
-        this.tab.unfiltered.position?.parent === this.targetWindow
-      );
+      return this.tab.active && this.tab.position?.parent === this.targetWindow;
     },
     stashedIn(): string[] {
       // Micro-optimizations - if the URL changes quickly, we don't want
       // to dig around in the bookmarks repeatedly.
       if (this.isLoading) return [];
-      if (!this.tab.unfiltered.url) return [];
+      if (!this.tab.url) return [];
 
       return the.model.bookmarks
-        .foldersInStashContainingURL(this.tab.unfiltered.url)
+        .foldersInStashContainingURL(this.tab.url)
         .map(f => friendlyFolderName(f.title));
     },
     container(): Container | undefined {
-      if (this.tab.unfiltered.cookieStoreId === undefined) return;
-      return the.model.containers.container(this.tab.unfiltered.cookieStoreId);
+      if (this.tab.cookieStoreId === undefined) return;
+      return the.model.containers.container(this.tab.cookieStoreId);
     },
     containerColor(): string | undefined {
       return this.container?.color;
@@ -141,7 +140,7 @@ export default defineComponent({
         await the.model.selection.toggleSelectFromEvent(
           ev,
           the.model.tabs,
-          this.tab.unfiltered,
+          this.tab,
         );
       });
     },
@@ -149,7 +148,7 @@ export default defineComponent({
     stash(ev: MouseEvent) {
       this.attempt(async () => {
         await the.model.putItemsInFolder({
-          items: the.model.copyIf(ev.altKey, [this.tab.unfiltered]),
+          items: the.model.copyIf(ev.altKey, [this.tab]),
           toFolderId: (await the.model.ensureRecentUnnamedFolder()).id,
         });
       });
@@ -158,13 +157,13 @@ export default defineComponent({
     open(ev: MouseEvent) {
       this.attempt(async () => {
         (<HTMLElement>this.$refs.a).blur();
-        await browser.tabs.update(this.tab.unfiltered.id, {active: true});
+        await browser.tabs.update(this.tab.id, {active: true});
       });
     },
 
     remove() {
       this.attempt(async () => {
-        await the.model.tabs.remove([this.tab.unfiltered.id]);
+        await the.model.tabs.remove([this.tab.id]);
       });
     },
   },

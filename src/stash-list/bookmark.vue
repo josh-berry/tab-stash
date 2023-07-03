@@ -15,10 +15,10 @@
       open: tabState.open,
       active: tabState.active,
       loading: tabState.loading,
-      selected: bookmark.unfiltered.$selected,
-      'no-match': !bookmark.isMatching,
+      selected: bookmark.$selected,
+      'no-match': !filterInfo.isMatching,
     }"
-    :title="bookmark.unfiltered.title"
+    :title="bookmark.title"
     :data-container-color="related_container_color"
   >
     <item-icon
@@ -28,30 +28,28 @@
         select: true,
       }"
       default-icon="tab"
-      :src="
-        !bookmark.unfiltered.$selected ? favicon?.value?.favIconUrl || '' : ''
-      "
+      :src="!bookmark.$selected ? favicon?.value?.favIconUrl || '' : ''"
       selectable
-      :selected="bookmark.unfiltered.$selected"
+      :selected="bookmark.$selected"
       @click.prevent.stop="select"
     />
 
     <a
       v-if="!isRenaming"
       class="forest-title"
-      :href="bookmark.unfiltered.url"
+      :href="bookmark.url"
       target="_blank"
       draggable="false"
       ref="link"
       @click.left.prevent.stop="open"
       @auxclick.middle.exact.prevent.stop="closeOrHideOrOpen"
     >
-      {{ bookmark.unfiltered.title }}
+      {{ bookmark.title }}
     </a>
     <async-text-input
       v-else
       class="forest-title editable"
-      :value="bookmark.unfiltered.title"
+      :value="bookmark.title"
       :defaultValue="defaultTitle"
       :save="rename"
       @done="isRenaming = false"
@@ -90,17 +88,13 @@ import {defineComponent, type PropType} from "vue";
 import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
 
 import the from "@/globals-ui";
-import type {Bookmark, Folder, Node} from "../model/bookmarks";
+import type {FilterInfo} from "@/model/tree-filter";
+import type {Bookmark} from "../model/bookmarks";
 import type {FaviconEntry} from "../model/favicons";
-import type {FilteredChild} from "../model/filtered-tree";
 import type {Tab} from "../model/tabs";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ItemIcon from "../components/item-icon.vue";
-
-export type FilteredBookmark = FilteredChild<Folder, Node> & {
-  readonly unfiltered: Bookmark;
-};
 
 type RelatedTabState = {
   open: boolean;
@@ -114,19 +108,23 @@ export default defineComponent({
   components: {ItemIcon, AsyncTextInput},
 
   props: {
-    bookmark: required(Object as PropType<FilteredBookmark>),
+    bookmark: required(Object as PropType<Bookmark>),
   },
 
   computed: {
     altkey: altKeyName,
     bgKey: bgKeyName,
 
+    filterInfo(): FilterInfo {
+      return the.bookmark_filter.info(this.bookmark);
+    },
+
     relatedTabs(): readonly Tab[] {
       const tab_model = the.model.tabs;
       const target_window = tab_model.targetWindow.value;
-      return Array.from(
-        tab_model.tabsWithURL(this.bookmark.unfiltered.url),
-      ).filter(t => t.position?.parent.id === target_window);
+      return Array.from(tab_model.tabsWithURL(this.bookmark.url)).filter(
+        t => t.position?.parent === target_window,
+      );
     },
 
     related_container_color(): string | undefined {
@@ -177,15 +175,13 @@ export default defineComponent({
 
     defaultTitle(): string {
       return (
-        this.tabState.title ??
-        this.favicon?.value?.title ??
-        this.bookmark.unfiltered.title
+        this.tabState.title ?? this.favicon?.value?.title ?? this.bookmark.title
       );
     },
 
     favicon(): FaviconEntry | null {
-      if (!this.bookmark.unfiltered.url) return null;
-      return the.model.favicons.get(this.bookmark.unfiltered.url);
+      if (!this.bookmark.url) return null;
+      return the.model.favicons.get(this.bookmark.url);
     },
   },
 
@@ -199,7 +195,7 @@ export default defineComponent({
         await the.model.selection.toggleSelectFromEvent(
           ev,
           the.model.bookmarks,
-          this.bookmark.unfiltered,
+          this.bookmark,
         );
       });
     },
@@ -208,18 +204,16 @@ export default defineComponent({
       the.model.attempt(async () => {
         (<HTMLElement>this.$refs.link).blur();
 
-        if (!this.bookmark.unfiltered.url) return;
+        if (!this.bookmark.url) return;
         const bg = bgKeyPressed(ev);
 
-        await the.model.restoreTabs([this.bookmark.unfiltered], {
-          background: bg,
-        });
+        await the.model.restoreTabs([this.bookmark], {background: bg});
       });
     },
 
     remove() {
       the.model.attempt(async () => {
-        await the.model.deleteBookmark(this.bookmark.unfiltered);
+        await the.model.deleteBookmark(this.bookmark);
       });
     },
 
@@ -233,8 +227,8 @@ export default defineComponent({
 
         // If bookmark has no open tabs, open a new one in the background.
         if (openTabs.length < 1) {
-          if (!this.bookmark.unfiltered.url) return;
-          return await the.model.restoreTabs([this.bookmark.unfiltered], {
+          if (!this.bookmark.url) return;
+          return await the.model.restoreTabs([this.bookmark], {
             background: true,
           });
         }
@@ -246,19 +240,19 @@ export default defineComponent({
 
     openRemove(ev: MouseEvent) {
       the.model.attempt(async () => {
-        if (!this.bookmark.unfiltered.url) return;
+        if (!this.bookmark.url) return;
         const bg = bgKeyPressed(ev);
-        await the.model.restoreTabs([this.bookmark.unfiltered], {
+        await the.model.restoreTabs([this.bookmark], {
           background: bg,
         });
-        await the.model.deleteBookmark(this.bookmark.unfiltered);
+        await the.model.deleteBookmark(this.bookmark);
       });
     },
 
     rename(newName: string) {
       return the.model.attempt(async () => {
         await the.model.bookmarks.rename(
-          this.bookmark.unfiltered,
+          this.bookmark,
           newName || this.defaultTitle,
         );
       });

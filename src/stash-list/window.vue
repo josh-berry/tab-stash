@@ -79,14 +79,14 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   <dnd-list
     :class="{'forest-children': true, collapsed}"
     v-model="targetWindow.children"
-    :item-key="(item: FilteredChild<Window, Tab>) => item.unfiltered.id"
+    :item-key="(item: Tab) => item.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
-    <template #item="{item}: {item: FilteredChild<Window, Tab>}">
-      <tab v-if="isValidChild(item.unfiltered)" :tab="item" />
+    <template #item="{item}: {item: Tab}">
+      <tab v-if="isValidChild(item)" :tab="item" />
     </template>
   </dnd-list>
 
@@ -124,7 +124,6 @@ import type {DragAction, DropAction} from "../components/dnd-list";
 
 import the from "@/globals-ui";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import type {FilteredChild, FilteredParent} from "../model/filtered-tree";
 import type {SyncState} from "../model/options";
 import type {Tab, Window} from "../model/tabs";
 
@@ -136,6 +135,7 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
+import type {FilterInfo} from "@/model/tree-filter";
 import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
@@ -157,7 +157,7 @@ export default defineComponent({
 
   props: {
     // Window contents
-    targetWindow: required(Object as PropType<FilteredParent<Window, Tab>>),
+    targetWindow: required(Object as PropType<Window>),
 
     // Metadata (for collapsed state)
     metadata: required(Object as PropType<BookmarkMetadataEntry>),
@@ -172,12 +172,16 @@ export default defineComponent({
   computed: {
     altKey: altKeyName,
 
+    filterInfo(): FilterInfo {
+      return the.tab_filter.info(this.targetWindow);
+    },
+
     accepts() {
       return ACCEPTS;
     },
 
     tabs(): Tab[] {
-      return this.targetWindow.children.map(t => t.unfiltered as Tab);
+      return this.targetWindow.children;
     },
 
     showStashedTabs(): boolean {
@@ -192,7 +196,7 @@ export default defineComponent({
     tooltip(): string {
       return (
         `${
-          this.targetWindow.children.length - this.targetWindow.filteredCount
+          this.targetWindow.children.length - this.filterInfo.nonMatchingCount
         } ${this.title}\n` + `Click to change which tabs are shown.`
       );
     },
@@ -209,13 +213,12 @@ export default defineComponent({
     // We ignore the built-in filteredCount because it includes invalid things
     // like hidden tabs
     filteredCount(): number {
-      return this.targetWindow.children.reduce(
-        (count, t) =>
-          !("children" in t) && !t.isMatching && this.isValidChild(t.unfiltered)
-            ? count + 1
-            : count,
-        0,
-      );
+      let count = 0;
+      for (const c of this.targetWindow.children) {
+        const i = the.tab_filter.info(c);
+        if (this.isValidChild(c) && !i.isMatching) ++count;
+      }
+      return count;
     },
 
     selectedCount(): number {
@@ -250,11 +253,12 @@ export default defineComponent({
       });
     },
 
-    childClasses(t: FilteredChild<Window, Tab>): Record<string, boolean> {
+    childClasses(t: Tab): Record<string, boolean> {
+      const info = the.tab_filter.info(t);
       return {
         hidden: !(
-          this.isValidChild(t.unfiltered) &&
-          (this.showFiltered || t.isMatching || t.unfiltered.$selected)
+          this.isValidChild(t) &&
+          (this.showFiltered || info.isMatching || t.$selected)
         ),
       };
     },
@@ -281,7 +285,7 @@ export default defineComponent({
         // isValidChild() will exclude already-stashed tabs if the user is in
         // "Unstashed Tabs" mode (i.e. ! this.showStashedTabs).
         const stashable_children = the.model
-          .stashableTabsInWindow(this.targetWindow.unfiltered.id)
+          .stashableTabsInWindow(this.targetWindow.id)
           .filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
@@ -388,10 +392,10 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<FilteredChild<Window, Tab>>) {
-      const items = ev.value.unfiltered.$selected
+    drag(ev: DragAction<Tab>) {
+      const items = ev.value.$selected
         ? Array.from(the.model.selectedItems())
-        : [ev.value.unfiltered];
+        : [ev.value];
       sendDragData(ev.dataTransfer, items);
     },
 
