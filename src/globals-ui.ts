@@ -1,16 +1,23 @@
-// An instantiation of the model for use in the UI (as opposed to the background
-// context)
+// istanbul ignore file -- global state for the UI
 
-// istanbul ignore file
-import {KVSCache} from "./datastore/kvs";
-import KVSClient from "./datastore/kvs/client";
-import {resolveNamed} from "./util";
+import browser from "webextension-polyfill";
 
-import * as M from "./model";
-import type {BookmarkMetadata} from "./model/bookmark-metadata";
-import type {Favicon} from "./model/favicons";
+import {KVSCache} from "@/datastore/kvs";
+import KVSClient from "@/datastore/kvs/client";
+import * as M from "@/model";
+import type {BookmarkMetadata} from "@/model/bookmark-metadata";
+import type {Favicon} from "@/model/favicons";
+import {resolveNamed} from "@/util";
 
-export default async function (): Promise<M.Model> {
+const the = {
+  version: undefined! as string,
+  model: undefined! as M.Model,
+};
+
+(<any>globalThis).the = the;
+export default the;
+
+export async function init() {
   const sources = await resolveNamed({
     browser_settings: M.BrowserSettings.Model.live(),
     options: M.Options.Model.live(),
@@ -22,7 +29,9 @@ export default async function (): Promise<M.Model> {
     ),
   });
 
-  const model = new M.Model({
+  the.version = (await browser.management.getSelf()).version;
+
+  the.model = new M.Model({
     ...sources,
     favicons: new M.Favicons.Model(
       new KVSCache(new KVSClient<string, Favicon>("favicons")),
@@ -33,6 +42,4 @@ export default async function (): Promise<M.Model> {
       ),
     ),
   });
-  (<any>globalThis).model = model;
-  return model;
 }

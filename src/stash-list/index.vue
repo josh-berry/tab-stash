@@ -40,11 +40,7 @@
       <Notification
         key="recently-deleted"
         v-if="recently_deleted !== 0"
-        @activate="
-          typeof recently_deleted === 'object'
-            ? model().undelete(recently_deleted)
-            : go('deleted-items.html')
-        "
+        @activate="onDeleteNotifActivated"
       >
         <span v-if="typeof recently_deleted === 'object'">
           Deleted "{{ recentlyDeletedTitle }}". Undo?
@@ -143,8 +139,8 @@
 import {defineComponent} from "vue";
 import browser from "webextension-polyfill";
 
+import the from "@/globals-ui";
 import {pageref} from "../launch-vue";
-import type {Model} from "../model";
 import {
   CUR_WINDOW_MD_ID,
   type BookmarkMetadataEntry,
@@ -158,7 +154,7 @@ import {
 } from "../model/bookmarks";
 import type {Tab, Window} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
-import {TaskMonitor, parseVersion, required, textMatcher} from "../util";
+import {TaskMonitor, parseVersion, textMatcher} from "../util";
 
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
@@ -188,10 +184,6 @@ export default defineComponent({
     Window: WindowVue,
   },
 
-  props: {
-    my_version: required(String),
-  },
-
   data: () => ({
     collapsed: false,
     searchText: "",
@@ -199,6 +191,10 @@ export default defineComponent({
   }),
 
   computed: {
+    my_version(): string {
+      return the.version;
+    },
+
     view(): string {
       return document.documentElement.dataset!.view ?? "tab";
     },
@@ -240,27 +236,26 @@ export default defineComponent({
     },
 
     stash_root_warning(): {text: string; help: () => void} | undefined {
-      return this.model().bookmarks.stash_root_warning.value;
+      return the.model.bookmarks.stash_root_warning.value;
     },
     targetWindow() {
-      const m = this.model().tabs;
+      const m = the.model.tabs;
       if (!m.targetWindow.value) return undefined;
       return this.filteredTabs.wrappedParent(m.targetWindow.value);
     },
     tabs(): readonly Tab[] {
-      const m = this.model().tabs;
+      const m = the.model.tabs;
       if (m.targetWindow.value === undefined) return [];
       return m.targetWindow.value.children;
     },
     stashRoot(): FilteredParent<Folder, Node> | undefined {
-      const root = this.model().bookmarks.stash_root.value;
+      const root = the.model.bookmarks.stash_root.value;
       if (!root) return undefined;
       return this.filteredBookmarks.wrappedParent(root);
     },
 
     recently_updated(): undefined | "features" | "fixes" {
-      const last_notified =
-        this.model().options.local.state.last_notified_version;
+      const last_notified = the.model.options.local.state.last_notified_version;
       if (last_notified === this.my_version) return undefined;
 
       const my = parseVersion(this.my_version);
@@ -271,7 +266,7 @@ export default defineComponent({
     },
 
     recently_deleted() {
-      return this.model().deleted_items.state.recentlyDeleted;
+      return the.model.deleted_items.state.recentlyDeleted;
     },
     recentlyDeletedTitle() {
       if (typeof this.recently_deleted === "object") {
@@ -281,7 +276,7 @@ export default defineComponent({
     },
 
     selection_active(): boolean {
-      return this.model().selection.selectedCount.value > 0;
+      return the.model.selection.selectedCount.value > 0;
     },
 
     counts(): FolderStats {
@@ -327,11 +322,11 @@ export default defineComponent({
     },
 
     curWindowMetadata(): BookmarkMetadataEntry {
-      return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
+      return the.model.bookmark_metadata.get(CUR_WINDOW_MD_ID);
     },
 
     showCrashReport(): boolean {
-      return this.model().options.showCrashReport.value;
+      return the.model.options.showCrashReport.value;
     },
   },
 
@@ -378,16 +373,20 @@ export default defineComponent({
   methods: {
     pageref,
 
-    model(): Model {
-      return <any>undefined;
-    }, // dummy; overridden in index.ts
-
     collapseAll() {
       this.collapsed = !this.collapsed;
-      const metadata = this.model().bookmark_metadata;
+      const metadata = the.model.bookmark_metadata;
       metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
       for (const f of this.stashRoot?.unfiltered.children || []) {
         metadata.setCollapsed(f.id, this.collapsed);
+      }
+    },
+
+    onDeleteNotifActivated() {
+      if (typeof this.recently_deleted === "object") {
+        the.model.undelete(this.recently_deleted);
+      } else {
+        this.go("deleted-items.html");
       }
     },
 
@@ -400,7 +399,7 @@ export default defineComponent({
     },
 
     deselectAll() {
-      this.model().selection.clearSelection().catch(console.error);
+      the.model.selection.clearSelection().catch(console.error);
     },
 
     showOptions() {
@@ -408,8 +407,8 @@ export default defineComponent({
     },
 
     showTabUI() {
-      this.model().attempt(async () => {
-        await this.model().restoreTabs(
+      the.model.attempt(async () => {
+        await the.model.restoreTabs(
           [
             {
               title: "Tab Stash",
@@ -426,7 +425,7 @@ export default defineComponent({
       window.location.href = pageref(page);
     },
     hideWhatsNew() {
-      this.model().options.local.set({last_notified_version: this.my_version});
+      the.model.options.local.set({last_notified_version: this.my_version});
     },
 
     showExportDialog() {
@@ -438,9 +437,9 @@ export default defineComponent({
     },
 
     async fetchMissingFavicons() {
-      this.model().attempt(async () => {
-        const favicons = this.model().favicons;
-        const urls = this.model().bookmarks.urlsInStash();
+      the.model.attempt(async () => {
+        const favicons = the.model.favicons;
+        const urls = the.model.bookmarks.urlsInStash();
 
         // This is just an async filter :/
         for (const url of urls) {

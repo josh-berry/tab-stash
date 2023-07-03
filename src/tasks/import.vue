@@ -46,7 +46,7 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import {TaskMonitor, type Progress} from "../util";
 import {importURLs, parse, type ParseOptions} from "./import";
 
@@ -65,27 +65,21 @@ export default defineComponent({
     fetchIconsAndTitles: true,
   }),
 
-  inject: ["$model"],
-
   mounted() {
     (<HTMLElement>this.$refs.data).focus();
   },
 
   methods: {
-    model(): Model {
-      return (<any>this).$model as Model;
-    },
-
     start() {
-      this.model().attempt(async () => {
-        const folders = parse(this.$refs.data as Element, this.model(), {
+      the.model.attempt(async () => {
+        const folders = parse(this.$refs.data as Element, the.model, {
           splitOn: this.splitOn,
         });
 
         try {
           const task = TaskMonitor.run(task =>
             importURLs({
-              model: this.model(),
+              model: the.model,
               folders,
               fetchIconsAndTitles: this.fetchIconsAndTitles,
               task,

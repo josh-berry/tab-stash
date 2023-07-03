@@ -122,7 +122,7 @@ import {altKeyName, filterMap, required} from "../util";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {FilteredChild, FilteredParent} from "../model/filtered-tree";
 import type {SyncState} from "../model/options";
@@ -155,8 +155,6 @@ export default defineComponent({
     ShowFilteredItem,
   },
 
-  inject: ["$model"],
-
   props: {
     // Window contents
     targetWindow: required(Object as PropType<FilteredParent<Window, Tab>>),
@@ -183,7 +181,7 @@ export default defineComponent({
     },
 
     showStashedTabs(): boolean {
-      return this.model().options.sync.state.show_open_tabs === "all";
+      return the.model.options.sync.state.show_open_tabs === "all";
     },
 
     title(): string {
@@ -204,10 +202,7 @@ export default defineComponent({
         return !!this.metadata.value?.collapsed;
       },
       set(collapsed: boolean) {
-        this.model().bookmark_metadata.setCollapsed(
-          this.metadata.key,
-          collapsed,
-        );
+        the.model.bookmark_metadata.setCollapsed(this.metadata.key, collapsed);
       },
     },
 
@@ -224,34 +219,30 @@ export default defineComponent({
     },
 
     selectedCount(): number {
-      return this.model().selection.selectedCount.value;
+      return the.model.selection.selectedCount.value;
     },
 
     shouldConfirmCloseOpenTabs: {
       get(): boolean {
-        return this.model().options.local.state.confirm_close_open_tabs;
+        return the.model.options.local.state.confirm_close_open_tabs;
       },
 
       set(v: boolean) {
-        this.model().attempt(() =>
-          this.model().options.local.set({confirm_close_open_tabs: v}),
+        the.model.attempt(() =>
+          the.model.options.local.set({confirm_close_open_tabs: v}),
         );
       },
     },
   },
 
   methods: {
-    // TODO make Vue injection play nice with TypeScript typing...
-    model() {
-      return (<any>this).$model as Model;
-    },
     attempt(fn: () => Promise<void>) {
-      this.model().attempt(fn);
+      the.model.attempt(fn);
     },
 
     toggleMode() {
       this.attempt(async () => {
-        const options = this.model().options;
+        const options = the.model.options;
         await options.sync.set({
           show_open_tabs:
             NEXT_SHOW_OPEN_TAB_STATE[options.sync.state.show_open_tabs],
@@ -269,75 +260,71 @@ export default defineComponent({
     },
 
     isValidChild(t: Tab): boolean {
-      const model = this.model();
       if (t.hidden || t.pinned) return false;
       return (
         this.showStashedTabs ||
-        (model.isURLStashable(t.url) && !model.bookmarks.isURLStashed(t.url))
+        (the.model.isURLStashable(t.url) &&
+          !the.model.bookmarks.isURLStashed(t.url))
       );
     },
 
     async newGroup() {
       this.attempt(async () => {
-        await this.model().bookmarks.createStashFolder();
+        await the.model.bookmarks.createStashFolder();
       });
     },
 
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const model = this.model();
         // NOTE: isValidChild() is slightly different from
         // stashableTabsInWindow()--we need to check both, because
         // isValidChild() will exclude already-stashed tabs if the user is in
         // "Unstashed Tabs" mode (i.e. ! this.showStashedTabs).
-        const stashable_children = model
+        const stashable_children = the.model
           .stashableTabsInWindow(this.targetWindow.unfiltered.id)
           .filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
-        await model.putItemsInFolder({
-          items: model.copyIf(ev.altKey, stashable_children),
-          toFolderId: (await model.bookmarks.createStashFolder()).id,
+        await the.model.putItemsInFolder({
+          items: the.model.copyIf(ev.altKey, stashable_children),
+          toFolderId: (await the.model.bookmarks.createStashFolder()).id,
         });
       });
     },
 
     async remove() {
       this.attempt(async () => {
-        const model = this.model();
         // This filter keeps the active tab if it's the Tab Stash tab, or a
         // new tab (so we can avoid creating new tabs unnecessarily).
         const to_remove = this.tabs
-          .filter(t => !t.active || model.isURLStashable(t.url))
-          .filter(t => !model.bookmarks.isURLStashed(t.url));
+          .filter(t => !t.active || the.model.isURLStashable(t.url))
+          .filter(t => !the.model.bookmarks.isURLStashed(t.url));
         if (!(await this.confirmRemove(to_remove.length))) return;
-        await model.tabs.remove(to_remove.map(t => t.id));
+        await the.model.tabs.remove(to_remove.map(t => t.id));
       });
     },
 
     async removeStashed() {
       this.attempt(async () => {
-        const model = this.model();
         const tabIds = this.tabs
           .filter(
-            t => !t.hidden && !t.pinned && model.bookmarks.isURLStashed(t.url),
+            t =>
+              !t.hidden && !t.pinned && the.model.bookmarks.isURLStashed(t.url),
           )
           .map(t => t.id);
         if (!(await this.confirmRemove(tabIds.length))) return;
-        await model.hideOrCloseStashedTabs(tabIds);
+        await the.model.hideOrCloseStashedTabs(tabIds);
       });
     },
 
     async removeOpen(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const model = this.model();
-
         if (ev.altKey) {
           // Discard hidden/stashed tabs to free memory.
           const tabs = this.tabs.filter(
-            t => t.hidden && model.bookmarks.isURLStashed(t.url),
+            t => t.hidden && the.model.bookmarks.isURLStashed(t.url),
           );
-          await model.tabs.remove(filterMap(tabs, t => t?.id));
+          await the.model.tabs.remove(filterMap(tabs, t => t?.id));
         } else {
           // Closes ALL open tabs (stashed and unstashed).
           //
@@ -348,22 +335,22 @@ export default defineComponent({
           // new-tab page or the Tab Stash page.)
           const tabs = this.tabs.filter(
             t =>
-              (!t.active || model.isURLStashable(t.url)) &&
+              (!t.active || the.model.isURLStashable(t.url)) &&
               !t.hidden &&
               !t.pinned,
           );
           const hide_tabs = tabs
-            .filter(t => model.bookmarks.isURLStashed(t.url))
+            .filter(t => the.model.bookmarks.isURLStashed(t.url))
             .map(t => t.id);
           const close_tabs = tabs
-            .filter(t => !model.bookmarks.isURLStashed(t.url))
+            .filter(t => !the.model.bookmarks.isURLStashed(t.url))
             .map(t => t.id);
 
           if (!(await this.confirmRemove(tabs.length))) return;
 
-          await model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
+          await the.model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
 
-          model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+          the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
           browser.tabs.remove(close_tabs).catch(console.log);
         }
       });
@@ -384,17 +371,17 @@ export default defineComponent({
     },
 
     copyToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: true}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
     moveToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: false}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: false}));
     },
 
     moveToNewGroup(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const folder = await this.model().bookmarks.createStashFolder();
-        await this.model().putSelectedInFolder({
+        const folder = await the.model.bookmarks.createStashFolder();
+        await the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolderId: folder.id,
         });
@@ -403,17 +390,16 @@ export default defineComponent({
 
     drag(ev: DragAction<FilteredChild<Window, Tab>>) {
       const items = ev.value.unfiltered.$selected
-        ? Array.from(this.model().selectedItems())
+        ? Array.from(the.model.selectedItems())
         : [ev.value.unfiltered];
       sendDragData(ev.dataTransfer, items);
     },
 
     async drop(ev: DropAction) {
-      const model = this.model();
-      const items = recvDragData(ev.dataTransfer, model);
+      const items = recvDragData(ev.dataTransfer, the.model);
 
-      await model.attempt(() =>
-        model.putItemsInWindow({
+      await the.model.attempt(() =>
+        the.model.putItemsInWindow({
           items,
           toIndex: ev.toIndex,
         }),

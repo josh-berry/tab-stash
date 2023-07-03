@@ -75,7 +75,7 @@
 </template>
 
 <script lang="ts">
-import {inject, ref, type Ref} from "vue";
+import {ref, type Ref} from "vue";
 import browser from "webextension-polyfill";
 
 const TROUBLESHOOTING_URL =
@@ -104,11 +104,9 @@ if (browser.management.getSelf) {
 </script>
 
 <script setup lang="ts">
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import {clearErrorLog, errorLog, logErrorsFrom} from "../util/oops";
 import Notification from "./notification.vue";
-
-const model = inject<Model>("$model")!;
 
 const err_log_el: Ref<object | null> = ref(null);
 
@@ -150,7 +148,9 @@ const reportCrash = () => {
 
 const hideCrashReports = (ms: number) =>
   logErrorsFrom(async () => {
-    await model.options.local.set({hide_crash_reports_until: Date.now() + ms});
+    await the.model.options.local.set({
+      hide_crash_reports_until: Date.now() + ms,
+    });
     clearErrorLog();
   });
 </script>

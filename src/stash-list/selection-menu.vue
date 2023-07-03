@@ -48,10 +48,10 @@
     <hr />
 
     <select-folder
-      v-if="model().bookmarks.stash_root.value"
+      v-if="stashRoot"
       class="menu-scrollable-list"
       :tree="filteredTree"
-      :folder="filteredTree.wrappedParent(model().bookmarks.stash_root.value!)"
+      :folder="filteredTree.wrappedParent(stashRoot)"
       :tooltips="
         f =>
           `Move to &quot;${friendlyFolderName(
@@ -79,7 +79,7 @@ import {defineComponent} from "vue";
 
 import {altKeyName, textMatcher} from "../util";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import {
   friendlyFolderName,
   isFolder,
@@ -105,10 +105,12 @@ export default defineComponent({
     searchText: "",
   }),
 
-  inject: ["$model"],
-
   computed: {
     altKey: altKeyName,
+
+    stashRoot(): Folder | undefined {
+      return the.model.bookmarks.stash_root.value;
+    },
 
     filteredTree(): FilteredTree<Folder, Node> {
       const self = this;
@@ -123,7 +125,7 @@ export default defineComponent({
     },
 
     selectedCount(): number {
-      return this.model().selection.selectedCount.value;
+      return the.model.selection.selectedCount.value;
     },
 
     filter(): (text: string) => boolean {
@@ -143,11 +145,8 @@ export default defineComponent({
   },
 
   methods: {
-    model(): Model {
-      return (<any>this).$model as Model;
-    },
     attempt(fn: () => Promise<void>) {
-      this.model().attempt(fn);
+      the.model.attempt(fn);
     },
 
     friendlyFolderName,
@@ -163,13 +162,12 @@ export default defineComponent({
 
     create(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const model = this.model();
         let folder: Folder;
         if (!this.searchText) {
-          folder = await model.bookmarks.createStashFolder();
+          folder = await the.model.bookmarks.createStashFolder();
         } else {
-          const stash_root = await model.bookmarks.ensureStashRoot();
-          folder = (await model.bookmarks.create({
+          const stash_root = await the.model.bookmarks.ensureStashRoot();
+          folder = (await the.model.bookmarks.create({
             parentId: stash_root.id,
             title: this.searchText,
             index: 0,
@@ -181,7 +179,7 @@ export default defineComponent({
 
     moveTo(ev: MouseEvent | KeyboardEvent, folder: Folder) {
       this.attempt(() =>
-        this.model().putSelectedInFolder({
+        the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolderId: folder.id,
         }),
@@ -189,18 +187,17 @@ export default defineComponent({
     },
 
     copyToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: true}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
     moveToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: false}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: false}));
     },
 
     remove() {
       this.attempt(async () => {
-        const model = this.model();
-        const ids = Array.from(model.selectedItems()).map(i => i.id);
-        await model.deleteItems(ids);
+        const ids = Array.from(the.model.selectedItems()).map(i => i.id);
+        await the.model.deleteItems(ids);
       });
     },
   },

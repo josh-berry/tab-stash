@@ -30,7 +30,6 @@
 //   mutating and accessing the state in various ways that a user might want to
 //   perform.  All the business logic resides here.
 
-import {inject, type InjectionKey} from "vue";
 import browser from "webextension-polyfill";
 
 import {
@@ -139,11 +138,6 @@ export class Model {
   readonly favicons: Favicons.Model;
   readonly bookmark_metadata: BookmarkMetadata.Model;
   readonly selection: Selection.Model;
-
-  static readonly injectionKey = Symbol("model") as InjectionKey<Model>;
-  static get(): Model {
-    return inject(Model.injectionKey)!;
-  }
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;

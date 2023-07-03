@@ -47,7 +47,7 @@ import {defineComponent, nextTick} from "vue";
 
 import {filterMap} from "../util";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import {
   friendlyFolderName,
   isBookmark,
@@ -68,20 +68,18 @@ import UrlList from "./export/url-list";
 export default defineComponent({
   components: {Dialog, HtmlLinks, Markdown, OneTab, UrlList},
 
-  inject: ["$model"],
-
   emits: ["close"],
 
   props: {},
 
   computed: {
     export_folders(): ExportFolder[] | undefined {
-      const root = this.model().bookmarks.stash_root.value;
+      const root = the.model.bookmarks.stash_root.value;
       if (!root) return undefined;
-      return exportFolder(this.model().bookmarks, root).folders;
+      return exportFolder(the.model.bookmarks, root).folders;
     },
     stash(): Node[] {
-      const m = this.model().bookmarks;
+      const m = the.model.bookmarks;
       if (!m.stash_root.value) return [];
       return m.stash_root.value.children;
     },
@@ -105,10 +103,6 @@ export default defineComponent({
   },
 
   methods: {
-    model(): Model {
-      return (<any>this).$model as Model;
-    },
-
     friendlyFolderName,
     leaves(folder: Folder): Bookmark[] {
       return filterMap(folder.children, node => {
@@ -119,7 +113,7 @@ export default defineComponent({
 
     faviconFor(bm: Bookmark): string | undefined {
       if (!bm.url) return undefined;
-      return this.model().favicons.get(bm.url)?.value?.favIconUrl || undefined;
+      return the.model.favicons.get(bm.url)?.value?.favIconUrl || undefined;
     },
 
     copy() {

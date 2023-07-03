@@ -231,7 +231,7 @@ import {
   required,
 } from "../util";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import {
   friendlyFolderName,
@@ -276,8 +276,6 @@ export default defineComponent({
     ShowFilteredItem,
   },
 
-  inject: ["$model"],
-
   props: {
     folder: required(Object as PropType<FilteredParent<Folder, Node>>),
     isToplevel: Boolean,
@@ -297,15 +295,15 @@ export default defineComponent({
     },
 
     metadata(): BookmarkMetadataEntry {
-      return this.model().bookmark_metadata.get(this.folder.unfiltered.id);
+      return the.model.bookmark_metadata.get(this.folder.unfiltered.id);
     },
 
     targetWindow(): Window | undefined {
-      return this.model().tabs.targetWindow.value;
+      return the.model.tabs.targetWindow.value;
     },
 
     childrenWithTabs(): readonly NodeWithTabs[] {
-      const tab_model = this.model().tabs;
+      const tab_model = the.model.tabs;
       return this.folder.children.map(n => ({
         node: n,
         tabs:
@@ -347,17 +345,13 @@ export default defineComponent({
         return !!this.metadata.value?.collapsed;
       },
       set(collapsed: boolean) {
-        this.model().bookmark_metadata.setCollapsed(
-          this.metadata.key,
-          collapsed,
-        );
+        the.model.bookmark_metadata.setCollapsed(this.metadata.key, collapsed);
       },
     },
 
     // Used to populate a menu of tabs to select for stashing here
     unstashedOrOpenTabs(): {tab: Tab; stashedIn: string[]}[] {
-      const model = this.model();
-      const target_win = model.tabs.targetWindow.value;
+      const target_win = the.model.tabs.targetWindow.value;
       if (!target_win) return [];
 
       return target_win.children
@@ -365,13 +359,13 @@ export default defineComponent({
           t =>
             !t.pinned &&
             !t.hidden &&
-            model.isURLStashable(t.url) &&
-            (!model.bookmarks.isURLStashed(t.url) ||
-              model.options.sync.state.show_open_tabs !== "unstashed"),
+            the.model.isURLStashable(t.url) &&
+            (!the.model.bookmarks.isURLStashed(t.url) ||
+              the.model.options.sync.state.show_open_tabs !== "unstashed"),
         )
         .map(tab => ({
           tab,
-          stashedIn: model.bookmarks
+          stashedIn: the.model.bookmarks
             .foldersInStashContainingURL(tab.url)
             .map(f => friendlyFolderName(f.title)),
         }));
@@ -420,7 +414,7 @@ export default defineComponent({
     },
 
     selectedCount(): number {
-      return this.model().selection.selectedCount.value;
+      return the.model.selection.selectedCount.value;
     },
 
     canMoveIntoFolder(): boolean {
@@ -434,12 +428,8 @@ export default defineComponent({
   },
 
   methods: {
-    // TODO make Vue injection play nice with TypeScript typing...
-    model() {
-      return (<any>this).$model as Model;
-    },
     attempt(fn: () => Promise<void>): Promise<void> {
-      return this.model().attempt(fn);
+      return the.model.attempt(fn);
     },
 
     isFolder,
@@ -461,18 +451,18 @@ export default defineComponent({
       // We just snoop on the collapsed state of the first folder because it's
       // easier
       const collapsed =
-        this.model().bookmark_metadata.get(folders[0].id).value?.collapsed ||
+        the.model.bookmark_metadata.get(folders[0].id).value?.collapsed ||
         false;
       for (const f of folders) {
-        this.model().bookmark_metadata.setCollapsed(f.id, !collapsed);
+        the.model.bookmark_metadata.setCollapsed(f.id, !collapsed);
       }
     },
 
     select(ev: MouseEvent) {
-      this.model().attempt(async () => {
-        await this.model().selection.toggleSelectFromEvent(
+      the.model.attempt(async () => {
+        await the.model.selection.toggleSelectFromEvent(
           ev,
-          this.model().bookmarks,
+          the.model.bookmarks,
           this.folder.unfiltered,
         );
       });
@@ -497,29 +487,31 @@ export default defineComponent({
     },
 
     stash(ev: MouseEvent | KeyboardEvent) {
-      const model = this.model();
-      const win = model.tabs.targetWindow.value;
+      const win = the.model.tabs.targetWindow.value;
       if (!win) return;
 
-      model.attempt(
+      the.model.attempt(
         async () =>
-          await model.putItemsInFolder({
-            items: model.copyIf(ev.altKey, model.stashableTabsInWindow(win.id)),
+          await the.model.putItemsInFolder({
+            items: the.model.copyIf(
+              ev.altKey,
+              the.model.stashableTabsInWindow(win.id),
+            ),
             toFolderId: this.folder.unfiltered.id,
           }),
       );
     },
 
     stashOne(ev: MouseEvent | KeyboardEvent) {
-      const tab = this.model().tabs.activeTab();
+      const tab = the.model.tabs.activeTab();
       if (!tab) return;
       this.stashSpecificTab(ev, tab);
     },
 
     stashSpecificTab(ev: MouseEvent | KeyboardEvent, tab: Tab) {
       this.attempt(async () => {
-        await this.model().putItemsInFolder({
-          items: this.model().copyIf(ev.altKey, [tab]),
+        await the.model.putItemsInFolder({
+          items: the.model.copyIf(ev.altKey, [tab]),
           toFolderId: this.folder.unfiltered.id,
         });
       });
@@ -527,7 +519,7 @@ export default defineComponent({
 
     moveSelfToTopLevel() {
       this.attempt(async () => {
-        const model = this.model().bookmarks;
+        const model = the.model.bookmarks;
         const root = model.stash_root.value!;
 
         // We put it directly above its parent in the stash root, so it's easy
@@ -546,7 +538,7 @@ export default defineComponent({
 
     moveSelfToChild() {
       this.attempt(async () => {
-        const model = this.model().bookmarks;
+        const model = the.model.bookmarks;
         const root = model.stash_root.value!;
         const pos = this.folder.unfiltered.position!;
 
@@ -565,12 +557,11 @@ export default defineComponent({
     },
 
     move(ev: MouseEvent | KeyboardEvent) {
-      const model = this.model();
-      const win_id = model.tabs.targetWindow.value;
+      const win_id = the.model.tabs.targetWindow.value;
       if (!win_id) return;
 
-      model.attempt(() =>
-        model.putSelectedInFolder({
+      the.model.attempt(() =>
+        the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolderId: this.folder.unfiltered.id,
         }),
@@ -578,16 +569,15 @@ export default defineComponent({
     },
 
     moveToChild(ev: MouseEvent | KeyboardEvent) {
-      const model = this.model();
-      const win_id = model.tabs.targetWindow.value;
+      const win_id = the.model.tabs.targetWindow.value;
       if (!win_id) return;
 
-      model.attempt(async () => {
-        const f = await model.bookmarks.create({
+      the.model.attempt(async () => {
+        const f = await the.model.bookmarks.create({
           parentId: this.folder.unfiltered.id,
           title: genDefaultFolderName(new Date()),
         });
-        await model.putSelectedInFolder({
+        await the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolderId: f.id,
         });
@@ -596,7 +586,7 @@ export default defineComponent({
 
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        await this.model().restoreTabs(this.leafChildren, {
+        await the.model.restoreTabs(this.leafChildren, {
           background: bgKeyPressed(ev),
         });
       });
@@ -604,7 +594,7 @@ export default defineComponent({
 
     remove() {
       this.attempt(async () => {
-        await this.model().deleteBookmarkTree(this.folder.unfiltered.id);
+        await the.model.deleteBookmarkTree(this.folder.unfiltered.id);
       });
     },
 
@@ -612,13 +602,13 @@ export default defineComponent({
       this.attempt(async () => {
         const bg = bgKeyPressed(ev);
 
-        await this.model().restoreTabs(this.leafChildren, {background: bg});
+        await the.model.restoreTabs(this.leafChildren, {background: bg});
 
         if (this.leafChildren.length === this.folder.children.length) {
-          await this.model().deleteBookmarkTree(this.folder.unfiltered.id);
+          await the.model.deleteBookmarkTree(this.folder.unfiltered.id);
         } else {
           const children = this.leafChildren.map(c => c.id);
-          await this.model().deleteItems(children);
+          await the.model.deleteItems(children);
         }
       });
     },
@@ -640,13 +630,13 @@ export default defineComponent({
           );
         }
 
-        await this.model().bookmarks.rename(this.folder.unfiltered, title);
+        await the.model.bookmarks.rename(this.folder.unfiltered, title);
       });
     },
 
     newChildFolder() {
       return this.attempt(async () => {
-        await this.model().bookmarks.create({
+        await the.model.bookmarks.create({
           parentId: this.folder.unfiltered.id,
           title: genDefaultFolderName(new Date()),
         });
@@ -655,39 +645,39 @@ export default defineComponent({
 
     stashToNewChildFolder(ev: KeyboardEvent | MouseEvent) {
       this.attempt(async () => {
-        const model = this.model();
-        if (model.tabs.targetWindow.value === undefined) return;
-        await model.stashAllTabsInWindow(model.tabs.targetWindow.value.id, {
-          copy: ev.altKey,
-          parent: this.folder.unfiltered.id,
-          position: "bottom",
-        });
+        if (the.model.tabs.targetWindow.value === undefined) return;
+        await the.model.stashAllTabsInWindow(
+          the.model.tabs.targetWindow.value.id,
+          {
+            copy: ev.altKey,
+            parent: this.folder.unfiltered.id,
+            position: "bottom",
+          },
+        );
       });
     },
 
     closeStashedTabs() {
       return this.attempt(async () => {
-        const model = this.model();
         const openTabs = this.childrenWithTabs
           .flatMap(c => c.tabs)
           .filter(t => !t.hidden && !t.pinned);
-        await model.hideOrCloseStashedTabs(openTabs.map(t => t.id));
+        await the.model.hideOrCloseStashedTabs(openTabs.map(t => t.id));
       });
     },
 
     drag(ev: DragAction<FilteredItem<Folder, Node>>) {
       const items = ev.value.unfiltered.$selected
-        ? Array.from(this.model().selectedItems())
+        ? Array.from(the.model.selectedItems())
         : [ev.value.unfiltered];
       sendDragData(ev.dataTransfer, items);
     },
 
     async drop(ev: DropAction) {
-      const model = this.model();
-      const items = recvDragData(ev.dataTransfer, model);
+      const items = recvDragData(ev.dataTransfer, the.model);
 
-      await model.attempt(() =>
-        this.model().putItemsInFolder({
+      await the.model.attempt(() =>
+        the.model.putItemsInFolder({
           items,
           toFolderId: this.folder.unfiltered.id,
           toIndex: ev.toIndex,

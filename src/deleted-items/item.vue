@@ -62,7 +62,7 @@
 <script lang="ts">
 import {computed, ref} from "vue";
 
-import {Model} from "@/model";
+import the from "@/globals-ui";
 import {friendlyFolderName} from "@/model/bookmarks";
 import {findChildItem} from "@/model/deleted-items";
 
@@ -83,8 +83,6 @@ const props = defineProps<{
 }>();
 
 const loading = ref("");
-
-const model = Model.get();
 
 const item = computed(
   () =>
@@ -109,17 +107,17 @@ async function run(what: string, f: () => Promise<void>) {
   if (loading.value !== "") return;
   loading.value = what;
   try {
-    await model.attempt(f);
+    await the.model.attempt(f);
   } finally {
     loading.value = "";
   }
 }
 
 const restore = () =>
-  run("Restoring", () => model.undelete(props.deletion, props.path));
+  run("Restoring", () => the.model.undelete(props.deletion, props.path));
 
 const remove = () =>
   run("Deleting Forever", () =>
-    model.deleted_items.drop(props.deletion.key, props.path),
+    the.model.deleted_items.drop(props.deletion.key, props.path),
   );
 </script>

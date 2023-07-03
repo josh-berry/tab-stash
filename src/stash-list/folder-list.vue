@@ -26,11 +26,11 @@ import {defineComponent, type PropType} from "vue";
 
 import {required} from "../util";
 
-import type {DragAction, DropAction} from "../components/dnd-list";
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import type {Folder, Node, NodeID} from "../model/bookmarks";
 import type {FilteredItem, FilteredParent} from "../model/filtered-tree";
 
+import type {DragAction, DropAction} from "../components/dnd-list";
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 
@@ -38,8 +38,6 @@ const DROP_FORMAT = "application/x-tab-stash-folder-id";
 
 export default defineComponent({
   components: {DndList, Folder: FolderVue},
-
-  inject: ["$model"],
 
   props: {
     parentFolder: required(Object as PropType<FilteredParent<Folder, Node>>),
@@ -52,10 +50,6 @@ export default defineComponent({
   },
 
   methods: {
-    model(): Model {
-      return (<any>this).$model as Model;
-    },
-
     itemClasses(f: FilteredItem<Folder, Node>): Record<string, boolean> {
       return {
         hidden:
@@ -74,7 +68,7 @@ export default defineComponent({
 
     async drop(ev: DropAction) {
       const id = ev.dataTransfer.getData(DROP_FORMAT);
-      await this.model().bookmarks.move(
+      await the.model.bookmarks.move(
         id as NodeID,
         this.parentFolder.unfiltered.id,
         ev.toIndex,
