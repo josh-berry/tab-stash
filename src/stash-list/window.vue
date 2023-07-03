@@ -173,7 +173,7 @@ export default defineComponent({
     altKey: altKeyName,
 
     filterInfo(): FilterInfo {
-      return the.tab_filter.info(this.targetWindow);
+      return the.model.filter.info(this.targetWindow);
     },
 
     accepts() {
@@ -215,7 +215,7 @@ export default defineComponent({
     filteredCount(): number {
       let count = 0;
       for (const c of this.targetWindow.children) {
-        const i = the.tab_filter.info(c);
+        const i = the.model.filter.info(c);
         if (this.isValidChild(c) && !i.isMatching) ++count;
       }
       return count;
@@ -254,7 +254,7 @@ export default defineComponent({
     },
 
     childClasses(t: Tab): Record<string, boolean> {
-      const info = the.tab_filter.info(t);
+      const info = the.model.filter.info(t);
       return {
         hidden: !(
           this.isValidChild(t) &&

@@ -23,6 +23,10 @@ export type TestPosition = TreePosition<TestParent, TestNode>;
 export type TestNodeDef = string | TestParentDef;
 export type TestParentDef = {name: string; children: TestNodeDef[]};
 
+export function isTestParent(n: TestNode): n is TestParent {
+  return "children" in n;
+}
+
 export function makeTree(
   def: TestParentDef,
 ): [TestParent, Record<string, TestParent>, Record<string, TestNode>] {

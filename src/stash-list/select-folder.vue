@@ -2,14 +2,14 @@
   <ul>
     <li v-for="folder of visibleChildFolders">
       <button
-        :class="props.buttonClasses(props.folder)"
-        :title="props.tooltips(props.folder)"
-        @click.prevent="emit('select', $event, props.folder)"
+        :class="props.buttonClasses(folder)"
+        :title="props.tooltips(folder)"
+        @click.prevent="emit('select', $event, folder)"
       >
         <span>{{ friendlyFolderName(folder.title) }}</span>
       </button>
       <Self
-        :folder="props.folder"
+        :folder="folder"
         :tooltips="props.tooltips"
         :button-classes="props.buttonClasses"
         @select="(ev, folder) => emit('select', ev, folder)"

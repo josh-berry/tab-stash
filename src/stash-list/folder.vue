@@ -291,7 +291,7 @@ export default defineComponent({
     },
 
     filterInfo() {
-      return the.bookmark_filter.info(this.folder);
+      return the.model.filter.info(this.folder);
     },
 
     metadata(): BookmarkMetadataEntry {
@@ -469,7 +469,7 @@ export default defineComponent({
     },
 
     childClasses(node: Node): Record<string, boolean> {
-      const fi = the.bookmark_filter.info(node);
+      const fi = the.model.filter.info(node);
       return {
         hidden: !(
           this.isValidChild(node) &&

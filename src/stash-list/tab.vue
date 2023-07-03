@@ -83,7 +83,7 @@ export default defineComponent({
 
   computed: {
     filterInfo() {
-      return the.tab_filter.info(this.tab);
+      return the.model.filter.info(this.tab);
     },
 
     altKey: altKeyName,

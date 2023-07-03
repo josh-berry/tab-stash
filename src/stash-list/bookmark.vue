@@ -116,7 +116,7 @@ export default defineComponent({
     bgKey: bgKeyName,
 
     filterInfo(): FilterInfo {
-      return the.bookmark_filter.info(this.bookmark);
+      return the.model.filter.info(this.bookmark);
     },
 
     relatedTabs(): readonly Tab[] {

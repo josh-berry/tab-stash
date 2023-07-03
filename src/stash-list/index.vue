@@ -149,11 +149,10 @@ import {
   friendlyFolderName,
   type Folder,
   type FolderStats,
-  type Node,
 } from "../model/bookmarks";
-import type {Tab, Window} from "../model/tabs";
+import type {Tab} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
-import {TaskMonitor, parseVersion, textMatcher} from "../util";
+import {TaskMonitor, parseVersion} from "../util";
 
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
@@ -195,14 +194,6 @@ export default defineComponent({
 
     view(): string {
       return document.documentElement.dataset!.view ?? "tab";
-    },
-
-    filterFn(): (node: Window | Tab | Node) => boolean {
-      if (!this.searchText) return _ => true;
-      const matcher = textMatcher(this.searchText);
-      return node =>
-        ("title" in node && matcher(node.title)) ||
-        ("url" in node && matcher(node.url));
     },
 
     stash_root_warning(): {text: string; help: () => void} | undefined {
@@ -337,8 +328,8 @@ export default defineComponent({
   },
 
   watch: {
-    filterFn() {
-      the.filter_fn.value = this.filterFn;
+    searchText() {
+      the.model.searchText.value = this.searchText;
     },
   },
 

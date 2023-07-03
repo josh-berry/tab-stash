@@ -1,4 +1,4 @@
-import {computed, reactive} from "vue";
+import {computed, reactive, type Ref} from "vue";
 
 import {computedLazyEq} from "../util";
 import type {IsParentFn, TreeNode, TreeParent} from "./tree";
@@ -17,32 +17,24 @@ export interface FilterInfo {
   readonly nonMatchingCount: number;
 }
 
-export interface FilteredTreeAccessors<
-  P extends TreeParent<P, N>,
-  N extends TreeNode<P, N>,
-> {
-  /** Check if this node is a parent node or not. */
-  isParent(node: P | N): node is P;
-
-  /** The predicate function.  This function is called from within a Vue
-   * computed() context, so if the predicate function relies on any reactive
-   * values to compute the result, it will automatically be re-run when those
-   * values change. */
-  predicate(node: P | N): boolean;
-}
-
 /** A Tree whose nodes have been filtered by a predicate function. */
-export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>>
-  implements FilteredTreeAccessors<P, N>
-{
+export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
+  /** Check if a particular node is a parent node or not. */
   readonly isParent: IsParentFn<P, N>;
-  readonly predicate: (node: P | N) => boolean;
+
+  /** The predicate function used to determine whether a node `isMatching` or
+   * not.  Updating this ref will update the `.isMatching` property on every
+   * node. */
+  readonly predicate: Ref<(node: P | N) => boolean>;
 
   private readonly nodes = new WeakMap<P | N, FilterInfo>();
 
-  constructor(accessors: FilteredTreeAccessors<P, N>) {
-    this.isParent = accessors.isParent;
-    this.predicate = accessors.predicate;
+  constructor(
+    isParent: IsParentFn<P, N>,
+    predicate: Ref<(node: P | N) => boolean>,
+  ) {
+    this.isParent = isParent;
+    this.predicate = predicate;
   }
 
   /** Returns a FilterInfo object describing whether this node (and/or its
@@ -53,7 +45,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>>
 
     const isParent = this.isParent(node);
 
-    const isMatching = computed(() => this.predicate(node));
+    const isMatching = computed(() => this.predicate.value(node));
 
     const hasMatchInSubtree = isParent
       ? computedLazyEq(() => {

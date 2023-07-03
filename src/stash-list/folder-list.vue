@@ -52,7 +52,7 @@ export default defineComponent({
     isFolder,
 
     itemClasses(f: Node): Record<string, boolean> {
-      const fi = the.bookmark_filter.info(f);
+      const fi = the.model.filter.info(f);
       return {
         hidden:
           !isFolder(f) ||

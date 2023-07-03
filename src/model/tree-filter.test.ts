@@ -1,9 +1,14 @@
 import {expect} from "chai";
 import {nextTick, ref, type Ref} from "vue";
 
-import {TreeFilter, type FilteredTreeAccessors} from "./tree-filter";
+import {TreeFilter} from "./tree-filter";
 
-import {makeDefaultTree, type TestNode, type TestParent} from "./tree.test";
+import {
+  isTestParent,
+  makeDefaultTree,
+  type TestNode,
+  type TestParent,
+} from "./tree.test";
 
 type Parent = TestParent;
 type Child = TestNode;
@@ -14,15 +19,6 @@ describe("model/tree-filter", () => {
   let treeFilter: TreeFilter<Parent, Child>;
   // istanbul ignore next
   const predicate: Ref<(n: Parent | Child) => boolean> = ref(_ => false);
-
-  const accessors: FilteredTreeAccessors<TestParent, TestNode> = {
-    isParent(node): node is TestParent {
-      return "children" in node;
-    },
-    predicate(node): boolean {
-      return predicate.value(node);
-    },
-  };
 
   function checkFilterInvariants() {
     const visit = (n: Parent | Child) => {
@@ -56,7 +52,7 @@ describe("model/tree-filter", () => {
   beforeEach(() => {
     // istanbul ignore next
     predicate.value = _ => false;
-    treeFilter = new TreeFilter(accessors);
+    treeFilter = new TreeFilter(isTestParent, predicate);
   });
 
   it("reports when nothing matches the filter", () => {

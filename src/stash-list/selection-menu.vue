@@ -74,7 +74,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent} from "vue";
+import {computed, defineComponent} from "vue";
 
 import {altKeyName, textMatcher} from "../util";
 
@@ -105,16 +105,11 @@ export default defineComponent({
   }),
 
   provide() {
-    const self = this;
     return {
-      bookmark_filter: new TreeFilter<Folder, Node>({
-        isParent(node): node is Folder {
-          return isFolder(node);
-        },
-        predicate(node) {
-          return isFolder(node) && self.filter(friendlyFolderName(node.title));
-        },
-      }),
+      bookmark_filter: new TreeFilter<Folder, Node>(
+        isFolder,
+        computed(() => this.filter),
+      ),
     };
   },
 
@@ -129,8 +124,9 @@ export default defineComponent({
       return the.model.selection.selectedCount.value;
     },
 
-    filter(): (text: string) => boolean {
-      return textMatcher(this.searchText);
+    filter(): (node: Folder | Node) => boolean {
+      const matcher = textMatcher(this.searchText);
+      return node => isFolder(node) && matcher(friendlyFolderName(node.title));
     },
 
     createTitle(): string {
