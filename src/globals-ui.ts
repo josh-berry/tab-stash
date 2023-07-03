@@ -1,6 +1,6 @@
 // istanbul ignore file -- global state for the UI
 
-import {ref} from "vue";
+import {ref, type Ref} from "vue";
 import browser from "webextension-polyfill";
 
 import {KVSCache} from "@/datastore/kvs";
@@ -15,29 +15,28 @@ import {TreeFilter} from "./model/tree-filter";
 
 const filter_fn = ref((_: Window | Tab | Node) => true as boolean);
 
+/** Global variables.  The core conceit here is these are all initialized as
+ * `undefined!`, and then initialized properly in the async `init()` function
+ * which must be called on startup. */
 const the = {
+  /** The version number of Tab Stash. */
   version: undefined! as string,
+
+  /** The main model, describing open windows, saved bookmarks, and any other
+   * persistent data kept by Tab Stash. */
   model: undefined! as M.Model,
 
-  filter_fn,
+  /** A predicate function that implements the currently-active search in the UI
+   * (e.g. if the search bar at the top of the page has something in it).  If
+   * there is no active search, the predicate should always return `true`. */
+  filter_fn: undefined! as Ref<(_: Window | Tab | Node) => boolean>,
 
-  bookmark_filter: new TreeFilter<Folder, Node>({
-    isParent(node): node is Folder {
-      return isFolder(node);
-    },
-    predicate(node) {
-      return filter_fn.value(node);
-    },
-  }),
+  /** The filtered state of all open windows/tabs, according to `the.filter_fn`.
+   * */
+  tab_filter: undefined! as TreeFilter<Window, Tab>,
 
-  tab_filter: new TreeFilter<Window, Tab>({
-    isParent(node): node is Window {
-      return "children" in node;
-    },
-    predicate(node) {
-      return filter_fn.value(node);
-    },
-  }),
+  /** The filtered state of all bookmarks, according to `the.filter_fn`. */
+  bookmark_filter: undefined! as TreeFilter<Folder, Node>,
 };
 
 (<any>globalThis).the = the;
@@ -67,5 +66,25 @@ export async function init() {
         new KVSClient<string, BookmarkMetadata>("bookmark-metadata"),
       ),
     ),
+  });
+
+  the.filter_fn = ref(_ => true);
+
+  the.tab_filter = new TreeFilter<Window, Tab>({
+    isParent(node): node is Window {
+      return "children" in node;
+    },
+    predicate(node) {
+      return filter_fn.value(node);
+    },
+  });
+
+  the.bookmark_filter = new TreeFilter<Folder, Node>({
+    isParent(node): node is Folder {
+      return isFolder(node);
+    },
+    predicate(node) {
+      return filter_fn.value(node);
+    },
   });
 }
