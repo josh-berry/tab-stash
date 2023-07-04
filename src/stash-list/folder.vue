@@ -344,7 +344,11 @@ export default defineComponent({
 
     collapsed: {
       get(): boolean {
-        return !!this.metadata.value?.collapsed;
+        if (typeof this.metadata.value === "undefined") {
+          return this.model().options.sync.state.show_new_folder == "collapsed";
+        }
+
+        return !!this.metadata.value.collapsed;
       },
       set(collapsed: boolean) {
         this.model().bookmark_metadata.setCollapsed(

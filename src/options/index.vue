@@ -174,6 +174,12 @@
         <option value="unstashed">Unstashed tabs only</option>
         <option value="all">Stashed and unstashed tabs</option>
       </select>
+
+      <label for="show_new_folder">Show new tab groups:</label>
+      <select id="show_new_folder" v-model="sync.show_new_folder">
+        <option value="expanded">Expanded</option>
+        <option value="collapsed">Collapsed</option>
+      </select>
     </section>
 
     <hr />
