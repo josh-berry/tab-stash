@@ -22,7 +22,7 @@ const trace = trace_fn("import");
 // followed by "://", we just take everything after the "://" as part of the
 // URL, up to a set of commonly-used terminator characters (e.g. quotes, closing
 // brackets/parens, or whitespace).
-const URL_RE = "[a-zA-Z][-a-zA-Z0-9+.]*:\\/\\/[^\\]\\) \t\n\r\"'>\\\\]+";
+const URL_RE = "[a-zA-Z][-a-zA-Z0-9+.]*:\\/\\/[^\\]\\) \t\n\r\"'<>\\\\]+";
 const MARKDOWN_LINK_RE = `\\[(?<md_title>[^\\]]+)\\]\\((?<md_url>${URL_RE})\\)`;
 const ONETAB_LINK_RE = `^(?<ot_url>${URL_RE}) \\| (?<ot_title>.*)$`;
 const PLAIN_URL_RE = `(?<url>${URL_RE})`;

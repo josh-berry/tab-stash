@@ -79,14 +79,14 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
   <dnd-list
     :class="{'forest-children': true, collapsed}"
     v-model="targetWindow.children"
-    :item-key="(item: FilteredChild<Window, Tab>) => item.unfiltered.id"
+    :item-key="(item: Tab) => item.id"
     :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
-    <template #item="{item}: {item: FilteredChild<Window, Tab>}">
-      <tab v-if="isValidChild(item.unfiltered)" :tab="item" />
+    <template #item="{item}: {item: Tab}">
+      <tab v-if="isValidChild(item)" :tab="item" />
     </template>
   </dnd-list>
 
@@ -122,9 +122,8 @@ import {altKeyName, filterMap, required} from "../util";
 
 import type {DragAction, DropAction} from "../components/dnd-list";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import type {FilteredChild, FilteredParent} from "../model/filtered-tree";
 import type {SyncState} from "../model/options";
 import type {Tab, Window} from "../model/tabs";
 
@@ -136,6 +135,7 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
+import type {FilterInfo} from "@/model/tree-filter";
 import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
@@ -155,11 +155,9 @@ export default defineComponent({
     ShowFilteredItem,
   },
 
-  inject: ["$model"],
-
   props: {
     // Window contents
-    targetWindow: required(Object as PropType<FilteredParent<Window, Tab>>),
+    targetWindow: required(Object as PropType<Window>),
 
     // Metadata (for collapsed state)
     metadata: required(Object as PropType<BookmarkMetadataEntry>),
@@ -174,16 +172,20 @@ export default defineComponent({
   computed: {
     altKey: altKeyName,
 
+    filterInfo(): FilterInfo {
+      return the.model.filter.info(this.targetWindow);
+    },
+
     accepts() {
       return ACCEPTS;
     },
 
     tabs(): Tab[] {
-      return this.targetWindow.children.map(t => t.unfiltered as Tab);
+      return this.targetWindow.children;
     },
 
     showStashedTabs(): boolean {
-      return this.model().options.sync.state.show_open_tabs === "all";
+      return the.model.options.sync.state.show_open_tabs === "all";
     },
 
     title(): string {
@@ -194,7 +196,7 @@ export default defineComponent({
     tooltip(): string {
       return (
         `${
-          this.targetWindow.children.length - this.targetWindow.filteredCount
+          this.targetWindow.children.length - this.filterInfo.nonMatchingCount
         } ${this.title}\n` + `Click to change which tabs are shown.`
       );
     },
@@ -204,54 +206,46 @@ export default defineComponent({
         return !!this.metadata.value?.collapsed;
       },
       set(collapsed: boolean) {
-        this.model().bookmark_metadata.setCollapsed(
-          this.metadata.key,
-          collapsed,
-        );
+        the.model.bookmark_metadata.setCollapsed(this.metadata.key, collapsed);
       },
     },
 
     // We ignore the built-in filteredCount because it includes invalid things
     // like hidden tabs
     filteredCount(): number {
-      return this.targetWindow.children.reduce(
-        (count, t) =>
-          !("children" in t) && !t.isMatching && this.isValidChild(t.unfiltered)
-            ? count + 1
-            : count,
-        0,
-      );
+      let count = 0;
+      for (const c of this.targetWindow.children) {
+        const i = the.model.filter.info(c);
+        if (this.isValidChild(c) && !i.isMatching) ++count;
+      }
+      return count;
     },
 
     selectedCount(): number {
-      return this.model().selection.selectedCount.value;
+      return the.model.selection.selectedCount.value;
     },
 
     shouldConfirmCloseOpenTabs: {
       get(): boolean {
-        return this.model().options.local.state.confirm_close_open_tabs;
+        return the.model.options.local.state.confirm_close_open_tabs;
       },
 
       set(v: boolean) {
-        this.model().attempt(() =>
-          this.model().options.local.set({confirm_close_open_tabs: v}),
+        the.model.attempt(() =>
+          the.model.options.local.set({confirm_close_open_tabs: v}),
         );
       },
     },
   },
 
   methods: {
-    // TODO make Vue injection play nice with TypeScript typing...
-    model() {
-      return (<any>this).$model as Model;
-    },
     attempt(fn: () => Promise<void>) {
-      this.model().attempt(fn);
+      the.model.attempt(fn);
     },
 
     toggleMode() {
       this.attempt(async () => {
-        const options = this.model().options;
+        const options = the.model.options;
         await options.sync.set({
           show_open_tabs:
             NEXT_SHOW_OPEN_TAB_STATE[options.sync.state.show_open_tabs],
@@ -259,85 +253,82 @@ export default defineComponent({
       });
     },
 
-    childClasses(t: FilteredChild<Window, Tab>): Record<string, boolean> {
+    childClasses(t: Tab): Record<string, boolean> {
+      const info = the.model.filter.info(t);
       return {
         hidden: !(
-          this.isValidChild(t.unfiltered) &&
-          (this.showFiltered || t.isMatching || t.unfiltered.$selected)
+          this.isValidChild(t) &&
+          (this.showFiltered || info.isMatching || t.$selected)
         ),
       };
     },
 
     isValidChild(t: Tab): boolean {
-      const model = this.model();
       if (t.hidden || t.pinned) return false;
       return (
         this.showStashedTabs ||
-        (model.isURLStashable(t.url) && !model.bookmarks.isURLStashed(t.url))
+        (the.model.isURLStashable(t.url) &&
+          !the.model.bookmarks.isURLStashed(t.url))
       );
     },
 
     async newGroup() {
       this.attempt(async () => {
-        await this.model().bookmarks.createStashFolder();
+        await the.model.bookmarks.createStashFolder();
       });
     },
 
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const model = this.model();
         // NOTE: isValidChild() is slightly different from
         // stashableTabsInWindow()--we need to check both, because
         // isValidChild() will exclude already-stashed tabs if the user is in
         // "Unstashed Tabs" mode (i.e. ! this.showStashedTabs).
-        const stashable_children = model
-          .stashableTabsInWindow(this.targetWindow.unfiltered.id)
+        const stashable_children = the.model
+          .stashableTabsInWindow(this.targetWindow.id)
           .filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
-        await model.putItemsInFolder({
-          items: model.copyIf(ev.altKey, stashable_children),
-          toFolderId: (await model.bookmarks.createStashFolder()).id,
+        await the.model.putItemsInFolder({
+          items: the.model.copyIf(ev.altKey, stashable_children),
+          toFolderId: (await the.model.bookmarks.createStashFolder()).id,
         });
       });
     },
 
     async remove() {
       this.attempt(async () => {
-        const model = this.model();
         // This filter keeps the active tab if it's the Tab Stash tab, or a
         // new tab (so we can avoid creating new tabs unnecessarily).
         const to_remove = this.tabs
-          .filter(t => !t.active || model.isURLStashable(t.url))
-          .filter(t => !model.bookmarks.isURLStashed(t.url));
+          .filter(t => !t.active || the.model.isURLStashable(t.url))
+          .filter(t => !the.model.bookmarks.isURLStashed(t.url));
         if (!(await this.confirmRemove(to_remove.length))) return;
-        await model.tabs.remove(to_remove.map(t => t.id));
+        await the.model.tabs.remove(to_remove.map(t => t.id));
       });
     },
 
     async removeStashed() {
       this.attempt(async () => {
-        const model = this.model();
         const tabIds = this.tabs
           .filter(
-            t => !t.hidden && !t.pinned && model.bookmarks.isURLStashed(t.url),
+            t =>
+              !t.hidden && !t.pinned && the.model.bookmarks.isURLStashed(t.url),
           )
           .map(t => t.id);
         if (!(await this.confirmRemove(tabIds.length))) return;
-        await model.hideOrCloseStashedTabs(tabIds);
+        await the.model.hideOrCloseStashedTabs(tabIds);
       });
     },
 
     async removeOpen(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const model = this.model();
-
         if (ev.altKey) {
           // Discard hidden/stashed tabs to free memory.
           const tabs = this.tabs.filter(
-            t => t.hidden && model.bookmarks.isURLStashed(t.url),
+            t => t.hidden && the.model.bookmarks.isURLStashed(t.url),
           );
-          await model.tabs.remove(filterMap(tabs, t => t?.id));
+          await the.model.tabs.remove(filterMap(tabs, t => t?.id));
         } else {
           // Closes ALL open tabs (stashed and unstashed).
           //
@@ -348,22 +339,22 @@ export default defineComponent({
           // new-tab page or the Tab Stash page.)
           const tabs = this.tabs.filter(
             t =>
-              (!t.active || model.isURLStashable(t.url)) &&
+              (!t.active || the.model.isURLStashable(t.url)) &&
               !t.hidden &&
               !t.pinned,
           );
           const hide_tabs = tabs
-            .filter(t => model.bookmarks.isURLStashed(t.url))
+            .filter(t => the.model.bookmarks.isURLStashed(t.url))
             .map(t => t.id);
           const close_tabs = tabs
-            .filter(t => !model.bookmarks.isURLStashed(t.url))
+            .filter(t => !the.model.bookmarks.isURLStashed(t.url))
             .map(t => t.id);
 
           if (!(await this.confirmRemove(tabs.length))) return;
 
-          await model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
+          await the.model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
 
-          model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+          the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
           browser.tabs.remove(close_tabs).catch(console.log);
         }
       });
@@ -384,36 +375,35 @@ export default defineComponent({
     },
 
     copyToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: true}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
     moveToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: false}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: false}));
     },
 
     moveToNewGroup(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const folder = await this.model().bookmarks.createStashFolder();
-        await this.model().putSelectedInFolder({
+        const folder = await the.model.bookmarks.createStashFolder();
+        await the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolderId: folder.id,
         });
       });
     },
 
-    drag(ev: DragAction<FilteredChild<Window, Tab>>) {
-      const items = ev.value.unfiltered.$selected
-        ? Array.from(this.model().selectedItems())
-        : [ev.value.unfiltered];
+    drag(ev: DragAction<Tab>) {
+      const items = ev.value.$selected
+        ? Array.from(the.model.selectedItems())
+        : [ev.value];
       sendDragData(ev.dataTransfer, items);
     },
 
     async drop(ev: DropAction) {
-      const model = this.model();
-      const items = recvDragData(ev.dataTransfer, model);
+      const items = recvDragData(ev.dataTransfer, the.model);
 
-      await model.attempt(() =>
-        model.putItemsInWindow({
+      await the.model.attempt(() =>
+        the.model.putItemsInWindow({
           items,
           toIndex: ev.toIndex,
         }),

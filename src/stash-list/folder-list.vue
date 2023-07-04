@@ -2,7 +2,7 @@
   <dnd-list
     class="forest"
     v-model="parentFolder.children"
-    :item-key="(item: FilteredItem<Folder, Node>) => item.unfiltered.id"
+    :item-key="(item: Node) => item.id"
     :item-class="itemClasses"
     :accepts="accepts"
     :drag="drag"
@@ -10,13 +10,8 @@
     ghost-displaces-items
     ghost-mimics-height
   >
-    <template #item="{item}: {item: FilteredItem<Folder, Node>}">
-      <Folder
-        v-if="'children' in item"
-        ref="folders"
-        :folder="item"
-        is-toplevel
-      />
+    <template #item="{item}: {item: Node}">
+      <Folder v-if="isFolder(item)" ref="folders" :folder="item" is-toplevel />
     </template>
   </dnd-list>
 </template>
@@ -26,11 +21,15 @@ import {defineComponent, type PropType} from "vue";
 
 import {required} from "../util";
 
-import type {DragAction, DropAction} from "../components/dnd-list";
-import type {Model} from "../model";
-import type {Folder, Node, NodeID} from "../model/bookmarks";
-import type {FilteredItem, FilteredParent} from "../model/filtered-tree";
+import the from "@/globals-ui";
+import {
+  isFolder,
+  type Folder,
+  type Node,
+  type NodeID,
+} from "../model/bookmarks";
 
+import type {DragAction, DropAction} from "../components/dnd-list";
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 
@@ -39,10 +38,8 @@ const DROP_FORMAT = "application/x-tab-stash-folder-id";
 export default defineComponent({
   components: {DndList, Folder: FolderVue},
 
-  inject: ["$model"],
-
   props: {
-    parentFolder: required(Object as PropType<FilteredParent<Folder, Node>>),
+    parentFolder: required(Object as PropType<Folder>),
   },
 
   computed: {
@@ -52,31 +49,26 @@ export default defineComponent({
   },
 
   methods: {
-    model(): Model {
-      return (<any>this).$model as Model;
-    },
+    isFolder,
 
-    itemClasses(f: FilteredItem<Folder, Node>): Record<string, boolean> {
+    itemClasses(f: Node): Record<string, boolean> {
+      const fi = the.model.filter.info(f);
       return {
         hidden:
-          !("children" in f) ||
-          !(
-            f.isMatching ||
-            f.hasMatchingChildren ||
-            f.unfiltered.$recursiveStats.selectedCount > 0
-          ),
+          !isFolder(f) ||
+          !(fi.hasMatchInSubtree || f.$recursiveStats.selectedCount > 0),
       };
     },
 
-    drag(ev: DragAction<FilteredItem<Folder, Node>>) {
-      ev.dataTransfer.setData(DROP_FORMAT, ev.value.unfiltered.id);
+    drag(ev: DragAction<Node>) {
+      ev.dataTransfer.setData(DROP_FORMAT, ev.value.id);
     },
 
     async drop(ev: DropAction) {
       const id = ev.dataTransfer.getData(DROP_FORMAT);
-      await this.model().bookmarks.move(
+      await the.model.bookmarks.move(
         id as NodeID,
-        this.parentFolder.unfiltered.id,
+        this.parentFolder.id,
         ev.toIndex,
       );
     },

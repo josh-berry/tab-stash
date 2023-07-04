@@ -40,11 +40,7 @@
       <Notification
         key="recently-deleted"
         v-if="recently_deleted !== 0"
-        @activate="
-          typeof recently_deleted === 'object'
-            ? model().undelete(recently_deleted)
-            : go('deleted-items.html')
-        "
+        @activate="onDeleteNotifActivated"
       >
         <span v-if="typeof recently_deleted === 'object'">
           Deleted "{{ recentlyDeletedTitle }}". Undo?
@@ -143,29 +139,26 @@
 import {defineComponent} from "vue";
 import browser from "webextension-polyfill";
 
+import the from "@/globals-ui";
 import {pageref} from "../launch-vue";
-import type {Model} from "../model";
 import {
   CUR_WINDOW_MD_ID,
   type BookmarkMetadataEntry,
 } from "../model/bookmark-metadata";
 import {
   friendlyFolderName,
-  isFolder,
   type Folder,
   type FolderStats,
-  type Node,
 } from "../model/bookmarks";
-import type {Tab, Window} from "../model/tabs";
+import type {Tab} from "../model/tabs";
 import {fetchInfoForSites} from "../tasks/siteinfo";
-import {TaskMonitor, parseVersion, required, textMatcher} from "../util";
+import {TaskMonitor, parseVersion} from "../util";
 
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
 import OopsNotification from "../components/oops-notification.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
 import SearchInput from "../components/search-input.vue";
-import {FilteredTree, type FilteredParent} from "../model/filtered-tree";
 import ExportDialog from "../tasks/export.vue";
 import ImportDialog from "../tasks/import.vue";
 import FolderList from "./folder-list.vue";
@@ -188,10 +181,6 @@ export default defineComponent({
     Window: WindowVue,
   },
 
-  props: {
-    my_version: required(String),
-  },
-
   data: () => ({
     collapsed: false,
     searchText: "",
@@ -199,68 +188,31 @@ export default defineComponent({
   }),
 
   computed: {
+    my_version(): string {
+      return the.version;
+    },
+
     view(): string {
       return document.documentElement.dataset!.view ?? "tab";
     },
 
-    filteredTabs(): FilteredTree<Window, Tab> {
-      const self = this;
-      const f = new FilteredTree<Window, Tab>({
-        isParent(node): node is Window {
-          return "children" in node;
-        },
-        predicate(node) {
-          return self.filterFn(node);
-        },
-      });
-      (<any>globalThis).filtered_tabs = f;
-      return f;
-    },
-
-    filteredBookmarks(): FilteredTree<Folder, Node> {
-      const self = this;
-      const f = new FilteredTree<Folder, Node>({
-        isParent(node): node is Folder {
-          return isFolder(node);
-        },
-        predicate(node) {
-          return self.filterFn(node);
-        },
-      });
-      (<any>globalThis).filtered_bookmarks = f;
-      return f;
-    },
-
-    filterFn(): (node: Window | Tab | Node) => boolean {
-      if (!this.searchText) return _ => true;
-      const matcher = textMatcher(this.searchText);
-      return node =>
-        ("title" in node && matcher(node.title)) ||
-        ("url" in node && matcher(node.url));
-    },
-
     stash_root_warning(): {text: string; help: () => void} | undefined {
-      return this.model().bookmarks.stash_root_warning.value;
+      return the.model.bookmarks.stash_root_warning.value;
     },
     targetWindow() {
-      const m = this.model().tabs;
-      if (!m.targetWindow.value) return undefined;
-      return this.filteredTabs.wrappedParent(m.targetWindow.value);
+      return the.model.tabs.targetWindow.value;
     },
     tabs(): readonly Tab[] {
-      const m = this.model().tabs;
+      const m = the.model.tabs;
       if (m.targetWindow.value === undefined) return [];
       return m.targetWindow.value.children;
     },
-    stashRoot(): FilteredParent<Folder, Node> | undefined {
-      const root = this.model().bookmarks.stash_root.value;
-      if (!root) return undefined;
-      return this.filteredBookmarks.wrappedParent(root);
+    stashRoot(): Folder | undefined {
+      return the.model.bookmarks.stash_root.value;
     },
 
     recently_updated(): undefined | "features" | "fixes" {
-      const last_notified =
-        this.model().options.local.state.last_notified_version;
+      const last_notified = the.model.options.local.state.last_notified_version;
       if (last_notified === this.my_version) return undefined;
 
       const my = parseVersion(this.my_version);
@@ -271,7 +223,7 @@ export default defineComponent({
     },
 
     recently_deleted() {
-      return this.model().deleted_items.state.recentlyDeleted;
+      return the.model.deleted_items.state.recentlyDeleted;
     },
     recentlyDeletedTitle() {
       if (typeof this.recently_deleted === "object") {
@@ -281,11 +233,11 @@ export default defineComponent({
     },
 
     selection_active(): boolean {
-      return this.model().selection.selectedCount.value > 0;
+      return the.model.selection.selectedCount.value > 0;
     },
 
     counts(): FolderStats {
-      const stats = this.stashRoot?.unfiltered.$recursiveStats;
+      const stats = this.stashRoot?.$recursiveStats;
       if (!stats) return {bookmarkCount: 0, folderCount: 0, selectedCount: 0};
       return stats;
     },
@@ -302,7 +254,7 @@ export default defineComponent({
         discarded = 0,
         hidden = 0;
       for (const tab of this.tabs) {
-        if (tab.position?.parent !== this.targetWindow?.unfiltered) continue;
+        if (tab.position?.parent !== this.targetWindow) continue;
         if (tab.hidden) {
           hidden += 1;
         } else if (tab.discarded) {
@@ -327,11 +279,11 @@ export default defineComponent({
     },
 
     curWindowMetadata(): BookmarkMetadataEntry {
-      return this.model().bookmark_metadata.get(CUR_WINDOW_MD_ID);
+      return the.model.bookmark_metadata.get(CUR_WINDOW_MD_ID);
     },
 
     showCrashReport(): boolean {
-      return this.model().options.showCrashReport.value;
+      return the.model.options.showCrashReport.value;
     },
   },
 
@@ -375,19 +327,29 @@ export default defineComponent({
     */
   },
 
+  watch: {
+    searchText() {
+      the.model.searchText.value = this.searchText;
+    },
+  },
+
   methods: {
     pageref,
 
-    model(): Model {
-      return <any>undefined;
-    }, // dummy; overridden in index.ts
-
     collapseAll() {
       this.collapsed = !this.collapsed;
-      const metadata = this.model().bookmark_metadata;
+      const metadata = the.model.bookmark_metadata;
       metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
-      for (const f of this.stashRoot?.unfiltered.children || []) {
+      for (const f of this.stashRoot?.children || []) {
         metadata.setCollapsed(f.id, this.collapsed);
+      }
+    },
+
+    onDeleteNotifActivated() {
+      if (typeof this.recently_deleted === "object") {
+        the.model.undelete(this.recently_deleted);
+      } else {
+        this.go("deleted-items.html");
       }
     },
 
@@ -400,7 +362,7 @@ export default defineComponent({
     },
 
     deselectAll() {
-      this.model().selection.clearSelection().catch(console.error);
+      the.model.selection.clearSelection().catch(console.error);
     },
 
     showOptions() {
@@ -408,8 +370,8 @@ export default defineComponent({
     },
 
     showTabUI() {
-      this.model().attempt(async () => {
-        await this.model().restoreTabs(
+      the.model.attempt(async () => {
+        await the.model.restoreTabs(
           [
             {
               title: "Tab Stash",
@@ -426,7 +388,7 @@ export default defineComponent({
       window.location.href = pageref(page);
     },
     hideWhatsNew() {
-      this.model().options.local.set({last_notified_version: this.my_version});
+      the.model.options.local.set({last_notified_version: this.my_version});
     },
 
     showExportDialog() {
@@ -438,9 +400,9 @@ export default defineComponent({
     },
 
     async fetchMissingFavicons() {
-      this.model().attempt(async () => {
-        const favicons = this.model().favicons;
-        const urls = this.model().bookmarks.urlsInStash();
+      the.model.attempt(async () => {
+        const favicons = the.model.favicons;
+        const urls = the.model.bookmarks.urlsInStash();
 
         // This is just an async filter :/
         for (const url of urls) {

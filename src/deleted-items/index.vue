@@ -64,8 +64,8 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
+import the from "@/globals-ui";
 import {pageref} from "../launch-vue";
-import type {Model} from "../model";
 import type * as DI from "../model/deleted-items";
 import {filterMap, required, textMatcher} from "../util";
 import type {FilteredDeletedItem, RecordGroup} from "./schema";
@@ -122,7 +122,7 @@ export default defineComponent({
         // anything (since the infinite-loader itself isn't reset).
         if (t !== this.search_text) {
           this.search_text = t;
-          this.model().deleted_items.filter(this.item_filter);
+          the.model.deleted_items.filter(this.item_filter);
         }
       },
     },
@@ -185,19 +185,15 @@ export default defineComponent({
     },
 
     showCrashReport(): boolean {
-      return this.model().options.showCrashReport.value;
+      return the.model.options.showCrashReport.value;
     },
   },
 
   methods: {
-    // Dummy which is overridden in launch() below...
-    model(): Model {
-      return (<any>this).$model;
-    },
     pageref,
 
     loadMore() {
-      return this.model().deleted_items.loadMore();
+      return the.model.deleted_items.loadMore();
     },
 
     startOfToday(): Date {

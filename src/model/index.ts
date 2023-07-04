@@ -30,7 +30,7 @@
 //   mutating and accessing the state in various ways that a user might want to
 //   perform.  All the business logic resides here.
 
-import {inject, type InjectionKey} from "vue";
+import {computed, ref} from "vue";
 import browser from "webextension-polyfill";
 
 import {
@@ -39,6 +39,7 @@ import {
   filterMap,
   shortPoll,
   TaskMonitor,
+  textMatcher,
   tryAgain,
   urlToOpen,
 } from "../util";
@@ -55,6 +56,7 @@ import * as Options from "./options";
 import * as Selection from "./selection";
 import * as Tabs from "./tabs";
 import {pathTo} from "./tree";
+import {TreeFilter} from "./tree-filter";
 
 export {
   BookmarkMetadata,
@@ -82,6 +84,10 @@ export type ModelItem = Bookmarks.Node | Tabs.Tab;
 
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
+
+export const isModelParent = (
+  item: ModelItem | Tabs.Window,
+): item is Bookmarks.Folder | Tabs.Window => "children" in item;
 
 export const isModelItem = (item: StashItem): item is ModelItem => "id" in item;
 
@@ -140,10 +146,11 @@ export class Model {
   readonly bookmark_metadata: BookmarkMetadata.Model;
   readonly selection: Selection.Model;
 
-  static readonly injectionKey = Symbol("model") as InjectionKey<Model>;
-  static get(): Model {
-    return inject(Model.injectionKey)!;
-  }
+  readonly searchText = ref("");
+  readonly filter: TreeFilter<
+    Tabs.Window | Bookmarks.Folder,
+    Bookmarks.Node | Tabs.Tab
+  >;
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;
@@ -157,6 +164,19 @@ export class Model {
     this.favicons = src.favicons;
     this.bookmark_metadata = src.bookmark_metadata;
     this.selection = new Selection.Model([this.tabs, this.bookmarks]);
+
+    this.filter = new TreeFilter(
+      isModelParent,
+      computed(() => {
+        const searchText = this.searchText.value;
+        if (!searchText) return _ => true;
+
+        const matcher = textMatcher(searchText);
+        return node =>
+          ("title" in node && matcher(node.title)) ||
+          ("url" in node && matcher(node.url));
+      }),
+    );
   }
 
   /** Reload model data (where possible) in the event of an unexpected issue.

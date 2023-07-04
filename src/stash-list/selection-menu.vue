@@ -48,10 +48,9 @@
     <hr />
 
     <select-folder
-      v-if="model().bookmarks.stash_root.value"
+      v-if="stashRoot"
       class="menu-scrollable-list"
-      :tree="filteredTree"
-      :folder="filteredTree.wrappedParent(model().bookmarks.stash_root.value!)"
+      :folder="stashRoot"
       :tooltips="
         f =>
           `Move to &quot;${friendlyFolderName(
@@ -75,18 +74,18 @@
 </template>
 
 <script lang="ts">
-import {defineComponent} from "vue";
+import {computed, defineComponent} from "vue";
 
 import {altKeyName, textMatcher} from "../util";
 
-import type {Model} from "../model";
+import the from "@/globals-ui";
+import {TreeFilter} from "@/model/tree-filter";
 import {
   friendlyFolderName,
   isFolder,
   type Folder,
   type Node,
 } from "../model/bookmarks";
-import {FilteredTree} from "../model/filtered-tree";
 
 import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";
@@ -105,29 +104,29 @@ export default defineComponent({
     searchText: "",
   }),
 
-  inject: ["$model"],
+  provide() {
+    return {
+      bookmark_filter: new TreeFilter<Folder, Node>(
+        isFolder,
+        computed(() => this.filter),
+      ),
+    };
+  },
 
   computed: {
     altKey: altKeyName,
 
-    filteredTree(): FilteredTree<Folder, Node> {
-      const self = this;
-      return new FilteredTree<Folder, Node>({
-        isParent(node): node is Folder {
-          return isFolder(node);
-        },
-        predicate(node) {
-          return isFolder(node) && self.filter(friendlyFolderName(node.title));
-        },
-      });
+    stashRoot(): Folder | undefined {
+      return the.model.bookmarks.stash_root.value;
     },
 
     selectedCount(): number {
-      return this.model().selection.selectedCount.value;
+      return the.model.selection.selectedCount.value;
     },
 
-    filter(): (text: string) => boolean {
-      return textMatcher(this.searchText);
+    filter(): (node: Folder | Node) => boolean {
+      const matcher = textMatcher(this.searchText);
+      return node => isFolder(node) && matcher(friendlyFolderName(node.title));
     },
 
     createTitle(): string {
@@ -143,11 +142,8 @@ export default defineComponent({
   },
 
   methods: {
-    model(): Model {
-      return (<any>this).$model as Model;
-    },
     attempt(fn: () => Promise<void>) {
-      this.model().attempt(fn);
+      the.model.attempt(fn);
     },
 
     friendlyFolderName,
@@ -163,13 +159,12 @@ export default defineComponent({
 
     create(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const model = this.model();
         let folder: Folder;
         if (!this.searchText) {
-          folder = await model.bookmarks.createStashFolder();
+          folder = await the.model.bookmarks.createStashFolder();
         } else {
-          const stash_root = await model.bookmarks.ensureStashRoot();
-          folder = (await model.bookmarks.create({
+          const stash_root = await the.model.bookmarks.ensureStashRoot();
+          folder = (await the.model.bookmarks.create({
             parentId: stash_root.id,
             title: this.searchText,
             index: 0,
@@ -181,7 +176,7 @@ export default defineComponent({
 
     moveTo(ev: MouseEvent | KeyboardEvent, folder: Folder) {
       this.attempt(() =>
-        this.model().putSelectedInFolder({
+        the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolderId: folder.id,
         }),
@@ -189,18 +184,17 @@ export default defineComponent({
     },
 
     copyToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: true}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
     moveToWindow() {
-      this.attempt(() => this.model().putSelectedInWindow({copy: false}));
+      this.attempt(() => the.model.putSelectedInWindow({copy: false}));
     },
 
     remove() {
       this.attempt(async () => {
-        const model = this.model();
-        const ids = Array.from(model.selectedItems()).map(i => i.id);
-        await model.deleteItems(ids);
+        const ids = Array.from(the.model.selectedItems()).map(i => i.id);
+        await the.model.deleteItems(ids);
       });
     },
   },

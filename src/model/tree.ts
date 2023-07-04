@@ -24,6 +24,11 @@ export interface TreePosition<
   index: number;
 }
 
+/** The type of a function that checks if the node is a TreeParent or not. */
+export type IsParentFn<P extends TreeParent<P, N>, N extends TreeNode<P, N>> = (
+  node: P | N,
+) => node is P;
+
 /** Check if `child` is contained, directly or indirectly, by `parent`. Children
  * are considered to contain themselves, so if `child === parent`, this returns
  * true. */
