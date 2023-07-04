@@ -343,7 +343,7 @@ export default defineComponent({
     collapsed: {
       get(): boolean {
         if (typeof this.metadata.value === "undefined") {
-          return this.model().options.sync.state.show_new_folder == "collapsed";
+          return the.model.options.sync.state.show_new_folder == "collapsed";
         }
 
         return !!this.metadata.value.collapsed;
