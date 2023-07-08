@@ -115,3 +115,14 @@ export function setPosition<
     child.position = newPosition;
   }
 }
+
+/** Calls a function for each node in a subtree, starting from the root.
+ * Traversal is done pre-order, depth-first. */
+export function forEachNodeInSubtree<
+  P extends TreeParent<P, N>,
+  N extends TreeNode<P, N>,
+>(subtree: P | N, isParent: IsParentFn<P, N>, f: (node: P | N) => void) {
+  f(subtree);
+  if (!isParent(subtree)) return;
+  for (const c of subtree.children) forEachNodeInSubtree(c, isParent, f);
+}

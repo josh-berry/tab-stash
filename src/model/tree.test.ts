@@ -1,5 +1,6 @@
 import {expect} from "chai";
 
+import {reactive} from "vue";
 import {
   isChildInParent,
   pathTo,
@@ -35,19 +36,19 @@ export function makeTree(
 
   function inner(def: TestNodeDef): TestNode {
     if (typeof def === "string") {
-      const n = {name: def, position: undefined};
+      const n = reactive({name: def, position: undefined});
       nodes[def] = n;
       return n;
     }
 
-    const n: TestParent = {
+    const n: TestParent = reactive({
       name: def.name,
       position: undefined,
       children: [],
-    };
+    });
     n.children = def.children.map((d, i) => {
       const c = inner(d);
-      c.position = {parent: n, index: i};
+      c.position = reactive({parent: n, index: i});
       return c;
     });
     nodes[def.name] = n;
@@ -109,6 +110,7 @@ export const makeDefaultTree = () =>
       },
       "d",
       {name: "e", children: ["e1", "e2"]},
+      "f",
     ],
   });
 
@@ -161,15 +163,23 @@ describe("model/tree", () => {
       after?: (node: TestNode, position: TestPosition | undefined) => void,
     ) {
       it(desc, () => {
-        const n = node();
-        const pos = position();
+        const n = reactive(node());
+        let pos = position();
+        if (pos) pos = reactive(pos);
         setPosition(n, pos);
 
-        expect(n.position).to.deep.equal(pos);
+        expect(n.position, "position is correct").to.deep.equal(pos);
         if (pos) {
-          expect(pos?.parent.children[pos.index]).to.equal(n);
-          expect(n.position!.parent).to.equal(pos.parent);
-          expect(n.position!.index).to.equal(pos.index);
+          expect(
+            pos?.parent.children[pos.index],
+            "parent.children[pos.index] is the node",
+          ).to.equal(n);
+          expect(n.position!.parent, "child's parent is correct").to.equal(
+            pos.parent,
+          );
+          expect(n.position!.index, "child's index is correct").to.equal(
+            pos.index,
+          );
         }
 
         checkTree(tree);
@@ -180,8 +190,8 @@ describe("model/tree", () => {
     for (const [pos, index] of [
       ["beginning", 0],
       ["middle", 2],
-      ["end-1", 4],
       ["end-1", 5],
+      ["end", 6],
     ] as const) {
       test(
         `inserts a node at the ${pos} of its parent`,
@@ -200,7 +210,7 @@ describe("model/tree", () => {
     for (const [pos, child] of [
       ["beginning", "a"],
       ["middle", "c"],
-      ["end", "e"],
+      ["end", "f"],
     ] as const) {
       test(
         `removes a node at the ${pos} of its parent`,
@@ -220,27 +230,13 @@ describe("model/tree", () => {
           nodes.c,
           nodes.d,
           nodes.e,
+          nodes.f,
         ]);
         expect(child.position?.index).to.equal(0);
       },
     );
     test(
       "rotates a node from the middle to the end of its parent",
-      () => nodes.b,
-      () => ({parent: parents.root, index: 4}),
-      (child, pos) => {
-        expect(parents.root.children).to.deep.equal([
-          nodes.a,
-          nodes.c,
-          nodes.d,
-          nodes.e,
-          nodes.b,
-        ]);
-        expect(child.position?.index).to.equal(4);
-      },
-    );
-    test(
-      "rotates a node from the middle to past the end of its parent",
       () => nodes.b,
       () => ({parent: parents.root, index: 5}),
       (child, pos) => {
@@ -249,9 +245,26 @@ describe("model/tree", () => {
           nodes.c,
           nodes.d,
           nodes.e,
+          nodes.f,
           nodes.b,
         ]);
-        expect(child.position?.index).to.equal(4);
+        expect(child.position?.index).to.equal(5);
+      },
+    );
+    test(
+      "rotates a node from the middle to past the end of its parent",
+      () => nodes.b,
+      () => ({parent: parents.root, index: 6}),
+      (child, pos) => {
+        expect(parents.root.children).to.deep.equal([
+          nodes.a,
+          nodes.c,
+          nodes.d,
+          nodes.e,
+          nodes.f,
+          nodes.b,
+        ]);
+        expect(child.position?.index).to.equal(5);
       },
     );
 
@@ -261,7 +274,7 @@ describe("model/tree", () => {
       () => ({parent: parents.c1, index: 0}),
       () => {
         expect(parents.root.children).to.deep.equal(
-          ["b", "c", "d", "e"].map(i => nodes[i]),
+          ["b", "c", "d", "e", "f"].map(i => nodes[i]),
         );
         expect(parents.c1.children).to.deep.equal(
           ["a", "c1a", "c1b", "c1c"].map(i => nodes[i]),
@@ -274,7 +287,7 @@ describe("model/tree", () => {
       () => ({parent: parents.c1, index: 1}),
       () => {
         expect(parents.root.children).to.deep.equal(
-          ["b", "c", "d", "e"].map(i => nodes[i]),
+          ["b", "c", "d", "e", "f"].map(i => nodes[i]),
         );
         expect(parents.c1.children).to.deep.equal(
           ["c1a", "a", "c1b", "c1c"].map(i => nodes[i]),
@@ -287,7 +300,7 @@ describe("model/tree", () => {
       () => ({parent: parents.c1, index: 2}),
       () => {
         expect(parents.root.children).to.deep.equal(
-          ["b", "c", "d", "e"].map(i => nodes[i]),
+          ["b", "c", "d", "e", "f"].map(i => nodes[i]),
         );
         expect(parents.c1.children).to.deep.equal(
           ["c1a", "c1b", "a", "c1c"].map(i => nodes[i]),
@@ -300,7 +313,7 @@ describe("model/tree", () => {
       () => ({parent: parents.c1, index: 3}),
       () => {
         expect(parents.root.children).to.deep.equal(
-          ["b", "c", "d", "e"].map(i => nodes[i]),
+          ["b", "c", "d", "e", "f"].map(i => nodes[i]),
         );
         expect(parents.c1.children).to.deep.equal(
           ["c1a", "c1b", "c1c", "a"].map(i => nodes[i]),
