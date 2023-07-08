@@ -59,6 +59,12 @@ export const SYNC_DEF = {
     is: anEnum("unstashed", "all"),
   },
 
+  // How are new folders of tabs shown, expanded or collapsed?
+  show_new_folders: {
+    default: "expanded",
+    is: anEnum("expanded", "collapsed"),
+  },
+
   // How big should the spacing/fonts be?
   ui_metrics: {
     default: "normal",
