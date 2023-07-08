@@ -218,7 +218,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, type PropType} from "vue";
+import {defineComponent, ref, type PropType} from "vue";
 
 import {
   altKeyName,
@@ -279,7 +279,6 @@ export default defineComponent({
 
   data: () => ({
     isRenaming: false,
-    showFiltered: false,
   }),
 
   computed: {
@@ -295,6 +294,25 @@ export default defineComponent({
     },
     selectionInfo() {
       return the.model.selection.info(this.folder);
+    },
+
+    showFiltered: {
+      get(): boolean {
+        let f = the.model.showFilteredChildren.get(this.folder);
+        if (!f) {
+          f = ref(false);
+          the.model.showFilteredChildren.set(this.folder, f);
+        }
+        return f.value;
+      },
+      set(v: boolean) {
+        let f = the.model.showFilteredChildren.get(this.folder);
+        if (!f) {
+          f = ref(false);
+          the.model.showFilteredChildren.set(this.folder, f);
+        }
+        f.value = v;
+      },
     },
 
     metadata(): BookmarkMetadataEntry {

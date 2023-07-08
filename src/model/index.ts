@@ -30,7 +30,7 @@
 //   mutating and accessing the state in various ways that a user might want to
 //   perform.  All the business logic resides here.
 
-import {computed, ref} from "vue";
+import {computed, ref, type Ref} from "vue";
 import browser from "webextension-polyfill";
 
 import {
@@ -157,6 +157,12 @@ export class Model {
     Bookmarks.Node | Tabs.Tab
   >;
 
+  /** This is a bit of volatile metadata that tracks whether children that don't
+   * match the filter should be shown in the UI or not.  We need it here because
+   * the selection model depends on it for knowing which items in a range are
+   * visible when doing a multi-select. */
+  readonly showFilteredChildren = new WeakMap<ModelItem, Ref<boolean>>();
+
   readonly selection: TreeSelection<ModelParent, ModelItem>;
 
   constructor(src: Source) {
@@ -193,6 +199,30 @@ export class Model {
         ),
       ),
     );
+
+    this.selection.rangeSelectPredicate = item => {
+      // This is super ugly because it mimics logic that is spread around
+      // various parts of the UI which determines whether a tab is visible or
+      // not.  Ugh.
+
+      if (isTab(item)) {
+        if (item.pinned || item.hidden) return false;
+
+        if (
+          this.options.sync.state.show_open_tabs === "unstashed" &&
+          this.bookmarks.isURLStashed(item.url)
+        ) {
+          return false;
+        }
+      }
+
+      if (this.filter.info(item).isMatching) return true;
+
+      const parent = item.position?.parent;
+      if (parent && this.showFilteredChildren.get(parent)?.value) return true;
+
+      return false;
+    };
   }
 
   /** Reload model data (where possible) in the event of an unexpected issue.

@@ -115,7 +115,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 </template>
 
 <script lang="ts">
-import {defineComponent, type PropType} from "vue";
+import {defineComponent, ref, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
 import {altKeyName, filterMap, required} from "../util";
@@ -164,7 +164,6 @@ export default defineComponent({
   },
 
   data: () => ({
-    showFiltered: false,
     confirmCloseTabs: 0,
     confirmCloseTabsThen: (id: ConfirmDialogEvent): void => {},
   }),
@@ -174,6 +173,25 @@ export default defineComponent({
 
     filterInfo(): FilterInfo {
       return the.model.filter.info(this.targetWindow);
+    },
+
+    showFiltered: {
+      get(): boolean {
+        let f = the.model.showFilteredChildren.get(this.targetWindow);
+        if (!f) {
+          f = ref(false);
+          the.model.showFilteredChildren.set(this.targetWindow, f);
+        }
+        return f.value;
+      },
+      set(v: boolean) {
+        let f = the.model.showFilteredChildren.get(this.targetWindow);
+        if (!f) {
+          f = ref(false);
+          the.model.showFilteredChildren.set(this.targetWindow, f);
+        }
+        f.value = v;
+      },
     },
 
     accepts() {

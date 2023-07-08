@@ -40,6 +40,9 @@ export class TreeSelection<
    * nodes. */
   readonly roots: Ref<P[]>;
 
+  /** An optional predicate function used to filter items from range selections. */
+  rangeSelectPredicate?: (n: P | N) => boolean;
+
   /** How many nodes are selected in `this.roots` and their subtrees? */
   readonly selectedCount: Ref<number>;
 
@@ -161,10 +164,11 @@ export class TreeSelection<
       return this.toggleSelectScattered(node);
     }
 
-    const range = this.itemsInRange(this.lastSelected.node, node);
+    let range = this.itemsInRange(this.lastSelected.node, node);
     if (!range) {
       return this.toggleSelectScattered(node);
     }
+    range = range.filter(this.rangeSelectPredicate || (_ => true));
 
     const selected = this.info(this.lastSelected.node).isSelected;
 
