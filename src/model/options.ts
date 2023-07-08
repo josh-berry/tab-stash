@@ -60,7 +60,7 @@ export const SYNC_DEF = {
   },
 
   // How are new folders of tabs shown, expanded or collapsed?
-  show_new_folder: {
+  show_new_folders: {
     default: "expanded",
     is: anEnum("expanded", "collapsed"),
   },
