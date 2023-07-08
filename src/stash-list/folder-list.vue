@@ -53,10 +53,10 @@ export default defineComponent({
 
     itemClasses(f: Node): Record<string, boolean> {
       const fi = the.model.filter.info(f);
+      const si = the.model.selection.info(f);
       return {
         hidden:
-          !isFolder(f) ||
-          !(fi.hasMatchInSubtree || f.$recursiveStats.selectedCount > 0),
+          !isFolder(f) || !(fi.hasMatchInSubtree || si.hasSelectionInSubtree),
       };
     },
 

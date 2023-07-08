@@ -254,11 +254,12 @@ export default defineComponent({
     },
 
     childClasses(t: Tab): Record<string, boolean> {
-      const info = the.model.filter.info(t);
+      const f = the.model.filter.info(t);
+      const s = the.model.selection.info(t);
       return {
         hidden: !(
           this.isValidChild(t) &&
-          (this.showFiltered || info.isMatching || t.$selected)
+          (this.showFiltered || f.isMatching || s.isSelected)
         ),
       };
     },
@@ -393,8 +394,8 @@ export default defineComponent({
     },
 
     drag(ev: DragAction<Tab>) {
-      const items = ev.value.$selected
-        ? Array.from(the.model.selectedItems())
+      const items = the.model.selection.info(ev.value).isSelected
+        ? Array.from(the.model.selection.selectedItems())
         : [ev.value];
       sendDragData(ev.dataTransfer, items);
     },

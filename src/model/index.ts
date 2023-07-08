@@ -53,10 +53,10 @@ import * as Containers from "./containers";
 import * as DeletedItems from "./deleted-items";
 import * as Favicons from "./favicons";
 import * as Options from "./options";
-import * as Selection from "./selection";
 import * as Tabs from "./tabs";
 import {pathTo} from "./tree";
 import {TreeFilter} from "./tree-filter";
+import {TreeSelection} from "./tree-selection";
 
 export {
   BookmarkMetadata,
@@ -79,20 +79,26 @@ export type StashItem = NewTab | NewFolder | ModelItem;
 
 export type StashLeaf = NewTab | Bookmarks.Bookmark | Tabs.Tab;
 
+/** A container (bookmark folder or window) that is part of the model. */
+export type ModelParent = Bookmarks.Folder | Tabs.Window;
+
 /** An actual bookmark/tab that is part of the model. */
-export type ModelItem = Bookmarks.Node | Tabs.Tab;
+export type ModelItem = Bookmarks.Node | Tabs.Tab | Tabs.Window;
 
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
 
 export const isModelParent = (
-  item: ModelItem | Tabs.Window,
-): item is Bookmarks.Folder | Tabs.Window => "children" in item;
+  item: ModelItem | ModelParent,
+): item is ModelParent => "children" in item;
 
 export const isModelItem = (item: StashItem): item is ModelItem => "id" in item;
 
+export const isWindow = (item: StashItem): item is Tabs.Window =>
+  "id" in item && typeof item.id === "number" && "children" in item;
+
 export const isTab = (item: StashItem): item is Tabs.Tab =>
-  "id" in item && typeof item.id === "number";
+  "id" in item && typeof item.id === "number" && !("children" in item);
 
 export const isNode = (item: StashItem): item is Bookmarks.Node =>
   "id" in item && typeof item.id === "string";
@@ -144,13 +150,14 @@ export class Model {
 
   readonly favicons: Favicons.Model;
   readonly bookmark_metadata: BookmarkMetadata.Model;
-  readonly selection: Selection.Model;
 
   readonly searchText = ref("");
   readonly filter: TreeFilter<
     Tabs.Window | Bookmarks.Folder,
     Bookmarks.Node | Tabs.Tab
   >;
+
+  readonly selection: TreeSelection<ModelParent, ModelItem>;
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;
@@ -163,7 +170,6 @@ export class Model {
 
     this.favicons = src.favicons;
     this.bookmark_metadata = src.bookmark_metadata;
-    this.selection = new Selection.Model([this.tabs, this.bookmarks]);
 
     this.filter = new TreeFilter(
       isModelParent,
@@ -176,6 +182,16 @@ export class Model {
           ("title" in node && matcher(node.title)) ||
           ("url" in node && matcher(node.url));
       }),
+    );
+
+    this.selection = new TreeSelection(
+      isModelParent,
+      computed(() =>
+        filterMap(
+          [this.tabs.targetWindow.value, this.bookmarks.stash_root.value],
+          i => i,
+        ),
+      ),
     );
   }
 
@@ -270,12 +286,6 @@ export class Model {
     return topmost;
   }
 
-  /** Yields all selected items (tabs and bookmarks). */
-  *selectedItems(): Generator<ModelItem> {
-    for (const item of this.tabs.selectedItems()) yield item;
-    for (const item of this.bookmarks.selectedItems()) yield item;
-  }
-
   /** Returns a list of tabs in a given window which should be stashed.
    *
    * This will exclude things like pinned and hidden tabs, or tabs with
@@ -367,7 +377,7 @@ export class Model {
     copy?: boolean;
     toFolderId?: Bookmarks.NodeID;
   }) {
-    const from_items = Array.from(this.selectedItems());
+    const from_items = Array.from(this.selection.selectedItems());
     const items = this.copyIf(options?.copy === true, from_items);
 
     let affected_items: StashItem[];
@@ -381,7 +391,9 @@ export class Model {
       });
     }
     if (!options?.copy) {
-      for (const i of affected_items) if (isModelItem(i)) i.$selected = false;
+      for (const i of affected_items) {
+        if (isModelItem(i)) this.selection.info(i).isSelected = false;
+      }
     }
   }
 
@@ -408,10 +420,9 @@ export class Model {
     await Promise.all(
       tabIds.map(tid => browser.tabs.update(tid, {highlighted: false})),
     );
-    await this.tabs.setSelected(
-      filterMap(tabIds, id => this.tabs.tab(id)),
-      false,
-    );
+    filterMap(tabIds, id => this.tabs.tab(id))
+      .map(t => this.selection.info(t))
+      .forEach(si => (si.isSelected = false));
 
     // istanbul ignore else -- hide() is always available in tests
     if (browser.tabs.hide) {
@@ -638,7 +649,9 @@ export class Model {
                   index,
                 })
               : await this.bookmarks.create({
-                  title: item.title,
+                  title:
+                    ("title" in item && item.title) ||
+                    Bookmarks.genDefaultFolderName(new Date()),
                   parentId,
                   index,
                 });
@@ -663,10 +676,8 @@ export class Model {
 
       // Update the selection state of the chosen bookmark to match the
       // original item's selection state.
-      await this.bookmarks.setSelected(
-        [node],
-        isModelItem(item) && item.$selected,
-      );
+      this.selection.info(node).isSelected =
+        isModelItem(item) && this.selection.info(item).isSelected;
     }
 
     // Hide/close any tabs which were moved from, since they are now
@@ -819,7 +830,8 @@ export class Model {
         if (pos && pos.parent === win && pos.index < to_index) --to_index;
         moved_items.push(t);
         dont_steal_tabs.add(t.id);
-        await this.tabs.setSelected([t], isModelItem(item) && item.$selected);
+        this.selection.info(t).isSelected =
+          isModelItem(item) && this.selection.info(item).isSelected;
         // console.log('moved already-open tab', t);
         continue;
       }
@@ -851,7 +863,8 @@ export class Model {
         );
         moved_items.push(tab);
         dont_steal_tabs.add(tab.id);
-        await this.tabs.setSelected([tab], isModelItem(item) && item.$selected);
+        this.selection.info(tab).isSelected =
+          isModelItem(item) && this.selection.info(item).isSelected;
         // console.log('restored recently-closed tab', tab);
         continue;
       }
@@ -867,7 +880,8 @@ export class Model {
       });
       moved_items.push(tab);
       dont_steal_tabs.add(tab.id);
-      await this.tabs.setSelected([tab], isModelItem(item) && item.$selected);
+      this.selection.info(tab).isSelected =
+        isModelItem(item) && this.selection.info(item).isSelected;
       // console.log('created new tab', tab);
     }
 
@@ -884,29 +898,30 @@ export class Model {
 
   /** Deletes the specified items (bookmark nodes or tabs), saving any deleted
    * bookmarks to the deleted-items model. */
-  async deleteItems(ids: Iterable<Bookmarks.NodeID | Tabs.TabID>) {
+  async deleteItems(items: Iterable<ModelItem>) {
     const now = new Date();
     const tabs = [];
-    for (const id of ids) {
-      if (typeof id === "string") {
-        // It's a bookmark
-        const node = this.bookmarks.node(id);
-        if (!node) continue;
+    const windows = [];
 
-        if (isFolder(node)) {
-          await this.deleteBookmarkTree(id, now);
-        } else if (isBookmark(node)) {
-          await this.deleteBookmark(node, now);
+    for (const i of items) {
+      if (isNode(i)) {
+        if (isFolder(i)) {
+          await this.deleteBookmarkTree(i.id, now);
+        } else if (isBookmark(i)) {
+          await this.deleteBookmark(i, now);
         } else {
           // separator
-          await this.bookmarks.remove(id);
+          await this.bookmarks.remove(i.id);
         }
+      } else if (isTab(i)) {
+        tabs.push(i.id);
       } else {
-        tabs.push(id);
+        windows.push(i);
       }
     }
 
     await this.tabs.remove(tabs);
+    await this.tabs.removeWindows(windows);
   }
 
   /** Deletes the specified bookmark subtree, saving it to deleted items.  You
@@ -1055,6 +1070,10 @@ export class Model {
   copying(items: StashItem[]): (NewTab | NewFolder)[] {
     return filterMap(items, item => {
       if (isNewItem(item)) return item;
+
+      if (isWindow(item)) {
+        return {title: "", children: this.copying(item.children)};
+      }
 
       if (isTab(item)) return {title: item.title, url: item.url};
 

@@ -7,7 +7,7 @@
       'action-container': true,
       'has-open-tabs': openTabsCount > 0,
       collapsed: collapsed,
-      selected: folder.$selected,
+      selected: selectionInfo.isSelected,
       'no-match': !filterInfo.isMatching,
       'has-matching-children': filterInfo.hasMatchInSubtree,
     }"
@@ -21,7 +21,7 @@
       }"
       default-icon="folder"
       selectable
-      :selected="folder.$selected"
+      :selected="selectionInfo.isSelected"
       @click.prevent.stop="select"
     />
 
@@ -293,6 +293,9 @@ export default defineComponent({
     filterInfo() {
       return the.model.filter.info(this.folder);
     },
+    selectionInfo() {
+      return the.model.selection.info(this.folder);
+    },
 
     metadata(): BookmarkMetadataEntry {
       return the.model.bookmark_metadata.get(this.folder.id);
@@ -420,7 +423,8 @@ export default defineComponent({
     canMoveIntoFolder(): boolean {
       let f: Folder | undefined = this.folder;
       while (f) {
-        if (f.$selected) return false;
+        const si = the.model.selection.info(f);
+        if (si.isSelected) return false;
         f = f.position?.parent;
       }
       return true;
@@ -460,23 +464,20 @@ export default defineComponent({
 
     select(ev: MouseEvent) {
       the.model.attempt(async () => {
-        await the.model.selection.toggleSelectFromEvent(
-          ev,
-          the.model.bookmarks,
-          this.folder,
-        );
+        the.model.selection.toggleSelectFromEvent(ev, this.folder);
       });
     },
 
     childClasses(node: Node): Record<string, boolean> {
       const fi = the.model.filter.info(node);
+      const si = the.model.selection.info(node);
       return {
         hidden: !(
           this.isValidChild(node) &&
           (this.showFiltered ||
             fi.hasMatchInSubtree ||
-            node.$selected ||
-            ("$recursiveStats" in node && node.$recursiveStats.selectedCount))
+            si.isSelected ||
+            si.hasSelectionInSubtree)
         ),
       };
     },
@@ -602,8 +603,7 @@ export default defineComponent({
         if (this.leafChildren.length === this.folder.children.length) {
           await the.model.deleteBookmarkTree(this.folder.id);
         } else {
-          const children = this.leafChildren.map(c => c.id);
-          await the.model.deleteItems(children);
+          await the.model.deleteItems(this.leafChildren);
         }
       });
     },
@@ -654,8 +654,8 @@ export default defineComponent({
     },
 
     drag(ev: DragAction<Node>) {
-      const items = ev.value.$selected
-        ? Array.from(the.model.selectedItems())
+      const items = the.model.selection.info(ev.value).isSelected
+        ? Array.from(the.model.selection.selectedItems())
         : [ev.value];
       sendDragData(ev.dataTransfer, items);
     },

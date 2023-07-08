@@ -15,7 +15,7 @@
       open: tabState.open,
       active: tabState.active,
       loading: tabState.loading,
-      selected: bookmark.$selected,
+      selected: selectionInfo.isSelected,
       'no-match': !filterInfo.isMatching,
     }"
     :title="bookmark.title"
@@ -28,9 +28,9 @@
         select: true,
       }"
       default-icon="tab"
-      :src="!bookmark.$selected ? favicon?.value?.favIconUrl || '' : ''"
+      :src="!selectionInfo.isSelected ? favicon?.value?.favIconUrl || '' : ''"
       selectable
-      :selected="bookmark.$selected"
+      :selected="selectionInfo.isSelected"
       @click.prevent.stop="select"
     />
 
@@ -118,6 +118,9 @@ export default defineComponent({
     filterInfo(): FilterInfo {
       return the.model.filter.info(this.bookmark);
     },
+    selectionInfo() {
+      return the.model.selection.info(this.bookmark);
+    },
 
     relatedTabs(): readonly Tab[] {
       const tab_model = the.model.tabs;
@@ -192,11 +195,7 @@ export default defineComponent({
   methods: {
     select(ev: MouseEvent) {
       the.model.attempt(async () => {
-        await the.model.selection.toggleSelectFromEvent(
-          ev,
-          the.model.bookmarks,
-          this.bookmark,
-        );
+        the.model.selection.toggleSelectFromEvent(ev, this.bookmark);
       });
     },
 

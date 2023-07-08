@@ -427,10 +427,10 @@ describe("model", () => {
 
     it("clears any selections on hidden tabs", async () => {
       const tab = model.tabs.tab(tabs.real_bob.id)!;
+      const si = model.selection.info(tab);
 
-      await model.tabs.setSelected([tab], true);
-      expect(tab.$selected).to.be.true;
-      expect(Array.from(model.selectedItems())).to.deep.equal([tab]);
+      si.isSelected = true;
+      expect(Array.from(model.selection.selectedItems())).to.deep.equal([tab]);
 
       const p1 = browser.tabs.update(tab.id, {highlighted: true});
       await events.next(browser.tabs.onHighlighted);
@@ -445,8 +445,8 @@ describe("model", () => {
 
       expect(tab.hidden).to.be.true;
       expect(tab.highlighted).to.be.false;
-      expect(tab.$selected).to.be.false;
-      expect(Array.from(model.selectedItems())).to.deep.equal([]);
+      expect(si.isSelected).to.be.false;
+      expect(Array.from(model.selection.selectedItems())).to.deep.equal([]);
     });
   });
 

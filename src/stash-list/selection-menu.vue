@@ -193,8 +193,9 @@ export default defineComponent({
 
     remove() {
       this.attempt(async () => {
-        const ids = Array.from(the.model.selectedItems()).map(i => i.id);
-        await the.model.deleteItems(ids);
+        await the.model.deleteItems(
+          Array.from(the.model.selection.selectedItems()),
+        );
       });
     },
   },

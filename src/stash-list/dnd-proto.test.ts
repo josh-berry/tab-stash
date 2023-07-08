@@ -117,11 +117,12 @@ describe("stash-list/dnd-proto", () => {
   testInvalid("ignores JSON-shaped nonsense", () => '{"foo":"bar"}');
   testInvalid(
     "ignores values of the wrong type in the provided JSON array",
-    () => '[{"foo": "bar"},null,true,false]',
+    () => '[{"foo": "bar"},null,true,false,{},0,"asdf"]',
   );
   testInvalid(
     "ignores invalid IDs in the provided JSON array",
-    () => '[3.141,"weird identifier"]',
+    () =>
+      '[{"tab":3.141},{"node":"weird identifier"},{"window":"foo"},{"node":14},{"tab":{"tab":12}}]',
   );
 
   testValid("finds the requested tabs", () => [

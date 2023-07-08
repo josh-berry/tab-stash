@@ -27,8 +27,6 @@ export interface Node extends TreeNode<Folder, Node> {
   id: NodeID;
   dateAdded?: number;
   title: string;
-
-  $selected: boolean;
 }
 
 export interface Folder extends Node, TreeParent<Folder, Node> {
@@ -51,7 +49,6 @@ export type NodePosition = {parent: Folder; index: number};
 export type FolderStats = {
   bookmarkCount: number;
   folderCount: number;
-  selectedCount: number;
 };
 
 export function isBookmark(node: Node): node is Bookmark {
@@ -98,17 +95,6 @@ export class Model {
   readonly stash_root_warning: Ref<
     {text: string; help: () => void} | undefined
   > = ref();
-
-  /** The number of selected bookmarks.  This is a ref() rather than a
-   * computed() because it's very expensive to compute, so we always update it
-   * incrementally.
-   *
-   * The invariant is: this should only be updated by assigning to a node's
-   * `$selected` field.  That will trigger a watch which will adjust the count
-   * up or down by one. */
-  readonly selectedCount = computed(
-    () => this.stash_root.value?.$recursiveStats.selectedCount || 0,
-  );
 
   /** Tracks folders which are candidates to be the stash root, and their
    * parents (up to the root).  Any changes to these folders should recompute
@@ -506,8 +492,6 @@ export class Model {
 
     let node = this.by_id.get(nodeId);
     if (!node) {
-      const $selected = ref(false);
-
       if (isBrowserBTNFolder(new_bm)) {
         const folder: Folder = reactive({
           position: undefined,
@@ -515,30 +499,25 @@ export class Model {
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
           children: [],
-          $selected,
           $stats: computed(() => {
             let bookmarkCount = 0;
             let folderCount = 0;
-            let selectedCount = 0;
             for (const c of folder.children) {
               if (isFolder(c)) ++folderCount;
               if (isBookmark(c)) ++bookmarkCount;
-              if (c.$selected) ++selectedCount;
             }
-            return {bookmarkCount, folderCount, selectedCount};
+            return {bookmarkCount, folderCount};
           }),
           $recursiveStats: computed(() => {
             let bookmarkCount = folder.$stats.bookmarkCount;
             let folderCount = folder.$stats.folderCount;
-            let selectedCount = folder.$stats.selectedCount;
             for (const c of folder.children) {
               if (!isFolder(c)) continue;
               const stats = c.$recursiveStats;
               bookmarkCount += stats.bookmarkCount;
               folderCount += stats.folderCount;
-              selectedCount += stats.selectedCount;
             }
-            return {bookmarkCount, folderCount, selectedCount};
+            return {bookmarkCount, folderCount};
           }),
         });
         node = folder;
@@ -549,7 +528,6 @@ export class Model {
           dateAdded: new_bm.dateAdded,
           type: "separator" as "separator",
           title: "" as "",
-          $selected,
         });
       } else {
         node = reactive({
@@ -558,7 +536,6 @@ export class Model {
           dateAdded: new_bm.dateAdded,
           title: new_bm.title ?? "",
           url: new_bm.url ?? "",
-          $selected,
         });
         this._add_url(node as Bookmark);
       }
@@ -637,23 +614,10 @@ export class Model {
       () => `Move of ${id} is going to unknown folder ${info.parentId}`,
     );
 
-    const wasInRoot = this.isNodeInStashRoot(node);
-
     setPosition(node, {parent: new_parent, index: info.index});
 
     if (isFolder(node) && this._stash_root_watch.has(node)) {
       this._maybeUpdateStashRoot();
-    }
-
-    const isInRoot = this.isNodeInStashRoot(node);
-
-    // Clear the selection if we moved the node out of the stash root.
-    if (wasInRoot !== isInRoot && !isInRoot) {
-      const clear = (n: Node) => {
-        n.$selected = false;
-        if (isFolder(n)) for (const c of n.children) clear(c);
-      };
-      clear(node);
     }
   }
 
@@ -669,9 +633,6 @@ export class Model {
     if (isFolder(node)) {
       for (const c of Array.from(node.children)) this.whenBookmarkRemoved(c.id);
     }
-
-    // Make sure the selectedCount gets updated correctly.
-    node.$selected = false;
 
     setPosition(node, undefined);
 
@@ -729,12 +690,10 @@ export class Model {
         return 0;
       });
 
-    // The actual stash root is the first candidate.
+    // The actual stash root is the first candidate.  The if-statement ensures
+    // we only update the stash root if it's actually changed, since updating it
+    // can be quite expensive (it will effectively redraw the whole UI).
     if (this.stash_root.value !== candidates[0]) {
-      // If the stash root is about to change, then we need to clear the
-      // selection, because the user can't de-select items outside the
-      // stash root (and the UI will get stuck in selection mode).
-      this.clearSelection();
       this.stash_root.value = candidates[0];
     }
 
@@ -757,62 +716,6 @@ export class Model {
     // candidates are available (since there may be ways of resolving
     // conflicts we can't do here).
     return candidates;
-  }
-
-  //
-  // Handling selection/deselection of bookmarks in the UI
-  //
-
-  isSelected(item: Node): boolean {
-    return item.$selected;
-  }
-
-  async clearSelection() {
-    for (const bm of this.by_id.values()) bm.$selected = false;
-  }
-
-  async setSelected(items: Iterable<Node>, isSelected: boolean) {
-    for (const item of items) item.$selected = isSelected;
-  }
-
-  *selectedItems(): Generator<Node> {
-    function* walk(bm: Node): Generator<Node> {
-      if (bm.$selected) {
-        yield bm;
-        // If a parent is selected, we don't want to return every single
-        // node in the subtree because this breaks drag-and-drop--we
-        // would want to move a folder as a single unit, rather than
-        // moving the folder, then all its children, then all their
-        // children, and so on (effectively flattening the tree).
-        return;
-      }
-      if (isFolder(bm)) {
-        for (const c of bm.children) {
-          yield* walk(c);
-        }
-      }
-    }
-
-    // We only consider items inside the stash root, since those are the
-    // only items that show up in the UI.
-    // istanbul ignore else -- when testing we should always have a root
-    if (this.stash_root.value) yield* walk(this.stash_root.value);
-  }
-
-  itemsInRange(start: Node, end: Node): Node[] | null {
-    let startPos = start.position;
-    let endPos = end.position;
-
-    if (!startPos || !endPos) return null;
-    if (startPos.parent !== endPos.parent) return null;
-
-    if (endPos.index < startPos.index) {
-      const tmp = endPos;
-      endPos = startPos;
-      startPos = tmp;
-    }
-
-    return startPos.parent.children.slice(startPos.index, endPos.index + 1);
   }
 
   private _add_url(bm: Bookmark) {

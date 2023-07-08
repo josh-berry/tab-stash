@@ -3,7 +3,6 @@ import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
 import * as events from "../mock/events";
-import {nextTick} from "../util";
 
 import * as M from "./bookmarks";
 
@@ -101,7 +100,6 @@ describe("model/bookmarks", () => {
       id: new_bm.id as M.NodeID,
       title: "New",
       url: "/new",
-      $selected: false,
     });
     expect(n.position).to.deep.equal({
       parent: model.folder(bms.root.id)!,
@@ -399,125 +397,6 @@ describe("model/bookmarks", () => {
       expect(root1).to.deep.equal(root2);
       expect(model.stash_root.value).to.equal(root1);
       expect(model2.stash_root.value).to.equal(root2);
-    });
-  });
-
-  describe("selection model", () => {
-    it("tracks selected items", async () => {
-      model.setSelected(
-        [
-          model.node(bms.undyne.id)!,
-          model.node(bms.nate.id)!,
-          model.node(bms.helen.id)!,
-        ],
-        true,
-      );
-
-      expect(Array.from(model.selectedItems())).to.deep.equal([
-        model.node(bms.helen.id),
-        model.node(bms.nate.id),
-        model.node(bms.undyne.id),
-      ]);
-
-      expect(model.isSelected(model.node(bms.helen.id)!)).to.be.true;
-      expect(model.isSelected(model.node(bms.nate.id)!)).to.be.true;
-      expect(model.isSelected(model.node(bms.undyne.id)!)).to.be.true;
-
-      expect(model.isSelected(model.node(bms.patricia.id)!)).to.be.false;
-      expect(model.isSelected(model.node(bms.unnamed.id)!)).to.be.false;
-    });
-
-    it("identifies items in a range within a folder", async () => {
-      const range = model.itemsInRange(
-        model.node(bms.doug_2.id)!,
-        model.node(bms.patricia.id)!,
-      );
-      expect(range).to.deep.equal([
-        model.node(bms.doug_2.id),
-        model.node(bms.helen.id),
-        model.node(bms.patricia.id),
-      ]);
-    });
-
-    it("identifies items in a range within a folder (backwards)", async () => {
-      const range = model.itemsInRange(
-        model.node(bms.patricia.id)!,
-        model.node(bms.doug_2.id)!,
-      );
-      expect(range).to.deep.equal([
-        model.node(bms.doug_2.id),
-        model.node(bms.helen.id),
-        model.node(bms.patricia.id),
-      ]);
-    });
-
-    it("identifies a single-item range", async () => {
-      const range = model.itemsInRange(
-        model.node(bms.helen.id)!,
-        model.node(bms.helen.id)!,
-      );
-      expect(range).to.deep.equal([model.node(bms.helen.id)]);
-    });
-
-    it("refuses to identify ranges across folders", async () => {
-      // for now, anyway...
-      expect(
-        model.itemsInRange(
-          model.node(bms.doug_2.id)!,
-          model.node(bms.undyne.id)!,
-        ),
-      ).to.be.null;
-    });
-
-    describe("selectionCount", () => {
-      beforeEach(async () => {
-        events.ignore(undefined);
-
-        expect(model.selectedCount.value).to.equal(0);
-        model.setSelected(
-          [
-            model.node(bms.undyne.id)!,
-            model.node(bms.nate.id)!,
-            model.node(bms.helen.id)!,
-          ],
-          true,
-        );
-        await nextTick();
-        expect(model.selectedCount.value).to.equal(3);
-      });
-
-      it("increments the count on selection", async () => {
-        // nothing beyond the beforeEach()
-      });
-
-      it("decrements the count on de-selection", async () => {
-        model.setSelected(
-          [model.node(bms.undyne.id)!, model.node(bms.helen.id)!],
-          false,
-        );
-        await nextTick();
-        expect(model.selectedCount.value).to.equal(1);
-      });
-
-      it("decrements the count on bookmark deletion", async () => {
-        await model.remove(bms.nate.id);
-        expect(model.selectedCount.value).to.equal(2);
-      });
-
-      it("decrements the count on moving a bookmark out of the stash", async () => {
-        await model.move(bms.nate.id, bms.outside.id, 0);
-        expect(model.selectedCount.value).to.equal(2);
-      });
-
-      it("decrements the count on moving a parent folder out of the stash", async () => {
-        await model.move(bms.names.id, bms.outside.id, 0);
-        expect(model.selectedCount.value).to.equal(1);
-      });
-
-      it("resets the selection on a stash root change", async () => {
-        await model.rename(model.stash_root.value!, "foo");
-        expect(model.selectedCount.value).to.equal(0);
-      });
     });
   });
 

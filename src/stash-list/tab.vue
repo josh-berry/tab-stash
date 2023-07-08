@@ -9,7 +9,7 @@
       discarded: tab.discarded,
       loading: isLoading,
       stashed: stashedIn.length > 0,
-      selected: tab.$selected,
+      selected: selectionInfo.isSelected,
       'no-match': !filterInfo.isMatching,
     }"
     :title="tab.title"
@@ -24,7 +24,7 @@
       default-icon="tab"
       :src="favIcon"
       selectable
-      :selected="tab.$selected"
+      :selected="selectionInfo.isSelected"
       @click.prevent.stop="select"
     />
 
@@ -85,6 +85,9 @@ export default defineComponent({
     filterInfo() {
       return the.model.filter.info(this.tab);
     },
+    selectionInfo() {
+      return the.model.selection.info(this.tab);
+    },
 
     altKey: altKeyName,
     bgKey: bgKeyName,
@@ -92,7 +95,7 @@ export default defineComponent({
       return the.model.tabs.targetWindow.value;
     },
     favIcon(): string {
-      if (this.tab.$selected) {
+      if (this.selectionInfo.isSelected) {
         return "";
       } else if (this.tab.favIconUrl) {
         return this.tab.favIconUrl;
@@ -137,11 +140,7 @@ export default defineComponent({
 
     select(ev: MouseEvent) {
       this.attempt(async () => {
-        await the.model.selection.toggleSelectFromEvent(
-          ev,
-          the.model.tabs,
-          this.tab,
-        );
+        the.model.selection.toggleSelectFromEvent(ev, this.tab);
       });
     },
 

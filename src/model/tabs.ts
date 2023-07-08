@@ -5,7 +5,6 @@ import browser from "webextension-polyfill";
 import {
   AsyncTaskQueue,
   backingOff,
-  computedLazyEq,
   expect,
   filterMap,
   shortPoll,
@@ -37,8 +36,6 @@ export interface Tab extends TreeNode<Window, Tab> {
   active: boolean;
   highlighted: boolean;
   discarded: boolean;
-
-  $selected: boolean;
 }
 
 export type WindowID = number & {readonly __window_id: unique symbol};
@@ -85,13 +82,6 @@ export class Model {
       return this.focusedWindow.value;
     }
     return undefined;
-  });
-
-  /** The number of selected tabs. */
-  readonly selectedCount = computedLazyEq(() => {
-    let count = 0;
-    for (const _ of this.selectedItems()) ++count;
-    return count;
   });
 
   /** The number of tabs being loaded. */
@@ -322,6 +312,14 @@ export class Model {
     });
   }
 
+  /** Closes the specified browser windows. */
+  async removeWindows(windows: Window[]) {
+    await Promise.all(windows.map(win => browser.windows.remove(win.id)));
+    await shortPoll(() => {
+      if (windows.find(w => this.windows.has(w.id)) !== undefined) tryAgain();
+    });
+  }
+
   /** If any of the provided tabIds are the active tab, change to a different
    * active tab.  If the tabIds include all open tabs in a window, create a
    * fresh new tab to activate.
@@ -479,8 +477,6 @@ export class Model {
         active: tab.active,
         highlighted: tab.highlighted,
         discarded: tab.discarded ?? false,
-
-        $selected: false,
       } satisfies Tab);
       this.tabs.set(tab.id as TabID, t);
     } else {
@@ -668,51 +664,5 @@ export class Model {
       const cancel = watch(this.loadingCount, check);
       check();
     });
-  }
-
-  //
-  // Handling selection/deselection of tabs in the UI
-  //
-
-  isSelected(item: Tab): boolean {
-    return item.$selected;
-  }
-
-  async clearSelection() {
-    for (const t of this.tabs.values()) t.$selected = false;
-  }
-
-  async setSelected(items: Iterable<Tab>, isSelected: boolean) {
-    for (const item of items) item.$selected = isSelected;
-  }
-
-  *selectedItems(): Generator<Tab> {
-    // We only allow tabs in the current window to be selected
-    // istanbul ignore if -- shouldn't occur in tests
-    if (this.targetWindow.value === undefined) return;
-    for (const t of this.targetWindow.value.children) if (t.$selected) yield t;
-  }
-
-  itemsInRange(start: Tab, end: Tab): Tab[] | null {
-    // istanbul ignore if -- shouldn't occur in tests
-    if (this.targetWindow.value === undefined) return null;
-
-    const win = this.targetWindow.value;
-    let startPos = start.position;
-    let endPos = end.position;
-    if (!startPos || !endPos) return null;
-
-    if (startPos.parent !== this.targetWindow.value) return null;
-    if (endPos.parent !== this.targetWindow.value) return null;
-
-    if (endPos.index < startPos.index) {
-      const tmp = endPos;
-      endPos = startPos;
-      startPos = tmp;
-    }
-
-    return win.children
-      .slice(startPos.index, endPos.index + 1)
-      .filter(t => !t.hidden && !t.pinned);
   }
 }
