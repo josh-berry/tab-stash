@@ -162,7 +162,11 @@ export default defineComponent({
 
     remove() {
       this.attempt(async () => {
-        await the.model.tabs.remove([this.tab.id]);
+        if (this.stashedIn.length > 0) {
+          await the.model.hideOrCloseStashedTabs([this.tab.id]);
+        } else {
+          await the.model.tabs.remove([this.tab.id]);
+        }
       });
     },
   },
