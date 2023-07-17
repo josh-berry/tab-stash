@@ -446,6 +446,7 @@ logErrorsFrom(async () => {
     let tab_count = tabs.length;
     let candidate_tabs = tabs
       .filter(t => t.hidden && t.id !== undefined)
+      .filter(t => !t.audible && !t.mutedInfo?.muted)
       .sort((a, b) => (a.lastAccessed ?? 0) - (b.lastAccessed ?? 0));
 
     const min_keep_tabs = model.options.local.state.autodiscard_min_keep_tabs;
