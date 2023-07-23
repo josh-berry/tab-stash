@@ -330,7 +330,7 @@ export default defineComponent({
         tabs:
           isBookmark(n) && n.url
             ? Array.from(tab_model.tabsWithURL(n.url)).filter(
-                t => t.position?.parent.id === this.targetWindow,
+                t => t.position?.parent === this.targetWindow,
               )
             : [],
       }));
@@ -342,7 +342,7 @@ export default defineComponent({
         hidden = 0;
       for (const nwt of this.childrenWithTabs) {
         for (const tab of nwt.tabs) {
-          if (tab.position?.parent.id !== this.targetWindow) {
+          if (tab.position?.parent !== this.targetWindow) {
             continue;
           }
           if (tab.hidden) {
