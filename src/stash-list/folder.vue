@@ -620,13 +620,13 @@ export default defineComponent({
       this.attempt(async () => {
         const bg = bgKeyPressed(ev);
 
-        await the.model.restoreTabs(this.leafChildren, {background: bg});
-
-        if (this.leafChildren.length === this.folder.children.length) {
-          await the.model.deleteBookmarkTree(this.folder.id);
-        } else {
-          await the.model.deleteItems(this.leafChildren);
-        }
+        await the.model.restoreTabs(this.leafChildren, {
+          background: bg,
+          beforeClosing: () =>
+            this.leafChildren.length === this.folder.children.length
+              ? the.model.deleteBookmarkTree(this.folder.id)
+              : the.model.deleteItems(this.leafChildren),
+        });
       });
     },
 

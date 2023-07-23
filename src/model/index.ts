@@ -483,10 +483,26 @@ export class Model {
    *
    * Note that if a tab is already open and not hidden, we will do nothing,
    * since we don't want to open duplicate tabs.  Such tabs will not be
-   * included in the returned list. */
+   * included in the returned list.
+   *
+   * After restoring tabs, if the previously-active tab was a blank tab, it will
+   * be closed.  Note that this tab may be the Tab Stash tab itself (e.g. if Tab
+   * Stash is the homepage or the new-tab page).  In that situation, this
+   * function may not return (since the tab running it will be closed). */
   async restoreTabs(
     items: StashLeaf[],
-    options: {background?: boolean},
+    options: {
+      /** Should tabs be opened in the background? */
+      background?: boolean;
+
+      /** Run this function after restoring tabs, but before closing the active
+       * new tab (if any).  This hook exists in case Tab Stash is itself the
+       * active new tab--in which case, this function never returns.
+       *
+       * Note that this function always runs exactly once (even if there is no
+       * tab to close.) */
+      beforeClosing?: (tabs: Tabs.Tab[]) => Promise<void>;
+    },
   ): Promise<Tabs.Tab[]> {
     const toWindow = this.tabs.targetWindow.value;
     if (toWindow === undefined) {
@@ -518,6 +534,8 @@ export class Model {
       items: this.copying(items),
       toWindowId: toWindow.id,
     });
+
+    if (options.beforeClosing) await options.beforeClosing(tabs);
 
     if (!options.background) {
       // Switch to the last tab that we restored (if desired).  We choose

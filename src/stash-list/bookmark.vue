@@ -243,8 +243,8 @@ export default defineComponent({
         const bg = bgKeyPressed(ev);
         await the.model.restoreTabs([this.bookmark], {
           background: bg,
+          beforeClosing: () => the.model.deleteBookmark(this.bookmark),
         });
-        await the.model.deleteBookmark(this.bookmark);
       });
     },
 
