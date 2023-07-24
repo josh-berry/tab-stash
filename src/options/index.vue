@@ -38,20 +38,17 @@
       <ul>
         <li>
           <select id="browser_action_stash" v-model="sync.browser_action_stash">
-            <option
-              :disabled="sync.browser_action_show === 'popup'"
-              value="all"
-            >
+            <option :disabled="!model.canBrowserActionStash('all')" value="all">
               Stash all (or selected) tabs
             </option>
             <option
-              :disabled="sync.browser_action_show === 'popup'"
+              :disabled="!model.canBrowserActionStash('single')"
               value="single"
             >
               Stash the active tab
             </option>
             <option
-              :disabled="sync.browser_action_show === 'none'"
+              :disabled="!model.canBrowserActionStash('none')"
               value="none"
             >
               Don't stash any tabs
@@ -59,18 +56,24 @@
           </select>
           and
           <select id="browser_action_show" v-model="sync.browser_action_show">
-            <option v-if="hasSidebar" value="sidebar">
+            <option
+              v-if="model.hasSidebar()"
+              :disabled="!model.canBrowserActionShow('sidebar')"
+              value="sidebar"
+            >
               show the stash in the sidebar
             </option>
-            <option value="tab">show the stash in a tab</option>
+            <option :disabled="!model.canBrowserActionShow('tab')" value="tab">
+              show the stash in a tab
+            </option>
             <option
-              :disabled="sync.browser_action_stash !== 'none'"
+              :disabled="!model.canBrowserActionShow('popup')"
               value="popup"
             >
               show the stash in a popup
             </option>
             <option
-              :disabled="sync.browser_action_stash === 'none'"
+              :disabled="!model.canBrowserActionShow('none')"
               value="none"
             >
               don't show the stash
@@ -83,7 +86,7 @@
     <section>
       <label>When stashing tabs from the context menu or address bar:</label>
       <ul>
-        <li v-if="hasSidebar">
+        <li v-if="model.hasSidebar()">
           <label for="open_stash_in_sidebar">
             <input
               type="radio"
@@ -484,7 +487,6 @@ export default defineComponent({
   components: {FeatureFlag, OopsNotification},
 
   props: {
-    hasSidebar: Boolean,
     model: required(Object as PropType<Options.Model>),
   },
 

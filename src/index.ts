@@ -186,7 +186,7 @@ logErrorsFrom(async () => {
   // Shows the Tab Stash UI in the manner requested by /show_what/.  NOTE that to
   // be able to open the sidebar, this function must be invoked in a
   // user-initiated event handler context BEFORE any async operations are done.
-  function show_something(show_what: ShowWhatOpt) {
+  function show_something(show_what?: ShowWhatOpt) {
     switch (show_what) {
       case "none":
         break;
@@ -199,14 +199,17 @@ logErrorsFrom(async () => {
         model.attempt(commands.show_popup);
 
       case "sidebar":
-      default:
         model.attempt(commands.show_sidebar_or_tab);
+        break;
+
+      default:
+        show_setup_page();
         break;
     }
   }
 
   async function stash_something(options: {
-    what: StashWhatOpt;
+    what?: StashWhatOpt;
     copy?: boolean;
     tab?: Tab;
   }) {
@@ -231,6 +234,20 @@ logErrorsFrom(async () => {
       default:
         break;
     }
+  }
+
+  function show_setup_page() {
+    model.attempt(() =>
+      model.restoreTabs(
+        [
+          {
+            title: "Tab Stash - Setup",
+            url: browser.runtime.getURL("setup.html"),
+          },
+        ],
+        {},
+      ),
+    );
   }
 
   //
@@ -275,11 +292,8 @@ logErrorsFrom(async () => {
       asyncEvent(async tab => {
         const opts = model.options.sync.state;
         // Special case so the user doesn't think Tab Stash is broken
-        if (
-          opts.browser_action_show === "none" &&
-          opts.browser_action_stash === "none"
-        ) {
-          await browser.runtime.openOptionsPage();
+        if (!opts.browser_action_show || !opts.browser_action_stash) {
+          show_setup_page();
           return;
         }
         show_something(opts.browser_action_show);
@@ -291,6 +305,11 @@ logErrorsFrom(async () => {
   if (browser.pageAction) {
     browser.pageAction.onClicked.addListener(
       asyncEvent(async tab => {
+        if (!model.options.sync.state.open_stash_in) {
+          // User hasn't decided what this button should do yet
+          show_setup_page();
+          return;
+        }
         commands.stash_one(model.tabs.tab(tab.id));
       }),
     );
@@ -318,15 +337,16 @@ logErrorsFrom(async () => {
   // their icons accordingly.
   model.options.sync.onChanged.addListener(opts =>
     model.attempt(async () => {
-      function getTitle(stash: StashWhatOpt): string {
+      function getTitle(stash?: StashWhatOpt): string {
         switch (stash) {
           case "all":
             return "Stash all (or selected) tabs";
           case "single":
             return "Stash this tab";
           case "none":
-          default:
             return "Show stashed tabs";
+          default:
+            return "Set up Tab Stash";
         }
       }
 

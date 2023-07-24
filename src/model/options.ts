@@ -24,8 +24,7 @@ export const SHOW_WHAT_OPT = anEnum("sidebar", "tab", "popup", "none");
 export const STASH_WHAT_OPT = anEnum("all", "single", "none");
 export type ShowWhatOpt = ReturnType<typeof SHOW_WHAT_OPT>;
 export type StashWhatOpt = ReturnType<typeof STASH_WHAT_OPT>;
-
-export const SHOW_WHAT_DEFAULT = browser.sidebarAction ? "sidebar" : "tab";
+export type Capability = "available" | "disabled" | "not-supported";
 
 export type SyncModel = StoredObject<typeof SYNC_DEF>;
 export type SyncState = SyncModel["state"];
@@ -36,20 +35,20 @@ export const SYNC_DEF = {
   // When the user stashes from the context menu or address bar button, do we
   // show the "sidebar", "tab", or "none" (of the above)?
   open_stash_in: {
-    default: SHOW_WHAT_DEFAULT,
-    is: SHOW_WHAT_OPT,
+    default: undefined,
+    is: maybeUndef(SHOW_WHAT_OPT),
   },
 
   // When the user clicks the browser toolbar button, what tabs do we stash?
   browser_action_stash: {
-    default: "all",
-    is: STASH_WHAT_OPT,
+    default: undefined,
+    is: maybeUndef(STASH_WHAT_OPT),
   },
 
   // When the user clicks the browser toolbar button, what UI do we show?
   browser_action_show: {
-    default: SHOW_WHAT_DEFAULT,
-    is: SHOW_WHAT_OPT,
+    default: undefined,
+    is: maybeUndef(SHOW_WHAT_OPT),
   },
 
   // In the stash list, show all open tabs at the top instead of just the
@@ -174,6 +173,39 @@ export class Model {
       !!errorLog.find(e => !(e.error instanceof UserError))
     );
   });
+
+  /** Is the Firefox sidebar supported? */
+  hasSidebar(): boolean {
+    return !!browser.sidebarAction;
+  }
+
+  /** Based on the current settings, what can the toolbar stash? */
+  canBrowserActionStash(what: StashWhatOpt): boolean {
+    const browserActionShow = this.sync.state.browser_action_show;
+
+    switch (what) {
+      case "none":
+        return browserActionShow !== "none";
+      default:
+        return browserActionShow !== "popup";
+    }
+  }
+
+  /** Based on the current settings, what UIs can the browser show? */
+  canBrowserActionShow(what: ShowWhatOpt): boolean {
+    if (what === "sidebar" && !browser.sidebarAction) return false;
+
+    const browserActionStash = this.sync.state.browser_action_stash;
+
+    switch (what) {
+      case "none":
+        return browserActionStash !== "none";
+      case "popup":
+        return browserActionStash === "none";
+      default:
+        return true;
+    }
+  }
 
   private _now = ref(Date.now());
 }

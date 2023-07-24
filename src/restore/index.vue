@@ -9,10 +9,10 @@
       <Notification v-if="copied" @dismiss="closeNotif">Copied</Notification>
     </transition-group>
 
-    <div class="icon-warning" />
+    <div class="flat-heading-icon icon-warning" />
 
-    <h2 v-if="protocol === 'file:'">Restoring a Local File</h2>
-    <h2 v-else>Suspicious Stashed Tab</h2>
+    <h1 v-if="protocol === 'file:'">Restoring a Local File</h1>
+    <h1 v-else>Suspicious Stashed Tab</h1>
 
     <p v-if="protocol === 'file:'">
       For security reasons, your browser won't allow Tab Stash to restore tabs

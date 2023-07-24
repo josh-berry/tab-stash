@@ -2,15 +2,13 @@
 
 import launch from "../launch-vue";
 
-import * as Options from "../model/options";
+import {init} from "./globals";
 import Main from "./index.vue";
 
 launch(Main, async () => {
-  const opts = await Options.Model.live();
-  (<any>globalThis).model = opts;
+  await init();
+
   return {
-    propsData: {
-      model: opts,
-    },
+    propsData: {},
   };
 });
