@@ -297,7 +297,10 @@ logErrorsFrom(async () => {
           return;
         }
         show_something(opts.browser_action_show);
-        await stash_something({what: opts.browser_action_stash, tab});
+        await stash_something({
+          what: opts.browser_action_stash,
+          tab: model.tabs.tab(tab.id!)!,
+        });
       }),
     );
   }
