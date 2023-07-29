@@ -41,6 +41,15 @@
           Save the active tab to the stash</label
         >
       </p>
+      <p
+        v-if="
+          !the.options.canBrowserActionStash('single') ||
+          !the.options.canBrowserActionStash('all')
+        "
+        class="status-text note"
+      >
+        You can't show the popup and save tabs at the same time.
+      </p>
       <p>
         <label :class="{disabled: !the.options.canBrowserActionStash('none')}"
           ><input
@@ -179,10 +188,8 @@
     >
       <hr />
 
-      <p class="status-text">
-        You're all set! Thanks for trying out Tab Stash, I hope you enjoy it!
-        —Josh
-      </p>
+      <p>You're all set! You can close this tab.</p>
+      <p>Thanks for trying out Tab Stash. I hope you enjoy it! —Josh</p>
     </section>
   </main>
 </template>
