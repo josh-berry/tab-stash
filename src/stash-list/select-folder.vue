@@ -25,6 +25,7 @@ import {filterMap} from "@/util";
 
 import {friendlyFolderName, type Folder, type Node} from "@/model/bookmarks";
 import {TreeFilter} from "@/model/tree-filter";
+import the from "../globals-ui";
 
 import Self from "./select-folder.vue";
 </script>
@@ -42,9 +43,13 @@ const emit = defineEmits<{
 
 const bookmark_filter = inject<TreeFilter<Folder, Node>>("bookmark_filter")!;
 
+const selection = the.model.selection;
+
 const visibleChildFolders = computed(() =>
   filterMap(props.folder.children, c =>
-    "children" in c && bookmark_filter.info(c).hasMatchInSubtree
+    "children" in c &&
+    bookmark_filter.info(c).hasMatchInSubtree &&
+    !selection.info(c).isSelected
       ? c
       : undefined,
   ),
