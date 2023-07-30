@@ -117,6 +117,17 @@ export class TreeSelection<
     for (const c of node.children) yield* this.selectedItemsInSubtree(c);
   }
 
+  /** Check if the provided node or any of its parents is selected.  Useful for
+   * precluding things like moving a node into a child of itself. */
+  isSelfOrParentSelected(node?: P | N): boolean {
+    while (node) {
+      const si = this.info(node);
+      if (si.isSelected) return true;
+      node = node.position?.parent;
+    }
+    return false;
+  }
+
   /** Set all `node.isSelected` properties to false within `this.roots`. */
   clearSelection(): void {
     this.lastSelected = undefined;

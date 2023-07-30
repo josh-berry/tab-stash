@@ -443,13 +443,7 @@ export default defineComponent({
     },
 
     canMoveIntoFolder(): boolean {
-      let f: Folder | undefined = this.folder;
-      while (f) {
-        const si = the.model.selection.info(f);
-        if (si.isSelected) return false;
-        f = f.position?.parent;
-      }
-      return true;
+      return !the.model.selection.isSelfOrParentSelected(this.folder);
     },
   },
 
