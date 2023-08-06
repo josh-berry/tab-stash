@@ -728,6 +728,44 @@ export class Model {
     if (!index) return;
     index.delete(bm);
   }
+
+  /** Create a bunch of fake(-ish) tabs for benchmarking purposes. This is
+   * private because no actual code should call this, but we want it accessible
+   * at runtime. */
+  async createTabsForBenchmarks_testonly(options: {
+    name?: string;
+    folder_count: number;
+    folder_levels: number;
+    tabs_per_folder: number;
+  }): Promise<void> {
+    const bench_folder = await this.createStashFolder(
+      options.name ?? "Fake Tabs",
+    );
+
+    const populate_folder = async (
+      parent: Folder,
+      levels: number,
+      path: string,
+    ) => {
+      if (levels > 0) {
+        for (let i = 0; i < options.folder_count; ++i) {
+          const f = await this.createStashFolder(undefined, parent.id);
+          await populate_folder(f, levels - 1, `${path}-${i}`);
+        }
+      } else {
+        for (let i = 0; i < options.tabs_per_folder; ++i) {
+          await this.create({
+            title: `Fake Tab #${i}`,
+            url: `http://example.com/#${path}-${i}`,
+            parentId: parent.id,
+            index: i,
+          });
+        }
+      }
+    };
+
+    await populate_folder(bench_folder, options.folder_levels, "root");
+  }
 }
 
 //
