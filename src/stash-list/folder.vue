@@ -265,7 +265,7 @@ export default defineComponent({
   components: {
     AsyncTextInput,
     ButtonBox,
-    DndList,
+    DndList: DndList<Node>,
     Bookmark: BookmarkVue,
     ItemIcon,
     Menu,

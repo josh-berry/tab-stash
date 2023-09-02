@@ -149,7 +149,7 @@ const NEXT_SHOW_OPEN_TAB_STATE: Record<
 export default defineComponent({
   components: {
     ConfirmDialog,
-    DndList,
+    DndList: DndList<Tab>,
     Tab: TabVue,
     Bookmark,
     ShowFilteredItem,

@@ -36,7 +36,7 @@ import FolderVue from "./folder.vue";
 const DROP_FORMAT = "application/x-tab-stash-folder-id";
 
 export default defineComponent({
-  components: {DndList, Folder: FolderVue},
+  components: {DndList: DndList<Node>, Folder: FolderVue},
 
   props: {
     parentFolder: required(Object as PropType<Folder>),
