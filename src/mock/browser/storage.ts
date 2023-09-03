@@ -2,7 +2,7 @@ import type {Storage} from "webextension-polyfill";
 
 import * as events from "../events";
 
-type StorageAreaName = "sync" | "local" | "managed";
+type StorageAreaName = "sync" | "local" | "managed" | "session";
 type StorageObject = {[s: string]: any};
 type ChangeDict = StorageObject;
 
@@ -113,6 +113,12 @@ class ManagedStorageArea extends MockStorageArea {
   }
 }
 
+class SessionStorageArea extends MockStorageArea {
+  constructor(events: events.MockEvent<StorageChangedFn>) {
+    super("session", events);
+  }
+}
+
 type StorageChangedFn = (changes: ChangeDict, area: StorageAreaName) => void;
 
 export default (() => {
@@ -128,6 +134,7 @@ export default (() => {
         local: new LocalStorageArea(exports.events),
         sync: new SyncStorageArea(exports.events),
         managed: new ManagedStorageArea(exports.events),
+        session: new SessionStorageArea(exports.events),
         onChanged: exports.events,
       } as Storage.Static;
     },
