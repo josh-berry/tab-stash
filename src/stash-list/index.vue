@@ -103,6 +103,7 @@
         :tooltip="searchTooltip"
         :placeholder="search_placeholder"
         v-model="searchText"
+        :debounce-ms="250"
       />
       <a
         :class="{action: true, collapse: !collapsed, expand: collapsed}"
