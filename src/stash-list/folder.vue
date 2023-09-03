@@ -60,8 +60,10 @@
       <a
         class="action restore-remove"
         :title="
-          `Open all tabs in the group and delete the group ` +
-          `(hold ${bgKey} to open in background)`
+          (folder.$stats.folderCount === 0
+            ? `Open all tabs and delete this group`
+            : `Open all tabs and remove them from this group`) +
+          ` (hold ${bgKey} to open in background)`
         "
         @click.prevent.stop="restoreAndRemove"
       />
@@ -161,12 +163,12 @@
     >
       <a
         class="action stash here"
-        :title="`Move ${selectedCount} selected tab(s) to this group (hold ${altKey} to copy)`"
+        :title="`Move ${selectedCount} selected item(s) to this group (hold ${altKey} to copy)`"
         @click.prevent.stop="move"
       />
       <a
         class="action stash newgroup"
-        :title="`Move ${selectedCount} selected tab(s) to a new child group (hold ${altKey} to copy)`"
+        :title="`Move ${selectedCount} selected item(s) to a new child group (hold ${altKey} to copy)`"
         @click.prevent.stop="moveToChild"
       />
     </ButtonBox>
