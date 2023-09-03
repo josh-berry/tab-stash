@@ -8,6 +8,7 @@
       :placeholder="props.placeholder"
       v-model="searchContent"
       @keydown.esc.prevent="clear"
+      @keydown.enter.prevent="updateModelValue"
     />
     <button
       v-if="searchContent !== ''"
@@ -56,11 +57,7 @@ watch(searchContent, () => {
   }
 
   if (debounceTimeout !== undefined) clearTimeout(debounceTimeout);
-  debounceTimeout = setTimeout(() => {
-    emit("update:modelValue", searchContent.value);
-    clearTimeout(debounceTimeout);
-    debounceTimeout = undefined;
-  }, props.debounceMs);
+  debounceTimeout = setTimeout(updateModelValue, props.debounceMs);
 });
 
 const $search = ref(undefined! as HTMLInputElement);
@@ -78,6 +75,15 @@ function clear(ev: KeyboardEvent | MouseEvent) {
     // twice will both clear the search AND close the parent modal.
     ev.stopPropagation();
     searchContent.value = "";
+  }
+}
+
+/** Trigger a model update immediately. */
+function updateModelValue() {
+  if (debounceTimeout !== undefined) {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = undefined;
+    emit("update:modelValue", searchContent.value);
   }
 }
 </script>
