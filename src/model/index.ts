@@ -42,6 +42,7 @@ import {
   textMatcher,
   tryAgain,
   urlToOpen,
+  urlToStash,
 } from "../util";
 import {trace_fn} from "../util/debug";
 import {logError, logErrorsFrom, UserError} from "../util/oops";
@@ -282,8 +283,8 @@ export class Model {
       return false;
     }
 
-    // Tab Stash URLs are never stashable.
-    return !url_str.startsWith(browser.runtime.getURL(""));
+    // The Tab Stash UI is never stashable.
+    return !url_str.startsWith(browser.runtime.getURL("stash-list.html"));
   }
 
   /** If the topmost folder in the stash root is an unnamed folder which was
@@ -692,7 +693,7 @@ export class Model {
             "url" in item
               ? await this.bookmarks.create({
                   title: item.title || item.url,
-                  url: item.url,
+                  url: urlToStash(item.url),
                   parentId,
                   index,
                 })

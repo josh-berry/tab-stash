@@ -161,6 +161,17 @@ export function urlToOpen(urlstr: string): OpenableURL {
   }
 }
 
+/** Does the inverse of urlToOpen() -- turns a possibly-redirected URL back into
+ * its original form. */
+export function urlToStash(url: string | OpenableURL): string {
+  if (url.startsWith(REDIR_PAGE + "?")) {
+    const redirUrl = new URL(url);
+    const origUrl = redirUrl.searchParams.get("url");
+    if (origUrl) return origUrl;
+  }
+  return url;
+}
+
 function redirUrl(url: string): OpenableURL {
   return `${REDIR_PAGE}?url=${encodeURIComponent(url)}` as OpenableURL;
 }
