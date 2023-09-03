@@ -213,9 +213,8 @@ export default defineComponent({
 
     tooltip(): string {
       return (
-        `${
-          this.targetWindow.children.length - this.filterInfo.nonMatchingCount
-        } ${this.title}\n` + `Click to change which tabs are shown.`
+        `${this.displayCount} ${this.title}\n` +
+        `Click to change which tabs are shown.`
       );
     },
 
@@ -226,6 +225,15 @@ export default defineComponent({
       set(collapsed: boolean) {
         the.model.bookmark_metadata.setCollapsed(this.metadata.key, collapsed);
       },
+    },
+
+    // How many tabs are visible in the list, ignoring the filter?
+    displayCount(): number {
+      let count = 0;
+      for (const c of this.targetWindow.children) {
+        if (this.isValidChild(c)) ++count;
+      }
+      return count;
     },
 
     // We ignore the built-in filteredCount because it includes invalid things
