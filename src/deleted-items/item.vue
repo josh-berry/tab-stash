@@ -4,7 +4,16 @@
     <span class="forest-title status-text">{{ loading }}...</span>
   </div>
 
-  <div v-else class="forest-item selectable deleted action-container">
+  <div
+    v-else
+    :class="{
+      'forest-item': true,
+      folder: 'children' in item,
+      selectable: true,
+      deleted: true,
+      'action-container': true,
+    }"
+  >
     <item-icon
       :class="{
         'forest-icon': true,

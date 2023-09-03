@@ -93,6 +93,13 @@
   &.collapsed {
     display: none;
   }
+
+  // Lower-level children which are folders should have bold titles. This is
+  // different from top-level folders, which use a bigger font size and
+  // therefore can use a lighter weight.
+  .forest-item.folder > .forest-title {
+    font-weight: bold;
+  }
 }
 
 .forest-item {
