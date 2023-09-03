@@ -32,7 +32,7 @@
         collapse: !collapsed,
         expand: collapsed,
       }"
-      :title="`Hide the tabs for this group (hold ${altKey} to hide tabs for child folders)`"
+      :title="`Hide the tabs for this group (hold ${altKey} to hide tabs for child groups)`"
       @click.prevent.stop="toggleCollapsed"
     />
     <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
@@ -146,7 +146,7 @@
         </button>
         <hr />
         <button
-          title="Delete the whole group and all its sub-groups"
+          title="Delete the whole group and all its tabs and child groups"
           @click.prevent="remove"
         >
           <span class="menu-icon icon icon-delete"></span>
@@ -166,7 +166,7 @@
       />
       <a
         class="action stash newgroup"
-        :title="`Move ${selectedCount} selected tab(s) to a new sub-group (hold ${altKey} to copy)`"
+        :title="`Move ${selectedCount} selected tab(s) to a new child group (hold ${altKey} to copy)`"
         @click.prevent.stop="moveToChild"
       />
     </ButtonBox>
@@ -424,7 +424,7 @@ export default defineComponent({
     tooltip(): string {
       const bm_stats = this.folder.$stats;
       const st = this.childTabStats;
-      const statstip = `${bm_stats.folderCount} sub-group${
+      const statstip = `${bm_stats.folderCount} child group${
         bm_stats.folderCount !== 1 ? "s" : ""
       }, ${bm_stats.bookmarkCount} stashed tab${
         bm_stats.bookmarkCount != 1 ? "s" : ""

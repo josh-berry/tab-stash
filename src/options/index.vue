@@ -131,9 +131,9 @@
         <li>
           <label
             for="new_folder_timeout_min"
-            title="If the top-most stash has a name, or is older than this, a new, unnamed stash will be created instead."
+            title="If the top-most group has a name, or is older than this, a new, unnamed group will be created instead."
           >
-            Append to the top-most stash only if it was created in the last
+            Append to the top-most group only if it was created in the last
             <input
               type="number"
               id="new_folder_timeout_min"
@@ -178,7 +178,7 @@
         <option value="all">Stashed and unstashed tabs</option>
       </select>
 
-      <label for="show_new_folders">Show new tab groups:</label>
+      <label for="show_new_folders">Show new groups:</label>
       <select id="show_new_folders" v-model="sync.show_new_folders">
         <option value="expanded">Expanded</option>
         <option value="collapsed">Collapsed</option>
