@@ -6,7 +6,7 @@
     <span
       :class="{
         'forest-icon': true,
-        icon: true,
+        'item-icon': true,
         'icon-filtered-visible': props.visible,
         'icon-filtered-hidden': !props.visible,
         'status-text': true,
