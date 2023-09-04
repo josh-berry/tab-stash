@@ -214,7 +214,7 @@ export default defineComponent({
 
     recently_updated(): undefined | "features" | "fixes" {
       const last_notified = the.model.options.local.state.last_notified_version;
-      if (last_notified === this.my_version) return undefined;
+      if (!last_notified || last_notified === this.my_version) return undefined;
 
       const my = parseVersion(this.my_version);
       const last = last_notified ? parseVersion(last_notified) : [];
