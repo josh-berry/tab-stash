@@ -10,6 +10,73 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.0">
+        <L v="New:" :issue="14"
+          >Tab Stash now supports sub-groups! You can even nest sub-groups as
+          deeply as you want, so those complicated research projects are easier
+          to tackle.</L
+        >
+
+        <L v="Experiment Released:" :issue="115"
+          >The popup view is now stable! You can now configure the Tab Stash
+          toolbar button to show your stashed tabs in a popup.</L
+        >
+
+        <L v="New:" :issue="252"
+          >Tab Stash's styling now fits better with the new Firefox design. This
+          includes all-new icons, refreshed colors, and other visual touches to
+          give Tab Stash a more modern look and feel.</L
+        >
+
+        <L v="New:" :issue="123"
+          >New users are now prompted to set important preferences, such as
+          toolbar button behavior, when they first try to use Tab Stash.</L
+        >
+
+        <L v="Added" :issue="163" :pr="372" thanks="samca2"
+          >an option to show new groups collapsed by default.</L
+        >
+
+        <L v="Added" :issue="284"
+          >a menu option to close stashed tabs in a particular group.</L
+        >
+
+        <L v="Improved:" :issue="90" :pr="378" thanks="samca2"
+          >Hidden tabs which are playing audio are no longer automatically
+          unloaded, so you can keep listening to music that's playing in your
+          stashed tabs.</L
+        >
+
+        <L v="Improved:" :issue="317"
+          >The option to delete a group is now hidden inside a menu, making it
+          harder to delete something by accident.</L
+        >
+
+        <L v="Improved:" :issue="266"
+          >Limited the width of the "Unstashed Tabs"/"Open Tabs" box so it's
+          easier to use.</L
+        >
+
+        <L v="Fixed" :issue="371"
+          >a crash that occurs when pasting raw HTML into the "Import" box.</L
+        >
+        <L v="Fixed" :issue="338"
+          >a crash that occurs when closing a tab that has Firefox's developer
+          tools open.</L
+        >
+
+        <L v="Fixed" :issue="321"
+          >an issue that in rare cases causes a crash and a zombie/non-existent
+          tab to appear in Tab Stash's UI if Firefox sends incorrect information
+          to Tab Stash.</L
+        >
+
+        <L v="Fixed" :issue="377"
+          >an issue that prevented groups from being deleted when Tab Stash is
+          set as the user's homepage.</L
+        >
+      </Version>
+
       <Version v="2.12.1">
         <L v="Improved" :issue="335"
           >loading of website icons to avoid crashes when your system is running
