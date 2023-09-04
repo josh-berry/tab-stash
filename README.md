@@ -7,10 +7,10 @@ Can't keep all your tabs straight? Need to clear your plate, but want to come
 back to your tabs later?
 
 Tab Stash is a no-fuss way to save and organize batches of tabs as bookmarks.
-Sweep your browser clean with one click of the Tab Stash icon. Your open tabs
-will be stashed away in your bookmarks, conveniently organized into groups.
-When it's time to pick up where you left off, open Tab Stash and restore just
-the tabs or groups you want.
+Sweep your browser clean with one click of the Tab Stash icon (if configured).
+Your open tabs will be stashed away in your bookmarks, conveniently organized
+into groups. When it's time to pick up where you left off, open Tab Stash and
+restore just the tabs or groups you want.
 
 <img src="docs/screenshot.png" alt="Screenshot" width="100%"/>
 

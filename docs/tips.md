@@ -40,6 +40,10 @@ your Firefox toolbar.
 
 ## Keyboard Shortcuts
 
+You can customize these shortcuts—[here's how][wiki-shortcuts].
+
+[wiki-shortcuts]: https://github.com/josh-berry/tab-stash/wiki/Changing-Keyboard-Shortcuts
+
 On **Mac**:
 
 - Show stashed tabs in sidebar: _Ctrl+Shift+S_
@@ -53,9 +57,9 @@ On **Windows**, **Linux** and other platforms:
 - Stash the active tab: _Ctrl+Alt+W_
 
 **NOTE:** The "_Stash all ..._" keyboard shortcuts described above will stash
-all tabs if only one tab is selected. But if you have selected multiple tabs
-using Shift+Click or Cmd/Ctrl+Click, then only the selected tabs will be
-stashed.
+all tabs if only one tab is selected. But if you have selected multiple tabs in
+the Firefox tab bar using Shift+Click or Cmd/Ctrl+Click, then only the selected
+tabs will be stashed.
 
 ## Stashing Only Selected Tabs
 
