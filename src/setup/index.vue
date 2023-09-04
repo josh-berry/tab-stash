@@ -70,7 +70,7 @@
       </p>
     </section>
 
-    <section v-if="browser_action_stash">
+    <section v-if="show_browser_action_show" ref="$browser_action_show">
       <hr />
       <p>
         <span class="icon icon-logo" />
@@ -142,7 +142,7 @@
       </p>
     </section>
 
-    <section v-if="browser_action_stash && browser_action_show">
+    <section v-if="show_open_stash_in" ref="$open_stash_in">
       <hr />
       <p>
         <span class="icon icon-stash-one" />
@@ -183,9 +183,7 @@
       </p>
     </section>
 
-    <section
-      v-if="browser_action_stash && browser_action_show && open_stash_in"
-    >
+    <section v-if="show_done" ref="$done">
       <hr />
 
       <p>You're all set! You can close this tab.</p>
@@ -195,7 +193,7 @@
 </template>
 
 <script lang="ts">
-import {computed, type WritableComputedRef} from "vue";
+import {computed, ref, watch, type WritableComputedRef} from "vue";
 
 import * as Options from "../model/options";
 import the from "./globals";
@@ -220,4 +218,27 @@ defineProps<{}>();
 const browser_action_stash = computedOption("browser_action_stash");
 const browser_action_show = computedOption("browser_action_show");
 const open_stash_in = computedOption("open_stash_in");
+
+// When to show each new section, in order
+const show_browser_action_show = computed(() => !!browser_action_stash.value);
+const show_open_stash_in = computed(
+  () => show_browser_action_show.value && !!browser_action_show.value,
+);
+const show_done = computed(
+  () => show_open_stash_in.value && !!open_stash_in.value,
+);
+
+// Refs to each section; we can use these to scroll the section into view once
+// it appears.
+const $browser_action_show = ref(undefined as HTMLElement | undefined);
+const $open_stash_in = ref(undefined as HTMLElement | undefined);
+const $done = ref(undefined as HTMLElement | undefined);
+
+const scroll_into_view = (el?: HTMLElement) => {
+  if (el) el.scrollIntoView({behavior: "smooth"});
+};
+
+watch($browser_action_show, scroll_into_view);
+watch($open_stash_in, scroll_into_view);
+watch($done, scroll_into_view);
 </script>
