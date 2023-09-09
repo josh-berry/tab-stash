@@ -140,17 +140,17 @@ the final Tab Stash extension. Let's go on a quick tour:
    - `index.less` is the "top-level" file which loads all the others and acts as
      a "catch-all" for styles that don't fit anywhere else.
 
-   - `theme-*.less` files define colors as CSS variables used throughout the
+   - `themes/*.less` files define colors as CSS variables used throughout the
      styling and source code. (In general, this is the ONLY place where colors
      should be defined.)
 
-   - `metrics-*.less` files define measurements as CSS variables used throughout
+   - `metrics/*.less` files define measurements as CSS variables used throughout
      the styling and source code. (In general, this is the ONLY place where
      lengths/measurements should be defined.)
 
    - All the other `*.less` files describe how to lay out various parts of the
      UI, referring to the colors and lengths/measurements defined in the
-     `theme-*` and `metrics-*` files.
+     `themes` and `metrics` files.
 
 4. `src/` is where all the action is---all the TypeScript and Vue.js code that
    makes up Tab Stash lives here. Here are some places to check out to learn
@@ -173,8 +173,8 @@ the final Tab Stash extension. Let's go on a quick tour:
       list---`src/foo.html` includes `src/foo/index.ts`, which bootstraps the
       page and loads the top-level Vue component, which is `src/foo/index.vue`.
 
-   4. Finally, it's worth checking out `src/ui-model.ts` and
-      `src/service-model.ts`. `ui-model` constructs the global "model" data
+   4. Finally, it's worth checking out `src/globals-ui.ts` and
+      `src/service-model.ts`. `globals-ui` constructs the global "model" data
       structure for the UI, and `service-model` does the same for the background
       page. These two files together give an "architectural blueprint" for how
       Tab Stash is organized and how it tracks all the data it needs to do its
@@ -198,8 +198,11 @@ can inspect the state of the application at runtime:
 
 - `app`: The Vue application
 
-- `model`: The root model (see `src/ui-model.ts` for the UI's root, or
-  `src/service-model.ts` for the background page's root).
+- `the.model`: The root model (see `src/ui-model.ts` for the UI's root, or
+  `src/service-model.ts` for the background page's root). (There is also
+  `the.version`. Eventually, all stateful globals are expected to move or be
+  aliased under `the`, so there is only one true global, for easier
+  discoverability.)
 
 - `error_log`: The error log used by `oops` to collect and report errors to the
   user.
