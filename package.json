@@ -5,6 +5,10 @@
   "author": "Joshua J. Berry <des@condordes.net>",
   "repository": "https://github.com/josh-berry/tab-stash",
   "license": "MPL-2.0",
+  "engines": {
+    "npm": ">=9.0.0",
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@sinonjs/fake-timers": "^8.1",
