@@ -103,7 +103,9 @@ export function setPosition<
 
   if (newPosition) {
     const newChildren = newPosition.parent.children;
-    if (newPosition.index > newChildren.length) {
+    if (newPosition.index < 0) {
+      newPosition.index = 0;
+    } else if (newPosition.index > newChildren.length) {
       newPosition.index = newChildren.length;
     }
 

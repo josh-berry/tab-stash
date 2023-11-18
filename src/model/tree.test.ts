@@ -320,5 +320,31 @@ describe("model/tree", () => {
         );
       },
     );
+
+    it("deals with gaps in the indexing", () => {
+      setPosition(nodes.d, {
+        parent: parents.root,
+        index: 10,
+      });
+      expect(parents.root.children).to.deep.equal(
+        ["a", "b", "c", "e", "f", "d"].map(i => nodes[i]),
+      );
+      expect(nodes.d.position?.parent).to.equal(parents.root);
+      expect(nodes.d.position?.index).to.equal(5);
+    });
+
+    it("deals with negative indexes", () => {
+      setPosition(nodes.d, {
+        parent: parents.root,
+        index: -2,
+      });
+      expect(parents.root.children).to.deep.equal(
+        ["d", "a", "b", "c", "e", "f"].map(i => nodes[i]),
+      );
+      expect(nodes.d.position?.parent).to.equal(parents.root);
+      expect(nodes.d.position?.index).to.equal(0);
+      expect(nodes.a.position?.index).to.equal(1);
+      expect(nodes.b.position?.index).to.equal(2);
+    });
   });
 });
