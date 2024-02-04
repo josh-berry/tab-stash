@@ -667,7 +667,7 @@ export default defineComponent({
         const openTabs = this.childrenWithTabs
           .flatMap(c => c.tabs)
           .filter(t => !t.hidden && !t.pinned);
-        await the.model.hideOrCloseStashedTabs(openTabs.map(t => t.id));
+        await the.model.hideOrCloseStashedTabs(openTabs);
       });
     },
 

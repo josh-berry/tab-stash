@@ -444,16 +444,16 @@ export class Model {
   /** Hide/discard/close the specified tabs, according to the user's settings
    * for what to do with stashed tabs.  Creates a new tab if necessary to keep
    * the browser window(s) open. */
-  async hideOrCloseStashedTabs(tabIds: Tabs.TabID[]): Promise<void> {
-    await this.tabs.refocusAwayFromTabs(tabIds);
+  async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
+    const tids = tabs.map(t => t.id);
+
+    await this.tabs.refocusAwayFromTabs(tids);
 
     // Clear any highlights/selections on tabs we are stashing
     await Promise.all(
-      tabIds.map(tid => browser.tabs.update(tid, {highlighted: false})),
+      tids.map(id => browser.tabs.update(id, {highlighted: false})),
     );
-    filterMap(tabIds, id => this.tabs.tab(id))
-      .map(t => this.selection.info(t))
-      .forEach(si => (si.isSelected = false));
+    for (const t of tabs) this.selection.info(t).isSelected = false;
 
     // istanbul ignore else -- hide() is always available in tests
     if (browser.tabs.hide) {
@@ -461,21 +461,21 @@ export class Model {
       // according to the user's preference.
       switch (this.options.local.state.after_stashing_tab) {
         case "hide_discard":
-          await browser.tabs.hide(tabIds);
-          await browser.tabs.discard(tabIds);
+          await browser.tabs.hide(tids);
+          await browser.tabs.discard(tids);
           break;
         case "close":
-          await this.tabs.remove(tabIds);
+          await this.tabs.remove(tids);
           break;
         case "hide":
         default:
-          await browser.tabs.hide(tabIds);
+          await browser.tabs.hide(tids);
           break;
       }
     } else {
       // The browser does not support hiding tabs, so our only option is
       // to close them.
-      await this.tabs.remove(tabIds);
+      await this.tabs.remove(tids);
     }
   }
 
@@ -626,7 +626,7 @@ export class Model {
     // the insertion point (i.e. the next inserted item should have index
     // `to_index`).
     const moved_items: Bookmarks.Node[] = [];
-    const close_tab_ids: Tabs.TabID[] = [];
+    const close_tabs: Tabs.Tab[] = [];
 
     for (
       let i = 0, to_index = options.toIndex ?? to_folder.children.length;
@@ -655,7 +655,7 @@ export class Model {
       }
 
       // If it's a tab, mark the tab for closure.
-      if (isTab(item)) close_tab_ids.push(item.id);
+      if (isTab(item)) close_tabs.push(item);
 
       // Otherwise, if we're not allowing duplicates, check if there's a
       // duplicate in the current folder which we can steal.  If so, we
@@ -731,7 +731,7 @@ export class Model {
 
     // Hide/close any tabs which were moved from, since they are now
     // (presumably) in the stash.
-    await this.hideOrCloseStashedTabs(close_tab_ids);
+    await this.hideOrCloseStashedTabs(close_tabs);
 
     return moved_items;
   }

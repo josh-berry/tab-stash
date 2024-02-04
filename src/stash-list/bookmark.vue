@@ -218,7 +218,7 @@ export default defineComponent({
 
     closeOrHideOrOpen(ev: MouseEvent) {
       the.model.attempt(async () => {
-        const openTabs = this.relatedTabs.filter(t => !t.hidden).map(t => t.id);
+        const openTabs = this.relatedTabs.filter(t => !t.hidden);
 
         // Remove keyboard focus after a middle click, otherwise focus will
         // remain within the element and it will appear to be highlighted.

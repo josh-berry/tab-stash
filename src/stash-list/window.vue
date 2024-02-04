@@ -337,14 +337,12 @@ export default defineComponent({
 
     async removeStashed() {
       this.attempt(async () => {
-        const tabIds = this.tabs
-          .filter(
-            t =>
-              !t.hidden && !t.pinned && the.model.bookmarks.isURLStashed(t.url),
-          )
-          .map(t => t.id);
-        if (!(await this.confirmRemove(tabIds.length))) return;
-        await the.model.hideOrCloseStashedTabs(tabIds);
+        const to_remove = this.tabs.filter(
+          t =>
+            !t.hidden && !t.pinned && the.model.bookmarks.isURLStashed(t.url),
+        );
+        if (!(await this.confirmRemove(to_remove.length))) return;
+        await the.model.hideOrCloseStashedTabs(to_remove);
       });
     },
 
@@ -370,9 +368,9 @@ export default defineComponent({
               !t.hidden &&
               !t.pinned,
           );
-          const hide_tabs = tabs
-            .filter(t => the.model.bookmarks.isURLStashed(t.url))
-            .map(t => t.id);
+          const hide_tabs = tabs.filter(t =>
+            the.model.bookmarks.isURLStashed(t.url),
+          );
           const close_tabs = tabs
             .filter(t => !the.model.bookmarks.isURLStashed(t.url))
             .map(t => t.id);

@@ -276,7 +276,9 @@ describe("model", () => {
         await events.next(model.options.local.onChanged);
         expect(model.options.local.state.after_stashing_tab).to.equal("hide");
 
-        await model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+        await model.hideOrCloseStashedTabs([
+          model.tabs.tab(tabs.right_doug.id)!,
+        ]);
         await events.next(browser.tabs.onUpdated); // hidden
 
         const t = await browser.tabs.get(tabs.right_doug.id);
@@ -300,7 +302,9 @@ describe("model", () => {
           "hide_discard",
         );
 
-        await model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+        await model.hideOrCloseStashedTabs([
+          model.tabs.tab(tabs.right_doug.id)!,
+        ]);
         await events.next(browser.tabs.onUpdated); // hidden
         await events.next(browser.tabs.onUpdated); // discarded
 
@@ -323,7 +327,9 @@ describe("model", () => {
         await events.next(model.options.local.onChanged);
         expect(model.options.local.state.after_stashing_tab).to.equal("close");
 
-        const p = model.hideOrCloseStashedTabs([tabs.right_doug.id]);
+        const p = model.hideOrCloseStashedTabs([
+          model.tabs.tab(tabs.right_doug.id)!,
+        ]);
         await events.next(browser.tabs.onRemoved);
         await p;
 
@@ -343,11 +349,11 @@ describe("model", () => {
       await events.next(model.options.local.onChanged);
       expect(model.options.local.state.after_stashing_tab).to.equal("hide");
 
-      await model.hideOrCloseStashedTabs([
-        tabs.left_alice.id,
-        tabs.left_betty.id,
-        tabs.left_charlotte.id,
-      ]);
+      await model.hideOrCloseStashedTabs(
+        [tabs.left_alice.id, tabs.left_betty.id, tabs.left_charlotte.id].map(
+          id => model.tabs.tab(id)!,
+        ),
+      );
       await events.next(browser.tabs.onCreated);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
@@ -395,7 +401,7 @@ describe("model", () => {
     });
 
     it("refocuses away from an active tab that is to be closed", async () => {
-      await model.hideOrCloseStashedTabs([tabs.left_alice.id]);
+      await model.hideOrCloseStashedTabs([model.tabs.tab(tabs.left_alice.id)!]);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
       await events.next(browser.tabs.onUpdated); // hidden
@@ -438,7 +444,7 @@ describe("model", () => {
 
       expect(tab.highlighted).to.be.true;
 
-      const p2 = model.hideOrCloseStashedTabs([tab.id]);
+      const p2 = model.hideOrCloseStashedTabs([tab]);
       await events.next(browser.tabs.onHighlighted);
       await events.next(browser.tabs.onUpdated);
       await p2;
