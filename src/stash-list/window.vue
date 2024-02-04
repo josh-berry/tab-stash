@@ -33,7 +33,7 @@
       <a
         class="action remove"
         :title="`Close all unstashed tabs`"
-        @click.prevent.stop="remove"
+        @click.prevent.stop="removeUnstashed"
       />
       <a
         class="action remove stashed"
@@ -323,13 +323,16 @@ export default defineComponent({
       });
     },
 
-    async remove() {
+    async removeUnstashed() {
       this.attempt(async () => {
-        // This filter keeps the active tab if it's the Tab Stash tab, or a
-        // new tab (so we can avoid creating new tabs unnecessarily).
-        const to_remove = this.tabs
-          .filter(t => !t.active || the.model.isURLStashable(t.url))
-          .filter(t => !the.model.bookmarks.isURLStashed(t.url));
+        const to_remove = this.tabs.filter(
+          t =>
+            !t.hidden &&
+            !t.pinned &&
+            // Keep the active tab if it's the Tab Stash tab
+            (!t.active || the.model.isURLStashable(t.url)) &&
+            !the.model.bookmarks.isURLStashed(t.url),
+        );
         if (!(await this.confirmRemove(to_remove.length))) return;
         await the.model.tabs.remove(to_remove.map(t => t.id));
       });
