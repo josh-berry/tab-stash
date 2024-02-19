@@ -273,8 +273,15 @@ function itemDragOver(ev: DragEvent) {
  * behavior in Firefox because Firefox likes to fire these events even
  * when a child element should be consuming them instead... */
 function parentDragEnter(ev: DragEvent) {
-  if (!allowDropHere(ev)) return;
   if (ev.target && ev.target !== $top.value) return;
+
+  // We only want to move the ghost if it's non-displacing; displacing ghosts
+  // are generally used when there's more complicated flat-list styling going
+  // on, so that we don't show flickering when the user is dragging over the
+  // margin between list items.
+  if (props.ghostDisplacesItems) return;
+  if (!allowDropHere(ev)) return;
+
   moveGhost(displayItems.value.length);
 }
 
