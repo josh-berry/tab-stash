@@ -4,6 +4,8 @@
     class="dnd-list"
     ref="$top"
     @dragenter="parentDragEnter"
+    @dragleave="parentDragExit"
+    @dragexit="parentDragExit"
     @dragover="itemDragOver"
     @drop="doDrop"
   >
@@ -277,6 +279,20 @@ function parentDragEnter(ev: DragEvent) {
   if (!allowDropHere(ev)) return;
   if (ev.target && ev.target !== $top.value) return;
   moveGhost(displayItems.value.length);
+}
+
+/** Fired when an item is dragged away from the parent. */
+function parentDragExit(ev: DragEvent) {
+  // Ignore dragexit/dragleave events from our children; we only care about when
+  // we leave the parent list.
+  if (ev.target && ev.target !== $top.value) return;
+
+  // If the user drags something completely out of the list, we don't want to
+  // show a ghost at all. Clear the destination list.
+  if (destList && destList !== state) {
+    destList.droppingToIndex = undefined;
+    destList = undefined;
+  }
 }
 
 /** Fired on the "ghost" element when the cursor enters it (e.g. because
