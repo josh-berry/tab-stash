@@ -13,11 +13,8 @@
       <component
         v-if="index === state.droppingToIndex"
         :is="itemIs || 'li'"
-        :style="index === state.droppingToIndex && ghostStyle"
-        :class="{
-          'dnd-list-ghost': true,
-          'dropping-here': index === state.droppingToIndex,
-        }"
+        :style="ghostStyle"
+        class="dnd-list-ghost dropping-here"
         :data-key="itemKey(item)"
         @dragenter="ghostDragEnter($event, index)"
         @dragover="ghostDragOver($event)"
