@@ -1,7 +1,7 @@
 <template>
   <component
     :is="is || 'ul'"
-    :class="{'dnd-list': true, 'drag-in-progress': isDragging}"
+    class="dnd-list"
     ref="$top"
     @dragenter="parentDragEnter"
     @dragover="itemDragOver"
@@ -9,12 +9,12 @@
   >
     <template v-for="(item, index) of displayItems" :key="itemKey(item)">
       <component
-        v-if="index === ghostIndex"
+        v-if="index === state.droppingToIndex"
         :is="itemIs || 'li'"
-        :style="index === ghostIndex && ghostStyle"
+        :style="index === state.droppingToIndex && ghostStyle"
         :class="{
           'dnd-list-ghost': true,
-          'dropping-here': index === ghostIndex,
+          'dropping-here': index === state.droppingToIndex,
         }"
         :data-key="itemKey(item)"
         @dragenter="ghostDragEnter($event, index)"
@@ -42,15 +42,16 @@
     </template>
 
     <component
+      v-if="state.droppingToIndex !== undefined"
       :is="itemIs || 'li'"
-      :style="ghostIndex === displayItems.length && ghostStyle"
+      :style="state.droppingToIndex === displayItems.length && ghostStyle"
       :class="{
-        // NOTE: This ghost must always be present when dragging so we have a
-        // drop target for the end of the list.  Otherwise, it's impossible for
-        // a user to drag a ghost to the end of the list unless the list has
-        // some padding at the end.
+        // NOTE: This ghost must always be present when dropping into this list,
+        // so we have a drop target at the end of the list.  Otherwise, it's
+        // impossible for a user to drag a ghost to the end of the list unless
+        // the list has some padding at the end.
         'dnd-list-ghost': true,
-        'dropping-here': ghostIndex === displayItems.length,
+        'dropping-here': state.droppingToIndex === displayItems.length,
       }"
       @dragenter="ghostDragEnter($event, displayItems.length)"
       @dragover="ghostDragOver($event)"
@@ -66,37 +67,48 @@ import {computed, nextTick, reactive, ref} from "vue";
 
 import type {DragAction, DropAction} from "./dnd-list";
 
+/** Reactive object describing the shared state of a <dnd-list>. */
 type ListState<I = unknown> = {
-  modelSnapshot: undefined | readonly I[];
+  /** The DnD items that are actually in this list. */
   readonly modelValue: readonly I[];
+
+  /** A snapshot of the model saved before beginning an actual drop operation,
+   * which is shown to the user until the drop operation completes.  This
+   * buffering ensures the user doesn't see any flickering during the drop. */
+  modelSnapshot: undefined | readonly I[];
+
+  /** If dragging from this list, this is the index of the dragged item.  Must
+   * be set iff this ListState is the `sourceList`. */
+  draggingFromIndex: number | undefined;
+
+  /** If dropping into this list, this is the index of the drop location. Must
+   * be set iff this ListState is the `destList`. */
+  droppingToIndex: number | undefined;
 };
 
-type DragLocation = {
-  /** The DndList containing the drag/drop location */
-  parent: ListState;
+//
+// BEGIN UGLY GLOBAL STATE
+//
 
-  /** The index of the drag/drop location in the DndList's modelValue. */
-  index: number;
-};
+// The source and destination lists of an in-progress drag operation (if any).
+//
+// NOTE: Source and destination may be the same list, and either source or
+// destination may be null (the former, in particular, is possible when
+// something is being dragged in from outside the app entirely).
+//
+// PERF: These must be non-reactive--that is, each list should only react to its
+// own ListState, otherwise performans issues will result when there are many
+// dnd-lists on the same page.
+let sourceList: ListState | undefined = undefined;
+let destList: ListState | undefined = undefined;
 
-// This rather ugly global variable maintains the state of a DnD operation, of
-// which only one should ever be happening at a time.
-const DND = reactive({
-  /** Where are we dragging from?  (If known/part of this page.) */
-  dragging: undefined as undefined | DragLocation,
+// An in-progress drop operation--once the user releases the mouse button, we
+// start the async drop() function, and while it's running, this is set to the
+// drop action.
+let dropTask: DropAction | undefined = undefined;
 
-  /** Where are we dragging to?  (If we have a valid drop target.) */
-  dropping: undefined as undefined | DragLocation,
-
-  /** An in-progress drop operation--once the user releases the mouse button,
-   * we start the async drop() function, and while it's running, this is set
-   * to the drop action. */
-  dropTask: undefined as undefined | DropAction,
-
-  /** Width/height the ghost should adopt to avoid flickering/awkward
-   * reflowing when it moves. */
-  ghostStyle: undefined as undefined | {width: number; height: number},
-});
+// Reactive object that describes the width/height of the ghost, if required.
+const ghostSize = ref(undefined as undefined | {width: number; height: number});
 </script>
 
 <script setup lang="ts" generic="I">
@@ -127,32 +139,14 @@ const $dndElements = ref([] as HTMLElement[]);
 
 /** State shared between dnd-list components so they can coordinate */
 const state: ListState<I> = reactive({
-  /** A snapshot of the model saved before beginning an actual drop operation,
-   * which is shown to the user until the drop operation completes.  This
-   * buffering ensures the user doesn't see any flickering during the drop. */
-  modelSnapshot: undefined,
   modelValue: computed(() => props.modelValue),
-});
-
-const isDragging = computed((): boolean => {
-  return !!DND.dropping;
-});
-
-const draggingIndex = computed((): number | undefined => {
-  if (!DND.dragging) return undefined;
-  if (DND.dragging.parent !== state) return undefined;
-  return DND.dragging.index;
-});
-
-const ghostIndex = computed((): number | undefined => {
-  // Show where the item came from if we can't drop it anywhere
-  if (!DND.dropping) return draggingIndex.value;
-  if (DND.dropping.parent !== state) return undefined;
-  return DND.dropping.index;
+  modelSnapshot: undefined,
+  draggingFromIndex: undefined,
+  droppingToIndex: undefined,
 });
 
 const ghostStyle = computed((): string | undefined => {
-  const s = DND.ghostStyle;
+  const s = ghostSize.value;
   if (!s) return undefined;
 
   let style = "";
@@ -167,8 +161,7 @@ const displayItems = computed((): readonly I[] => {
 
 function itemClassFor(item: I, index: number): Record<string, boolean> {
   const classes = props.itemClass ? props.itemClass(item, index) : {};
-  classes.dragging =
-    DND.dragging?.parent === state && DND.dragging?.index === index;
+  classes.dragging = state.draggingFromIndex === index;
   return classes;
 }
 
@@ -208,7 +201,7 @@ function itemDragStart(ev: DragEvent, index: number) {
   disableDrag(ev);
   ev.stopPropagation();
 
-  if (DND.dropTask) {
+  if (dropTask) {
     // Only one DnD operation is allowed at a time.
     ev.preventDefault();
     return;
@@ -226,9 +219,12 @@ function itemDragStart(ev: DragEvent, index: number) {
     if (!dndEl) return;
 
     const rect = dndEl.getBoundingClientRect();
-    DND.dragging = {parent: state, index};
-    DND.dropping = {parent: state, index};
-    DND.ghostStyle = {width: rect.width, height: rect.height};
+    ghostSize.value = {width: rect.width, height: rect.height};
+
+    state.draggingFromIndex = index;
+    sourceList = state;
+    state.droppingToIndex = index;
+    destList = state;
   });
 }
 
@@ -237,10 +233,14 @@ function itemDragStart(ev: DragEvent, index: number) {
 function itemDragEnd() {
   // If a drop operation is committed/in progress, we don't clear the
   // DND until it actually completes.
-  if (DND.dropTask) return;
-  DND.dragging = undefined;
-  DND.dropping = undefined;
-  DND.ghostStyle = undefined;
+  if (dropTask) return;
+
+  if (sourceList) sourceList.draggingFromIndex = undefined;
+  sourceList = undefined;
+  if (destList) destList.droppingToIndex = undefined;
+  destList = undefined;
+
+  ghostSize.value = undefined;
 }
 
 /** Fired when an item that is being dragged enters an element. */
@@ -256,7 +256,7 @@ function itemDragEnter(ev: DragEvent, index: number) {
   const el = dndElement(ev);
   if (el) {
     const rect = el.getBoundingClientRect();
-    DND.ghostStyle = {width: rect.width, height: rect.height};
+    ghostSize.value = {width: rect.width, height: rect.height};
   }
 
   moveGhost(index);
@@ -330,7 +330,7 @@ function moveGhost(index: number) {
   // updating `DND` in the wrong way may cause cascading unintended
   // updates across ALL <dnd-list> components in the page.
 
-  if (ghostIndex.value !== undefined && ghostIndex.value <= index) {
+  if (state.droppingToIndex !== undefined && state.droppingToIndex <= index) {
     // If we are moving the ghost forward in the list from where it
     // currently is, we need to account for the fact that it's being
     // removed from its previous location, or it will appear at the
@@ -339,29 +339,19 @@ function moveGhost(index: number) {
   }
   index = Math.min(index, displayItems.value.length);
 
-  // PERFORMANCE: If we're only switching indexes in the same parent,
-  // make sure that's the only field we touch.  Otherwise Vue will
-  // update every single <dnd-list> in the page.
-  if (DND.dropping) {
-    if (DND.dropping.parent !== state) DND.dropping.parent = state;
-    if (DND.dropping.index !== index) DND.dropping.index = index;
-  } else {
-    DND.dropping = {parent: state, index};
+  if (destList && destList !== state) {
+    destList.droppingToIndex = undefined;
   }
+  destList = state;
+  state.droppingToIndex = index;
 }
 
 /** Fired when it's time to actually perform the drop operation. */
 function doDrop(ev: DragEvent) {
   if (!allowDropHere(ev)) return;
-  if (!DND.dropping) return;
+  if (!destList) return;
 
   ev.stopPropagation();
-
-  const offset =
-    DND.dragging?.parent === DND.dropping.parent &&
-    (DND.dragging?.index || 0) < DND.dropping.index
-      ? 0
-      : 0;
 
   // Here we start the (async) drop task, and freeze the model in both
   // the source and destination lists until the drop task completes.
@@ -370,32 +360,36 @@ function doDrop(ev: DragEvent) {
   // user will see a momentary flicker where the model(s) snap back to
   // the pre-drag state as both model values get updated.
 
-  console.assert(DND.dropping?.parent === state);
+  console.assert(destList === state);
+  console.assert(destList.droppingToIndex !== undefined);
 
   const drop_ev: DropAction = {
     dataTransfer: ev.dataTransfer!,
-    toIndex: DND.dropping.index - offset,
+    toIndex: destList.droppingToIndex!,
   };
-  DND.dropTask = drop_ev;
-  if (DND.dragging?.parent) {
-    DND.dragging.parent.modelSnapshot = Array.from(
-      DND.dragging.parent.modelValue,
-    );
+  dropTask = drop_ev;
+
+  if (sourceList) {
+    sourceList.modelSnapshot = Array.from(sourceList.modelValue);
   }
   state.modelSnapshot = Array.from(props.modelValue);
+
   props
     .drop(drop_ev)
-    .then(() => nextTick()) // wait for Vue model updates
-    .catch(console.error)
+    .then(() => nextTick(), console.error) // wait for Vue model updates
     .finally(() => {
-      if (DND.dragging?.parent) {
-        DND.dragging.parent.modelSnapshot = undefined;
+      if (sourceList) {
+        sourceList.modelSnapshot = undefined;
+        sourceList.draggingFromIndex = undefined;
+        sourceList = undefined;
       }
-      DND.dragging = undefined;
-      DND.dropping = undefined;
-      DND.dropTask = undefined;
-      DND.ghostStyle = undefined;
-      state.modelSnapshot = undefined;
+      if (destList) {
+        destList.modelSnapshot = undefined;
+        destList.droppingToIndex = undefined;
+        destList = undefined;
+      }
+      dropTask = undefined;
+      ghostSize.value = undefined;
     });
 }
 </script>
