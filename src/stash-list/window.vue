@@ -123,6 +123,7 @@ import {altKeyName, filterMap, required} from "../util";
 import type {DragAction, DropAction} from "../components/dnd-list";
 
 import the from "@/globals-ui";
+import {copyIf} from "@/model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import type {SyncState} from "../model/options";
 import type {Tab, Window} from "../model/tabs";
@@ -317,7 +318,7 @@ export default defineComponent({
 
         if (stashable_children.length === 0) return;
         await the.model.putItemsInFolder({
-          items: the.model.copyIf(ev.altKey, stashable_children),
+          items: copyIf(ev.altKey, stashable_children),
           toFolderId: (await the.model.bookmarks.createStashFolder()).id,
         });
       });

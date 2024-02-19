@@ -68,6 +68,7 @@ import browser from "webextension-polyfill";
 import {altKeyName, bgKeyName, required} from "../util";
 
 import the from "@/globals-ui";
+import {copyIf} from "@/model";
 import {friendlyFolderName} from "../model/bookmarks";
 import type {Container} from "../model/containers";
 import type {Tab, Window} from "../model/tabs";
@@ -147,7 +148,7 @@ export default defineComponent({
     stash(ev: MouseEvent) {
       this.attempt(async () => {
         await the.model.putItemsInFolder({
-          items: the.model.copyIf(ev.altKey, [this.tab]),
+          items: copyIf(ev.altKey, [this.tab]),
           toFolderId: (await the.model.ensureRecentUnnamedFolder()).id,
         });
       });

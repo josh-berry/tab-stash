@@ -1,6 +1,13 @@
 import {filterMap} from "../util";
 
-import {isNode, isTab, isWindow, type ModelItem} from "../model";
+import {
+  copying,
+  isNode,
+  isTab,
+  isWindow,
+  type ModelItem,
+  type StashItem,
+} from "../model";
 import type * as BM from "../model/bookmarks";
 import type * as T from "../model/tabs";
 
@@ -22,12 +29,13 @@ export function sendDragData(dt: DataTransfer, items: ModelItem[]) {
     throw new Error(`Trying to drag unrecognized model item: ${i}`);
   });
   dt.setData(NATIVE_TYPE, JSON.stringify(data));
+  dt.effectAllowed = "copyMove";
 }
 
 export function recvDragData(
   dt: DataTransfer,
   model: {bookmarks: BM.Model; tabs: T.Model},
-): ModelItem[] {
+): StashItem[] {
   const blob = dt.getData(NATIVE_TYPE);
   let data: DNDItem[];
   try {
@@ -37,7 +45,7 @@ export function recvDragData(
     data = [] as DNDItem[];
   }
 
-  return filterMap(data, i => {
+  const ret: StashItem[] = filterMap(data, i => {
     if (typeof i !== "object" || i === null) return undefined;
     if ("node" in i && typeof i.node === "string") {
       return model.bookmarks.node(i.node);
@@ -50,4 +58,7 @@ export function recvDragData(
     }
     return undefined;
   });
+
+  if (dt.dropEffect === "copy") return copying(ret);
+  return ret;
 }

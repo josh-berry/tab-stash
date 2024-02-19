@@ -3,6 +3,7 @@
 import type {Menus} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
+import {copyIf} from "./model";
 import type {ShowWhatOpt, StashWhatOpt} from "./model/options";
 import type {Tab, TabID, WindowID} from "./model/tabs";
 import service_model from "./service-model";
@@ -225,7 +226,7 @@ logErrorsFrom(async () => {
 
       case "single":
         await model.putItemsInFolder({
-          items: model.copyIf(!!options.copy, [options.tab]),
+          items: copyIf(!!options.copy, [options.tab]),
           toFolderId: (await model.ensureRecentUnnamedFolder()).id,
         });
         break;

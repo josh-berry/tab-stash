@@ -231,6 +231,7 @@ import {
 } from "../util";
 
 import the from "@/globals-ui";
+import {copyIf} from "@/model";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
 import {
   friendlyFolderName,
@@ -511,10 +512,7 @@ export default defineComponent({
       the.model.attempt(
         async () =>
           await the.model.putItemsInFolder({
-            items: the.model.copyIf(
-              ev.altKey,
-              the.model.stashableTabsInWindow(win.id),
-            ),
+            items: copyIf(ev.altKey, the.model.stashableTabsInWindow(win.id)),
             toFolderId: this.folder.id,
           }),
       );
@@ -529,7 +527,7 @@ export default defineComponent({
     stashSpecificTab(ev: MouseEvent | KeyboardEvent, tab: Tab) {
       this.attempt(async () => {
         await the.model.putItemsInFolder({
-          items: the.model.copyIf(ev.altKey, [tab]),
+          items: copyIf(ev.altKey, [tab]),
           toFolderId: this.folder.id,
         });
       });
@@ -686,6 +684,7 @@ export default defineComponent({
           items,
           toFolderId: this.folder.id,
           toIndex: ev.toIndex,
+          allowDuplicates: true,
         }),
       );
     },

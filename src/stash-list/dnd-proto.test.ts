@@ -6,6 +6,7 @@ import {filterMap} from "../util";
 
 import * as BM from "../model/bookmarks";
 import {
+  B,
   make_bookmarks,
   make_tabs,
   type BookmarkFixture,
@@ -106,7 +107,7 @@ describe("stash-list/dnd-proto", () => {
       expect(dt.getData(MT)).to.not.equal("");
 
       const result = recvDragData(dt, model);
-      expect(result.map(i => i.id)).to.deep.equal(
+      expect(result.map(i => "id" in i && i.id)).to.deep.equal(
         valid_model_items.map(i => i.id),
       );
       expect(result).to.deep.equal(valid_model_items);
@@ -139,4 +140,29 @@ describe("stash-list/dnd-proto", () => {
     bookmarks.eight.id,
     tabs.real_patricia.id,
   ]);
+
+  it("copies items when requested", () => {
+    const dt = new TestDT({});
+    sendDragData(
+      dt,
+      [bookmarks.doug_1.id, bookmarks.nested_child.id, tabs.right_adam.id].map(
+        id =>
+          typeof id === "string"
+            ? model.bookmarks.node(id)!
+            : model.tabs.tab(id)!,
+      ),
+    );
+
+    dt.dropEffect = "copy";
+
+    const result = recvDragData(dt, model);
+    expect(result).to.deep.equal([
+      {title: "Doug Duplicate", url: `${B}#doug`},
+      {
+        title: "Nested Child",
+        children: [{title: "1", url: `${B}#nested_child_1`}],
+      },
+      {title: "", url: `${B}#adam`},
+    ]);
+  });
 });

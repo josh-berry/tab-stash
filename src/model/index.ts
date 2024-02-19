@@ -389,7 +389,7 @@ export class Model {
     if (tabs.length === 0) return;
 
     await this.putItemsInFolder({
-      items: this.copyIf(!!options.copy, tabs),
+      items: copyIf(!!options.copy, tabs),
       toFolderId: (
         await this.bookmarks.createStashFolder(
           undefined,
@@ -409,7 +409,7 @@ export class Model {
     toFolderId?: Bookmarks.NodeID;
   }) {
     const from_items = Array.from(this.selection.selectedItems());
-    const items = this.copyIf(options?.copy === true, from_items);
+    const items = copyIf(options?.copy === true, from_items);
 
     let affected_items: StashItem[];
     if (options?.toFolderId === undefined) {
@@ -532,7 +532,7 @@ export class Model {
     const active_tab = win_tabs.filter(t => t.active)[0];
 
     const tabs = await this.putItemsInWindow({
-      items: this.copying(items),
+      items: copying(items),
       toWindowId: toWindow.id,
     });
 
@@ -1102,44 +1102,6 @@ export class Model {
     // Remove the item we just restored.
     await di.drop(deletion.key, path);
   }
-
-  //
-  // Helpers for working with the mutators
-  //
-
-  /** Apply `copying()` to a set of stash items if `predicate` is true. */
-  copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
-    if (predicate) return this.copying(items);
-    return items;
-  }
-
-  /** Given a set of stash items, transform them such that passing them to a
-   * put*() model method will copy them instead of moving them, leaving the
-   * original sources untouched. */
-  copying(items: StashItem[]): (NewTab | NewFolder)[] {
-    return filterMap(items, item => {
-      if (isNewItem(item)) return item;
-
-      if (isWindow(item)) {
-        return {title: "", children: this.copying(item.children)};
-      }
-
-      if (isTab(item)) return {title: item.title, url: item.url};
-
-      if (isNode(item)) {
-        if (Bookmarks.isBookmark(item)) {
-          return {title: item.title, url: item.url};
-        }
-        if (isFolder(item)) {
-          return {
-            title: item.title,
-            children: this.copying(item.children),
-          };
-        }
-        // Separators are excluded
-      }
-    });
-  }
 }
 
 export type BookmarkTabsResult = {
@@ -1147,6 +1109,44 @@ export type BookmarkTabsResult = {
   bookmarks: Bookmarks.Node[];
   newFolderId?: string;
 };
+
+//
+// Helpers for working with the mutators
+//
+
+/** Apply `copying()` to a set of stash items if `predicate` is true. */
+export function copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
+  if (predicate) return copying(items);
+  return items;
+}
+
+/** Given a set of stash items, transform them such that passing them to a
+ * put*() model method will copy them instead of moving them, leaving the
+ * original sources untouched. */
+export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
+  return filterMap(items, item => {
+    if (isNewItem(item)) return item;
+
+    if (isWindow(item)) {
+      return {title: "", children: copying(item.children)};
+    }
+
+    if (isTab(item)) return {title: item.title, url: item.url};
+
+    if (isNode(item)) {
+      if (Bookmarks.isBookmark(item)) {
+        return {title: item.title, url: item.url};
+      }
+      if (isFolder(item)) {
+        return {
+          title: item.title,
+          children: copying(item.children),
+        };
+      }
+      // Separators are excluded
+    }
+  });
+}
 
 //
 // Private helper functions
