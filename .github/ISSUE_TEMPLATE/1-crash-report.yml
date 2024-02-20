@@ -1,10 +1,11 @@
 name: Report a Crash
 description: Tab Stash notified you about a crash, and you have the crash details.
+labels: ["i-crash", "needs triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a crash!
+        Sorry to hear you're having trouble, and thanks for taking the time to report a crash!
 
         If you're not sure whether you have one problem or multiple problems, it's better to err on the side of opening separate reports for each potential problem, since it's much easier to close duplicates than split a single issue into multiple issues.
 
