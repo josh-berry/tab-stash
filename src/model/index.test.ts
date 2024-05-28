@@ -226,6 +226,54 @@ describe("model", () => {
         );
       }
     });
+
+    describe("hidden tabs", () => {
+      it("leaves stashed tabs alone", async () => {
+        await browser.sessions.setTabValue(
+          tabs.real_doug_2.id,
+          M.Tabs.SK_HIDDEN_BY_TAB_STASH,
+          true,
+        );
+
+        await model.closeOrphanedHiddenTabs();
+
+        const hidden = await browser.tabs.query({hidden: true});
+        expect(hidden.map(t => t.id!)).to.deep.equal([
+          tabs.real_doug_2.id,
+          tabs.real_harry.id,
+          tabs.real_helen.id,
+        ]);
+      });
+
+      it("closes orphaned stashed tabs", async () => {
+        await browser.sessions.setTabValue(
+          tabs.real_doug_2.id,
+          M.Tabs.SK_HIDDEN_BY_TAB_STASH,
+          true,
+        );
+
+        await model.bookmarks.remove(bookmarks.doug_2.id);
+
+        await model.closeOrphanedHiddenTabs();
+
+        const hidden = await browser.tabs.query({hidden: true});
+        expect(hidden.map(t => t.id!)).to.deep.equal([
+          tabs.real_harry.id,
+          tabs.real_helen.id,
+        ]);
+      });
+
+      it("leaves tabs hidden by other extensions alone", async () => {
+        await model.closeOrphanedHiddenTabs();
+
+        const hidden = await browser.tabs.query({hidden: true});
+        expect(hidden.map(t => t.id!)).to.deep.equal([
+          tabs.real_doug_2.id,
+          tabs.real_harry.id,
+          tabs.real_helen.id,
+        ]);
+      });
+    });
   });
 
   describe("choosing stashable tabs in a window", () => {
@@ -291,6 +339,12 @@ describe("model", () => {
           hidden: true,
         });
         expect(model.tabs.tab(tabs.right_doug.id)!.discarded).not.to.be.ok;
+
+        const bm_id = await browser.sessions.getTabValue(
+          tabs.right_doug.id,
+          M.Tabs.SK_HIDDEN_BY_TAB_STASH,
+        );
+        expect(bm_id).to.equal(true);
       });
 
       it("hides and unloads tabs", async () => {
@@ -318,6 +372,12 @@ describe("model", () => {
           hidden: true,
           discarded: true,
         });
+
+        const bm_id = await browser.sessions.getTabValue(
+          tabs.right_doug.id,
+          M.Tabs.SK_HIDDEN_BY_TAB_STASH,
+        );
+        expect(bm_id).to.equal(true);
       });
 
       it("closes tabs", async () => {
@@ -354,6 +414,7 @@ describe("model", () => {
           id => model.tabs.tab(id)!,
         ),
       );
+      await events.next(browser.tabs.onHighlighted); // un-highlight current tab
       await events.next(browser.tabs.onCreated);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
@@ -402,6 +463,7 @@ describe("model", () => {
 
     it("refocuses away from an active tab that is to be closed", async () => {
       await model.hideOrCloseStashedTabs([model.tabs.tab(tabs.left_alice.id)!]);
+      await events.next(browser.tabs.onHighlighted); // un-highlight current tab
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
       await events.next(browser.tabs.onUpdated); // hidden

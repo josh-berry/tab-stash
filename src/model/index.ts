@@ -373,6 +373,8 @@ export class Model {
         id === BookmarkMetadata.CUR_WINDOW_MD_ID ||
         !!this.bookmarks.node(id as Bookmarks.NodeID),
     );
+
+    await this.closeOrphanedHiddenTabs();
   }
 
   /** Stashes all eligible tabs in the specified window, leaving the existing
@@ -447,35 +449,23 @@ export class Model {
   async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
     const tids = tabs.map(t => t.id);
 
-    await this.tabs.refocusAwayFromTabs(tids);
-
     // Clear any highlights/selections on tabs we are stashing
     await Promise.all(
       tids.map(id => browser.tabs.update(id, {highlighted: false})),
     );
     for (const t of tabs) this.selection.info(t).isSelected = false;
 
-    // istanbul ignore else -- hide() is always available in tests
-    if (browser.tabs.hide) {
-      // If the browser supports hiding tabs, then hide or close them
-      // according to the user's preference.
-      switch (this.options.local.state.after_stashing_tab) {
-        case "hide_discard":
-          await browser.tabs.hide(tids);
-          await browser.tabs.discard(tids);
-          break;
-        case "close":
-          await this.tabs.remove(tids);
-          break;
-        case "hide":
-        default:
-          await browser.tabs.hide(tids);
-          break;
-      }
-    } else {
-      // The browser does not support hiding tabs, so our only option is
-      // to close them.
-      await this.tabs.remove(tids);
+    switch (this.options.local.state.after_stashing_tab) {
+      case "hide_discard":
+        await this.tabs.hide(tids, "discard");
+        break;
+      case "close":
+        await this.tabs.remove(tids);
+        break;
+      case "hide":
+      default:
+        await this.tabs.hide(tids);
+        break;
     }
   }
 
@@ -872,7 +862,9 @@ export class Model {
         // location before moving to the desired location, so doing the
         // move first reduces flickering in the UI.
         await this.tabs.move(t.id, to_win_id, to_index);
-        if (t.hidden && !!browser.tabs.show) await browser.tabs.show(t.id);
+        if (t.hidden && !!browser.tabs.show) {
+          await this.tabs.show(t.id);
+        }
 
         // console.log('new layout:', this.tabs.window(t.windowId)?.tabs);
 
@@ -1101,6 +1093,46 @@ export class Model {
 
     // Remove the item we just restored.
     await di.drop(deletion.key, path);
+  }
+
+  /** Closes any hidden tabs that were originally hidden by Tab Stash, but are
+   * no longer present as bookmarks in the stash. */
+  async closeOrphanedHiddenTabs() {
+    const now = Date.now();
+    const tabs = await browser.tabs.query({hidden: true});
+
+    const our_hidden_tabs = await Promise.allSettled(
+      tabs.map(tab =>
+        this.tabs
+          .wasTabHiddenByUs(tab.id! as Tabs.TabID)
+          .then(hidden_by_us => ({tab, hidden_by_us})),
+      ),
+    );
+
+    const tab_ids_to_close = filterMap(our_hidden_tabs, res => {
+      // If we couldn't figure out whether the tab was hidden by us or not, OR
+      // if we can tell the tab was NOT hidden by us, leave it alone.
+      if (res.status !== "fulfilled") return undefined;
+      if (res.value.tab.id === undefined) return undefined;
+      if (!res.value.hidden_by_us) return undefined;
+
+      // If the tab was very recently accessed, we should ignore it; we might be
+      // in the midst of stashing it right now (and it's possible the bookmark
+      // hasn't been created yet).
+      if (
+        res.value.tab.lastAccessed &&
+        res.value.tab.lastAccessed > now - 2000
+      ) {
+        return undefined;
+      }
+
+      // If there is a URL in the stash matching the tab's URL, we know this
+      // tab is still in the stash and cannot be closed.
+      if (this.bookmarks.isURLStashed(res.value.tab.url!)) return undefined;
+      return res.value.tab.id;
+    });
+
+    await browser.tabs.remove(tab_ids_to_close);
   }
 }
 

@@ -14,19 +14,40 @@ logErrorsFrom(async () => {
   // BEGIN FILE-WIDE ASYNC BLOCK
 
   //
-  // Migrations -- these are old DBs which are in the wrong format
-  //
-
-  indexedDB.deleteDatabase("cache:favicons");
-  indexedDB.deleteDatabase("cache:bookmarks");
-
-  //
   // Start our various services and set global variables used throughout the rest
   // of this file.
   //
 
   const model = await service_model();
   (<any>globalThis).model = model;
+
+  //
+  // Migrations
+  //
+
+  // Delete old DBs that are in the wrong format
+  indexedDB.deleteDatabase("cache:favicons");
+  indexedDB.deleteDatabase("cache:bookmarks");
+
+  // Tag hidden tabs which were hidden before upgrading to a version of Tab
+  // Stash that keeps track of which tabs it was responsible for hiding.
+  if (!model.options.local.state.migrated_tab_markers_applied) {
+    logErrorsFrom(async () => {
+      // Don't do anything if the browser doesn't support hiding tabs.
+      if (!browser.tabs.hide) return;
+
+      const tabs = await browser.tabs.query({hidden: true});
+
+      for (const t of tabs) {
+        if (model.bookmarks.isURLStashed(t.url!)) {
+          // This applies the tag as a side effect
+          await model.tabs.hide([t.id! as TabID]);
+        }
+      }
+
+      await model.options.local.set({migrated_tab_markers_applied: true});
+    });
+  }
 
   //
   // User-triggered commands thru menu items, etc.  IDs in the menu items

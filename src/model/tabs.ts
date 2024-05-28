@@ -43,6 +43,9 @@ export type TabID = number & {readonly __tab_id: unique symbol};
 
 const trace = trace_fn("tabs");
 
+/** The key of the stashed tab's bookmark ID in the browser's session store. */
+export const SK_HIDDEN_BY_TAB_STASH = "hidden_by_tab_stash";
+
 /** How many tabs do we want to allow to be loaded at once?  (NOTE: This is
  * approximate, since the model may not be fully up to date, and the user can
  * always trigger tab loading on their own.) */
@@ -218,6 +221,15 @@ export class Model {
     return index;
   }
 
+  /** Checks if the tab was hidden by us or by some other extension. */
+  async wasTabHiddenByUs(tabId: TabID): Promise<boolean> {
+    const res = await browser.sessions.getTabValue(
+      tabId,
+      SK_HIDDEN_BY_TAB_STASH,
+    );
+    return res ?? false;
+  }
+
   //
   // User-level operations on tabs
   //
@@ -299,6 +311,32 @@ export class Model {
       if (!pos) tryAgain();
       if (pos.parent.id !== toWindow || pos.index !== toIndex) tryAgain();
     });
+  }
+
+  /** Shows a tab that was previously hidden. */
+  async show(tid: TabID): Promise<void> {
+    await browser.tabs.show(tid);
+    // We expect SK_HIDDEN_BY_TAB_STASH to be cleared automatically by
+    // whenTabUpdated().  We do it there, instead of here, because some other
+    // extension or the user could have un-hid the tab without going thru us.
+  }
+
+  /** Hides the specified tabs, optionally discarding them (to free up memory).
+   * If the browser does not support hiding tabs, closes them instead. */
+  async hide(tabIds: TabID[], discard?: "discard"): Promise<void> {
+    if (!!browser.tabs.hide) {
+      trace("hiding tabs", tabIds);
+      await this.refocusAwayFromTabs(tabIds);
+
+      await browser.tabs.hide(tabIds);
+      if (discard) await browser.tabs.discard(tabIds);
+
+      for (const t of tabIds) {
+        await browser.sessions.setTabValue(t, SK_HIDDEN_BY_TAB_STASH, true);
+      }
+    } else {
+      await this.remove(tabIds);
+    }
   }
 
   /** Close the specified tabs, but leave the browser window open (and create
@@ -543,7 +581,18 @@ export class Model {
     }
     if (info.favIconUrl !== undefined) t.favIconUrl = info.favIconUrl;
     if (info.pinned !== undefined) t.pinned = info.pinned;
-    if (info.hidden !== undefined) t.hidden = info.hidden;
+    if (info.hidden !== undefined) {
+      if (t.hidden !== info.hidden && !info.hidden) {
+        // We must clear the "hidden by Tab Stash" flag because somebody (could
+        // have been us or someone else) un-hid this tab, and if the tab is
+        // hidden again later by some other extension, we don't want to believe
+        // it was hidden by Tab Stash.
+        logErrorsFrom(() =>
+          browser.sessions.removeTabValue(t.id, SK_HIDDEN_BY_TAB_STASH),
+        );
+      }
+      t.hidden = info.hidden;
+    }
     if (info.discarded !== undefined) t.discarded = info.discarded;
   }
 

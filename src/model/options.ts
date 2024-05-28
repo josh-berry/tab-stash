@@ -134,6 +134,12 @@ export const LOCAL_DEF = {
 
   /** Container color indicators. Related issue: #125 */
   // ff_container_indicators: {default: false, is: aBoolean},
+
+  // Migration flags
+
+  /** Tracks whether we have marked hidden tabs in the session store as
+   * belonging to Tab Stash. */
+  migrated_tab_markers_applied: {default: false, is: aBoolean},
 } as const;
 
 export type Source = {

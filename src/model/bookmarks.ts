@@ -223,6 +223,14 @@ export class Model {
     return index;
   }
 
+  /** Returns a (non-reactive) array of bookmarks in the stash with the
+   * specified URL. */
+  bookmarksWithURLInStash(url: string): Bookmark[] {
+    return Array.from(this.bookmarksWithURL(url)).filter(bm =>
+      this.isNodeInStashRoot(bm),
+    );
+  }
+
   isParent(node: Node): node is Folder {
     return isFolder(node);
   }

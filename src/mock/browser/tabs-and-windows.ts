@@ -11,7 +11,8 @@ import * as events from "../events";
 type Window = Omit<W.Window, "id" | "tabs"> & {id: number; tabs: Tab[]};
 type Tab = Omit<T.Tab, "id" | "windowId"> & {id: number; windowId: number};
 
-class State {
+// Exported because it's also used by the sessions mock
+export class State {
   readonly onWindowCreated: events.MockEvent<(window: W.Window) => void>;
   readonly onWindowRemoved: events.MockEvent<(windowId: number) => void>;
   readonly onWindowFocusChanged: events.MockEvent<(windowId: number) => void>;
@@ -910,11 +911,12 @@ export default (() => {
   let state = new State();
 
   const exports = {
+    state,
     windows: new MockWindows(state),
     tabs: new MockTabs(state),
 
     reset() {
-      state = new State();
+      exports.state = state = new State();
       exports.windows = new MockWindows(state);
       exports.tabs = new MockTabs(state);
       (<any>globalThis).browser.windows = exports.windows;
