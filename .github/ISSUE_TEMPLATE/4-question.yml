@@ -1,0 +1,9 @@
+name: Ask a Question
+description: Use this if no other template seems to fit.
+labels: ["i-question", "needs triage"]
+body:
+- type: textarea
+  attributes:
+    id: question
+    label: Question
+    description: Type your question here. The more context and detail you provide up-front, the easier it will be to respond quickly and accurately.
