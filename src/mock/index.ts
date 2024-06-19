@@ -17,10 +17,9 @@ import type {RootHookObject} from "mocha";
     id: "mock",
   },
 };
-(<any>globalThis).navigator = {
-  // We provide a fake number here so that tests are always run consistently
-  hardwareConcurrency: 4,
-};
+if (!(<any>globalThis).navigator) {
+  (<any>globalThis).navigator = {hardwareConcurrency: 4};
+}
 
 // Keep the polyfill happy
 (<any>globalThis).chrome = (<any>globalThis).browser;
