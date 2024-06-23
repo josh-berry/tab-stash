@@ -27,8 +27,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} adds sub-groups and a popup view, and sports
-        a refreshed look and feel. See what's new!
+        Tab Stash {{ my_version }} improves drag-and-drop performance and fixes
+        a few bugs. See what's new!
       </Notification>
       <Notification
         key="stash-root-warning"

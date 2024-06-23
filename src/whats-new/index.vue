@@ -10,6 +10,31 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.0.1">
+        <L v="Fixed" :issue="417"
+          >an issue that might cause Tab Stash to crash on startup if Firefox's
+          bookmarks database is corrupt.</L
+        >
+
+        <L v="Fixed:" :issue="445"
+          >"Close unstashed tabs" no longer closes pinned tabs by mistake.</L
+        >
+
+        <L v="Fixed:" :issue="449"
+          >Drag-and-drop while holding the Option key now copies tabs instead of
+          moving them.</L
+        >
+
+        <L v="Fixed" :issue="425"
+          >an issue that would leave hidden tabs open by mistake, even if the
+          tab was removed from the stash.</L
+        >
+
+        <L v="Improved"
+          >performance of drag-and-drop between folders in large stashes.</L
+        >
+      </Version>
+
       <Version v="3.0">
         <L v="New:" :issue="14"
           >Tab Stash now supports sub-groups! You can even nest sub-groups as
