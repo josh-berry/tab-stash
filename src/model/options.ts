@@ -64,6 +64,18 @@ export const SYNC_DEF = {
     is: anEnum("expanded", "collapsed"),
   },
 
+  // Show private window groups.
+  show_folders_mode: {
+    default: "all",
+    is: anEnum("NinP", "PinN", "all", "independent"),
+  },
+
+  // Show private group bg.
+  show_incognito_folder_bg: {
+    default: "hide",
+    is: anEnum("show", "hide"),
+  },
+
   // How big should the spacing/fonts be?
   ui_metrics: {
     default: "normal",

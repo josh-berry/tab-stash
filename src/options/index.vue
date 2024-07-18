@@ -183,6 +183,23 @@
         <option value="expanded">Expanded</option>
         <option value="collapsed">Collapsed</option>
       </select>
+
+      <label for="show_folders_mode">Show groups mode:</label>
+      <select id="show_folders_mode" v-model="sync.show_folders_mode">
+        <option value="NinP">Show normal folders in private mode</option>
+        <option value="PinN">Show private folders in normal mode</option>
+        <option value="all">Show all</option>
+        <option value="independent">Independent management</option>
+      </select>
+
+      <label for="show_private_folder_bg">Show private group background:</label>
+      <select
+        id="show_private_folder_bg"
+        v-model="sync.show_incognito_folder_bg"
+      >
+        <option value="show">Show</option>
+        <option value="hide">Hide</option>
+      </select>
     </section>
 
     <hr />

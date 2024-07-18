@@ -10,6 +10,7 @@
       selected: selectionInfo.isSelected,
       'no-match': !filterInfo.isMatching,
       'has-matching-children': filterInfo.hasMatchInSubtree,
+      incognito: inIncognitoMode,
     }"
   >
     <item-icon
@@ -364,6 +365,13 @@ export default defineComponent({
       return this.childTabStats.open + this.childTabStats.discarded;
     },
 
+    inIncognitoMode(): boolean {
+      return (
+        this.folder.incognito &&
+        the.model.options.sync.state.show_incognito_folder_bg != "hide"
+      );
+    },
+
     collapsed: {
       get(): boolean {
         if (this.metadata.value === undefined) {
@@ -419,7 +427,7 @@ export default defineComponent({
     nonDefaultTitle(): string {
       return getDefaultFolderNameISODate(this.folder.title) !== null
         ? ""
-        : this.folder.title;
+        : this.title;
     },
     title(): string {
       return friendlyFolderName(this.folder.title);

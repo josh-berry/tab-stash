@@ -250,6 +250,16 @@
       color: var(--userlink-fg);
     }
 
+    &.folder.incognito {
+      background: repeating-linear-gradient(
+        45deg,
+        #0000,
+        #0000 10px,
+        var(--incognito-bg) 10px,
+        var(--incognito-bg) 20px
+      );
+    }
+
     // Colorize tabs that are open inside containers
     &[data-container-color] {
       box-shadow: var(--container-indicator-shadow-style)

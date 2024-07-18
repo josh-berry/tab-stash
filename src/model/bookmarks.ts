@@ -22,6 +22,9 @@ import {
   type TreeParent,
 } from "./tree";
 
+import the from "../globals-ui";
+import * as Options from "../model/options";
+
 /** A node in the bookmark tree. */
 export interface Node extends TreeNode<Folder, Node> {
   id: NodeID;
@@ -32,6 +35,7 @@ export interface Node extends TreeNode<Folder, Node> {
 export interface Folder extends Node, TreeParent<Folder, Node> {
   $stats: FolderStats;
   $recursiveStats: FolderStats;
+  incognito: boolean;
 }
 
 export interface Bookmark extends Node {
@@ -51,11 +55,50 @@ export type FolderStats = {
   folderCount: number;
 };
 
+function get_show_folders_mode(): string {
+  return (
+    the.model?.options.sync.state.show_folders_mode ||
+    Options.SYNC_DEF.show_folders_mode.default
+  );
+}
+
 export function isBookmark(node: Node): node is Bookmark {
   return "url" in node;
 }
 export function isFolder(node: Node): node is Folder {
   return "children" in node;
+}
+export function isInFolderMode(node: Node): node is Folder {
+  if (!("children" in node)) return false;
+
+  let f = node as Folder;
+  switch (get_show_folders_mode()) {
+    case "NinP": {
+      if (the.window.incognito) return true;
+      else if (f.incognito) {
+        return false;
+      }
+      return true;
+    }
+    case "PinN": {
+      if (!the.window.incognito) return true;
+      else if (!f.incognito) {
+        return false;
+      }
+      return true;
+    }
+    case "all": {
+      return true;
+    }
+    case "independent": {
+      if (the.window.incognito && f.incognito) return true;
+      else if (!the.window.incognito && !f.incognito) return true;
+
+      return false;
+    }
+  }
+
+  return true;
 }
 export function isSeparator(node: Node): node is Separator {
   return "type" in node && node.type === "separator";
@@ -69,6 +112,9 @@ const STASH_ROOT = "Tab Stash";
 
 const ROOT_FOLDER_HELP =
   "https://github.com/josh-berry/tab-stash/wiki/Problems-Locating-the-Tab-Stash-Bookmark-Folder";
+
+const INCOGNITO_NAME = ":[^p^]:";
+const INCOGNITO_NAME_REGEXP = new RegExp("^:\\[\\^p\\^\\]:");
 
 /** A Vue model for the state of the browser bookmark tree.
  *
@@ -309,6 +355,9 @@ export class Model {
   /** Updates a bookmark's title and waits for the model to reflect the
    * update. */
   async rename(bm: Bookmark | Folder, title: string): Promise<void> {
+    if (isFolder(bm)) {
+      if ((bm as Folder).incognito) title = INCOGNITO_NAME + title;
+    }
     await browser.bookmarks.update(bm.id, {title});
     await shortPoll(() => {
       if (bm.title !== title) tryAgain();
@@ -443,13 +492,18 @@ export class Model {
     parent ??= stash_root.id;
     position ??= "top";
 
-    const bm = await this.create({
+    let incognito_str = the.window.incognito ? INCOGNITO_NAME : "";
+
+    const bm = (await this.create({
       parentId: parent,
-      title: name ?? genDefaultFolderName(new Date()),
+      title: incognito_str + (name ?? genDefaultFolderName(new Date())),
       // !-cast: this.create() will check the existence of the parent for us
       index: position === "top" ? 0 : this.folder(parent)!.children.length,
-    });
-    return bm as Folder;
+    })) as Folder;
+
+    bm.incognito = the.window.incognito;
+
+    return bm;
   }
 
   /** Removes the folder if it is empty, unnamed and within the stash root. */
@@ -527,8 +581,11 @@ export class Model {
             }
             return {bookmarkCount, folderCount};
           }),
+          incognito: INCOGNITO_NAME_REGEXP.test(new_bm.title),
         });
-        node = folder;
+
+        // root
+        if (!new_bm.parentId || isInFolderMode(folder)) node = folder;
       } else if (new_bm.type === "separator") {
         node = reactive({
           position: undefined,
@@ -548,18 +605,28 @@ export class Model {
         this._add_url(node as Bookmark);
       }
 
-      this.by_id.set(node.id, node);
+      if (node) this.by_id.set(node.id, node);
     } else {
       // For idempotency, if the bookmark already exists, we merge the new
       // info we got with the existing record.
       node.title = new_bm.title;
+      node.dateAdded = new_bm.dateAdded;
       if (isBookmark(node)) {
         this._remove_url(node);
         node.url = new_bm.url ?? "";
         this._add_url(node);
+      } else if (isFolder(node)) {
+        node.incognito = INCOGNITO_NAME_REGEXP.test(new_bm.title);
+
+        if (!isInFolderMode(node)) {
+          this.by_id.delete((node as Node).id);
+          setPosition(node, undefined);
+          node = undefined;
+        }
       }
-      node.dateAdded = new_bm.dateAdded;
     }
+
+    if (!node) return;
 
     // Move ourselves to the correct position in the tree.
     setPosition(node, parent ? {parent, index: new_bm.index!} : undefined);
@@ -703,6 +770,14 @@ export class Model {
     // can be quite expensive (it will effectively redraw the whole UI).
     if (this.stash_root.value !== candidates[0]) {
       this.stash_root.value = candidates[0];
+
+      if (this.stash_root.value)
+        for (let node of this.stash_root.value.children) {
+          if (!isFolder(node)) continue;
+
+          let folder = node as Folder;
+          folder.incognito = INCOGNITO_NAME_REGEXP.test(folder.title);
+        }
     }
 
     // But if we have multiple candidates, we need to raise the alarm that
@@ -797,6 +872,10 @@ export function genDefaultFolderName(date: Date): string {
  * version to show to the user.  This translates folder names that look like a
  * "default"-shaped folder name into a user-friendly string, if applicable. */
 export function friendlyFolderName(name: string): string {
+  if (INCOGNITO_NAME_REGEXP.test(name)) {
+    name = name.substring(INCOGNITO_NAME.length);
+  }
+
   const folderDate = getDefaultFolderNameISODate(name);
   if (folderDate) return `Saved ${new Date(folderDate).toLocaleString()}`;
   return name;

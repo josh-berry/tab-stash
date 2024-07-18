@@ -16,6 +16,8 @@ const the = {
   /** The version number of Tab Stash. */
   version: undefined! as string,
 
+  window: undefined! as browser.Windows.Window,
+
   /** The main model, describing open windows, saved bookmarks, and any other
    * persistent data kept by Tab Stash. */
   model: undefined! as M.Model,
@@ -25,6 +27,8 @@ const the = {
 export default the;
 
 export async function init() {
+  the.window = await browser.windows.getCurrent();
+
   const sources = await resolveNamed({
     browser_settings: M.BrowserSettings.Model.live(),
     options: M.Options.Model.live(),
@@ -35,6 +39,16 @@ export async function init() {
       new KVSClient<string, M.DeletedItems.SourceValue>("deleted_items"),
     ),
   });
+
+  var show_folders_mode: string = M.Options.SYNC_DEF.show_folders_mode.default;
+  function bookmark_reload(opts: M.Options.SyncModel) {
+    if (opts.state.show_folders_mode == show_folders_mode) return;
+
+    show_folders_mode = opts.state.show_folders_mode;
+    sources.bookmarks.reload();
+  }
+  bookmark_reload(sources.options.sync);
+  sources.options.sync.onChanged.addListener(bookmark_reload);
 
   the.version = (await browser.management.getSelf()).version;
 

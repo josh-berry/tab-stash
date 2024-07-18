@@ -11,7 +11,12 @@
     ghost-mimics-height
   >
     <template #item="{item}: {item: Node}">
-      <Folder v-if="isFolder(item)" ref="folders" :folder="item" is-toplevel />
+      <Folder
+        v-if="isInFolderMode(item)"
+        ref="folders"
+        :folder="item"
+        is-toplevel
+      />
     </template>
   </dnd-list>
 </template>
@@ -23,7 +28,7 @@ import {required} from "../util";
 
 import the from "@/globals-ui";
 import {
-  isFolder,
+  isInFolderMode,
   type Folder,
   type Node,
   type NodeID,
@@ -49,14 +54,15 @@ export default defineComponent({
   },
 
   methods: {
-    isFolder,
+    isInFolderMode,
 
     itemClasses(f: Node): Record<string, boolean> {
       const fi = the.model.filter.info(f);
       const si = the.model.selection.info(f);
       return {
         hidden:
-          !isFolder(f) || !(fi.hasMatchInSubtree || si.hasSelectionInSubtree),
+          !isInFolderMode(f) ||
+          !(fi.hasMatchInSubtree || si.hasSelectionInSubtree),
       };
     },
 
