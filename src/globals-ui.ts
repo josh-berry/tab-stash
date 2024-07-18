@@ -2,12 +2,12 @@
 
 import browser from "webextension-polyfill";
 
-import {KVSCache} from "@/datastore/kvs";
-import KVSClient from "@/datastore/kvs/client";
-import * as M from "@/model";
-import type {BookmarkMetadata} from "@/model/bookmark-metadata";
-import type {Favicon} from "@/model/favicons";
-import {resolveNamed} from "@/util";
+import {KVSCache} from "./datastore/kvs";
+import KVSClient from "./datastore/kvs/client";
+import * as M from "./model";
+import type {BookmarkMetadata} from "./model/bookmark-metadata";
+import type {Favicon} from "./model/favicons";
+import {resolveNamed} from "./util";
 
 /** Global variables.  The core conceit here is these are all initialized as
  * `undefined!`, and then initialized properly in the async `init()` function
