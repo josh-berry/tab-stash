@@ -169,9 +169,12 @@ export class Model {
   readonly showCrashReport = computed(() => {
     const until = this.local.state.hide_crash_reports_until || 0;
     if (this._now.value < until) {
-      setTimeout(() => {
-        this._now.value = Date.now();
-      }, until - this._now.value + 1);
+      setTimeout(
+        () => {
+          this._now.value = Date.now();
+        },
+        until - this._now.value + 1,
+      );
       return false;
     }
     return (

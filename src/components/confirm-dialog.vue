@@ -18,7 +18,11 @@
       <template #buttons>
         <button
           :class="{'confirm-dialog-default': !props.confirmByDefault}"
-          :ref="b => { $cancel = b as HTMLButtonElement; }"
+          :ref="
+            b => {
+              $cancel = b as HTMLButtonElement;
+            }
+          "
           @click="answer(false)"
         >
           {{ props.cancel }}
@@ -26,7 +30,11 @@
 
         <button
           :class="{'confirm-dialog-default': props.confirmByDefault}"
-          :ref="b => { $confirm = b as HTMLButtonElement; }"
+          :ref="
+            b => {
+              $confirm = b as HTMLButtonElement;
+            }
+          "
           @click="answer(true)"
         >
           {{ props.confirm }}

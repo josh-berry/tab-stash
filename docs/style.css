@@ -6,7 +6,11 @@ body {
   padding: 0;
   background-color: white;
   color: #222426;
-  font-family: Segoe UI, Helvetica Neue, Arial, sans-serif;
+  font-family:
+    Segoe UI,
+    Helvetica Neue,
+    Arial,
+    sans-serif;
   font-size: 13pt;
   line-height: 1.4;
   display: flex;
