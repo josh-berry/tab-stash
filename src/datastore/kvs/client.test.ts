@@ -1,14 +1,14 @@
 // This must come first because of dependencies on mocks which must be loaded
 // before trying to load the "live" code.
-import {tests} from "./index.test";
+import {tests} from "./index.test.js";
 
 import FakeTimers from "@sinonjs/fake-timers";
 import {expect} from "chai";
 
-import * as events from "../../mock/events";
-import {NanoDisconnectedError} from "../../util/nanoservice";
-import Client from "./client";
-import type * as Proto from "./proto";
+import * as events from "../../mock/events.js";
+import {NanoDisconnectedError} from "../../util/nanoservice/index.js";
+import Client from "./client.js";
+import type * as Proto from "./proto.js";
 
 async function kvs_factory(): Promise<Client<string, string>> {
   return new Client("kvs-test", () => new MockServicePort());

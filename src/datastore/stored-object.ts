@@ -30,8 +30,8 @@
 import {reactive} from "vue";
 import browser from "webextension-polyfill";
 
-import type {Event} from "../util/event";
-import event from "../util/event";
+import type {Event} from "../util/event.js";
+import event from "../util/event.js";
 
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {

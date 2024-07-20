@@ -76,16 +76,16 @@
 <script lang="ts">
 import {computed, defineComponent} from "vue";
 
-import {altKeyName, textMatcher} from "../util";
+import {altKeyName, textMatcher} from "../util/index.js";
 
-import the from "@/globals-ui";
-import {TreeFilter} from "@/model/tree-filter";
+import the from "../globals-ui.js";
 import {
   friendlyFolderName,
   isFolder,
   type Folder,
   type Node,
-} from "../model/bookmarks";
+} from "../model/bookmarks.js";
+import {TreeFilter} from "../model/tree-filter.js";
 
 import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";

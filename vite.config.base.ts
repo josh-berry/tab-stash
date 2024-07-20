@@ -1,4 +1,3 @@
-import {fileURLToPath, URL} from "node:url";
 import {resolve} from "path";
 
 import vue from "@vitejs/plugin-vue";
@@ -18,9 +17,8 @@ export default {
   plugins: [vue({isProduction: prod})],
 
   resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
+    // Disable extension resolution since it's not what ES modules do
+    extensions: [],
   },
 
   build: {

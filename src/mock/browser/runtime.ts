@@ -1,6 +1,6 @@
 import type {Manifest, Runtime} from "webextension-polyfill";
 
-import * as events from "../events";
+import * as events from "../events.js";
 
 let verbose = false;
 

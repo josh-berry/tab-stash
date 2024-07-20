@@ -1,6 +1,6 @@
 import type {Events} from "webextension-polyfill";
 
-import type {Args} from ".";
+import type {Args} from "./index.js";
 
 export type EventSource<L extends (...args: any[]) => any> = Events.Event<L>;
 

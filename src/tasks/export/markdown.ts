@@ -1,7 +1,7 @@
 import {defineComponent, h, type PropType, type VNode} from "vue";
 
-import {delimit, required} from "../../util";
-import {br, type ExportBookmark, type ExportFolder} from "./model";
+import {delimit, required} from "../../util/index.js";
+import {br, type ExportBookmark, type ExportFolder} from "./model.js";
 
 const MD_LINK_QUOTABLES_RE = /\\|\[|\]|\&|\<|\>/g;
 const MD_URL_QUOTABLES_RE = /\\|\)/g;

@@ -2,12 +2,12 @@ import {expect} from "chai";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import * as M from "./bookmarks";
+import * as M from "./bookmarks.js";
 
-import type {BookmarkFixture} from "./fixtures.testlib";
-import {B, make_bookmarks, STASH_ROOT_NAME} from "./fixtures.testlib";
+import type {BookmarkFixture} from "./fixtures.testlib.js";
+import {B, make_bookmarks, STASH_ROOT_NAME} from "./fixtures.testlib.js";
 
 describe("model/bookmarks", () => {
   let bms: BookmarkFixture;

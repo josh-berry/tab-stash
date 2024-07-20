@@ -10,15 +10,15 @@ import browser, {
   type Windows,
 } from "webextension-polyfill";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {Options} from ".";
-import type {KeyValueStore} from "../datastore/kvs";
-import type * as BookmarkMetadata from "./bookmark-metadata";
-import type {NodeID} from "./bookmarks";
-import type * as DeletedItems from "./deleted-items";
-import type * as Favicons from "./favicons";
-import type {Tab, TabID, WindowID} from "./tabs";
+import type {KeyValueStore} from "../datastore/kvs/index.js";
+import type * as BookmarkMetadata from "./bookmark-metadata.js";
+import type {NodeID} from "./bookmarks.js";
+import type * as DeletedItems from "./deleted-items.js";
+import type * as Favicons from "./favicons.js";
+import {Options} from "./index.js";
+import type {Tab, TabID, WindowID} from "./tabs.js";
 
 //
 // The test data.

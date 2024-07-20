@@ -118,15 +118,15 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 import {defineComponent, ref, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, filterMap, required} from "../util";
+import {altKeyName, filterMap, required} from "../util/index.js";
 
-import type {DragAction, DropAction} from "../components/dnd-list";
+import type {DragAction, DropAction} from "../components/dnd-list.js";
 
-import the from "@/globals-ui";
-import {copyIf} from "@/model";
-import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
-import type {SyncState} from "../model/options";
-import type {Tab, Window} from "../model/tabs";
+import the from "../globals-ui.js";
+import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
+import {copyIf} from "../model/index.js";
+import type {SyncState} from "../model/options.js";
+import type {Tab, Window} from "../model/tabs.js";
 
 import ConfirmDialog, {
   type ConfirmDialogEvent,
@@ -136,8 +136,8 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
-import type {FilterInfo} from "@/model/tree-filter";
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
+import type {FilterInfo} from "../model/tree-filter.js";
+import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
   SyncState["show_open_tabs"],

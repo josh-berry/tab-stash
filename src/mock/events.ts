@@ -15,14 +15,12 @@
  * both when they are sent and when they are delivered.
  */
 
-import type {Args} from "../util";
-import type {Event, EventSource} from "../util/event";
-
-declare function require(name: string): any;
+import type {Event, EventSource} from "../util/event.js";
+import type {Args} from "../util/index.js";
 
 // istanbul ignore next
-const inspect: (v: any, options?: {depth: number}) => string =
-  require("util").inspect ?? ((v: any) => JSON.stringify(v, undefined, 4));
+const inspect: (v: any, options?: {depth: number}) => string = (v: any) =>
+  JSON.stringify(v, undefined, 4);
 
 // istanbul ignore next
 // This is duplicated from ../util because we can't afford to load all of

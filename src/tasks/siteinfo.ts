@@ -1,9 +1,9 @@
 import type {Tabs} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import type {Task} from "../util";
-import {AsyncChannel, TaskMonitor} from "../util";
-import {trace_fn} from "../util/debug";
+import {trace_fn} from "../util/debug.js";
+import type {Task} from "../util/index.js";
+import {AsyncChannel, TaskMonitor} from "../util/index.js";
 
 const trace = trace_fn("siteinfo");
 

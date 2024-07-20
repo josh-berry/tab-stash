@@ -7,10 +7,10 @@ import type {ExtractPropTypes, MethodOptions} from "vue";
 import {createApp} from "vue";
 import browser from "webextension-polyfill";
 
-import {asyncEvent, resolveNamed} from "./util";
-import "./util/debug"; // To setup globalThis.trace
+import "./util/debug.js"; // To setup globalThis.trace
+import {asyncEvent, resolveNamed} from "./util/index.js";
 
-import * as Options from "./model/options";
+import * as Options from "./model/options.js";
 
 export default function launch<
   C extends {props?: object; provide?: object; methods?: MethodOptions},

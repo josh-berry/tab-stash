@@ -2,6 +2,7 @@ import {computed, reactive, ref, type Ref} from "vue";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
+import {trace_fn} from "../util/debug.js";
 import {
   backingOff,
   expect,
@@ -10,17 +11,16 @@ import {
   tryAgain,
   urlToOpen,
   type OpenableURL,
-} from "../util";
-import {trace_fn} from "../util/debug";
-import {logErrorsFrom} from "../util/oops";
-import {EventWiring} from "../util/wiring";
+} from "../util/index.js";
+import {logErrorsFrom} from "../util/oops.js";
+import {EventWiring} from "../util/wiring.js";
 import {
   isChildInParent,
   pathTo,
   setPosition,
   type TreeNode,
   type TreeParent,
-} from "./tree";
+} from "./tree.js";
 
 /** A node in the bookmark tree. */
 export interface Node extends TreeNode<Folder, Node> {

@@ -1,6 +1,6 @@
 import {h, type VNode} from "vue";
 
-import {filterMap} from "../../util";
+import {filterMap} from "../../util/index.js";
 
 import {
   friendlyFolderName,
@@ -9,7 +9,7 @@ import {
   type Bookmark,
   type Folder,
   type Model,
-} from "../../model/bookmarks";
+} from "../../model/bookmarks.js";
 
 export type ExportFolder = {
   id: string;

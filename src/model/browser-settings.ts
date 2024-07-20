@@ -1,9 +1,9 @@
 import {reactive} from "vue";
 import browser from "webextension-polyfill";
 
-import {backingOff, resolveNamed} from "../util";
-import {logErrorsFrom} from "../util/oops";
-import {EventWiring} from "../util/wiring";
+import {backingOff, resolveNamed} from "../util/index.js";
+import {logErrorsFrom} from "../util/oops.js";
+import {EventWiring} from "../util/wiring.js";
 
 export type State = {
   newtab_url: string;

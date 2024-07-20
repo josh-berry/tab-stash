@@ -1,7 +1,7 @@
-import {genericList, type KeyValueStore} from ".";
-import event, {type Event} from "../../util/event";
-import * as NanoService from "../../util/nanoservice";
-import type * as Proto from "./proto";
+import event, {type Event} from "../../util/event.js";
+import * as NanoService from "../../util/nanoservice/index.js";
+import {genericList, type KeyValueStore} from "./index.js";
+import type * as Proto from "./proto.js";
 
 export default class Client<K extends Proto.Key, V extends Proto.Value>
   implements KeyValueStore<K, V>

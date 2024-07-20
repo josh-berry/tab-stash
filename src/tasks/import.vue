@@ -46,9 +46,9 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
-import the from "@/globals-ui";
-import {TaskMonitor, type Progress} from "../util";
-import {importURLs, parse, type ParseOptions} from "./import";
+import the from "../globals-ui.js";
+import {TaskMonitor, type Progress} from "../util/index.js";
+import {importURLs, parse, type ParseOptions} from "./import.js";
 
 import Dialog from "../components/dialog.vue";
 import ProgressDialog from "../components/progress-dialog.vue";

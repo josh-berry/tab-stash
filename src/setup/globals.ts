@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 
-import * as Options from "../model/options";
+import * as Options from "../model/options.js";
 
 /** Global variables.  The core conceit here is these are all initialized as
  * `undefined!`, and then initialized properly in the async `init()` function

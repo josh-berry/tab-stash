@@ -1,7 +1,7 @@
 import type {Bookmarks as BM} from "webextension-polyfill";
 
-import {makeRandomString} from "../../util/random";
-import * as events from "../events";
+import {makeRandomString} from "../../util/random.js";
+import * as events from "../events.js";
 
 type Node = Folder | Bookmark | Separator;
 type Folder = NodeInfo & {type?: "folder"; children: Node[]};

@@ -64,7 +64,7 @@
 <script lang="ts">
 import {computed, nextTick, reactive, ref} from "vue";
 
-import type {DragAction, DropAction} from "./dnd-list";
+import type {DragAction, DropAction} from "./dnd-list.js";
 
 /** Reactive object describing the shared state of a <dnd-list>. */
 type ListState<I = unknown> = {

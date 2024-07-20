@@ -1,6 +1,6 @@
 import type {Storage} from "webextension-polyfill";
 
-import * as events from "../events";
+import * as events from "../events.js";
 
 type StorageAreaName = "sync" | "local" | "managed" | "session";
 type StorageObject = {[s: string]: any};

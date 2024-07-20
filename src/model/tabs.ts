@@ -2,6 +2,7 @@ import {computed, reactive, ref, watch, type Ref} from "vue";
 import type {Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
+import {trace_fn} from "../util/debug.js";
 import {
   AsyncTaskQueue,
   backingOff,
@@ -11,12 +12,11 @@ import {
   tryAgain,
   urlToOpen,
   type OpenableURL,
-} from "../util";
-import {trace_fn} from "../util/debug";
-import {logErrorsFrom} from "../util/oops";
-import {EventWiring} from "../util/wiring";
+} from "../util/index.js";
+import {logErrorsFrom} from "../util/oops.js";
+import {EventWiring} from "../util/wiring.js";
 
-import {setPosition, type TreeNode, type TreeParent} from "./tree";
+import {setPosition, type TreeNode, type TreeParent} from "./tree.js";
 
 export interface Window extends TreeParent<Window, Tab> {
   readonly id: WindowID;

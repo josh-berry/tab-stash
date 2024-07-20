@@ -32,7 +32,7 @@
 
 <script lang="ts">
 import {defineComponent} from "vue";
-import {cmpVersions, required} from "../util";
+import {cmpVersions, required} from "../util/index.js";
 
 export default defineComponent({
   props: {v: required(String)},

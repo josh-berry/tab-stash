@@ -1,20 +1,20 @@
 import {expect} from "chai";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {filterMap} from "../util";
+import {filterMap} from "../util/index.js";
 
-import * as BM from "../model/bookmarks";
+import * as BM from "../model/bookmarks.js";
 import {
   B,
   make_bookmarks,
   make_tabs,
   type BookmarkFixture,
   type TabFixture,
-} from "../model/fixtures.testlib";
-import * as T from "../model/tabs";
+} from "../model/fixtures.testlib.js";
+import * as T from "../model/tabs.js";
 
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
+import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
 
 class TestDT implements DataTransfer {
   dropEffect: "link" | "none" | "copy" | "move" = "move";

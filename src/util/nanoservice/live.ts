@@ -1,11 +1,15 @@
 import type {Runtime} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import type {NanoPort, NanoService} from ".";
-import {NanoDisconnectedError, NanoTimeoutError, RemoteNanoError} from ".";
-import {trace_fn} from "../debug";
-import {logErrorsFrom} from "../oops";
-import {makeRandomString} from "../random";
+import {trace_fn} from "../debug.js";
+import {logErrorsFrom} from "../oops.js";
+import {makeRandomString} from "../random.js";
+import type {NanoPort, NanoService} from "./index.js";
+import {
+  NanoDisconnectedError,
+  NanoTimeoutError,
+  RemoteNanoError,
+} from "./index.js";
 import type {
   Envelope,
   NotifyEnvelope,
@@ -13,7 +17,7 @@ import type {
   Response,
   ResponseEnvelope,
   Send,
-} from "./proto";
+} from "./proto.js";
 
 let listener_count = 0;
 

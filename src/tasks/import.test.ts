@@ -1,7 +1,7 @@
-import type {NewTab} from "@/model";
 import {expect} from "chai";
+import type {NewTab} from "../model/index.js";
 
-import {extractURLs} from "./import";
+import {extractURLs} from "./import.js";
 
 describe("import", function () {
   describe("extractURLs", function () {

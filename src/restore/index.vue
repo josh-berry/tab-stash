@@ -39,7 +39,7 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
-import {required} from "../util";
+import {required} from "../util/index.js";
 
 import Notification from "../components/notification.vue";
 

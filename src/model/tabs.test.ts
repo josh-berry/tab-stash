@@ -1,10 +1,10 @@
 import {expect} from "chai";
 import browser from "webextension-polyfill";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {B, make_tabs, type TabFixture} from "./fixtures.testlib";
-import * as M from "./tabs";
+import {B, make_tabs, type TabFixture} from "./fixtures.testlib.js";
+import * as M from "./tabs.js";
 
 describe("model/tabs", () => {
   let windows: TabFixture["windows"];

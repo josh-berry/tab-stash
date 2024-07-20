@@ -1,13 +1,13 @@
 import {expect} from "chai";
 
 // Needed because the 'util' import below tries to poke at browser.runtime
-import "../../mock/browser/runtime";
+import "../../mock/browser/runtime.js";
 
-import type {KeyValueStore} from ".";
-import {KVSCache} from ".";
-import MemoryKVS from "./memory";
+import type {KeyValueStore} from "./index.js";
+import {KVSCache} from "./index.js";
+import MemoryKVS from "./memory.js";
 
-import * as events from "../../mock/events";
+import * as events from "../../mock/events.js";
 
 /** Behavioral tests which are common to both client and service.
  *

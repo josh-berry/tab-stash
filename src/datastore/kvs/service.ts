@@ -1,13 +1,13 @@
 import type {IDBPDatabase} from "idb";
 import {openDB} from "idb";
 
-import type {KeyValueStore} from ".";
-import {genericList} from ".";
-import {AsyncTaskQueue} from "../../util";
-import type {Event} from "../../util/event";
-import event from "../../util/event";
-import type {NanoService} from "../../util/nanoservice";
-import type * as Proto from "./proto";
+import type {Event} from "../../util/event.js";
+import event from "../../util/event.js";
+import {AsyncTaskQueue} from "../../util/index.js";
+import type {NanoService} from "../../util/nanoservice/index.js";
+import type {KeyValueStore} from "./index.js";
+import {genericList} from "./index.js";
+import type * as Proto from "./proto.js";
 
 export default class Service<K extends Proto.Key, V extends Proto.Value>
   implements

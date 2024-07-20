@@ -2,9 +2,10 @@
   "extends": "./tsconfig.json",
 
   "compilerOptions": {
-    "module": "CommonJS",
     "removeComments": false,
     "verbatimModuleSyntax": false,
+
+    "types": ["@types/mocha"],
 
     "outDir": "build.test"
   },

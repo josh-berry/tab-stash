@@ -1,14 +1,14 @@
 import {expect} from "chai";
 import {nextTick, ref, type Ref} from "vue";
 
-import {TreeFilter} from "./tree-filter";
+import {TreeFilter} from "./tree-filter.js";
 
 import {
   isTestParent,
   makeDefaultTree,
   type TestNode,
   type TestParent,
-} from "./tree.test";
+} from "./tree.test.js";
 
 type Parent = TestParent;
 type Child = TestNode;

@@ -1,12 +1,12 @@
 import {expect} from "chai";
 import {openDB} from "idb";
 
-import * as events from "../../mock/events";
-import * as NS from "../../util/nanoservice";
-import Service from "./service";
+import * as events from "../../mock/events.js";
+import * as NS from "../../util/nanoservice/index.js";
+import Service from "./service.js";
 
-import {tests} from "./index.test";
-import type * as P from "./proto";
+import {tests} from "./index.test.js";
+import type * as P from "./proto.js";
 
 async function kvs_factory(): Promise<Service<string, string>> {
   NS.registry.reset_testonly();

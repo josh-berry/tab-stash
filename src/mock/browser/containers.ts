@@ -1,6 +1,6 @@
 import type {ContextualIdentities as CI} from "webextension-polyfill";
 
-import * as events from "../events";
+import * as events from "../events.js";
 
 class MockContainers implements CI.Static {
   readonly onCreated: events.MockEvent<

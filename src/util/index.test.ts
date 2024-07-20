@@ -1,8 +1,8 @@
 import FakeTimers from "@sinonjs/fake-timers";
 import {expect} from "chai";
 
-import type {BackingOffOptions} from "../util";
-import * as M from "../util";
+import type {BackingOffOptions} from "../util/index.js";
+import * as M from "../util/index.js";
 
 const REDIR_URL = M.REDIR_URL_TESTONLY;
 

@@ -15,8 +15,8 @@
 import type {PropType} from "vue";
 import {defineComponent} from "vue";
 
-import {required} from "../util";
-import type {Progress} from "../util/progress";
+import {required} from "../util/index.js";
+import type {Progress} from "../util/progress.js";
 
 export default defineComponent({
   name: "Self",

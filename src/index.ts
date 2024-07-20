@@ -3,12 +3,12 @@
 import type {Menus} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import {copyIf} from "./model";
-import type {ShowWhatOpt, StashWhatOpt} from "./model/options";
-import type {Tab, TabID, WindowID} from "./model/tabs";
-import service_model from "./service-model";
-import {asyncEvent, backingOff, nonReentrant, urlToOpen} from "./util";
-import {logErrorsFrom} from "./util/oops";
+import {copyIf} from "./model/index.js";
+import type {ShowWhatOpt, StashWhatOpt} from "./model/options.js";
+import type {Tab, TabID, WindowID} from "./model/tabs.js";
+import service_model from "./service-model.js";
+import {asyncEvent, backingOff, nonReentrant, urlToOpen} from "./util/index.js";
+import {logErrorsFrom} from "./util/oops.js";
 
 logErrorsFrom(async () => {
   // BEGIN FILE-WIDE ASYNC BLOCK

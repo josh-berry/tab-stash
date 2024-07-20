@@ -16,9 +16,9 @@ import stored_object, {
   aString,
   maybeUndef,
   type StoredObject,
-} from "../datastore/stored-object";
-import {resolveNamed} from "../util";
-import {errorLog, UserError} from "../util/oops";
+} from "../datastore/stored-object.js";
+import {resolveNamed} from "../util/index.js";
+import {errorLog, UserError} from "../util/oops.js";
 
 export const SHOW_WHAT_OPT = anEnum("sidebar", "tab", "popup", "none");
 export const STASH_WHAT_OPT = anEnum("all", "single", "none");

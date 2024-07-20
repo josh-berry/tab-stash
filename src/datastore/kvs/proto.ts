@@ -1,4 +1,4 @@
-import type {NanoPort, Send} from "../../util/nanoservice";
+import type {NanoPort, Send} from "../../util/nanoservice/index.js";
 
 // The protocol used to communicate between client and service.
 

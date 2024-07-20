@@ -1,5 +1,5 @@
-import {tests} from "./index.test";
-import MemoryKVS from "./memory";
+import {tests} from "./index.test.js";
+import MemoryKVS from "./memory.js";
 
 const factory = async () => new MemoryKVS<string, string>("test");
 

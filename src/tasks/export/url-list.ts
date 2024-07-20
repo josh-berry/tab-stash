@@ -1,7 +1,7 @@
 import {defineComponent, h, type PropType, type VNode} from "vue";
 
-import {delimit, required} from "../../util";
-import {br, type ExportBookmark, type ExportFolder} from "./model";
+import {delimit, required} from "../../util/index.js";
+import {br, type ExportBookmark, type ExportFolder} from "./model.js";
 
 function renderFolder(level: number, folder: ExportFolder): VNode {
   return h("div", {}, [

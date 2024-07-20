@@ -19,17 +19,17 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import {required} from "../util";
+import {required} from "../util/index.js";
 
-import the from "@/globals-ui";
+import the from "../globals-ui.js";
 import {
   isFolder,
   type Folder,
   type Node,
   type NodeID,
-} from "../model/bookmarks";
+} from "../model/bookmarks.js";
 
-import type {DragAction, DropAction} from "../components/dnd-list";
+import type {DragAction, DropAction} from "../components/dnd-list.js";
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 

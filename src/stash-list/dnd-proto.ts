@@ -1,5 +1,6 @@
-import {filterMap} from "../util";
+import {filterMap} from "../util/index.js";
 
+import type * as BM from "../model/bookmarks.js";
 import {
   copying,
   isNode,
@@ -7,9 +8,8 @@ import {
   isWindow,
   type ModelItem,
   type StashItem,
-} from "../model";
-import type * as BM from "../model/bookmarks";
-import type * as T from "../model/tabs";
+} from "../model/index.js";
+import type * as T from "../model/tabs.js";
 
 const NATIVE_TYPE = "application/x-tab-stash-dnd-items";
 

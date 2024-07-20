@@ -33,6 +33,7 @@
 import {computed, ref, type Ref} from "vue";
 import browser from "webextension-polyfill";
 
+import {trace_fn} from "../util/debug.js";
 import {
   backingOff,
   expect,
@@ -43,21 +44,20 @@ import {
   tryAgain,
   urlToOpen,
   urlToStash,
-} from "../util";
-import {trace_fn} from "../util/debug";
-import {logError, logErrorsFrom, UserError} from "../util/oops";
+} from "../util/index.js";
+import {logError, logErrorsFrom, UserError} from "../util/oops.js";
 
-import * as BookmarkMetadata from "./bookmark-metadata";
-import * as Bookmarks from "./bookmarks";
-import * as BrowserSettings from "./browser-settings";
-import * as Containers from "./containers";
-import * as DeletedItems from "./deleted-items";
-import * as Favicons from "./favicons";
-import * as Options from "./options";
-import * as Tabs from "./tabs";
-import {pathTo} from "./tree";
-import {TreeFilter} from "./tree-filter";
-import {TreeSelection} from "./tree-selection";
+import * as BookmarkMetadata from "./bookmark-metadata.js";
+import * as Bookmarks from "./bookmarks.js";
+import * as BrowserSettings from "./browser-settings.js";
+import * as Containers from "./containers.js";
+import * as DeletedItems from "./deleted-items.js";
+import * as Favicons from "./favicons.js";
+import * as Options from "./options.js";
+import * as Tabs from "./tabs.js";
+import {TreeFilter} from "./tree-filter.js";
+import {TreeSelection} from "./tree-selection.js";
+import {pathTo} from "./tree.js";
 
 export {
   BookmarkMetadata,

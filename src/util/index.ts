@@ -1,7 +1,8 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 import * as Vue from "vue";
 import browser from "webextension-polyfill";
-import {logErrorsFrom} from "./oops";
+
+import {logErrorsFrom} from "./oops.js";
 
 export {
   TaskCancelled,
@@ -10,7 +11,7 @@ export {
   type Task,
   type TaskHandle,
   type TaskIterator,
-} from "./progress";
+} from "./progress.js";
 
 export type Atom = null | boolean | number | string;
 

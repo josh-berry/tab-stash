@@ -1,7 +1,7 @@
 // istanbul ignore file
 
-import * as Live from "./live";
-import type * as Proto from "./proto";
+import * as Live from "./live.js";
+import type * as Proto from "./proto.js";
 
 export type Send = Proto.Send;
 export const registry = Live.registry;

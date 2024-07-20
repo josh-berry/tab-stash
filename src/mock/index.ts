@@ -28,10 +28,10 @@ if (!(<any>globalThis).navigator) {
 import "fake-indexeddb/auto";
 
 // Mock WebExtension APIs
-import * as events from "./events";
+import * as events from "./events.js";
 
-import "webextension-polyfill";
-import * as mock_browser from "./browser";
+await import("webextension-polyfill");
+const mock_browser = await import("./browser/index.js");
 
 // Reset the mocks before each test, and make sure all events have drained after
 // each test.
