@@ -1,4 +1,4 @@
-// istanbul ignore file
+/* c8 ignore start -- error classes and live NanoPort creation */
 
 import * as Live from "./live.js";
 import type * as Proto from "./proto.js";

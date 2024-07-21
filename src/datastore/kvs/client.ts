@@ -19,7 +19,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
     connector?: (name: string) => Proto.ServicePort<K, V>,
   ) {
     this.name = service_name;
-    // istanbul ignore next -- we always pass `connector` for tests
+    /* c8 ignore next -- we always pass `connector` for tests */
     this.connect = connector ?? NanoService.connect;
 
     this.onSet = event("KVS.Client.onSet", this.name);
@@ -31,7 +31,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
 
   async get(keys: K[]): Promise<Proto.Entry<K, V>[]> {
     const resp = await this._request_with_retry({$type: "get", keys});
-    // istanbul ignore next
+    /* c8 ignore next -- callee returned something nonsensical */
     if (resp?.$type !== "entries") return [];
     return resp.entries;
   }
@@ -45,7 +45,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
       bound,
       limit,
     });
-    // istanbul ignore next
+    /* c8 ignore next -- callee returned something nonsensical */
     if (resp?.$type !== "entries") return [];
     return resp.entries;
   }
@@ -59,7 +59,7 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
       bound,
       limit,
     });
-    // istanbul ignore next
+    /* c8 ignore next -- callee returned something nonsensical */
     if (resp?.$type !== "entries") return [];
     return resp.entries;
   }

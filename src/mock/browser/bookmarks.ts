@@ -45,17 +45,16 @@ class MockBookmarks implements BM.Static {
     fixup_child_ordering(this.root);
   }
 
-  // istanbul ignore next
+  /* c8 ignore next 3 -- not implemented */
   async get(idOrIdList: string | string[]): Promise<BM.BookmarkTreeNode[]> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async getChildren(id: string): Promise<BM.BookmarkTreeNode[]> {
     return this._getFolder(id).children.map(node => node_only(node));
   }
 
-  // istanbul ignore next
+  /* c8 ignore next 3 -- not implemented*/
   async getRecent(numberOfItems: number): Promise<BM.BookmarkTreeNode[]> {
     throw new Error("Method not implemented.");
   }
@@ -64,12 +63,12 @@ class MockBookmarks implements BM.Static {
     return [JSON.parse(JSON.stringify(this.root))];
   }
 
-  // istanbul ignore next
+  /* c8 ignore next -- not implemented */
   async getSubTree(id: string): Promise<BM.BookmarkTreeNode[]> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
+  /* c8 ignore next 5 -- not implemented*/
   async search(
     query: string | BM.SearchQueryC2Type,
   ): Promise<BM.BookmarkTreeNode[]> {
@@ -77,7 +76,7 @@ class MockBookmarks implements BM.Static {
   }
 
   async create(bookmark: BM.CreateDetails): Promise<BM.BookmarkTreeNode> {
-    // istanbul ignore if
+    /* c8 ignore next 3 -- bug-checking */
     if (bookmark.type && bookmark.type !== "separator") {
       throw new Error(`Bookmark type is not supported on Chrome`);
     }
@@ -86,7 +85,7 @@ class MockBookmarks implements BM.Static {
     const parent = this._getFolder(parentId);
 
     const index = bookmark.index ?? parent.children.length;
-    // istanbul ignore if
+    /* c8 ignore next 5 -- bug-checking */
     if (index < 0 || index > parent.children.length) {
       console.error("Bookmark tree:", this.root);
       console.error("create() called with:", bookmark);
@@ -95,13 +94,13 @@ class MockBookmarks implements BM.Static {
 
     let bm: Node;
     if (bookmark.url !== undefined) {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- bug-checking */
       if (bookmark.type === "separator") {
         throw new Error(`Can't create separator with a URL`);
       }
-      // istanbul ignore next -- for `?? ''`
       bm = {
         id: this._freeID(),
+        /* c8 ignore next -- for `?? ''` */
         title: bookmark.title ?? "",
         url: bookmark.url,
         parentId,
@@ -110,7 +109,7 @@ class MockBookmarks implements BM.Static {
       };
       if (Math.random() < 0.5) bm.type = "bookmark";
     } else if (bookmark.type === "separator") {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- bug-checking */
       if (bookmark.title) {
         throw new Error(`Can't create separator with a title`);
       }
@@ -124,9 +123,9 @@ class MockBookmarks implements BM.Static {
         dateAdded: Date.now(),
       };
     } else {
-      // istanbul ignore next -- for `?? ''`
       bm = {
         id: this._freeID(),
+        /* c8 ignore next -- for `?? ''` */
         title: bookmark.title ?? "",
         children: [],
         parentId,
@@ -150,7 +149,7 @@ class MockBookmarks implements BM.Static {
   ): Promise<BM.BookmarkTreeNode> {
     const node = this._get(id);
     const oldParent = this._getFolder(node.parentId!);
-    // istanbul ignore next
+    /* c8 ignore next -- tests always pass parentId */
     const newParent = this._getFolder(destination.parentId ?? node.parentId!);
     const oldIndex = node.index;
     const newIndex = destination.index ?? newParent.children.length;
@@ -182,11 +181,11 @@ class MockBookmarks implements BM.Static {
     const node = this._get(id);
 
     if (changes.url !== undefined) {
-      // istanbul ignore if
+      /* c8 ignore next -- bug-checking */
       if ("children" in node) throw new Error(`Cannot update a folder's URL`);
       node.url = changes.url;
     }
-    // istanbul ignore else
+    /* c8 ignore next -- tests always update the title */
     if (changes.title !== undefined) node.title = changes.title;
 
     const ev: BM.OnChangedChangeInfoType = {title: node.title};
@@ -198,7 +197,7 @@ class MockBookmarks implements BM.Static {
 
   async remove(id: string): Promise<void> {
     const node = this._get(id);
-    // istanbul ignore if
+    /* c8 ignore next 3 -- bug-checking */
     if ("children" in node && node.children.length > 0) {
       throw new Error(`Cannot delete a non-empty folder with remove()`);
     }
@@ -232,9 +231,8 @@ class MockBookmarks implements BM.Static {
 
   private _getFolder(id: string): Folder {
     const node = this._get(id);
-    // istanbul ignore if
+    /* c8 ignore next -- bug-checking */
     if (!("children" in node)) {
-      // console.error(`Bookmark tree:`, this.root);
       throw new Error(`${id} is not a folder`);
     }
     return node;
@@ -242,9 +240,8 @@ class MockBookmarks implements BM.Static {
 
   private _get(id: string): Node {
     const node = this.by_id.get(id);
-    // istanbul ignore if
+    /* c8 ignore next -- bug-checking */
     if (!node) {
-      // console.error(`Bookmark tree:`, this.root);
       throw new Error(`No such bookmark: ${id}`);
     }
     return node;
@@ -252,7 +249,7 @@ class MockBookmarks implements BM.Static {
 
   private _freeID(): string {
     let id = makeRandomString(8);
-    // istanbul ignore next
+    /* c8 ignore next -- random strings rarely collide */
     while (this.by_id.has(id)) id = makeRandomString(8);
     return id;
   }

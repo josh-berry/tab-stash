@@ -1,3 +1,5 @@
+/* c8 ignore start -- file contains only types */
+
 // Send must be serializable to JSON.  As a small concession to JS, we allow
 // undefined inside objects... but callers should be aware that any explicit
 // undefined will be omitted when sent.

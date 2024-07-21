@@ -138,8 +138,7 @@ describe("util/nanoservice", function () {
         await events.next("browser.runtime.onMessage");
         await req_p;
 
-        // istanbul ignore next
-        expect(true).to.be.false;
+        /* c8 ignore next */ throw "unreachable";
       } catch (e: any) {
         expect(e).to.be.instanceOf(M.RemoteNanoError);
         expect(e.name).to.equal("Oops");
@@ -277,9 +276,8 @@ describe("util/nanoservice", function () {
       svc.disconnect();
       await events.next("browser.runtime.onDisconnect");
       try {
-        client.notify(42);
-        // istanbul ignore next
-        expect(false).to.be.true;
+        await client.request(42);
+        /* c8 ignore next */ throw "unreachable";
       } catch (e) {
         expect(e).to.be.instanceOf(Error);
         expect(e).to.not.be.instanceOf(M.RemoteNanoError);
@@ -328,8 +326,7 @@ describe("util/nanoservice", function () {
       await events.next("browser.runtime.onDisconnect");
       try {
         await p;
-        // istanbul ignore next
-        expect(false).to.be.true;
+        /* c8 ignore next */ throw "unreachable";
       } catch (e) {
         expect(e).to.be.instanceOf(Error);
         expect(e).to.not.be.instanceOf(M.RemoteNanoError);
@@ -367,8 +364,7 @@ describe("util/nanoservice", function () {
 
       try {
         await client.request(42);
-        // istanbul ignore next
-        throw new Error("unreachable");
+        /* c8 ignore next */ throw "unreachable";
       } catch (e: any) {
         expect(e.message).to.equal("oops");
       }
@@ -444,8 +440,7 @@ describe("util/nanoservice", function () {
       await events.nextN("browser.runtime.onMessage", 2);
       try {
         await p;
-        // istanbul ignore next
-        expect(false).to.be.true;
+        /* c8 ignore next */ throw "unreachable";
       } catch (e: any) {
         expect(e).to.be.instanceOf(M.RemoteNanoError);
         expect(e.name).to.equal("NotImplemented");
@@ -479,8 +474,7 @@ describe("util/nanoservice", function () {
         await events.next("browser.runtime.onConnect");
         await events.nextN("browser.runtime.onMessage", 2);
         await p;
-        // istanbul ignore next
-        expect(false).to.be.true;
+        /* c8 ignore next */ throw "unreachable";
       } catch (e: any) {
         expect(e).to.be.instanceOf(M.RemoteNanoError);
         expect(e.name).to.equal("ReferenceError");

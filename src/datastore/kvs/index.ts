@@ -191,8 +191,7 @@ export class KVSCache<K extends Key, V extends Value> {
   private _update(key: K, value: V | undefined) {
     const ent = this._entries.get(key);
 
-    // istanbul ignore if -- trivial case; we don't want to update things
-    // nobody has asked for.
+    /* c8 ignore next -- no reason to update a nonexistent entry */
     if (!ent) return;
 
     ent.value = value;

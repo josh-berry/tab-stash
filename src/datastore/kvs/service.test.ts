@@ -105,12 +105,13 @@ class MockPort implements P.ClientPort<string, string> {
 
   received: P.ClientMsg<string, string>[] = [];
 
-  // istanbul ignore next
+  /* c8 ignore start -- per thrown error */
   request(
     msg: P.ServiceMsg<string, string>,
   ): Promise<P.ClientMsg<string, string>> {
     throw new Error(`Services shouldn't make requests: ${msg}`);
   }
+  /* c8 ignore stop */
 
   notify(msg: P.ServiceMsg<string, string>) {
     // We do a round-trip thru JSON to ensure nothing else is holding on to
@@ -118,6 +119,6 @@ class MockPort implements P.ClientPort<string, string> {
     this.received.push(JSON.parse(JSON.stringify(msg)));
   }
 
-  // istanbul ignore next
+  /* c8 ignore next -- no need to implement on the mock */
   disconnect() {}
 }

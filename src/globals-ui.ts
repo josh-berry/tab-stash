@@ -1,4 +1,4 @@
-// istanbul ignore file -- global state for the UI
+/* c8 ignore start -- global state for the UI */
 
 import browser from "webextension-polyfill";
 

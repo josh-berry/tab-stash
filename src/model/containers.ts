@@ -35,7 +35,7 @@ export class Model {
       onFired: () => {
         this._event_since_load = true;
       },
-      // istanbul ignore next -- safety net; reload the model in the event
+      /* c8 ignore next -- safety net; reload the model in the event */
       // of an unexpected exception.
       onError: () => {
         logErrorsFrom(() => this.reload());

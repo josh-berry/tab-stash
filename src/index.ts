@@ -1,4 +1,4 @@
-// istanbul ignore file
+/* c8 ignore start -- main entry point for the background page */
 
 import type {Menus} from "webextension-polyfill";
 import browser from "webextension-polyfill";

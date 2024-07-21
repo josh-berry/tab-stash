@@ -1,4 +1,4 @@
-// istanbul ignore file
+/* c8 ignore start -- this is just a fancy console printer */
 
 // Debug facilities for tracing various things at runtime, in production, with
 // low overhead.

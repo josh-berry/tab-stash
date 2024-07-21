@@ -116,7 +116,7 @@ export class Model {
   static async from_browser(
     stash_root_name_test_only?: string,
   ): Promise<Model> {
-    // istanbul ignore if
+    /* c8 ignore next -- test-only branch is always taken */
     if (!stash_root_name_test_only) stash_root_name_test_only = STASH_ROOT;
 
     const model = new Model(stash_root_name_test_only);
@@ -131,8 +131,7 @@ export class Model {
       onFired: () => {
         this._event_since_load = true;
       },
-      // istanbul ignore next -- safety net; reload the model in the event
-      // of an unexpected exception.
+      /* c8 ignore next 3 -- safety net for recovering from bugs */
       onError: () => {
         logErrorsFrom(() => this.reload());
       },
@@ -238,7 +237,7 @@ export class Model {
   /** Check if `node` is contained, directly or indirectly, by the stash root.
    * If there is no stash root, always returns `false`. */
   isNodeInStashRoot(node: Node): boolean {
-    // istanbul ignore if -- we always have a root in tests
+    /* c8 ignore next -- we always have a root in tests */
     if (!this.stash_root.value) return false;
     return isChildInParent(node, this.stash_root.value);
   }
@@ -246,7 +245,7 @@ export class Model {
   /** Returns true if a particular URL is present in the stash. */
   isURLStashed(url: string): boolean {
     const stash_root = this.stash_root.value;
-    // istanbul ignore if -- uncommon and hard to test
+    /* c8 ignore next -- uncommon and hard to test */
     if (!stash_root) return false;
 
     for (const bm of this.bookmarksWithURL(url)) {
@@ -260,13 +259,13 @@ export class Model {
    * in ..." tooltips on tabs.) */
   foldersInStashContainingURL(url: string): Folder[] {
     const stash_root = this.stash_root.value;
-    // istanbul ignore if -- uncommon and hard to test
+    /* c8 ignore next -- uncommon and hard to test */
     if (!stash_root) return [];
 
     const ret: Folder[] = [];
     for (const bm of this.bookmarksWithURL(url)) {
       const parent = bm.position?.parent;
-      // istanbul ignore next -- should never happen in practice; it's not
+      /* c8 ignore next -- should never happen in practice; it's not */
       // possible to place bookmarks directly under the root folder
       if (!parent) continue;
       if (!isChildInParent(parent as Node, stash_root)) continue;
@@ -378,7 +377,7 @@ export class Model {
     );
     toIndex = Math.min(toParentFolder.children.length, Math.max(0, toIndex));
 
-    // istanbul ignore else
+    /* c8 ignore next -- platform-specific check */
     if (!!browser.runtime.getBrowserInfo) {
       // We're using Firefox
       if (position.parent.id === toParent) {
@@ -388,6 +387,7 @@ export class Model {
     await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
     await shortPoll(() => {
       const pos = node.position;
+      /* c8 ignore next -- race avoidance */
       if (!pos) tryAgain();
       if (pos.parent.id !== toParent || pos.index !== toIndex) tryAgain();
     });
@@ -477,8 +477,7 @@ export class Model {
   //
 
   whenBookmarkCreated(id: string, new_bm: Bookmarks.BookmarkTreeNode) {
-    // istanbul ignore next -- this is kind of a dumb/redundant API, but it
-    // must conform to browser.bookmarks.onCreated...
+    /* c8 ignore next -- conformance to interface / bug-checking */
     if (id !== new_bm.id) throw new Error(`Bookmark IDs don't match`);
 
     trace("whenBookmarkCreated", new_bm);
@@ -505,6 +504,7 @@ export class Model {
           position: undefined,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
+          /* c8 ignore next -- trivial default value */
           title: new_bm.title ?? "",
           children: [],
           $stats: computed(() => {
@@ -542,7 +542,9 @@ export class Model {
           position: undefined,
           id: nodeId,
           dateAdded: new_bm.dateAdded,
+          /* c8 ignore next -- trivial default value */
           title: new_bm.title ?? "",
+          /* c8 ignore next -- trivial default value */
           url: new_bm.url ?? "",
         });
         this._add_url(node as Bookmark);
@@ -555,6 +557,7 @@ export class Model {
       node.title = new_bm.title;
       if (isBookmark(node)) {
         this._remove_url(node);
+        /* c8 ignore next -- trivial default value */
         node.url = new_bm.url ?? "";
         this._add_url(node);
       }
@@ -732,11 +735,12 @@ export class Model {
 
   private _remove_url(bm: Bookmark) {
     const index = this.by_url.get(urlToOpen(bm.url));
-    // istanbul ignore if -- internal consistency
+    /* c8 ignore next -- internal consistency */
     if (!index) return;
     index.delete(bm);
   }
 
+  /* c8 ignore start -- for manual debugging */
   /** Create a bunch of fake(-ish) tabs for benchmarking purposes. This is
    * private because no actual code should call this, but we want it accessible
    * at runtime. */
@@ -774,6 +778,7 @@ export class Model {
 
     await populate_folder(bench_folder, options.folder_levels, "root");
   }
+  /* c8 ignore stop */
 }
 
 //

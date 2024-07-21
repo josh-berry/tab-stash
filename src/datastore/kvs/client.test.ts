@@ -78,8 +78,7 @@ describe("datastore/kvs/client", function () {
     }
     try {
       await p;
-      // istanbul ignore next
-      expect(true).to.be.false;
+      /* c8 ignore next */ throw "unreachable";
     } catch (e) {
       expect(e).to.be.instanceOf(NanoDisconnectedError);
     }
@@ -94,8 +93,7 @@ describe("datastore/kvs/client", function () {
     };
     try {
       await kvs.set([{key: "a", value: "b"}]);
-      // istanbul ignore next
-      expect(true).to.be.false;
+      /* c8 ignore next */ throw "unreachable";
     } catch (e) {
       expect(e).to.equal(sym);
     }
@@ -109,7 +107,7 @@ describe("datastore/kvs/client", function () {
 class MockServicePort implements Proto.ServicePort<string, string> {
   readonly name: string = "";
 
-  // istanbul ignore next
+  /* c8 ignore next -- should be overridden by tests when needed */
   onNotify = (_: Proto.ServiceMsg<string, string>) => undefined;
   onDisconnect?: (port: Proto.ServicePort<string, string>) => void = undefined;
 
@@ -122,7 +120,6 @@ class MockServicePort implements Proto.ServicePort<string, string> {
   async request(
     msg: Proto.ClientMsg<string, string>,
   ): Promise<Proto.ServiceMsg<string, string>> {
-    // istanbul ignore next
     if (!msg) return null;
 
     if (this.inject) return await this.inject(msg);
@@ -179,10 +176,8 @@ class MockServicePort implements Proto.ServicePort<string, string> {
     }
   }
 
-  // istanbul ignore next
   notify(msg: Proto.ClientMsg<string, string>) {}
 
-  // istanbul ignore next
   disconnect() {
     this.onDisconnect && this.onDisconnect(this);
   }

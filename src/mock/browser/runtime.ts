@@ -42,10 +42,10 @@ class MockPort implements Runtime.Port {
 
   postMessage(msg: any) {
     if (this.error) throw this.error;
-    // istanbul ignore next
+    /* c8 ignore next -- bug-checking */
     if (this._peer.error) throw this._peer.error;
 
-    // istanbul ignore next
+    /* c8 ignore next -- for manual debugging only */
     if (verbose) console.log(`${this.id} -> ${this._peer.id}`, msg);
     this._peer.onMessage.send(JSON.parse(JSON.stringify(msg)), this);
   }
@@ -60,7 +60,7 @@ export default (() => {
     client_ports: [] as MockPort[],
     server_ports: [] as MockPort[],
 
-    // istanbul ignore next
+    /* c8 ignore next 3 -- for manual debugging */
     trace(t: boolean) {
       verbose = t;
     },
@@ -89,11 +89,11 @@ export default (() => {
           extn_id_or_info?: string | Runtime.ConnectConnectInfoType,
           info?: {name?: string},
         ): MockPort {
-          // istanbul ignore next
+          /* c8 ignore next -- interface conformance */
           if (typeof extn_id_or_info === "object") info = extn_id_or_info;
 
           const id = exports.client_ports.length;
-          // istanbul ignore next
+          /* c8 ignore next -- interface conformance */
           const name = info?.name ? info.name : "<unnamed>";
           const [client, server] = MockPort.make_pair(id, name);
 
@@ -101,7 +101,7 @@ export default (() => {
           exports.server_ports.push(server);
           exports.onConnect.send(server);
 
-          // istanbul ignore next
+          /* c8 ignore next 3 -- manual debugging */
           if (verbose) {
             console.log(`New connection ${name}: C${id} -> S{$id}`);
           }
@@ -109,47 +109,37 @@ export default (() => {
           return client;
         },
 
-        // istanbul ignore next
+        /* c8 ignore start -- not implemented */
         async getBackgroundPage() {
           throw "unimplemented";
         },
-        // istanbul ignore next
         async openOptionsPage() {
           throw "unimplemented";
         },
-        // istanbul ignore next
         getManifest(): Manifest.ManifestBase {
           throw "unimplemented";
         },
-        // istanbul ignore next
         getFrameId(_target: any): number {
           throw "unimplemented";
         },
-        // istanbul ignore next
         async setUninstallURL(url?: string) {
           throw "unimplemented";
         },
-        // istanbul ignore next
         reload() {
           throw "unimplemented";
         },
-        // istanbul ignore next
         connectNative(app: string): Runtime.Port {
           throw "unimplemented";
         },
-        // istanbul ignore next
         async sendMessage() {
           throw "unimplemented";
         },
-        // istanbul ignore next
         async sendNativeMessage() {
           throw "unimplemented";
         },
-        // istanbul ignore next
         async getBrowserInfo() {
           throw "unimplemented";
         },
-        // istanbul ignore next
         async requestUpdateCheck(): Promise<
           [
             Runtime.RequestUpdateCheckStatus,
@@ -158,6 +148,7 @@ export default (() => {
         > {
           throw new Error("Function not implemented.");
         },
+        /* c8 ignore stop */
 
         onStartup: new events.MockEvent("browser.runtime.onStartup"),
         onInstalled: new events.MockEvent("browser.runtime.onInstalled"),

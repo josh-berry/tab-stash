@@ -1,3 +1,5 @@
+/* c8 ignore start -- file contains only types */
+
 import type {NanoPort, Send} from "../../util/nanoservice/index.js";
 
 // The protocol used to communicate between client and service.

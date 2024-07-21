@@ -1,4 +1,4 @@
-// istanbul ignore file -- launcher shim for the live UI
+/* c8 ignore start -- launcher shim for the live UI */
 
 import browser from "webextension-polyfill";
 

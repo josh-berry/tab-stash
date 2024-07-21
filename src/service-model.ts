@@ -1,8 +1,9 @@
+/* c8 ignore start -- live model creation */
+
 //
 // The model--a centralized place for all Tab Stash data.
 //
 
-// istanbul ignore file
 import {KVSCache} from "./datastore/kvs/index.js";
 import KVSService from "./datastore/kvs/service.js";
 import {resolveNamed} from "./util/index.js";

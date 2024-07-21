@@ -1,3 +1,5 @@
+/* c8 ignore start -- live globals for the setup UI */
+
 import browser from "webextension-polyfill";
 
 import * as Options from "../model/options.js";

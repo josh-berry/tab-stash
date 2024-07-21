@@ -4,9 +4,12 @@ import event, {type Event} from "../../util/event.js";
 
 const copy = (x: any) => JSON.parse(JSON.stringify(x));
 
-// istanbul ignore next (because k1 != k2 always)
 const byKey = ([k1, v1]: [any, any], [k2, v2]: [any, any]) =>
-  k1 < k2 ? -1 : k1 > k2 ? 1 : 0;
+  k1 < k2
+    ? -1
+    : k1 > k2
+      ? 1
+      : /* c8 ignore next -- because k1 != k2 always */ 0;
 
 // XXX optimize me if performance ever becomes important
 export default class MemoryKVS<K extends Key, V extends Value>

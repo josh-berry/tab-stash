@@ -394,7 +394,7 @@ describe("model", () => {
         await p;
 
         await browser.tabs.get(tabs.right_doug.id).then(
-          // istanbul ignore next
+          /* c8 ignore next -- bug-checking */
           () => expect.fail("browser.tabs.get did not throw"),
           () => {},
         );

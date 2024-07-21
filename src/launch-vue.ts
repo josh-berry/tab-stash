@@ -1,7 +1,7 @@
+/* c8 ignore start -- common entry point for UI pages */
+
 // An easy way to launch a Vue application, which also applies some CSS classes
 // common to every UI in Tab Stash.
-
-// istanbul ignore file
 
 import type {ExtractPropTypes, MethodOptions} from "vue";
 import {createApp} from "vue";

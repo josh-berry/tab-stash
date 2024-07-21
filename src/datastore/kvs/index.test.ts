@@ -6,6 +6,7 @@ import "../../mock/browser/runtime.js";
 import type {KeyValueStore} from "./index.js";
 import {KVSCache} from "./index.js";
 import MemoryKVS from "./memory.js";
+import {errorLog, clearErrorLog} from "../../util/oops.js";
 
 import * as events from "../../mock/events.js";
 
@@ -460,16 +461,18 @@ describe("datastore/kvs", () => {
         throw new Error("oops");
       };
 
+      clearErrorLog();
       for (let i = 0; i < 3; i++) {
         try {
           cache.set("a", "b");
+          // May or may not throw depending on whether I/O is still pending at
+          // the moment we call sync().
           await cache.sync();
-          // istanbul ignore next
-          // Must throw because we haven't exceeded the limit
-          expect(true).to.be.false;
+          /* c8 ignore next 3 -- race avoidance as above */
         } catch (e) {
           expect(e).to.be.instanceOf(Error);
         }
+        expect(errorLog.length).to.equal(i + 1);
         expect(cache.get("a")).to.deep.equal({key: "a", value: "b"});
       }
 
@@ -477,6 +480,7 @@ describe("datastore/kvs", () => {
       // is crossed.
       cache.set("a", "c");
       await cache.sync();
+      expect(errorLog.length).to.equal(3);
       expect(cache.get("a")).to.deep.equal({key: "a", value: "c"});
     });
   });

@@ -1,4 +1,4 @@
-// istanbul ignore file -- launcher shim for the live UI
+/* c8 ignore start -- launcher shim for the live UI */
 
 import the, {init} from "../globals-ui.js";
 import launch from "../launch-vue.js";

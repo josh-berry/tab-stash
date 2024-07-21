@@ -8,10 +8,8 @@ docs/vendor
 
 # Generated during build
 node_modules
-build.test
 dist
 dist-chrome
-.nyc_output
 coverage
 
 # Release engineering

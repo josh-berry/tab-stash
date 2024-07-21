@@ -1,3 +1,5 @@
+/* c8 ignore start -- file contains only types */
+
 import type * as DI from "../model/deleted-items.js";
 
 export type RecordGroup = {title: string; records: FilteredDeletion[]};
