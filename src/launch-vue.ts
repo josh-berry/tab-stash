@@ -1,16 +1,16 @@
+/* c8 ignore start -- common entry point for UI pages */
+
 // An easy way to launch a Vue application, which also applies some CSS classes
 // common to every UI in Tab Stash.
-
-// istanbul ignore file
 
 import type {ExtractPropTypes, MethodOptions} from "vue";
 import {createApp} from "vue";
 import browser from "webextension-polyfill";
 
-import {asyncEvent, resolveNamed} from "./util";
-import "./util/debug"; // To setup globalThis.trace
+import "./util/debug.js"; // To setup globalThis.trace
+import {asyncEvent, resolveNamed} from "./util/index.js";
 
-import * as Options from "./model/options";
+import * as Options from "./model/options.js";
 
 export default function launch<
   C extends {props?: object; provide?: object; methods?: MethodOptions},

@@ -104,8 +104,8 @@ if (browser.management.getSelf) {
 </script>
 
 <script setup lang="ts">
-import the from "@/globals-ui";
-import {clearErrorLog, errorLog, logErrorsFrom} from "../util/oops";
+import the from "../globals-ui.js";
+import {clearErrorLog, errorLog, logErrorsFrom} from "../util/oops.js";
 import Notification from "./notification.vue";
 
 const err_log_el: Ref<object | null> = ref(null);

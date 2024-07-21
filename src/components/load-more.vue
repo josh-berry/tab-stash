@@ -16,7 +16,7 @@
 import type {PropType} from "vue";
 import {defineComponent, ref, shallowRef} from "vue";
 
-import {required} from "../util";
+import {required} from "../util/index.js";
 
 export default defineComponent({
   props: {

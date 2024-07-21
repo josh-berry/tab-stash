@@ -10,15 +10,15 @@ import browser, {
   type Windows,
 } from "webextension-polyfill";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {Options} from ".";
-import type {KeyValueStore} from "../datastore/kvs";
-import type * as BookmarkMetadata from "./bookmark-metadata";
-import type {NodeID} from "./bookmarks";
-import type * as DeletedItems from "./deleted-items";
-import type * as Favicons from "./favicons";
-import type {Tab, TabID, WindowID} from "./tabs";
+import type {KeyValueStore} from "../datastore/kvs/index.js";
+import type * as BookmarkMetadata from "./bookmark-metadata.js";
+import type {NodeID} from "./bookmarks.js";
+import type * as DeletedItems from "./deleted-items.js";
+import type * as Favicons from "./favicons.js";
+import {Options} from "./index.js";
+import type {Tab, TabID, WindowID} from "./tabs.js";
 
 //
 // The test data.
@@ -251,7 +251,7 @@ export async function make_bookmarks(): Promise<BookmarkFixture> {
     bm: any,
     parentId: string | undefined,
   ): Promise<Bookmarks.BookmarkTreeNode> {
-    // istanbul ignore if
+    /* c8 ignore next -- bug-checking */
     if (id in res) throw new Error(`Duplicate bookmark ID ${bm.id}`);
     res[id] = (await browser.bookmarks.create({...bm, parentId})) as any;
     await events.next(browser.bookmarks.onCreated);
@@ -288,7 +288,7 @@ export async function make_tabs(): Promise<TabFixture> {
     await events.next(browser.tabs.onHighlighted);
     await events.next(browser.tabs.onUpdated);
 
-    // istanbul ignore if -- browser compatibility and type safety
+    /* c8 ignore next -- browser compatibility and type safety */
     if (!win.tabs) win.tabs = [];
     let i = 0;
     for (const tab_def of WINDOWS[w as keyof typeof WINDOWS]) {

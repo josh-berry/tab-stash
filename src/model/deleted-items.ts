@@ -3,11 +3,11 @@
 
 import {reactive} from "vue";
 
-import {nonReentrant} from "../util";
-import {makeRandomString} from "../util/random";
+import {nonReentrant} from "../util/index.js";
+import {makeRandomString} from "../util/random.js";
 
-import type {Entry, KeyValueStore, MaybeEntry} from "../datastore/kvs";
-import {entryHasValue} from "../datastore/kvs/proto";
+import type {Entry, KeyValueStore, MaybeEntry} from "../datastore/kvs/index.js";
+import {entryHasValue} from "../datastore/kvs/proto.js";
 
 // The key for a deleted record should be opaque but monotonically increasing as
 // time passes, so items deleted more recently have greater keys.
@@ -221,7 +221,7 @@ export class Model {
       for (const rec of block) {
         if (this._filter && !this._filter(rec.value.item)) continue;
 
-        // istanbul ignore else -- We should always insert because we're
+        /* c8 ignore next -- We should always insert because we're */
         // loading starting at the oldest item.
         if (!this._update(rec)) this._insert(rec);
       }
@@ -299,7 +299,7 @@ export class Model {
     }
 
     const entry = this._entry_cache.get(key);
-    // istanbul ignore next
+    /* c8 ignore next -- bug-checking */
     if (!entry) throw new Error(`${key}: Record not loaded or doesn't exist`);
 
     // Must do a full JSON parse/stringify here to get rid of reactivity

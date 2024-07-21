@@ -1,13 +1,13 @@
-// istanbul ignore file -- global state for the UI
+/* c8 ignore start -- global state for the UI */
 
 import browser from "webextension-polyfill";
 
-import {KVSCache} from "@/datastore/kvs";
-import KVSClient from "@/datastore/kvs/client";
-import * as M from "@/model";
-import type {BookmarkMetadata} from "@/model/bookmark-metadata";
-import type {Favicon} from "@/model/favicons";
-import {resolveNamed} from "@/util";
+import KVSClient from "./datastore/kvs/client.js";
+import {KVSCache} from "./datastore/kvs/index.js";
+import type {BookmarkMetadata} from "./model/bookmark-metadata.js";
+import type {Favicon} from "./model/favicons.js";
+import * as M from "./model/index.js";
+import {resolveNamed} from "./util/index.js";
 
 /** Global variables.  The core conceit here is these are all initialized as
  * `undefined!`, and then initialized properly in the async `init()` function

@@ -1,12 +1,12 @@
 import browser from "webextension-polyfill";
 
-import {AsyncChannel, filterMap, TaskMonitor} from "../util";
-import {trace_fn} from "../util/debug";
+import {trace_fn} from "../util/debug.js";
+import {AsyncChannel, filterMap, TaskMonitor} from "../util/index.js";
 
-import type {Model, NewFolder, NewTab} from "../model";
-import * as BM from "../model/bookmarks";
+import * as BM from "../model/bookmarks.js";
+import type {Model, NewFolder, NewTab} from "../model/index.js";
 
-import {fetchInfoForSites, type SiteInfo} from "./siteinfo";
+import {fetchInfoForSites, type SiteInfo} from "./siteinfo.js";
 
 const trace = trace_fn("import");
 

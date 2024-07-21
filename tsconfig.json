@@ -1,12 +1,10 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
-    "types": ["@types/mocha"],
+    "baseUrl": ".",
 
     "sourceMap": true,
     "noUnusedLocals": true

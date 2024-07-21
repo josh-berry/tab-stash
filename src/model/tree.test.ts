@@ -8,7 +8,7 @@ import {
   type TreeNode,
   type TreeParent,
   type TreePosition,
-} from "./tree";
+} from "./tree.js";
 
 export interface TestNode extends TreeNode<TestParent, TestNode> {
   name: string;

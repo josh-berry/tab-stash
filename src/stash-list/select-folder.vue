@@ -21,11 +21,15 @@
 <script lang="ts">
 import {computed, inject} from "vue";
 
-import {filterMap} from "@/util";
+import {filterMap} from "../util/index.js";
 
-import {friendlyFolderName, type Folder, type Node} from "@/model/bookmarks";
-import {TreeFilter} from "@/model/tree-filter";
-import the from "../globals-ui";
+import the from "../globals-ui.js";
+import {
+  friendlyFolderName,
+  type Folder,
+  type Node,
+} from "../model/bookmarks.js";
+import {TreeFilter} from "../model/tree-filter.js";
 
 import Self from "./select-folder.vue";
 </script>

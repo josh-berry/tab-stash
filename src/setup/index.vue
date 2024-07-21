@@ -195,8 +195,8 @@
 <script lang="ts">
 import {computed, ref, watch, type WritableComputedRef} from "vue";
 
-import * as Options from "../model/options";
-import the from "./globals";
+import * as Options from "../model/options.js";
+import the from "./globals.js";
 
 function computedOption<K extends keyof Options.SyncState>(
   name: K,

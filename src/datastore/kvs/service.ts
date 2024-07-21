@@ -1,20 +1,20 @@
 import type {IDBPDatabase} from "idb";
 import {openDB} from "idb";
 
-import type {KeyValueStore} from ".";
-import {genericList} from ".";
-import {AsyncTaskQueue} from "../../util";
-import type {Event} from "../../util/event";
-import event from "../../util/event";
-import type {NanoService} from "../../util/nanoservice";
-import type * as Proto from "./proto";
+import type {Event} from "../../util/event.js";
+import event from "../../util/event.js";
+import {AsyncTaskQueue} from "../../util/index.js";
+import type {NanoService} from "../../util/nanoservice/index.js";
+import type {KeyValueStore} from "./index.js";
+import {genericList} from "./index.js";
+import type * as Proto from "./proto.js";
 
 export default class Service<K extends Proto.Key, V extends Proto.Value>
   implements
     KeyValueStore<K, V>,
     NanoService<Proto.ClientMsg<K, V>, Proto.ServiceMsg<K, V>>
 {
-  // istanbul ignore next
+  /* c8 ignore start -- opens a live IndexedDB, usable only in prod */
   static async open<K extends Proto.Key, V extends Proto.Value>(
     db_name: string,
     store_name: string,
@@ -34,6 +34,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
       store_name,
     );
   }
+  /* c8 ignore stop */
 
   readonly name: string;
 
@@ -124,7 +125,7 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
 
   set(entries: Proto.MaybeEntry<K, V>[]): Promise<void> {
     return this._write_queue.run(async () => {
-      // istanbul ignore if
+      /* c8 ignore next -- it's silly to set() with 0 entries */
       if (entries.length === 0) return;
 
       const txn = this._db.transaction(this.name, "readwrite");
@@ -177,12 +178,10 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     this._clients.add(port);
   }
 
-  // istanbul ignore next
   onDisconnect(port: Proto.ClientPort<K, V>) {
     this._clients.delete(port);
   }
 
-  // istanbul ignore next - this is quite trivial overall and is type-checked
   async onRequest(
     port: Proto.ClientPort<K, V>,
     msg: Proto.ClientMsg<K, V>,

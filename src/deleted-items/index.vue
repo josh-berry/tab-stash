@@ -64,11 +64,11 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import the from "@/globals-ui";
-import {pageref} from "../launch-vue";
-import type * as DI from "../model/deleted-items";
-import {filterMap, required, textMatcher} from "../util";
-import type {FilteredDeletedItem, RecordGroup} from "./schema";
+import the from "../globals-ui.js";
+import {pageref} from "../launch-vue.js";
+import type * as DI from "../model/deleted-items.js";
+import {filterMap, required, textMatcher} from "../util/index.js";
+import type {FilteredDeletedItem, RecordGroup} from "./schema.js";
 
 import ItemIcon from "../components/item-icon.vue";
 import LoadMore from "../components/load-more.vue";

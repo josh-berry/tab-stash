@@ -71,14 +71,15 @@
 <script lang="ts">
 import {computed, ref} from "vue";
 
-import the from "@/globals-ui";
-import {friendlyFolderName} from "@/model/bookmarks";
-import {findChildItem} from "@/model/deleted-items";
+import the from "../globals-ui.js";
+import {friendlyFolderName} from "../model/bookmarks.js";
+import {findChildItem} from "../model/deleted-items.js";
 
-import ButtonBox from "@/components/button-box.vue";
-import ItemIcon from "@/components/item-icon.vue";
-import Menu from "@/components/menu.vue";
-import type {FilteredDeletedItem, FilteredDeletion} from "./schema";
+import type {FilteredDeletedItem, FilteredDeletion} from "./schema.js";
+
+import ButtonBox from "../components/button-box.vue";
+import ItemIcon from "../components/item-icon.vue";
+import Menu from "../components/menu.vue";
 </script>
 
 <script setup lang="ts">

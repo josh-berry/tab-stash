@@ -1,4 +1,4 @@
-import type {KVSCache, MaybeEntry} from "../datastore/kvs";
+import type {KVSCache, MaybeEntry} from "../datastore/kvs/index.js";
 
 /** The key is the bookmark ID, and the value is the metadata. */
 export type BookmarkMetadataEntry = MaybeEntry<string, BookmarkMetadata>;

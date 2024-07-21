@@ -1,14 +1,14 @@
 import {expect} from "chai";
 import {nextTick, ref, type Ref} from "vue";
 
-import {TreeFilter} from "./tree-filter";
+import {TreeFilter} from "./tree-filter.js";
 
 import {
   isTestParent,
   makeDefaultTree,
   type TestNode,
   type TestParent,
-} from "./tree.test";
+} from "./tree.test.js";
 
 type Parent = TestParent;
 type Child = TestNode;
@@ -17,7 +17,7 @@ describe("model/tree-filter", () => {
   const [root, _parents, nodes] = makeDefaultTree();
 
   let treeFilter: TreeFilter<Parent, Child>;
-  // istanbul ignore next
+  /* c8 ignore next -- default impl is always overridden by tests */
   const predicate: Ref<(n: Parent | Child) => boolean> = ref(_ => false);
 
   function checkFilterInvariants() {
@@ -50,7 +50,7 @@ describe("model/tree-filter", () => {
   }
 
   beforeEach(() => {
-    // istanbul ignore next
+    /* c8 ignore next -- default impl is always overridden by tests */
     predicate.value = _ => false;
     treeFilter = new TreeFilter(isTestParent, predicate);
   });

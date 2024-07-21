@@ -1,4 +1,6 @@
-import type * as DI from "../model/deleted-items";
+/* c8 ignore start -- file contains only types */
+
+import type * as DI from "../model/deleted-items.js";
 
 export type RecordGroup = {title: string; records: FilteredDeletion[]};
 export type FilteredDeletion = DI.Deletion & {item: FilteredDeletedItem};

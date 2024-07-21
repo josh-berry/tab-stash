@@ -15,21 +15,20 @@
  * both when they are sent and when they are delivered.
  */
 
-import type {Args} from "../util";
-import type {Event, EventSource} from "../util/event";
+import type {Event, EventSource} from "../util/event.js";
+import type {Args} from "../util/index.js";
 
-declare function require(name: string): any;
+/* c8 ignore next -- for debugging on a bug only */
+const inspect: (v: any, options?: {depth: number}) => string = (v: any) =>
+  JSON.stringify(v, undefined, 4);
 
-// istanbul ignore next
-const inspect: (v: any, options?: {depth: number}) => string =
-  require("util").inspect ?? ((v: any) => JSON.stringify(v, undefined, 4));
-
-// istanbul ignore next
+/* c8 ignore start -- platform-specific choice of impl */
 // This is duplicated from ../util because we can't afford to load all of
 // ../util yet--that will pull in webextension-polyfill and we can't do that
 // until the mock event system is set up.
 const later: <F extends () => any>(f: F) => void =
   (<any>globalThis).setImmediate ?? globalThis.setTimeout;
+/* c8 ignore stop */
 
 type EventSystemState = {
   verbose: boolean;
@@ -72,9 +71,9 @@ export function beforeTest() {
   };
 }
 
+/* c8 ignore start -- bug-checking code */
 export async function afterTest() {
   // Drain ignored messages so we don't complain about them
-  // istanbul ignore next
   for (const msg of the_state.awaited_messages) {
     for (const ignore of the_state.ignores) {
       if (ignore(msg)) {
@@ -85,7 +84,6 @@ export async function afterTest() {
     }
   }
 
-  // istanbul ignore if
   if (the_state.waiters.size > 0 || the_state.awaited_messages.size > 0) {
     const i = (val: any) => inspect(val, {depth: 5});
 
@@ -95,13 +93,14 @@ export async function afterTest() {
     throw new Error(oops);
   }
 }
+/* c8 ignore stop */
 
 /** Returns a count of pending/undelivered events (excluding ignored events). */
 export function pendingCount(): number {
   return the_state.awaited_messages.size;
 }
 
-// istanbul ignore next
+/* c8 ignore start -- for manual debugging */
 /** Enable or disable logging of events to the console (including stack traces
  * of where events were sent).  This can get very slow and verbose, so it's wise
  * to use it only where needed.
@@ -110,6 +109,7 @@ export function pendingCount(): number {
 export function trace(t: boolean) {
   the_state.verbose = t;
 }
+/* c8 ignore stop */
 
 /** A mock event delivery mechanism which conforms to util/event. */
 export class MockEvent<L extends AnyListener> implements Event<L> {
@@ -132,28 +132,27 @@ export class MockEvent<L extends AnyListener> implements Event<L> {
     this._listeners.delete(l);
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- impls for interface conformance only */
   hasListener(l: L) {
     return this._listeners.has(l);
   }
 
-  // istanbul ignore next
   hasListeners() {
     return this._listeners.size > 0;
   }
+  /* c8 ignore stop */
 
   send(...args: Args<L>) {
     const msg: EvMessage = {
       event: this,
       args: args,
       fire(ignored?: boolean) {
-        // istanbul ignore next
-        if (!ignored && the_state.verbose) {
+        /* c8 ignore start */ if (!ignored && the_state.verbose) {
           console.log(
             `[deliver ${this.event.name}/${this.event.instance}] `,
             ...args,
           );
-        }
+        } /* c8 ignore stop */
 
         for (const fn of this.event._listeners) fn(...args);
       },
@@ -162,15 +161,14 @@ export class MockEvent<L extends AnyListener> implements Event<L> {
     this.state.awaited_messages.add(msg);
     run(this.state);
 
-    // istanbul ignore next
-    if (this.state.verbose) {
+    /* c8 ignore start */ if (this.state.verbose) {
       try {
         throw new Error("Stack trace");
       } catch (e) {
         console.log(`[send ${this.name}/${this.instance}]`, ...args);
         console.log((e as Error).stack);
       }
-    }
+    } /* c8 ignore stop */
   }
 }
 
@@ -192,7 +190,7 @@ export class EventWatcher<L extends AnyListener = AnyListener> {
    * been fired or queued yet, waits for such an event to arrive. */
   next(): Promise<Args<L>> {
     return new Promise(resolve => {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- checking for bugs */
       if (the_state !== this.state) {
         throw new Error(`Can't watch for events after the test has finished`);
       }
@@ -213,7 +211,7 @@ export class EventWatcher<L extends AnyListener = AnyListener> {
    * has completed at least one full cycle. */
   untilNextTick(): Promise<Args<L>[]> {
     return new Promise(resolve => {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- checking for bugs */
       if (the_state !== this.state) {
         throw new Error(`Can't watch for events after the test has finished`);
       }
@@ -274,7 +272,7 @@ export function ignore(q: EventQuery<any>): {cancel(): void} {
   run(the_state);
 
   return {
-    // istanbul ignore next
+    /* c8 ignore next 3 -- optional for test use*/
     cancel() {
       the_state.ignores.delete(filter);
     },
@@ -290,7 +288,7 @@ export function send<L extends AnyListener>(
   ev: EventSource<L>,
   ...args: Args<L>
 ) {
-  // istanbul ignore if
+  /* c8 ignore next -- bug-checking */
   if (!(ev instanceof MockEvent)) throw new Error(`This event is not mocked`);
   ev.send(...args);
 }
@@ -313,7 +311,6 @@ function run(state: EventSystemState) {
 function runner(state: EventSystemState) {
   for (const msg of state.awaited_messages) {
     for (const ignore of state.ignores) {
-      // istanbul ignore next
       if (ignore(msg)) {
         state.awaited_messages.delete(msg);
         msg.fire(true);
@@ -331,7 +328,6 @@ function runner(state: EventSystemState) {
   }
 }
 
-// istanbul ignore next
 function filter_for(q: EventQuery<any>): (ev: EvMessage) => boolean {
   if (q instanceof Array) {
     const filters = q.map(filter_for);
@@ -342,17 +338,16 @@ function filter_for(q: EventQuery<any>): (ev: EvMessage) => boolean {
     return _ => true;
   } else if (q instanceof MockEvent) {
     return ev => ev.event === q;
-  } else {
+  } /* c8 ignore next -- bug-checking */ else {
     throw new Error(`Invalid event query: ${inspect(q)}`);
   }
 }
 
-// istanbul ignore next
+/* c8 ignore start -- for manual debugging only */
 function format_waiters(state: EventSystemState): any {
   return Array.from(state.waiters).map(w => format_query(w.query));
 }
 
-// istanbul ignore next
 function format_awaited_messages(state: EventSystemState): any {
   return Array.from(state.awaited_messages).map(msg => ({
     event: `${msg.event.name}/${msg.event.instance}`,
@@ -360,9 +355,9 @@ function format_awaited_messages(state: EventSystemState): any {
   }));
 }
 
-// istanbul ignore next
 function format_query(q: EventQuery<any>): any {
   if (q instanceof Array) return q.map(q => format_query(q));
   if (q instanceof MockEvent) return {event: `${q.name}/${q.instance}`};
   return q;
 }
+/* c8 ignore stop */

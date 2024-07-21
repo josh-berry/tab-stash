@@ -1,20 +1,20 @@
 import {expect} from "chai";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {filterMap} from "../util";
+import {filterMap} from "../util/index.js";
 
-import * as BM from "../model/bookmarks";
+import * as BM from "../model/bookmarks.js";
 import {
   B,
   make_bookmarks,
   make_tabs,
   type BookmarkFixture,
   type TabFixture,
-} from "../model/fixtures.testlib";
-import * as T from "../model/tabs";
+} from "../model/fixtures.testlib.js";
+import * as T from "../model/tabs.js";
 
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
+import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
 
 class TestDT implements DataTransfer {
   dropEffect: "link" | "none" | "copy" | "move" = "move";
@@ -41,24 +41,24 @@ class TestDT implements DataTransfer {
   }
 
   getData(format: string): string {
-    // istanbul ignore next -- tests won't ask for data that isn't there
+    /* c8 ignore next -- tests won't ask for data that isn't there */
     return this.data[format] || "";
   }
   setData(format: string, data: string): void {
     this.data[format] = data;
-    // istanbul ignore next
+    /* c8 ignore next -- tests never set data multiple times */
     if (!this.types.includes(format)) this.types.push(format);
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- methods for interface conformance only */
   clearData(format?: string | undefined): void {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   setDragImage(image: Element, x: number, y: number): void {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 }
 
 const MT = ACCEPTS[0];

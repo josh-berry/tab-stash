@@ -2,7 +2,11 @@
   <div class="search-input">
     <input
       type="search"
-      :ref="s => { $search = s as HTMLInputElement; }"
+      :ref="
+        s => {
+          $search = s as HTMLInputElement;
+        }
+      "
       :aria-label="ariaLabel ?? 'Search'"
       :title="props.tooltip"
       :placeholder="props.placeholder"

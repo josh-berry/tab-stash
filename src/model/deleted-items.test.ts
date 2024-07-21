@@ -1,11 +1,11 @@
 import FakeTimers from "@sinonjs/fake-timers";
 import {expect} from "chai";
 
-import "../mock/browser";
-import * as events from "../mock/events";
+import "../mock/browser/index.js";
+import * as events from "../mock/events.js";
 
-import MemoryKVS from "../datastore/kvs/memory";
-import * as M from "./deleted-items";
+import MemoryKVS from "../datastore/kvs/memory.js";
+import * as M from "./deleted-items.js";
 
 const DATASET_SIZE = 50;
 

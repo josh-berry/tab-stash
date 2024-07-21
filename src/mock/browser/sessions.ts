@@ -1,8 +1,8 @@
 import type {Sessions, Tabs as T, Windows as W} from "webextension-polyfill";
 
-import * as events from "../events";
-import type {State} from "./tabs-and-windows";
-import tabs_and_windows from "./tabs-and-windows";
+import * as events from "../events.js";
+import type {State} from "./tabs-and-windows.js";
+import tabs_and_windows from "./tabs-and-windows.js";
 
 type Metadata = Map<string, any>;
 

@@ -1,11 +1,15 @@
 import type {Runtime} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import type {NanoPort, NanoService} from ".";
-import {NanoDisconnectedError, NanoTimeoutError, RemoteNanoError} from ".";
-import {trace_fn} from "../debug";
-import {logErrorsFrom} from "../oops";
-import {makeRandomString} from "../random";
+import {trace_fn} from "../debug.js";
+import {logErrorsFrom} from "../oops.js";
+import {makeRandomString} from "../random.js";
+import type {NanoPort, NanoService} from "./index.js";
+import {
+  NanoDisconnectedError,
+  NanoTimeoutError,
+  RemoteNanoError,
+} from "./index.js";
 import type {
   Envelope,
   NotifyEnvelope,
@@ -13,10 +17,11 @@ import type {
   Response,
   ResponseEnvelope,
   Send,
-} from "./proto";
+} from "./proto.js";
 
 let listener_count = 0;
 
+/* c8 ignore next -- pathname is never set in tests */
 const trace = trace_fn("nano_port", globalThis?.location?.pathname);
 
 export class SvcRegistry {
@@ -32,7 +37,6 @@ export class SvcRegistry {
     ++listener_count;
     const nport = new Port<Send, Send>(`${port.name}<${listener_count}`, port);
     nport.onDisconnect = () => {
-      // istanbul ignore else
       if (svc.onDisconnect) svc.onDisconnect(nport);
     };
     nport.onRequest = msg => {
@@ -40,7 +44,6 @@ export class SvcRegistry {
       return not_implemented();
     };
     nport.onNotify = msg => {
-      // istanbul ignore else
       if (svc.onNotify) svc.onNotify(nport, msg);
       else if (svc.onRequest) svc.onRequest(nport, msg);
     };
@@ -55,7 +58,7 @@ export class SvcRegistry {
   }
 
   register(name: string, svc: NanoService<Send, Send>) {
-    // istanbul ignore if
+    /* c8 ignore next 3 -- not worth testing */
     if (this.services.has(name)) {
       throw new Error(`Service ${name} is already launched`);
     }
@@ -63,7 +66,7 @@ export class SvcRegistry {
     trace("[listener] listening for service", name);
     this.services.set(name, svc);
 
-    // istanbul ignore else
+    /* c8 ignore next -- Firefox bug workaround */
     if (this.services.size == 1) {
       // We wait to start listening until the first service is actually
       // registered, because of Firefox bug 1465514--listening for ANY
@@ -115,7 +118,6 @@ export class Port<S extends Send, R extends Send> implements NanoPort<S, R> {
       } else if ("notify" in msg) {
         if (this.onNotify) this.onNotify(msg.notify as R);
         else {
-          // istanbul ignore else
           if (this.onRequest) this.onRequest(msg.notify as R);
         }
       }
@@ -134,7 +136,7 @@ export class Port<S extends Send, R extends Send> implements NanoPort<S, R> {
   request(request: S, options?: {timeout_ms?: number}): Promise<R> {
     return new Promise((resolve, reject) => {
       let tag = makeRandomString(4);
-      // istanbul ignore next
+      /* c8 ignore next -- tag collisions happen very rarely */
       while (this.pending.has(tag)) tag = makeRandomString(4);
 
       this._trace("send", {tag, request});

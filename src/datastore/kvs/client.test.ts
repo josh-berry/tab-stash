@@ -1,14 +1,14 @@
 // This must come first because of dependencies on mocks which must be loaded
 // before trying to load the "live" code.
-import {tests} from "./index.test";
+import {tests} from "./index.test.js";
 
 import FakeTimers from "@sinonjs/fake-timers";
 import {expect} from "chai";
 
-import * as events from "../../mock/events";
-import {NanoDisconnectedError} from "../../util/nanoservice";
-import Client from "./client";
-import type * as Proto from "./proto";
+import * as events from "../../mock/events.js";
+import {NanoDisconnectedError} from "../../util/nanoservice/index.js";
+import Client from "./client.js";
+import type * as Proto from "./proto.js";
 
 async function kvs_factory(): Promise<Client<string, string>> {
   return new Client("kvs-test", () => new MockServicePort());
@@ -78,8 +78,7 @@ describe("datastore/kvs/client", function () {
     }
     try {
       await p;
-      // istanbul ignore next
-      expect(true).to.be.false;
+      /* c8 ignore next */ throw "unreachable";
     } catch (e) {
       expect(e).to.be.instanceOf(NanoDisconnectedError);
     }
@@ -94,8 +93,7 @@ describe("datastore/kvs/client", function () {
     };
     try {
       await kvs.set([{key: "a", value: "b"}]);
-      // istanbul ignore next
-      expect(true).to.be.false;
+      /* c8 ignore next */ throw "unreachable";
     } catch (e) {
       expect(e).to.equal(sym);
     }
@@ -109,7 +107,7 @@ describe("datastore/kvs/client", function () {
 class MockServicePort implements Proto.ServicePort<string, string> {
   readonly name: string = "";
 
-  // istanbul ignore next
+  /* c8 ignore next -- should be overridden by tests when needed */
   onNotify = (_: Proto.ServiceMsg<string, string>) => undefined;
   onDisconnect?: (port: Proto.ServicePort<string, string>) => void = undefined;
 
@@ -122,7 +120,6 @@ class MockServicePort implements Proto.ServicePort<string, string> {
   async request(
     msg: Proto.ClientMsg<string, string>,
   ): Promise<Proto.ServiceMsg<string, string>> {
-    // istanbul ignore next
     if (!msg) return null;
 
     if (this.inject) return await this.inject(msg);
@@ -179,10 +176,8 @@ class MockServicePort implements Proto.ServicePort<string, string> {
     }
   }
 
-  // istanbul ignore next
   notify(msg: Proto.ClientMsg<string, string>) {}
 
-  // istanbul ignore next
   disconnect() {
     this.onDisconnect && this.onDisconnect(this);
   }

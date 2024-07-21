@@ -1,12 +1,12 @@
 import {expect} from "chai";
 import {openDB} from "idb";
 
-import * as events from "../../mock/events";
-import * as NS from "../../util/nanoservice";
-import Service from "./service";
+import * as events from "../../mock/events.js";
+import * as NS from "../../util/nanoservice/index.js";
+import Service from "./service.js";
 
-import {tests} from "./index.test";
-import type * as P from "./proto";
+import {tests} from "./index.test.js";
+import type * as P from "./proto.js";
 
 async function kvs_factory(): Promise<Service<string, string>> {
   NS.registry.reset_testonly();
@@ -105,12 +105,13 @@ class MockPort implements P.ClientPort<string, string> {
 
   received: P.ClientMsg<string, string>[] = [];
 
-  // istanbul ignore next
+  /* c8 ignore start -- per thrown error */
   request(
     msg: P.ServiceMsg<string, string>,
   ): Promise<P.ClientMsg<string, string>> {
     throw new Error(`Services shouldn't make requests: ${msg}`);
   }
+  /* c8 ignore stop */
 
   notify(msg: P.ServiceMsg<string, string>) {
     // We do a round-trip thru JSON to ensure nothing else is holding on to
@@ -118,6 +119,6 @@ class MockPort implements P.ClientPort<string, string> {
     this.received.push(JSON.parse(JSON.stringify(msg)));
   }
 
-  // istanbul ignore next
+  /* c8 ignore next -- no need to implement on the mock */
   disconnect() {}
 }

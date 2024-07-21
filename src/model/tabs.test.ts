@@ -1,10 +1,10 @@
 import {expect} from "chai";
 import browser from "webextension-polyfill";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {B, make_tabs, type TabFixture} from "./fixtures.testlib";
-import * as M from "./tabs";
+import {B, make_tabs, type TabFixture} from "./fixtures.testlib.js";
+import * as M from "./tabs.js";
 
 describe("model/tabs", () => {
   let windows: TabFixture["windows"];
@@ -23,7 +23,7 @@ describe("model/tabs", () => {
   it("loads tabs correctly", async () => {
     for (const t in tabs) {
       const tab = tabs[t as keyof typeof tabs];
-      // istanbul ignore next -- the ?? operators always short-circuit
+      /* c8 ignore next -- the ?? operators always short-circuit */
       expect(model.tab(tab.id)).to.deep.include({
         id: tab.id,
         position: {
@@ -238,7 +238,7 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onCreated);
     tab.url = "cats";
 
-    // istanbul ignore next -- the ?? operators always short-circuit
+    /* c8 ignore next -- the ?? operators always short-circuit */
     expect(model.tab(tid)).to.deep.include({
       id: tid,
       status: tab.status ?? "loading",

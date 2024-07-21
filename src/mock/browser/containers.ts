@@ -1,6 +1,6 @@
 import type {ContextualIdentities as CI} from "webextension-polyfill";
 
-import * as events from "../events";
+import * as events from "../events.js";
 
 class MockContainers implements CI.Static {
   readonly onCreated: events.MockEvent<
@@ -17,22 +17,19 @@ class MockContainers implements CI.Static {
     return;
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   async get(cookieStoreId: string): Promise<CI.ContextualIdentity> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async query(details: CI.QueryDetailsType): Promise<CI.ContextualIdentity[]> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async create(details: CI.CreateDetailsType): Promise<CI.ContextualIdentity> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async update(
     cookieStoreId: string,
     details: CI.UpdateDetailsType,
@@ -40,10 +37,10 @@ class MockContainers implements CI.Static {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async remove(cookieStoreId: string): Promise<CI.ContextualIdentity> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 }
 
 export default (() => {

@@ -4,9 +4,9 @@
 import {expect} from "chai";
 import browser from "webextension-polyfill";
 
-import storage_mock from "../mock/browser/storage";
-import * as events from "../mock/events";
-import type {BookmarkFixture, TabFixture} from "./fixtures.testlib";
+import storage_mock from "../mock/browser/storage.js";
+import * as events from "../mock/events.js";
+import type {BookmarkFixture, TabFixture} from "./fixtures.testlib.js";
 import {
   B,
   STASH_ROOT_NAME,
@@ -15,25 +15,25 @@ import {
   make_deleted_items,
   make_favicons,
   make_tabs,
-} from "./fixtures.testlib";
+} from "./fixtures.testlib.js";
 
-import {filterMap, later} from "../util";
+import {filterMap, later} from "../util/index.js";
 
-import * as M from ".";
-import type {KeyValueStore} from "../datastore/kvs";
-import {KVSCache} from "../datastore/kvs";
-import MemoryKVS from "../datastore/kvs/memory";
-import {_StoredObjectFactory} from "../datastore/stored-object";
-import {CUR_WINDOW_MD_ID} from "./bookmark-metadata";
+import type {KeyValueStore} from "../datastore/kvs/index.js";
+import {KVSCache} from "../datastore/kvs/index.js";
+import MemoryKVS from "../datastore/kvs/memory.js";
+import {_StoredObjectFactory} from "../datastore/stored-object.js";
+import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
 import {
   getDefaultFolderNameISODate,
   isBookmark,
   isFolder,
   type Folder,
-} from "./bookmarks";
-import type {DeletedFolder} from "./deleted-items";
-import {LOCAL_DEF, SYNC_DEF} from "./options";
-import type {TabID} from "./tabs";
+} from "./bookmarks.js";
+import type {DeletedFolder} from "./deleted-items.js";
+import * as M from "./index.js";
+import {LOCAL_DEF, SYNC_DEF} from "./options.js";
+import type {TabID} from "./tabs.js";
 
 describe("model", () => {
   let tabs: TabFixture["tabs"];
@@ -394,7 +394,7 @@ describe("model", () => {
         await p;
 
         await browser.tabs.get(tabs.right_doug.id).then(
-          // istanbul ignore next
+          /* c8 ignore next -- bug-checking */
           () => expect.fail("browser.tabs.get did not throw"),
           () => {},
         );

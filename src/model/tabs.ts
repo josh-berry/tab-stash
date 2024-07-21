@@ -2,6 +2,7 @@ import {computed, reactive, ref, watch, type Ref} from "vue";
 import type {Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
+import {trace_fn} from "../util/debug.js";
 import {
   AsyncTaskQueue,
   backingOff,
@@ -11,12 +12,11 @@ import {
   tryAgain,
   urlToOpen,
   type OpenableURL,
-} from "../util";
-import {trace_fn} from "../util/debug";
-import {logErrorsFrom} from "../util/oops";
-import {EventWiring} from "../util/wiring";
+} from "../util/index.js";
+import {logErrorsFrom} from "../util/oops.js";
+import {EventWiring} from "../util/wiring.js";
 
-import {setPosition, type TreeNode, type TreeParent} from "./tree";
+import {setPosition, type TreeNode, type TreeParent} from "./tree.js";
 
 export interface Window extends TreeParent<Window, Tab> {
   readonly id: WindowID;
@@ -120,8 +120,7 @@ export class Model {
       onFired: () => {
         this._event_since_load = true;
       },
-      // istanbul ignore next -- safety net; reload the model in the event
-      // of an unexpected exception.
+      /* c8 ignore next 3 -- safety net triggered only on a bug */
       onError: () => {
         logErrorsFrom(() => this.reload());
       },
@@ -443,7 +442,7 @@ export class Model {
       this.windows.set(wid, window);
     }
     trace("event windowCreated", win.id, win);
-    // istanbul ignore else
+
     if (win.tabs !== undefined) {
       for (const t of win.tabs) this.whenTabCreated(t);
     }
@@ -695,7 +694,7 @@ export class Model {
 
   private _remove_url(t: Tab) {
     const index = this.tabs_by_url.get(urlToOpen(t.url));
-    // istanbul ignore if -- internal consistency
+    /* c8 ignore next -- internal consistency check */
     if (!index) return;
     index.delete(t);
   }

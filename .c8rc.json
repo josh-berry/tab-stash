@@ -1,0 +1,7 @@
+{
+  "all": true,
+  "skip-full": true,
+  "include": ["src/**"],
+  "exclude": ["assets", "dist", "docs", "node_modules"],
+  "reporter": ["lcov", "text", "html"]
+}

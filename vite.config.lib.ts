@@ -9,7 +9,7 @@ base.define = {
 base.build!.lib = {
   entry: "index.ts",
   fileName: "index",
-  formats: ["cjs"],
+  formats: ["es"],
 };
 
 export default base;

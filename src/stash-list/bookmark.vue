@@ -85,13 +85,13 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util";
+import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util/index.js";
 
-import the from "@/globals-ui";
-import type {FilterInfo} from "@/model/tree-filter";
-import type {Bookmark} from "../model/bookmarks";
-import type {FaviconEntry} from "../model/favicons";
-import type {Tab} from "../model/tabs";
+import the from "../globals-ui.js";
+import type {Bookmark} from "../model/bookmarks.js";
+import type {FaviconEntry} from "../model/favicons.js";
+import type {Tab} from "../model/tabs.js";
+import type {FilterInfo} from "../model/tree-filter.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ItemIcon from "../components/item-icon.vue";

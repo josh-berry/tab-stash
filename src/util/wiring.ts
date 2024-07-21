@@ -1,5 +1,5 @@
-import type {EventSource} from "./event";
-import {logError} from "./oops";
+import type {EventSource} from "./event.js";
+import {logError} from "./oops.js";
 
 export type EventWiringOptions = {
   onFired(): void;

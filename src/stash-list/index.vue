@@ -140,20 +140,20 @@
 import {defineComponent} from "vue";
 import browser from "webextension-polyfill";
 
-import the from "@/globals-ui";
-import {pageref} from "../launch-vue";
+import the from "../globals-ui.js";
+import {pageref} from "../launch-vue.js";
 import {
   CUR_WINDOW_MD_ID,
   type BookmarkMetadataEntry,
-} from "../model/bookmark-metadata";
+} from "../model/bookmark-metadata.js";
 import {
   friendlyFolderName,
   type Folder,
   type FolderStats,
-} from "../model/bookmarks";
-import type {Tab} from "../model/tabs";
-import {fetchInfoForSites} from "../tasks/siteinfo";
-import {TaskMonitor, parseVersion} from "../util";
+} from "../model/bookmarks.js";
+import type {Tab} from "../model/tabs.js";
+import {fetchInfoForSites} from "../tasks/siteinfo.js";
+import {TaskMonitor, parseVersion} from "../util/index.js";
 
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";

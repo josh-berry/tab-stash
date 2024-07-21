@@ -5,8 +5,8 @@ import type {
   Windows as W,
 } from "webextension-polyfill";
 
-import {later} from "../../util";
-import * as events from "../events";
+import {later} from "../../util/index.js";
+import * as events from "../events.js";
 
 type Window = Omit<W.Window, "id" | "tabs"> & {id: number; tabs: Tab[]};
 type Tab = Omit<T.Tab, "id" | "windowId"> & {id: number; windowId: number};
@@ -70,19 +70,19 @@ export class State {
 
   win(id: number): Window {
     const win = this.windows[id];
-    // istanbul ignore if
+    /* c8 ignore next -- bug-checking */
     if (!win) throw new Error(`No such window: ${id}`);
     return win;
   }
 
   tab(id: number): Tab {
     for (const w of this.windows) {
-      // istanbul ignore if
+      /* c8 ignore next -- tests don't delete windows right now */
       if (!w) continue;
       const tab = w.tabs.find(t => t.id === id);
       if (tab) return tab;
     }
-    // istanbul ignore next
+    /* c8 ignore next -- bug-checking*/
     throw new Error(`No such tab: ${id}`);
   }
 
@@ -92,34 +92,35 @@ export class State {
 
     for (const w of this.windows) {
       if (!w) continue;
-      // istanbul ignore if
       if (w.focused) {
+        /* c8 ignore next -- bug-checking */
         if (focused_win) throw new Error(`Multiple focused windows found`);
         focused_win = w;
       }
 
       let active_tab: Tab | undefined = undefined;
       for (const t of w.tabs) {
-        // istanbul ignore if
         if (t.active) {
-          if (active_tab)
+          /* c8 ignore next 3 -- bug-checking */
+          if (active_tab) {
             throw new Error(`Multiple active tabs in window ${w.id}`);
+          }
           active_tab = t;
         }
-        // istanbul ignore if
+        /* c8 ignore next 4 -- bug-checking */
         if (t.windowId !== w.id) {
           throw new Error(
             `Inconsistent windowId for tab ${t.id} in window ${w.id}`,
           );
         }
-        // istanbul ignore if
+        /* c8 ignore next 3 -- bug-checking */
         if (seen_tab_ids.has(t.id)) {
           throw new Error(`Duplicate tab ID ${t.id} in window ${w.id}`);
         }
         seen_tab_ids.add(t.id);
       }
     }
-    // istanbul ignore if
+    /* c8 ignore next 3 -- bug-checking */
     if (this.windows.length > 0 && !focused_win) {
       throw new Error(`No focused windows found`);
     }
@@ -138,7 +139,7 @@ export class State {
     for (const w of this.windows) {
       if (!w) continue;
       if (w.focused) {
-        // istanbul ignore if
+        /* c8 ignore next -- bug-checking */
         if (oldWin) throw new Error(`Multiple windows are focused`);
         oldWin = w;
         w.focused = false;
@@ -153,7 +154,7 @@ export class State {
     let oldTab: Tab | undefined = undefined;
     for (const t of win.tabs) {
       if (t.active) {
-        // istanbul ignore if
+        /* c8 ignore next -- bug-checking */
         if (oldTab) throw new Error(`Multiple active tabs in window ${win.id}`);
         oldTab = t;
         t.active = false;
@@ -174,7 +175,7 @@ export class State {
       tabIds: win.tabs.filter(t => t.highlighted).map(t => t.id),
     });
 
-    // istanbul ignore if -- no need to test this in Tab Stash
+    /* c8 ignore start -- Tab Stash doesn't currently un-discard tabs */
     if (tab.discarded) {
       tab.discarded = false;
       this.onTabUpdated.send(
@@ -183,6 +184,7 @@ export class State {
         JSON.parse(JSON.stringify(tab)),
       );
     }
+    /* c8 ignore stop */
   }
 }
 
@@ -202,7 +204,7 @@ class MockWindows implements W.Static {
     this._state = state;
   }
 
-  // istanbul ignore next
+  /* c8 ignore next 3 -- not implemented */
   async get(windowId: number, getInfo?: W.GetInfo): Promise<W.Window> {
     throw new Error("Method not implemented.");
   }
@@ -210,29 +212,28 @@ class MockWindows implements W.Static {
   async getCurrent(getInfo?: W.GetInfo): Promise<W.Window> {
     // This is an over-simplification; generally the "current" window is the
     // one where the tab/UI is
-    // istanbul ignore next
     const win = this._state.windows.find(w => w?.focused === true);
-    // istanbul ignore if
+    /* c8 ignore next -- bug-checking */
     if (!win) throw new Error(`There is no focused window`);
 
-    // istanbul ignore next
+    /* c8 ignore next -- Tab Stash doesn't ever ask for population currently */
     if (getInfo?.populate) return JSON.parse(JSON.stringify(win));
     return only_win(win);
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   async getLastFocused(getInfo?: W.GetInfo): Promise<W.Window> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async getAll(getInfo?: W.GetAllGetInfoType): Promise<W.Window[]> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
   async create(createData?: W.CreateCreateDataType): Promise<W.Window> {
     const notImplemented = (name: keyof W.CreateCreateDataType) => {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- not implemented */
       if (createData && createData[name] !== undefined) {
         throw new Error(`Property ${name} not implemented for window.create()`);
       }
@@ -260,12 +261,10 @@ class MockWindows implements W.Static {
     };
     this._state.windows.push(win);
     this.onCreated.send(only_win(win));
-    // istanbul ignore next
     if (this._state.windows.length === 0 || createData?.focused !== false) {
       this._state.focus_window(win);
     }
 
-    // istanbul ignore next
     const urls = createData?.url
       ? createData.url instanceof Array
         ? createData.url
@@ -302,7 +301,7 @@ class MockWindows implements W.Static {
     return JSON.parse(JSON.stringify(win));
   }
 
-  // istanbul ignore next
+  /* c8 ignore next -- not used by tests currently */
   async update(
     windowId: number,
     updateInfo: W.UpdateUpdateInfoType,
@@ -310,7 +309,7 @@ class MockWindows implements W.Static {
     const win = this._state.win(windowId);
 
     const notImplemented = (name: keyof W.UpdateUpdateInfoType) => {
-      // istanbul ignore if
+      /* c8 ignore next -- not implemented */
       if (name in updateInfo) {
         throw new Error(`Parameter ${name} is not implemented`);
       }
@@ -324,13 +323,11 @@ class MockWindows implements W.Static {
     notImplemented("titlePreface");
 
     if (updateInfo.focused !== undefined) {
-      // istanbul ignore else
       if (updateInfo.focused) {
         this._state.focus_window(win);
       } else {
         // Not quite Z-order, but close enough...
         const w = this._state.windows.find(w => w);
-        // istanbul ignore else
         if (w) {
           this._state.focus_window(w);
         } else {
@@ -350,7 +347,7 @@ class MockWindows implements W.Static {
     if (win.focused) {
       // This is an oversimplification, but it works
       const w = this._state.windows.find(w => w);
-      // istanbul ignore else
+      /* c8 ignore next -- tests never close the focused window currently */
       if (w) this._state.focus_window(w);
     }
 
@@ -412,22 +409,19 @@ class MockTabs implements T.Static {
     this._state = state;
   }
 
-  // istanbul ignore next
   async get(tabId: number): Promise<T.Tab> {
     return JSON.parse(JSON.stringify(this._state.tab(tabId)));
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   async getCurrent(): Promise<T.Tab> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   connect(tabId: number, connectInfo?: T.ConnectConnectInfoType): Runtime.Port {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async sendMessage(
     tabId: number,
     message: any,
@@ -435,16 +429,16 @@ class MockTabs implements T.Static {
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
   async create(options: T.CreateCreatePropertiesType): Promise<T.Tab> {
-    // istanbul ignore if
+    /* c8 ignore next 3 -- not implemented */
     if (options.windowId === undefined) {
       throw new Error(`Creating without a windowId is not implemented`);
     }
 
     const win = this._state.win(options.windowId);
     const id = this._state.next_tab_id++;
-    // istanbul ignore next
     const tab: Tab = {
       id,
       windowId: options.windowId,
@@ -461,9 +455,9 @@ class MockTabs implements T.Static {
     this._finish_loading(tab);
 
     // If the tab is pinned, it must have an index before all unpinned tabs
-    // istanbul ignore if
     if (tab.pinned) {
       let first_unpinned = win.tabs.find(t => !t.pinned);
+      /* c8 ignore next -- we never create pinned after creating unpinned */
       tab.index = Math.min(tab.index, first_unpinned?.index ?? win.tabs.length);
     }
 
@@ -471,34 +465,34 @@ class MockTabs implements T.Static {
     this._state.fixup_tab_indices(win);
 
     this.onCreated.send(JSON.parse(JSON.stringify(tab)));
-    // istanbul ignore next
+    /* c8 ignore next -- active isn't explicitly specified by tests */
     if (options.active ?? true) this._state.activate_tab(tab);
 
     this._state.validate();
     return JSON.parse(JSON.stringify(tab));
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   async duplicate(
     tabId: number,
     duplicateProperties?: T.DuplicateDuplicatePropertiesType,
   ): Promise<T.Tab> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
   async query(queryInfo: T.QueryQueryInfoType): Promise<T.Tab[]> {
     let res: Tab[] = [];
     for (const w of this._state.windows) {
-      // istanbul ignore else
+      /* c8 ignore next -- windows are never closed by tests */
       if (w) for (const t of w.tabs) res.push(t);
     }
 
-    // istanbul ignore next
     const filterEqual = (name: keyof T.QueryQueryInfoType & keyof T.Tab) => {
       if (name in queryInfo) res = res.filter(t => t[name] === queryInfo[name]);
     };
     const notImplemented = (name: keyof T.QueryQueryInfoType) => {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- not implemented */
       if (name in queryInfo) {
         throw new Error(`Query parameter ${name} is not implemented`);
       }
@@ -533,7 +527,7 @@ class MockTabs implements T.Static {
     return JSON.parse(JSON.stringify(res));
   }
 
-  // istanbul ignore next
+  /* c8 ignore next 5 -- not implemented */
   async highlight(
     highlightInfo: T.HighlightHighlightInfoType,
   ): Promise<W.Window> {
@@ -546,14 +540,14 @@ class MockTabs implements T.Static {
   ): Promise<T.Tab>;
   async update(updateProperties: T.UpdateUpdatePropertiesType): Promise<T.Tab>;
   async update(tabId: any, updateProperties?: any): Promise<T.Tab> {
-    // istanbul ignore if
+    /* c8 ignore next 5 -- not implemented */
     if (typeof tabId !== "number") {
       throw new Error(
         `Calling tabs.update() without a tab ID is not implemented`,
       );
     }
     const options: T.UpdateUpdatePropertiesType = updateProperties;
-    // istanbul ignore if
+    /* c8 ignore next 5 -- not implemented*/
     if (!options) {
       throw new Error(
         `Calling tabs.update() without options is not implemented`,
@@ -561,7 +555,7 @@ class MockTabs implements T.Static {
     }
 
     const notImplemented = (name: keyof T.UpdateUpdatePropertiesType) => {
-      // istanbul ignore if
+      /* c8 ignore next 3 -- not implemented */
       if (options[name] !== undefined) {
         throw new Error(`Passing ${name} to tabs.update() is not implemented`);
       }
@@ -600,10 +594,9 @@ class MockTabs implements T.Static {
       }
     }
     if (options.active !== undefined) {
-      // istanbul ignore else
       if (options.active) {
         this._state.activate_tab(tab);
-      } else {
+      } /* c8 ignore next 3 -- not implemented */ else {
         throw new Error(`De-activating tabs is not implemented`);
       }
     }
@@ -619,14 +612,14 @@ class MockTabs implements T.Static {
     tabIds: number | number[],
     moveProperties: T.MoveMovePropertiesType,
   ): Promise<T.Tab | T.Tab[]> {
-    // istanbul ignore next
+    /* c8 ignore next -- tests always move single tabs */
     const tab_ids = tabIds instanceof Array ? tabIds : [tabIds];
     const ret: T.Tab[] = [];
 
-    // istanbul ignore if
+    /* c8 ignore next -- tests never move zero tabs */
     if (tab_ids.length === 0) return [];
 
-    // istanbul ignore next
+    /* c8 ignore next 2 -- tests always specify window IDs */
     const to_win_id =
       moveProperties.windowId ?? this._state.tab(tab_ids[0]).windowId;
     const to_win = this._state.win(to_win_id);
@@ -641,7 +634,7 @@ class MockTabs implements T.Static {
       const from_win = this._state.win(tab.windowId);
       windows_to_fixup.add(from_win);
 
-      // istanbul ignore if
+      /* c8 ignore next 5 -- bug-checking */
       if (from_win.tabs[tab.index] !== tab) {
         throw new Error(
           `BUG: Window ${from_win.id} does not have tab ${tab.id} at index ${tab.index}`,
@@ -674,12 +667,12 @@ class MockTabs implements T.Static {
     // console.log(`After window fixup`);
     // for (const w of windows_to_fixup) console.log(w);
 
-    // istanbul ignore next
+    /* c8 ignore next -- tests never move multiple tabs */
     if (tabIds instanceof Array) return JSON.parse(JSON.stringify(ret));
     return JSON.parse(JSON.stringify(ret[0]));
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   async reload(
     tabId?: number,
     reloadProperties?: T.ReloadReloadPropertiesType,
@@ -687,19 +680,19 @@ class MockTabs implements T.Static {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   warmup(tabId: number): void {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
   async remove(tabIds: number | number[]): Promise<void> {
-    // istanbul ignore next
+    /* c8 ignore next -- tests always remove single tabs */
     if (typeof tabIds === "number") tabIds = [tabIds];
     for (const tid of tabIds) {
       const tab = this._state.tab(tid);
       const win = this._state.win(tab.windowId);
 
-      // istanbul ignore if
+      /* c8 ignore next 5 -- bug-checking */
       if (tab !== win.tabs[tab.index]) {
         throw new Error(
           `BUG: Tab ${tid} is not at the right index in window ${win.id}`,
@@ -714,7 +707,7 @@ class MockTabs implements T.Static {
         isWindowClosing: win.tabs.length === 0,
       });
 
-      // istanbul ignore next
+      /* c8 ignore next 6 -- tests never close windows by closing tabs */
       if (win.tabs.length === 0) {
         this._state.onWindowRemoved.send(win.id);
         this._state.windows[win.id] = undefined;
@@ -726,8 +719,8 @@ class MockTabs implements T.Static {
     this._state.validate();
   }
 
-  // istanbul ignore next
   async discard(tabIds: number | number[]): Promise<void> {
+    /* c8 ignore next -- tests always discard individual tabs */
     if (typeof tabIds === "number") tabIds = [tabIds];
     for (const tid of tabIds) {
       const tab = this._state.tab(tid);
@@ -742,17 +735,15 @@ class MockTabs implements T.Static {
     }
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   async detectLanguage(tabId?: number): Promise<string> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async toggleReaderMode(tabId?: number): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async captureTab(
     tabId?: number,
     options?: ExtensionTypes.ImageDetails,
@@ -760,7 +751,6 @@ class MockTabs implements T.Static {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async captureVisibleTab(
     windowId?: number,
     options?: ExtensionTypes.ImageDetails,
@@ -773,7 +763,6 @@ class MockTabs implements T.Static {
     details: ExtensionTypes.InjectDetails,
   ): Promise<any[]>;
   async executeScript(details: ExtensionTypes.InjectDetails): Promise<any[]>;
-  // istanbul ignore next
   async executeScript(tabId: any, details?: any): Promise<any[]> {
     throw new Error("Method not implemented.");
   }
@@ -783,7 +772,6 @@ class MockTabs implements T.Static {
     details: ExtensionTypes.InjectDetails,
   ): Promise<void>;
   async insertCSS(details: ExtensionTypes.InjectDetails): Promise<void>;
-  // istanbul ignore next
   async insertCSS(tabId: any, details?: any): Promise<void> {
     throw new Error("Method not implemented.");
   }
@@ -793,19 +781,16 @@ class MockTabs implements T.Static {
     details: ExtensionTypes.InjectDetails,
   ): Promise<void>;
   async removeCSS(details: ExtensionTypes.InjectDetails): Promise<void>;
-  // istanbul ignore next
   async removeCSS(tabId: any, details?: any): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
   async setZoom(tabId: number | undefined, zoomFactor: number): Promise<void>;
   async setZoom(zoomFactor: number): Promise<void>;
-  // istanbul ignore next
   async setZoom(tabId: any, zoomFactor?: any): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async getZoom(tabId?: number): Promise<number> {
     throw new Error("Method not implemented.");
   }
@@ -815,33 +800,29 @@ class MockTabs implements T.Static {
     zoomSettings: T.ZoomSettings,
   ): Promise<void>;
   async setZoomSettings(zoomSettings: T.ZoomSettings): Promise<void>;
-  // istanbul ignore next
   async setZoomSettings(tabId: any, zoomSettings?: any): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async getZoomSettings(tabId?: number): Promise<T.ZoomSettings> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   print(): void {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async printPreview(): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async saveAsPDF(pageSettings: T.PageSettings): Promise<string> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
-  // istanbul ignore next
   async show(tabIds: number | number[]): Promise<void> {
+    /* c8 ignore next -- tests never show multiple tabs at once */
     tabIds = tabIds instanceof Array ? tabIds : [tabIds];
     for (const tid of tabIds) {
       const tab = this._state.tab(tid);
@@ -857,12 +838,11 @@ class MockTabs implements T.Static {
   }
 
   async hide(tabIds: number | number[]): Promise<number[]> {
-    // istanbul ignore next -- trivial
+    /* c8 ignore next -- tests never hide multiple tabs at once */
     tabIds = tabIds instanceof Array ? tabIds : [tabIds];
     const ret = [];
     for (const tid of tabIds) {
       const tab = this._state.tab(tid);
-      // istanbul ignore else -- no need to test this in Tab Stash
       if (!tab.hidden) {
         ret.push(tid);
         tab.hidden = true;
@@ -876,7 +856,7 @@ class MockTabs implements T.Static {
     return ret;
   }
 
-  // istanbul ignore next
+  /* c8 ignore start -- not implemented */
   moveInSuccession(
     tabIds: number[],
     tabId?: number,
@@ -885,15 +865,14 @@ class MockTabs implements T.Static {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async goForward(tabId?: number): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  // istanbul ignore next
   async goBack(tabId?: number): Promise<void> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
   _finish_loading(t: Tab) {
     later(() => {

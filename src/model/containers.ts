@@ -1,9 +1,10 @@
 import {reactive} from "vue";
 import type {ContextualIdentities} from "webextension-polyfill";
-import {contextualIdentities} from "webextension-polyfill";
-import {backingOff} from "../util";
-import {logErrorsFrom} from "../util/oops";
-import {EventWiring} from "../util/wiring";
+import browser from "webextension-polyfill";
+
+import {backingOff} from "../util/index.js";
+import {logErrorsFrom} from "../util/oops.js";
+import {EventWiring} from "../util/wiring.js";
 
 export type Container = ContextualIdentities.ContextualIdentity;
 
@@ -18,10 +19,10 @@ export class Model {
 
   constructor() {
     const supports_containers = [
-      typeof contextualIdentities?.query,
-      typeof contextualIdentities?.onCreated?.addListener,
-      typeof contextualIdentities?.onUpdated?.addListener,
-      typeof contextualIdentities?.onRemoved?.addListener,
+      typeof browser.contextualIdentities?.query,
+      typeof browser.contextualIdentities?.onCreated?.addListener,
+      typeof browser.contextualIdentities?.onUpdated?.addListener,
+      typeof browser.contextualIdentities?.onRemoved?.addListener,
     ].every(v => v === "function");
     if (!supports_containers) {
       // Avoid blowing up if running on a browser with no container support.
@@ -34,16 +35,16 @@ export class Model {
       onFired: () => {
         this._event_since_load = true;
       },
-      // istanbul ignore next -- safety net; reload the model in the event
+      /* c8 ignore next -- safety net; reload the model in the event */
       // of an unexpected exception.
       onError: () => {
         logErrorsFrom(() => this.reload());
       },
     });
 
-    wiring.listen(contextualIdentities.onCreated, this.whenChanged);
-    wiring.listen(contextualIdentities.onUpdated, this.whenChanged);
-    wiring.listen(contextualIdentities.onRemoved, this.whenRemoved);
+    wiring.listen(browser.contextualIdentities.onCreated, this.whenChanged);
+    wiring.listen(browser.contextualIdentities.onUpdated, this.whenChanged);
+    wiring.listen(browser.contextualIdentities.onRemoved, this.whenRemoved);
   }
 
   static async from_browser(): Promise<Model> {
@@ -68,7 +69,7 @@ export class Model {
     while (this._event_since_load) {
       this._event_since_load = false;
       try {
-        loaded_containers = await contextualIdentities.query({});
+        loaded_containers = await browser.contextualIdentities.query({});
       } catch (e) {
         // Containers can be manually disabled in Firefox by setting
         // privacy.userContext.enabled to false. When this is the case,

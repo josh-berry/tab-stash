@@ -1,7 +1,8 @@
 // Things which are not specific to Tab Stash or browser functionality go here.
 import * as Vue from "vue";
 import browser from "webextension-polyfill";
-import {logErrorsFrom} from "./oops";
+
+import {logErrorsFrom} from "./oops.js";
 
 export {
   TaskCancelled,
@@ -10,7 +11,7 @@ export {
   type Task,
   type TaskHandle,
   type TaskIterator,
-} from "./progress";
+} from "./progress.js";
 
 export type Atom = null | boolean | number | string;
 
@@ -34,7 +35,7 @@ export type AsyncReturnTypeOf<T extends (...args: any) => any> =
 export type Promised<T> = T extends Promise<infer V> ? V : T;
 
 // A small wrapper function to mark a Vue prop as 'required'
-export const required = <T>(type: T) => ({type, required: true} as const);
+export const required = <T>(type: T) => ({type, required: true}) as const;
 
 // A "marker" type for a string which is a URL that is actually openable by Tab
 // Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
@@ -60,23 +61,22 @@ let PLATFORM_INFO = {
 browser.runtime.getPlatformInfo().then(x => {
   PLATFORM_INFO = x;
 });
-// istanbul ignore next
-export const altKeyName = () => (PLATFORM_INFO.os === "mac" ? "Option" : "Alt");
-// istanbul ignore next
-export const bgKeyName = () => (PLATFORM_INFO.os === "mac" ? "Cmd" : "Ctrl");
 
-// istanbul ignore next
+/* c8 ignore start -- platform-specific values */
+export const altKeyName = () => (PLATFORM_INFO.os === "mac" ? "Option" : "Alt");
+export const bgKeyName = () => (PLATFORM_INFO.os === "mac" ? "Cmd" : "Ctrl");
 export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
   PLATFORM_INFO.os === "mac" ? ev.metaKey : ev.ctrlKey;
+/* c8 ignore stop */
 
 /** Checks if its first argument is undefined.  If not, returns it.  If so,
  * throws an error with the message returned by the (optional) second
  * argument. */
 export function expect<T>(value: T | undefined, err: () => string): T {
-  // istanbul ignore else
+  /* c8 ignore start -- if the `throw` is reached, it's a bug */
   if (value !== undefined) return value;
-  // istanbul ignore next
   throw new Error(err());
+  /* c8 ignore stop */
 }
 
 export const parseVersion = (v: string): number[] =>

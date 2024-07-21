@@ -19,7 +19,7 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import {required, type Progress} from "../util";
+import {required, type Progress} from "../util/index.js";
 
 import Dialog from "./dialog.vue";
 import ProgressItem from "./progress-item.vue";

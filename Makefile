@@ -39,7 +39,7 @@ check-types: node_modules
 .PHONY: check-types
 
 check-tests: node_modules
-	./node_modules/.bin/nyc --reporter=text --reporter=lcov --reporter=html ./node_modules/.bin/mocha
+	./node_modules/.bin/c8 ./node_modules/.bin/mocha
 .PHONY: check-tests
 
 check-style: node_modules
@@ -203,5 +203,5 @@ distclean: clean
 .PHONY: distclean
 
 clean:
-	rm -rf build.test dist dist-chrome docs/_site .nyc_output coverage
+	rm -rf build.test dist dist-chrome docs/_site coverage
 .PHONY: clean

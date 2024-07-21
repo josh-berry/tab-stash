@@ -16,9 +16,9 @@ import stored_object, {
   aString,
   maybeUndef,
   type StoredObject,
-} from "../datastore/stored-object";
-import {resolveNamed} from "../util";
-import {errorLog, UserError} from "../util/oops";
+} from "../datastore/stored-object.js";
+import {resolveNamed} from "../util/index.js";
+import {errorLog, UserError} from "../util/oops.js";
 
 export const SHOW_WHAT_OPT = anEnum("sidebar", "tab", "popup", "none");
 export const STASH_WHAT_OPT = anEnum("all", "single", "none");
@@ -169,9 +169,12 @@ export class Model {
   readonly showCrashReport = computed(() => {
     const until = this.local.state.hide_crash_reports_until || 0;
     if (this._now.value < until) {
-      setTimeout(() => {
-        this._now.value = Date.now();
-      }, until - this._now.value + 1);
+      setTimeout(
+        () => {
+          this._now.value = Date.now();
+        },
+        until - this._now.value + 1,
+      );
       return false;
     }
     return (

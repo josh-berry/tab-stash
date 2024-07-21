@@ -1,12 +1,12 @@
 import {computed, reactive, ref, type Ref} from "vue";
 
-import {computedLazyEq} from "../util";
+import {computedLazyEq} from "../util/index.js";
 import {
   forEachNodeInSubtree,
   type IsParentFn,
   type TreeNode,
   type TreeParent,
-} from "./tree";
+} from "./tree.js";
 
 export interface SelectionInfo {
   /** Is this node selected? */

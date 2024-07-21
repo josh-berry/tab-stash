@@ -30,8 +30,8 @@
 import {reactive} from "vue";
 import browser from "webextension-polyfill";
 
-import type {Event} from "../util/event";
-import event from "../util/event";
+import type {Event} from "../util/event.js";
+import event from "../util/event.js";
 
 // Here's how to define the type of a StoredObject:
 export interface StorableDef {
@@ -184,7 +184,7 @@ export type StorableData<D extends StorableDef> = {
   readonly [k in keyof D]: ReturnType<D[k]["is"]>;
 };
 
-// istanbul ignore next -- tests create their own factories
+/* c8 ignore start -- tests create their own factories */
 /** Load and return a StoredObject from `browser.storage`, using the provided
  * definition.  Note that loading the same object with different definitions is
  * not allowed.
@@ -199,6 +199,7 @@ export default function get<D extends StorableDef>(
 ): Promise<StoredObject<D>> {
   return _FACTORY.get(store, key, def);
 }
+/* c8 ignore stop */
 
 //
 // Internal implementation
@@ -228,7 +229,7 @@ export class _StoredObjectFactory {
 
   constructor() {
     browser.storage.onChanged.addListener((changes, area) => {
-      // istanbul ignore if -- browser sanity
+      /* c8 ignore next -- browser sanity */
       if (area !== "sync" && area !== "local") return;
 
       const area_live = this._live[area as "sync" | "local"];
@@ -261,7 +262,7 @@ export class _StoredObjectFactory {
   ): Promise<StoredObject<D>> {
     let object = this._live[store].get(key);
     if (object) {
-      // istanbul ignore if -- basic caller validation
+      /* c8 ignore next 3 -- basic caller validation */
       if (object._def !== def) {
         throw new TypeError(`Tried to load '${key}' with a conflicting def`);
       }
@@ -278,7 +279,7 @@ export class _StoredObjectFactory {
     // browser.storage actually returned.  Prioritize the event over what
     // browser.storage gave us because it's most likely to be up to date.
     //
-    // istanbul ignore else -- not testable due to being v.hard to mock
+    /* c8 ignore next -- not testable due to being v.hard to mock */
     if (this._loading.has(object)) {
       object._load(data[key]);
       this._loading.delete(object);
@@ -287,7 +288,7 @@ export class _StoredObjectFactory {
   }
 
   add(o: StoredObjectImpl<any>) {
-    // istanbul ignore if -- internal sanity check
+    /* c8 ignore next 3 -- internal sanity check */
     if (this._live[o._store].has(o._key)) {
       throw new Error(`Created multiple StoredObjects for key ${o._key}`);
     }

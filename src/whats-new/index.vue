@@ -819,7 +819,7 @@
 
 <script lang="ts">
 import {defineComponent} from "vue";
-import {pageref} from "../launch-vue";
+import {pageref} from "../launch-vue.js";
 
 import L from "./item.vue";
 import Version from "./version.vue";

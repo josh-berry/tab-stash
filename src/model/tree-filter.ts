@@ -1,7 +1,7 @@
 import {computed, reactive, type Ref} from "vue";
 
-import {computedLazyEq} from "../util";
-import type {IsParentFn, TreeNode, TreeParent} from "./tree";
+import {computedLazyEq} from "../util/index.js";
+import type {IsParentFn, TreeNode, TreeParent} from "./tree.js";
 
 export interface FilterInfo {
   /** Does this node match the predicate function? */

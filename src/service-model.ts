@@ -1,14 +1,15 @@
+/* c8 ignore start -- live model creation */
+
 //
 // The model--a centralized place for all Tab Stash data.
 //
 
-// istanbul ignore file
-import {KVSCache} from "./datastore/kvs";
-import KVSService from "./datastore/kvs/service";
-import {resolveNamed} from "./util";
-import {listen} from "./util/nanoservice";
+import {KVSCache} from "./datastore/kvs/index.js";
+import KVSService from "./datastore/kvs/service.js";
+import {resolveNamed} from "./util/index.js";
+import {listen} from "./util/nanoservice/index.js";
 
-import * as M from "./model";
+import * as M from "./model/index.js";
 
 export default async function (): Promise<M.Model> {
   const kvs = await resolveNamed({

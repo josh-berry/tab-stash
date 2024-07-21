@@ -1,7 +1,0 @@
-{
-  "extends": "@istanbuljs/nyc-config-typescript",
-  "all": true,
-  "skip-full": true,
-  "include": ["src/**"],
-  "exclude": ["assets", "dist", "docs", "node_modules"]
-}

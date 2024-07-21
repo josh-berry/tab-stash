@@ -1,6 +1,6 @@
 import type {Events} from "webextension-polyfill";
 
-import type {Args} from ".";
+import type {Args} from "./index.js";
 
 export type EventSource<L extends (...args: any[]) => any> = Events.Event<L>;
 
@@ -16,10 +16,7 @@ export interface Event<L extends (...args: any[]) => any>
 
 let eventClass: {new (name: string, instance?: string): Event<any>};
 
-// istanbul ignore else -- Tests are always run in a mock environment, so there
-// is literally no way to execute the `else` block while measuring code
-// coverage.  And unfortunately, that means the code in the `else` block is
-// untestable. :/  Fortunately, it's pretty trivial code.
+/* c8 ignore start -- tests are always run in a mock environment */
 if ((<any>globalThis).mock?.events) {
   // We are running in a mock environment.  Use the MockEventDispatcher
   // instead, which allows for snooping on events.
@@ -34,17 +31,14 @@ if ((<any>globalThis).mock?.events) {
       this._listeners.add(l);
     }
 
-    // istanbul ignore next
     removeListener(l: L) {
       this._listeners.delete(l);
     }
 
-    // istanbul ignore next
     hasListener(l: L) {
       return this._listeners.has(l);
     }
 
-    // istanbul ignore next
     hasListeners() {
       return this._listeners.size > 0;
     }
@@ -68,6 +62,7 @@ if ((<any>globalThis).mock?.events) {
     }
   };
 }
+/* c8 ignore stop */
 
 /** Constructs and returns an event.  In unit tests, this is a mock which must
  * be explicitly controlled by the calling test. */

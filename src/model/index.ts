@@ -33,6 +33,7 @@
 import {computed, ref, type Ref} from "vue";
 import browser from "webextension-polyfill";
 
+import {trace_fn} from "../util/debug.js";
 import {
   backingOff,
   expect,
@@ -43,21 +44,20 @@ import {
   tryAgain,
   urlToOpen,
   urlToStash,
-} from "../util";
-import {trace_fn} from "../util/debug";
-import {logError, logErrorsFrom, UserError} from "../util/oops";
+} from "../util/index.js";
+import {logError, logErrorsFrom, UserError} from "../util/oops.js";
 
-import * as BookmarkMetadata from "./bookmark-metadata";
-import * as Bookmarks from "./bookmarks";
-import * as BrowserSettings from "./browser-settings";
-import * as Containers from "./containers";
-import * as DeletedItems from "./deleted-items";
-import * as Favicons from "./favicons";
-import * as Options from "./options";
-import * as Tabs from "./tabs";
-import {pathTo} from "./tree";
-import {TreeFilter} from "./tree-filter";
-import {TreeSelection} from "./tree-selection";
+import * as BookmarkMetadata from "./bookmark-metadata.js";
+import * as Bookmarks from "./bookmarks.js";
+import * as BrowserSettings from "./browser-settings.js";
+import * as Containers from "./containers.js";
+import * as DeletedItems from "./deleted-items.js";
+import * as Favicons from "./favicons.js";
+import * as Options from "./options.js";
+import * as Tabs from "./tabs.js";
+import {TreeFilter} from "./tree-filter.js";
+import {TreeSelection} from "./tree-selection.js";
+import {pathTo} from "./tree.js";
 
 export {
   BookmarkMetadata,
@@ -262,8 +262,7 @@ export class Model {
     if (typeof id === "string")
       return this.bookmarks.node(id as Bookmarks.NodeID);
     else if (typeof id === "number") return this.tabs.tab(id as Tabs.TabID);
-    // istanbul ignore next
-    else throw new Error(`Invalid model ID: ${id}`);
+    /* c8 ignore next */ else throw new Error(`Invalid model ID: ${id}`);
   }
 
   /** Is the passed-in URL one we want to include in the stash?  Excludes
@@ -765,7 +764,7 @@ export class Model {
     // TODO Known to be buggy on some Firefoxen, see #188.  If nobody
     // complains, probably this whole path should just be removed.
     //
-    // istanbul ignore if -- as above
+    /* c8 ignore next -- as above */
     const closed_tabs =
       !!browser.sessions?.getRecentlyClosed &&
       this.options.local.state.ff_restore_closed_tabs
@@ -882,7 +881,7 @@ export class Model {
       const closed = filterMap(closed_tabs, s => s.tab).find(
         tabLookingAtP(url),
       );
-      // istanbul ignore next - per Firefox bug noted above, see #188
+      /* c8 ignore next - per Firefox bug noted above, see #188 */
       if (closed) {
         console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
         // Remember the active tab in this window (if any), because

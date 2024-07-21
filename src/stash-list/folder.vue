@@ -228,11 +228,10 @@ import {
   bgKeyPressed,
   filterMap,
   required,
-} from "../util";
+} from "../util/index.js";
 
-import the from "@/globals-ui";
-import {copyIf} from "@/model";
-import type {BookmarkMetadataEntry} from "../model/bookmark-metadata";
+import the from "../globals-ui.js";
+import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
 import {
   friendlyFolderName,
   genDefaultFolderName,
@@ -242,9 +241,10 @@ import {
   type Bookmark,
   type Folder,
   type Node,
-} from "../model/bookmarks";
-import type {Tab, Window} from "../model/tabs";
-import {pathTo} from "../model/tree";
+} from "../model/bookmarks.js";
+import {copyIf} from "../model/index.js";
+import type {Tab, Window} from "../model/tabs.js";
+import {pathTo} from "../model/tree.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
@@ -254,8 +254,8 @@ import Menu from "../components/menu.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 
-import type {DragAction, DropAction} from "../components/dnd-list";
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto";
+import type {DragAction, DropAction} from "../components/dnd-list.js";
+import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
 
 type NodeWithTabs = {
   node: Node;

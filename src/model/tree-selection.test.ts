@@ -1,9 +1,9 @@
 import {expect} from "chai";
 import {computed, nextTick} from "vue";
 
-import {setPosition} from "./tree";
-import {TreeSelection} from "./tree-selection";
-import {isTestParent, makeDefaultTree, type TestNode} from "./tree.test";
+import {TreeSelection} from "./tree-selection.js";
+import {setPosition} from "./tree.js";
+import {isTestParent, makeDefaultTree, type TestNode} from "./tree.test.js";
 
 describe("model/tree-selection", () => {
   let [topRoot, topParents, topNodes] = makeDefaultTree();

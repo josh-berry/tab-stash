@@ -45,25 +45,25 @@
 <script lang="ts">
 import {defineComponent, nextTick} from "vue";
 
-import {filterMap} from "../util";
+import {filterMap} from "../util/index.js";
 
-import the from "@/globals-ui";
+import the from "../globals-ui.js";
 import {
   friendlyFolderName,
   isBookmark,
   type Bookmark,
   type Folder,
   type Node,
-} from "../model/bookmarks";
+} from "../model/bookmarks.js";
 
 import Dialog from "../components/dialog.vue";
 
-import {exportFolder, type ExportFolder} from "./export/model";
+import {exportFolder, type ExportFolder} from "./export/model.js";
 
-import HtmlLinks from "./export/html-links";
-import Markdown from "./export/markdown";
-import OneTab from "./export/one-tab";
-import UrlList from "./export/url-list";
+import HtmlLinks from "./export/html-links.js";
+import Markdown from "./export/markdown.js";
+import OneTab from "./export/one-tab.js";
+import UrlList from "./export/url-list.js";
 
 export default defineComponent({
   components: {Dialog, HtmlLinks, Markdown, OneTab, UrlList},

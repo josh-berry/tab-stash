@@ -1,6 +1,6 @@
 import type {Storage} from "webextension-polyfill";
 
-import * as events from "../events";
+import * as events from "../events.js";
 
 type StorageAreaName = "sync" | "local" | "managed" | "session";
 type StorageObject = {[s: string]: any};
@@ -22,7 +22,7 @@ class MockStorageArea {
     this.onChanged = new events.MockEvent(`browser.storage.${area}.onChanged`);
   }
 
-  // istanbul ignore next - implemented only to conform to the interface
+  /* c8 ignore next 3 - implemented only to conform to the interface */
   async getBytesInUse(): Promise<number> {
     return 0;
   }
@@ -75,7 +75,7 @@ class MockStorageArea {
     this.onChanged.send(ev, this._area);
   }
 
-  // istanbul ignore next - implemented only to conform to the interface
+  /* c8 ignore next 3 - implemented only to conform to the interface */
   async clear(): Promise<void> {
     await this.remove(Object.keys(this._storage));
   }

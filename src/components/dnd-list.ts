@@ -1,3 +1,5 @@
+/* c8 ignore start -- file contains only types */
+
 export type DragAction<V = any> = {
   dataTransfer: DataTransfer;
   fromIndex: number;

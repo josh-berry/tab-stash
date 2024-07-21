@@ -65,13 +65,13 @@
 import {defineComponent, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, bgKeyName, required} from "../util";
+import {altKeyName, bgKeyName, required} from "../util/index.js";
 
-import the from "@/globals-ui";
-import {copyIf} from "@/model";
-import {friendlyFolderName} from "../model/bookmarks";
-import type {Container} from "../model/containers";
-import type {Tab, Window} from "../model/tabs";
+import the from "../globals-ui.js";
+import {friendlyFolderName} from "../model/bookmarks.js";
+import type {Container} from "../model/containers.js";
+import {copyIf} from "../model/index.js";
+import type {Tab, Window} from "../model/tabs.js";
 
 import ItemIcon from "../components/item-icon.vue";
 

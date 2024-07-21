@@ -6,8 +6,8 @@ declare function require(name: string): any;
 
 let makeRandomString: (bytes: number) => string;
 
-// istanbul ignore if
-if (/* istanbul ignore next */ (<any>globalThis)?.crypto?.getRandomValues) {
+/* c8 ignore start -- platform-specific random implementation */
+if ((<any>globalThis)?.crypto?.getRandomValues) {
   // Browser
   makeRandomString = (bytes: number): string => {
     const a = new Uint8Array(bytes);
@@ -22,5 +22,6 @@ if (/* istanbul ignore next */ (<any>globalThis)?.crypto?.getRandomValues) {
     return a.toString("base64").replace(/=+$/, "");
   };
 }
+/* c8 ignore stop */
 
 export {makeRandomString};

@@ -1,11 +1,11 @@
 import {expect} from "chai";
 
-import * as events from "../mock/events";
+import * as events from "../mock/events.js";
 
-import {KVSCache} from "../datastore/kvs";
-import MemoryKVS from "../datastore/kvs/memory";
-import type {BookmarkMetadata} from "./bookmark-metadata";
-import {Model} from "./bookmark-metadata";
+import {KVSCache} from "../datastore/kvs/index.js";
+import MemoryKVS from "../datastore/kvs/memory.js";
+import type {BookmarkMetadata} from "./bookmark-metadata.js";
+import {Model} from "./bookmark-metadata.js";
 
 describe("model/bookmark-metadata", () => {
   let kvc: KVSCache<string, BookmarkMetadata>;

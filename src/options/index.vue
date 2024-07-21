@@ -446,9 +446,9 @@ import {
   type WritableComputedRef,
 } from "vue";
 
-import * as Options from "../model/options";
-import {required} from "../util";
-import {logErrorsFrom} from "../util/oops";
+import * as Options from "../model/options.js";
+import {required} from "../util/index.js";
+import {logErrorsFrom} from "../util/oops.js";
 
 import OopsNotification from "../components/oops-notification.vue";
 import FeatureFlag from "./feature-flag.vue";
