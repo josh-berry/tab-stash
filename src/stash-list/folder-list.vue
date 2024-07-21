@@ -22,12 +22,7 @@ import {defineComponent, type PropType} from "vue";
 import {required} from "../util/index.js";
 
 import the from "../globals-ui.js";
-import {
-  isFolder,
-  type Folder,
-  type Node,
-  type NodeID,
-} from "../model/bookmarks.js";
+import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
 
 import type {DragAction, DropAction} from "../components/dnd-list.js";
 import DndList from "../components/dnd-list.vue";
@@ -66,11 +61,10 @@ export default defineComponent({
 
     async drop(ev: DropAction) {
       const id = ev.dataTransfer.getData(DROP_FORMAT);
-      await the.model.bookmarks.move(
-        id as NodeID,
-        this.parentFolder.id,
-        ev.toIndex,
-      );
+      const node = the.model.bookmarks.node(id);
+      if (!node) throw new Error(`${id}: No such bookmark node`);
+
+      await the.model.bookmarks.move(node, this.parentFolder, ev.toIndex);
     },
     setCollapsed(c: boolean) {
       for (const f of <any>this.$refs.folders) f.collapsed = c;

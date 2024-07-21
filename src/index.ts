@@ -5,9 +5,15 @@ import browser from "webextension-polyfill";
 
 import {copyIf} from "./model/index.js";
 import type {ShowWhatOpt, StashWhatOpt} from "./model/options.js";
-import type {Tab, TabID, WindowID} from "./model/tabs.js";
+import type {Tab} from "./model/tabs.js";
 import service_model from "./service-model.js";
-import {asyncEvent, backingOff, nonReentrant, urlToOpen} from "./util/index.js";
+import {
+  asyncEvent,
+  backingOff,
+  filterMap,
+  nonReentrant,
+  urlToOpen,
+} from "./util/index.js";
 import {logErrorsFrom} from "./util/oops.js";
 
 logErrorsFrom(async () => {
@@ -38,12 +44,14 @@ logErrorsFrom(async () => {
 
       const tabs = await browser.tabs.query({hidden: true});
 
-      for (const t of tabs) {
-        if (model.bookmarks.isURLStashed(t.url!)) {
-          // This applies the tag as a side effect
-          await model.tabs.hide([t.id! as TabID]);
-        }
-      }
+      const stashed_hidden_tabs = tabs.filter(t =>
+        model.bookmarks.isURLStashed(t.url!),
+      );
+
+      // This applies the tag as a side effect
+      await model.tabs.hide(
+        filterMap(stashed_hidden_tabs, t => model.tabs.tab(t.id!)),
+      );
 
       await model.options.local.set({migrated_tab_markers_applied: true});
     });
@@ -186,7 +194,7 @@ logErrorsFrom(async () => {
       if (!tab) return;
       await model.putItemsInFolder({
         items: [tab],
-        toFolderId: (await model.bookmarks.createStashFolder()).id,
+        toFolder: await model.bookmarks.createStashFolder(),
       });
     },
 
@@ -239,16 +247,15 @@ logErrorsFrom(async () => {
 
     switch (options.what) {
       case "all":
-        await model.stashAllTabsInWindow(
-          options.tab.position.parent.id as WindowID,
-          {copy: !!options.copy},
-        );
+        await model.stashAllTabsInWindow(options.tab.position.parent, {
+          copy: !!options.copy,
+        });
         break;
 
       case "single":
         await model.putItemsInFolder({
           items: copyIf(!!options.copy, [options.tab]),
-          toFolderId: (await model.ensureRecentUnnamedFolder()).id,
+          toFolder: await model.ensureRecentUnnamedFolder(),
         });
         break;
 
@@ -410,10 +417,6 @@ logErrorsFrom(async () => {
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
         const new_urls = model.bookmarks.urlsInStash();
-        let windows = await browser.windows.getAll({
-          windowTypes: ["normal"],
-          populate: true,
-        });
 
         // Ugh, why am I open-coding a set-difference operation?  This
         // should be built-in!
@@ -422,18 +425,11 @@ logErrorsFrom(async () => {
           if (!new_urls.has(url)) removed_urls.add(url);
         }
 
-        let tids = [];
-        for (let w of windows) {
-          // #undef We only asked for 'normal' windows, which have tabs
-          for (let t of w.tabs!) {
-            if (!t.hidden) continue;
-            if (t.id === undefined) continue;
-            if (!removed_urls.has(urlToOpen(t.url!))) continue;
-            tids.push(t.id as TabID);
-          }
-        }
-
-        await model.tabs.remove(tids);
+        await model.tabs.remove(
+          model.tabs
+            .allTabs()
+            .filter(t => t.hidden && removed_urls.has(urlToOpen(t.url))),
+        );
 
         managed_urls = new_urls;
       }),

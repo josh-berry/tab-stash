@@ -512,8 +512,8 @@ export default defineComponent({
       the.model.attempt(
         async () =>
           await the.model.putItemsInFolder({
-            items: copyIf(ev.altKey, the.model.stashableTabsInWindow(win.id)),
-            toFolderId: this.folder.id,
+            items: copyIf(ev.altKey, the.model.stashableTabsInWindow(win)),
+            toFolder: this.folder,
           }),
       );
     },
@@ -528,7 +528,7 @@ export default defineComponent({
       this.attempt(async () => {
         await the.model.putItemsInFolder({
           items: copyIf(ev.altKey, [tab]),
-          toFolderId: this.folder.id,
+          toFolder: this.folder,
         });
       });
     },
@@ -544,27 +544,26 @@ export default defineComponent({
           p => p.parent === root,
         );
 
-        await model.move(this.folder.id, root.id, rootPos?.index ?? 0);
+        await model.move(this.folder, root, rootPos?.index ?? 0);
       });
     },
 
     moveSelfToChild() {
       this.attempt(async () => {
         const model = the.model.bookmarks;
-        const root = model.stash_root.value!;
         const pos = this.folder.position!;
 
         // Create a new parent first, positioned at our current index
-        const newParent = await model.create({
+        const newParent = await model.createFolder({
           // We give the parent a default name so it will go away automatically
           // when emptied.
           title: genDefaultFolderName(new Date()),
-          parentId: root.id,
+          parent: model.stash_root.value!,
           index: pos.index,
         });
 
         // Then move ourselves into the parent
-        await model.move(this.folder.id, newParent.id, 0);
+        await model.move(this.folder, newParent, 0);
       });
     },
 
@@ -573,10 +572,7 @@ export default defineComponent({
       if (!win_id) return;
 
       the.model.attempt(() =>
-        the.model.putSelectedInFolder({
-          copy: ev.altKey,
-          toFolderId: this.folder.id,
-        }),
+        the.model.putSelectedInFolder({copy: ev.altKey, toFolder: this.folder}),
       );
     },
 
@@ -585,14 +581,11 @@ export default defineComponent({
       if (!win_id) return;
 
       the.model.attempt(async () => {
-        const f = await the.model.bookmarks.create({
-          parentId: this.folder.id,
+        const f = await the.model.bookmarks.createFolder({
+          parent: this.folder,
           title: genDefaultFolderName(new Date()),
         });
-        await the.model.putSelectedInFolder({
-          copy: ev.altKey,
-          toFolderId: f.id,
-        });
+        await the.model.putSelectedInFolder({copy: ev.altKey, toFolder: f});
       });
     },
 
@@ -606,7 +599,7 @@ export default defineComponent({
 
     remove() {
       this.attempt(async () => {
-        await the.model.deleteBookmarkTree(this.folder.id);
+        await the.model.deleteBookmarkTree(this.folder);
       });
     },
 
@@ -618,7 +611,7 @@ export default defineComponent({
           background: bg,
           beforeClosing: () =>
             this.leafChildren.length === this.folder.children.length
-              ? the.model.deleteBookmarkTree(this.folder.id)
+              ? the.model.deleteBookmarkTree(this.folder)
               : the.model.deleteItems(this.leafChildren),
         });
       });
@@ -654,8 +647,8 @@ export default defineComponent({
       this.attempt(async () => {
         if (the.model.tabs.targetWindow.value === undefined) return;
         await the.model.stashAllTabsInWindow(
-          the.model.tabs.targetWindow.value.id,
-          {copy: ev.altKey, parent: this.folder.id, position: "bottom"},
+          the.model.tabs.targetWindow.value,
+          {copy: ev.altKey, parent: this.folder, position: "bottom"},
         );
       });
     },
@@ -682,7 +675,7 @@ export default defineComponent({
       await the.model.attempt(() =>
         the.model.putItemsInFolder({
           items,
-          toFolderId: this.folder.id,
+          toFolder: this.folder,
           toIndex: ev.toIndex,
           allowDuplicates: true,
         }),

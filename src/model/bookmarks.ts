@@ -305,6 +305,19 @@ export class Model {
     });
   }
 
+  /** Creates a bookmark folder and waits for the model to see it. */
+  createFolder(opts: {
+    title: string;
+    parent: Folder;
+    index?: number;
+  }): Promise<Folder> {
+    return this.create({
+      title: opts.title,
+      parentId: opts.parent.id,
+      index: opts.index,
+    }) as Promise<Folder>;
+  }
+
   /** Updates a bookmark's title and waits for the model to reflect the
    * update. */
   async rename(bm: Bookmark | Folder, title: string): Promise<void> {
@@ -319,18 +332,15 @@ export class Model {
    * If the node is part of the stash and belongs to an unnamed folder which
    * is now empty, cleanup that folder as well.
    */
-  async remove(id: NodeID): Promise<void> {
-    const node = this.node(id);
-    if (!node) return;
-
+  async remove(node: Node): Promise<void> {
     const pos = node.position;
 
-    await browser.bookmarks.remove(id);
+    await browser.bookmarks.remove(node.id);
 
     // Wait for the model to catch up
     await shortPoll(() => {
       // Wait for the model to catch up
-      if (this.by_id.has(id)) tryAgain();
+      if (this.by_id.has(node.id)) tryAgain();
     });
 
     if (pos) await this.maybeCleanupEmptyFolder(pos.parent);
@@ -338,13 +348,13 @@ export class Model {
 
   /** Deletes an entire tree of bookmarks and waits for the model to reflect
    * the deletion. */
-  async removeTree(id: NodeID): Promise<void> {
-    await browser.bookmarks.removeTree(id);
+  async removeTree(node: Node): Promise<void> {
+    await browser.bookmarks.removeTree(node.id);
 
     // Wait for the model to catch up
     await shortPoll(() => {
       // Wait for the model to catch up
-      if (this.by_id.has(id)) tryAgain();
+      if (this.by_id.has(node.id)) tryAgain();
     });
   }
 
@@ -354,16 +364,15 @@ export class Model {
    *
    * Use this instead of `browser.bookmarks.move()`, which behaves differently
    * in Chrome and Firefox... */
-  async move(id: NodeID, toParent: NodeID, toIndex: number): Promise<void> {
+  async move(node: Node, toParent: Folder, toIndex: number): Promise<void> {
     // Firefox's `index` parameter behaves like the bookmark is first
     // removed, then re-added.  Chrome's/Edge's behaves like the bookmark is
     // first added, then removed from its old location, so the index of the
     // item after the move will sometimes be toIndex-1 instead of toIndex;
     // we account for this below.
-    const node = expect(this.node(id), () => `No such bookmark node: ${id}`);
     const position = expect(
       node.position,
-      () => `Unable to locate node ${id} in its parent`,
+      () => `Unable to locate node ${node.id} in its parent`,
     );
 
     // Clamp the destination index based on the model length, or the poll
@@ -371,25 +380,24 @@ export class Model {
     // reliable--we might still get an exception if multiple concurrent
     // moves are going on, but even Firefox itself has bugs in this
     // situation, soooo... *shrug*)
-    const toParentFolder = expect(
-      this.folder(toParent),
-      () => `Unable to locate destination folder: ${toParent}`,
-    );
-    toIndex = Math.min(toParentFolder.children.length, Math.max(0, toIndex));
+    toIndex = Math.min(toParent.children.length, Math.max(0, toIndex));
 
     /* c8 ignore next -- platform-specific check */
     if (!!browser.runtime.getBrowserInfo) {
       // We're using Firefox
-      if (position.parent.id === toParent) {
+      if (position.parent === toParent) {
         if (toIndex > position.index) toIndex--;
       }
     }
-    await browser.bookmarks.move(id, {parentId: toParent, index: toIndex});
+    await browser.bookmarks.move(node.id, {
+      parentId: toParent.id,
+      index: toIndex,
+    });
     await shortPoll(() => {
       const pos = node.position;
       /* c8 ignore next -- race avoidance */
       if (!pos) tryAgain();
-      if (pos.parent.id !== toParent || pos.index !== toIndex) tryAgain();
+      if (pos.parent !== toParent || pos.index !== toIndex) tryAgain();
     });
 
     await this.maybeCleanupEmptyFolder(position.parent);
@@ -420,7 +428,7 @@ export class Model {
         // threads see the same ordering of candidate folders (and thus
         // will all choose the same folder to save) because the
         // candidate list is sorted deterministically.
-        await this.remove(candidates[1].id).catch(() => {});
+        await this.remove(candidates[1]).catch(() => {});
         delay += 10;
       }
       await new Promise(r => setTimeout(r, 5 * Math.random()));
@@ -436,18 +444,18 @@ export class Model {
    * default name will be assigned based on the folder's creation time. */
   async createStashFolder(
     name?: string,
-    parent?: NodeID,
+    parent?: Folder,
     position?: "top" | "bottom",
   ): Promise<Folder> {
     const stash_root = await this.ensureStashRoot();
-    parent ??= stash_root.id;
+    parent ??= stash_root;
     position ??= "top";
 
     const bm = await this.create({
-      parentId: parent,
+      parentId: parent.id,
       title: name ?? genDefaultFolderName(new Date()),
       // !-cast: this.create() will check the existence of the parent for us
-      index: position === "top" ? 0 : this.folder(parent)!.children.length,
+      index: position === "top" ? 0 : parent.children.length,
     });
     return bm as Folder;
   }
@@ -465,7 +473,7 @@ export class Model {
     //
     // ALSO NOTE: If the folder is suddenly NOT empty due to a race, stale
     // model, etc., this will fail, because the browser itself will throw.
-    await this.remove(folder.id);
+    await this.remove(folder);
   }
 
   //
@@ -761,7 +769,7 @@ export class Model {
     ) => {
       if (levels > 0) {
         for (let i = 0; i < options.folder_count; ++i) {
-          const f = await this.createStashFolder(undefined, parent.id);
+          const f = await this.createStashFolder(undefined, parent);
           await populate_folder(f, levels - 1, `${path}-${i}`);
         }
       } else {

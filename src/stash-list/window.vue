@@ -118,7 +118,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 import {defineComponent, ref, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, filterMap, required} from "../util/index.js";
+import {altKeyName, required} from "../util/index.js";
 
 import type {DragAction, DropAction} from "../components/dnd-list.js";
 
@@ -313,13 +313,13 @@ export default defineComponent({
         // isValidChild() will exclude already-stashed tabs if the user is in
         // "Unstashed Tabs" mode (i.e. ! this.showStashedTabs).
         const stashable_children = the.model
-          .stashableTabsInWindow(this.targetWindow.id)
+          .stashableTabsInWindow(this.targetWindow)
           .filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
         await the.model.putItemsInFolder({
           items: copyIf(ev.altKey, stashable_children),
-          toFolderId: (await the.model.bookmarks.createStashFolder()).id,
+          toFolder: await the.model.bookmarks.createStashFolder(),
         });
       });
     },
@@ -335,7 +335,7 @@ export default defineComponent({
             !the.model.bookmarks.isURLStashed(t.url),
         );
         if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.tabs.remove(to_remove.map(t => t.id));
+        await the.model.tabs.remove(to_remove);
       });
     },
 
@@ -357,7 +357,7 @@ export default defineComponent({
           const tabs = this.tabs.filter(
             t => t.hidden && the.model.bookmarks.isURLStashed(t.url),
           );
-          await the.model.tabs.remove(filterMap(tabs, t => t?.id));
+          await the.model.tabs.remove(tabs);
         } else {
           // Closes ALL open tabs (stashed and unstashed).
           //
@@ -381,7 +381,7 @@ export default defineComponent({
 
           if (!(await this.confirmRemove(tabs.length))) return;
 
-          await the.model.tabs.refocusAwayFromTabs(tabs.map(t => t.id));
+          await the.model.tabs.refocusAwayFromTabs(tabs);
 
           the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
           browser.tabs.remove(close_tabs).catch(console.log);
@@ -416,7 +416,7 @@ export default defineComponent({
         const folder = await the.model.bookmarks.createStashFolder();
         await the.model.putSelectedInFolder({
           copy: ev.altKey,
-          toFolderId: folder.id,
+          toFolder: folder,
         });
       });
     },

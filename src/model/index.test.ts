@@ -252,7 +252,8 @@ describe("model", () => {
           true,
         );
 
-        await model.bookmarks.remove(bookmarks.doug_2.id);
+        const doug_2 = model.bookmarks.bookmark(bookmarks.doug_2.id)!;
+        await model.bookmarks.remove(doug_2);
 
         await model.closeOrphanedHiddenTabs();
 
@@ -282,9 +283,8 @@ describe("model", () => {
     });
 
     it("chooses all non-hidden, non-pinned and non-privileged tabs", () => {
-      expect(
-        model.stashableTabsInWindow(windows.real.id).map(t => t.id),
-      ).to.deep.equal([
+      const win = model.tabs.window(windows.real.id)!;
+      expect(model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal([
         tabs.real_bob.id,
         tabs.real_doug.id,
         tabs.real_estelle.id,
@@ -300,9 +300,8 @@ describe("model", () => {
       await browser.tabs.update(tabs.real_harry.id, {highlighted: true});
       await events.nextN(browser.tabs.onHighlighted, 4);
 
-      expect(
-        model.stashableTabsInWindow(windows.real.id).map(t => t.id),
-      ).to.deep.equal([
+      const win = model.tabs.window(windows.real.id)!;
+      expect(model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal([
         // was previously active and therefore explicitly selected
         tabs.real_blank.id,
         // explicitly selected
@@ -556,7 +555,7 @@ describe("model", () => {
       async () => {
         const p = model.putItemsInFolder({
           items: options.items.map(i => model.bookmarks.node(bookmarks[i].id)!),
-          toFolderId: bookmarks[options.toFolder].id,
+          toFolder: model.bookmarks.folder(bookmarks[options.toFolder].id)!,
           toIndex: options.toIndex,
         });
         await events.nextN(browser.bookmarks.onMoved, options.items.length);
@@ -817,7 +816,7 @@ describe("model", () => {
           {url: "foo", title: "Foo"},
           {url: "bar", title: "Bar"},
         ],
-        toFolderId: bookmarks.names.id,
+        toFolder: model.bookmarks.folder(bookmarks.names.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
@@ -869,7 +868,7 @@ describe("model", () => {
           model.tabs.tab(tabs.real_bob.id)!,
           model.tabs.tab(tabs.real_estelle.id)!,
         ],
-        toFolderId: bookmarks.names.id,
+        toFolder: model.bookmarks.folder(bookmarks.names.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
@@ -927,7 +926,7 @@ describe("model", () => {
           model.bookmarks.bookmark(bookmarks.two.id)!,
           model.bookmarks.bookmark(bookmarks.four.id)!,
         ],
-        toFolderId: bookmarks.names.id,
+        toFolder: model.bookmarks.folder(bookmarks.names.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
@@ -1009,8 +1008,9 @@ describe("model", () => {
         `${B}#turtle`,
         `${B}#nate`,
       ];
+      const folder = model.bookmarks.folder(bookmarks.names.id)!;
       const p = model.putItemsInFolder({
-        toFolderId: bookmarks.names.id,
+        toFolder: folder,
         toIndex: 2,
         items: urls.map(url => ({url})),
       });
@@ -1030,8 +1030,6 @@ describe("model", () => {
         bookmarks.nate.id,
         bookmarks.patricia.id,
       ];
-
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
 
       expect(
         filterMap(res, r => (r as M.Bookmarks.Bookmark).url),
@@ -1056,8 +1054,9 @@ describe("model", () => {
     });
 
     it("puts nested folders into the stash", async () => {
+      const folder = model.bookmarks.folder(bookmarks.names.id)!;
       const p = model.putItemsInFolder({
-        toFolderId: bookmarks.names.id,
+        toFolder: folder,
         toIndex: 0,
         items: [
           {
@@ -1079,7 +1078,6 @@ describe("model", () => {
       await events.nextN(browser.bookmarks.onCreated, 6);
       await p;
 
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
       const topChild = folder.children[0] as Folder;
       expect(isFolder(topChild)).to.be.true;
       expect(topChild.title).to.equal("Folder");
@@ -1134,7 +1132,7 @@ describe("model", () => {
       async () => {
         const p = model.putItemsInWindow({
           items: options.items.map(i => model.tabs.tab(tabs[i].id)!),
-          toWindowId: windows[options.toWindow].id,
+          toWindow: model.tabs.window(windows[options.toWindow].id)!,
           toIndex: options.toIndex,
         });
         await events.nextN<any>(
@@ -1400,7 +1398,7 @@ describe("model", () => {
 
       const p = model.putItemsInWindow({
         items: [{url: "http://example.com/#1"}, {url: "http://example.com/#2"}],
-        toWindowId: windows.right.id,
+        toWindow: model.tabs.window(windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1434,7 +1432,7 @@ describe("model", () => {
 
       const p = model.putItemsInWindow({
         items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
-        toWindowId: windows.right.id,
+        toWindow: model.tabs.window(windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1470,7 +1468,7 @@ describe("model", () => {
           model.bookmarks.bookmark(bookmarks.helen.id)!, // hidden tab
           model.bookmarks.bookmark(bookmarks.nate.id)!, // not open
         ],
-        toWindowId: windows.right.id,
+        toWindow: model.tabs.window(windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN<any>(
@@ -1548,7 +1546,7 @@ describe("model", () => {
           model.tabs.tab(tabs.right_doug.id)!,
           model.bookmarks.bookmark(bookmarks.nate.id)!,
         ],
-        toWindowId: windows.right.id,
+        toWindow: model.tabs.window(windows.right.id)!,
         toIndex: 1,
       });
       await events.nextN(browser.tabs.onMoved, 1);
@@ -1590,7 +1588,7 @@ describe("model", () => {
     it("moves bookmarks with hidden tabs into the window (backward)", async () => {
       const p = model.putItemsInWindow({
         items: [model.bookmarks.bookmark(bookmarks.helen.id)!],
-        toWindowId: windows.real.id,
+        toWindow: model.tabs.window(windows.real.id)!,
         toIndex: 9,
       });
       await events.next(browser.tabs.onMoved);
@@ -1617,7 +1615,7 @@ describe("model", () => {
     it("moves bookmarks with hidden tabs into the window (forward)", async () => {
       const p = model.putItemsInWindow({
         items: [model.bookmarks.bookmark(bookmarks.doug_2.id)!],
-        toWindowId: windows.real.id,
+        toWindow: model.tabs.window(windows.real.id)!,
         toIndex: 9,
       });
       await events.next(browser.tabs.onMoved);
@@ -1797,7 +1795,8 @@ describe("model", () => {
     }
 
     it("deletes folders and remembers them as deleted items", async () => {
-      const p = model.deleteBookmarkTree(bookmarks.names.id);
+      const f = model.bookmarks.node(bookmarks.names.id)!;
+      const p = model.deleteBookmarkTree(f);
       await events.next(browser.bookmarks.onRemoved);
       await events.next("KVS.Memory.onSet");
       await p;
@@ -1858,7 +1857,8 @@ describe("model", () => {
     });
 
     it("un-deletes folders", async () => {
-      const p1 = model.deleteBookmarkTree(bookmarks.names.id);
+      const f = model.bookmarks.node(bookmarks.names.id)!;
+      const p1 = model.deleteBookmarkTree(f);
       await events.next(browser.bookmarks.onRemoved);
       await events.next(deleted_items.onSet);
       await p1;
@@ -1929,7 +1929,8 @@ describe("model", () => {
         // deleted item #1 is the item deleted in beforeEach() above
 
         // deleted item #0:
-        const p1 = model.deleteBookmarkTree(bookmarks.names.id);
+        const f = model.bookmarks.node(bookmarks.names.id)!;
+        const p1 = model.deleteBookmarkTree(f);
         await events.next(browser.bookmarks.onRemoved);
         await events.next(deleted_items.onSet);
         await p1;
@@ -1957,7 +1958,8 @@ describe("model", () => {
         // deleted item #1 is the item deleted in beforeEach() above
 
         // deleted item #0:
-        const p1 = model.deleteBookmarkTree(bookmarks.names.id);
+        const f = model.bookmarks.node(bookmarks.names.id)!;
+        const p1 = model.deleteBookmarkTree(f);
         await events.next(browser.bookmarks.onRemoved);
         await events.next(deleted_items.onSet);
         await p1;
@@ -1991,7 +1993,8 @@ describe("model", () => {
 
     describe("un-deletes individual bookmarks in a deleted folder", () => {
       beforeEach(async () => {
-        const p = model.deleteBookmarkTree(bookmarks.names.id);
+        const f = model.bookmarks.node(bookmarks.names.id)!;
+        const p = model.deleteBookmarkTree(f);
         await events.next(browser.bookmarks.onRemoved);
         await events.next(deleted_items.onSet);
         await p;

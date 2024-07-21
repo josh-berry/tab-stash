@@ -211,7 +211,11 @@ describe("model/bookmarks", () => {
   });
 
   it("reorders bookmarks (forward)", async () => {
-    const p = model.move(bms.alice.id, bms.outside.id, 4);
+    const p = model.move(
+      model.bookmark(bms.alice.id)!,
+      model.folder(bms.outside.id)!,
+      4,
+    );
     await events.next(browser.bookmarks.onMoved);
     await p;
 
@@ -221,7 +225,11 @@ describe("model/bookmarks", () => {
   });
 
   it("reorders bookmarks (backward)", async () => {
-    const p = model.move(bms.empty.id, bms.outside.id, 0);
+    const p = model.move(
+      model.node(bms.empty.id)!,
+      model.folder(bms.outside.id)!,
+      0,
+    );
     await events.next(browser.bookmarks.onMoved);
     await p;
 
@@ -231,7 +239,11 @@ describe("model/bookmarks", () => {
   });
 
   it("moves bookmarks between folders", async () => {
-    const p = model.move(bms.bob.id, bms.names.id, 2);
+    const p = model.move(
+      model.bookmark(bms.bob.id)!,
+      model.folder(bms.names.id)!,
+      2,
+    );
     await events.next(browser.bookmarks.onMoved);
     await p;
 
@@ -402,7 +414,7 @@ describe("model/bookmarks", () => {
 
   describe("cleans up empty folders", () => {
     it("when deleting stash bookmarks from an unnamed folder", async () => {
-      const p = model.remove(bms.undyne.id);
+      const p = model.remove(model.bookmark(bms.undyne.id)!);
       await events.nextN(browser.bookmarks.onRemoved, 2);
       await p;
 
@@ -413,7 +425,11 @@ describe("model/bookmarks", () => {
     });
 
     it("when moving stash bookmarks to another folder", async () => {
-      const p = model.move(bms.undyne.id, bms.names.id, 5);
+      const p = model.move(
+        model.bookmark(bms.undyne.id)!,
+        model.folder(bms.names.id)!,
+        5,
+      );
       await events.next(browser.bookmarks.onMoved);
       await events.next(browser.bookmarks.onRemoved);
       await p;
@@ -455,7 +471,7 @@ describe("model/bookmarks", () => {
       });
 
       it("when deleting bookmarks outside the stash root", async () => {
-        const p = model.remove(new_child.id);
+        const p = model.remove(new_child);
         await events.nextN(browser.bookmarks.onRemoved, 1);
         await p;
 
@@ -473,7 +489,7 @@ describe("model/bookmarks", () => {
       });
 
       it("when moving bookmarks outside the stash root", async () => {
-        const p = model.move(new_child.id, bms.names.id, 5);
+        const p = model.move(new_child, model.folder(bms.names.id)!, 5);
         await events.next(browser.bookmarks.onMoved);
         await p;
 

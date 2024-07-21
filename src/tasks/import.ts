@@ -212,7 +212,7 @@ export async function importURLs(options: {
         );
         const bookmarks = await options.model.putItemsInFolder({
           items: g.children,
-          toFolderId: folder.id,
+          toFolder: folder,
           task: tm,
         });
         return {folder, bookmarks};
