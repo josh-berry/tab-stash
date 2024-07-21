@@ -36,7 +36,6 @@ import browser from "webextension-polyfill";
 import {trace_fn} from "../util/debug.js";
 import {
   backingOff,
-  expect,
   filterMap,
   shortPoll,
   TaskMonitor,
@@ -323,12 +322,8 @@ export class Model {
    * has made an explicit choice about what to stash), only the selected tabs
    * will be returned.
    */
-  stashableTabsInWindow(windowId: Tabs.WindowID): Tabs.Tab[] {
-    const win = expect(
-      this.tabs.window(windowId),
-      () => `Trying to stash tabs to unknown window ${windowId}`,
-    );
-    const tabs = win.children.filter(t => !t.hidden);
+  stashableTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
+    const tabs = window.children.filter(t => !t.hidden);
 
     let selected = tabs.filter(t => t.highlighted);
     if (selected.length <= 1) {
@@ -379,10 +374,10 @@ export class Model {
   /** Stashes all eligible tabs in the specified window, leaving the existing
    * tabs open if `copy` is true. */
   async stashAllTabsInWindow(
-    window: Tabs.WindowID,
+    window: Tabs.Window,
     options: {
       copy?: boolean;
-      parent?: Bookmarks.NodeID;
+      parent?: Bookmarks.Folder;
       position?: "top" | "bottom";
     },
   ) {
@@ -391,13 +386,11 @@ export class Model {
 
     await this.putItemsInFolder({
       items: copyIf(!!options.copy, tabs),
-      toFolderId: (
-        await this.bookmarks.createStashFolder(
-          undefined,
-          options.parent,
-          options.position,
-        )
-      ).id,
+      toFolder: await this.bookmarks.createStashFolder(
+        undefined,
+        options.parent,
+        options.position,
+      ),
     });
   }
 
@@ -405,20 +398,17 @@ export class Model {
    * when the toFolderId option is set, otherwise the current window.
    *
    * Note: When copying is disabled, the source items will be deselected. */
-  async putSelectedIn(options?: {
-    copy?: boolean;
-    toFolderId?: Bookmarks.NodeID;
-  }) {
+  async putSelectedIn(options?: {copy?: boolean; toFolder?: Bookmarks.Folder}) {
     const from_items = Array.from(this.selection.selectedItems());
     const items = copyIf(options?.copy === true, from_items);
 
     let affected_items: StashItem[];
-    if (options?.toFolderId === undefined) {
+    if (options?.toFolder === undefined) {
       affected_items = await this.putItemsInWindow({items});
     } else {
       affected_items = await this.putItemsInFolder({
         items,
-        toFolderId: options.toFolderId,
+        toFolder: options.toFolder,
         allowDuplicates: options?.copy === true,
       });
     }
@@ -437,7 +427,7 @@ export class Model {
   /** Put the set of currently-selected items in the specified folder. */
   async putSelectedInFolder(options: {
     copy: boolean;
-    toFolderId: Bookmarks.NodeID;
+    toFolder: Bookmarks.Folder;
   }) {
     await this.putSelectedIn(options);
   }
@@ -446,24 +436,22 @@ export class Model {
    * for what to do with stashed tabs.  Creates a new tab if necessary to keep
    * the browser window(s) open. */
   async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
-    const tids = tabs.map(t => t.id);
-
     // Clear any highlights/selections on tabs we are stashing
     await Promise.all(
-      tids.map(id => browser.tabs.update(id, {highlighted: false})),
+      tabs.map(t => browser.tabs.update(t.id, {highlighted: false})),
     );
     for (const t of tabs) this.selection.info(t).isSelected = false;
 
     switch (this.options.local.state.after_stashing_tab) {
       case "hide_discard":
-        await this.tabs.hide(tids, "discard");
+        await this.tabs.hide(tabs, "discard");
         break;
       case "close":
-        await this.tabs.remove(tids);
+        await this.tabs.remove(tabs);
         break;
       case "hide":
       default:
-        await this.tabs.hide(tids);
+        await this.tabs.hide(tabs);
         break;
     }
   }
@@ -520,10 +508,7 @@ export class Model {
     // close it if it's just the new-tab page.
     const active_tab = win_tabs.filter(t => t.active)[0];
 
-    const tabs = await this.putItemsInWindow({
-      items: copying(items),
-      toWindowId: toWindow.id,
-    });
+    const tabs = await this.putItemsInWindow({items: copying(items), toWindow});
 
     if (options.beforeClosing) await options.beforeClosing(tabs);
 
@@ -571,17 +556,12 @@ export class Model {
    * avoid creating duplicates. */
   async putItemsInFolder(options: {
     items: StashItem[];
-    toFolderId: Bookmarks.NodeID;
+    toFolder: Bookmarks.Folder;
     toIndex?: number;
     allowDuplicates?: boolean;
     task?: TaskMonitor;
   }): Promise<Bookmarks.Node[]> {
-    // First we try to find the folder we're moving to.
-    const to_folder = expect(
-      this.bookmarks.folder(options.toFolderId),
-      () => `Destination folder does not exist: ${options.toFolderId}`,
-    );
-
+    const to_folder = options.toFolder;
     const items = options.items;
 
     // Note: We explicitly DON'T check stashability here because the caller
@@ -628,7 +608,7 @@ export class Model {
       // If it's a bookmark node, just move it directly.
       if (model_item && isNode(model_item)) {
         const pos = model_item.position;
-        await this.bookmarks.move(model_item.id, to_folder.id, to_index);
+        await this.bookmarks.move(model_item, to_folder, to_index);
         moved_items.push(model_item);
         dont_steal_bms.add(model_item.id);
 
@@ -667,7 +647,7 @@ export class Model {
         node = already_there[0];
 
         const pos = node.position;
-        await this.bookmarks.move(node.id, to_folder.id, to_index);
+        await this.bookmarks.move(node, to_folder, to_index);
         if (pos && pos.parent === to_folder && pos.index < to_index) --to_index;
       } else {
         // There is no duplicate, so we can just create a new one.  We might
@@ -698,7 +678,7 @@ export class Model {
             let idx = 0;
             for (const c of item.children) {
               if (typeof c === "string") {
-                await this.bookmarks.move(c, node.id, idx);
+                await this.bookmarks.move(c, node as Bookmarks.Folder, idx);
               } else {
                 await createTree(c, node.id, idx);
               }
@@ -741,18 +721,14 @@ export class Model {
    * opening duplicate tabs. */
   async putItemsInWindow(options: {
     items: StashItem[];
-    toWindowId?: Tabs.WindowID;
+    toWindow?: Tabs.Window;
     toIndex?: number;
     task?: TaskMonitor;
   }): Promise<Tabs.Tab[]> {
-    const to_win_id = options.toWindowId ?? this.tabs.targetWindow.value?.id;
-    if (to_win_id === undefined) {
-      throw new Error(`No target window available: ${to_win_id}`);
+    const win = options.toWindow ?? this.tabs.targetWindow.value;
+    if (win === undefined) {
+      throw new Error(`No target window available`);
     }
-    const win = expect(
-      this.tabs.window(to_win_id),
-      () => `Trying to put items in unknown window ${to_win_id}`,
-    );
 
     const items = options.items;
 
@@ -804,7 +780,7 @@ export class Model {
       // If the item we're moving is a tab, just move it into place.
       if (model_item && isTab(model_item)) {
         const pos = model_item.position;
-        await this.tabs.move(model_item.id, to_win_id, to_index);
+        await this.tabs.move(model_item, win, to_index);
         moved_items.push(model_item);
         dont_steal_tabs.add(model_item.id);
 
@@ -842,12 +818,12 @@ export class Model {
       // There is a dual purpose here--we want to reuse hidden tabs where
       // possible, but we also try to move other tabs from the current
       // window so that we don't end up creating duplicates for the user.
-      const already_open = Array.from(this.tabs.tabsWithURL(url))
+      const already_open: Tabs.Tab[] = Array.from(this.tabs.tabsWithURL(url))
         .filter(
           t =>
             !dont_steal_tabs.has(t.id) &&
             !t.pinned &&
-            (t.hidden || t.position?.parent.id === to_win_id),
+            (t.hidden || t.position?.parent === win),
         )
         .sort((a, b) => -a.hidden - -b.hidden); // prefer hidden tabs
       if (already_open.length > 0) {
@@ -860,10 +836,8 @@ export class Model {
         // If we show and then move, it will briefly appear in a random
         // location before moving to the desired location, so doing the
         // move first reduces flickering in the UI.
-        await this.tabs.move(t.id, to_win_id, to_index);
-        if (t.hidden && !!browser.tabs.show) {
-          await this.tabs.show(t.id);
-        }
+        await this.tabs.move(t, win, to_index);
+        if (t.hidden && !!browser.tabs.show) await this.tabs.show(t);
 
         // console.log('new layout:', this.tabs.window(t.windowId)?.tabs);
 
@@ -889,7 +863,7 @@ export class Model {
         const active_tab = win.children.find(t => t.active);
 
         const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
-        await browser.tabs.move(t.id!, {windowId: to_win_id, index: to_index});
+        await browser.tabs.move(t.id!, {windowId: win.id, index: to_index});
 
         // Reset the focus to the previously-active tab. (We do this
         // immediately, inside the loop, so as to minimize any
@@ -915,7 +889,7 @@ export class Model {
         discarded: this.options.local.state.load_tabs_on_restore === "lazily",
         title: item.title,
         url: urlToOpen(url),
-        windowId: to_win_id,
+        windowId: win.id,
         index: to_index,
       });
       moved_items.push(tab);
@@ -946,15 +920,15 @@ export class Model {
     for (const i of items) {
       if (isNode(i)) {
         if (isFolder(i)) {
-          await this.deleteBookmarkTree(i.id, now);
+          await this.deleteBookmarkTree(i, now);
         } else if (isBookmark(i)) {
           await this.deleteBookmark(i, now);
         } else {
           // separator
-          await this.bookmarks.remove(i.id);
+          await this.bookmarks.remove(i);
         }
       } else if (isTab(i)) {
-        tabs.push(i.id);
+        tabs.push(i);
       } else {
         windows.push(i);
       }
@@ -968,10 +942,7 @@ export class Model {
    * should use {@link deleteBookmark()} for individual bookmarks, because it
    * will cleanup the parent folder if the parent folder has a "default" name
    * and would be empty. */
-  async deleteBookmarkTree(id: Bookmarks.NodeID, deleted_at?: Date) {
-    const bm = this.bookmarks.node(id);
-    if (!bm) return; // Already deleted?
-
+  async deleteBookmarkTree(node: Bookmarks.Node, deleted_at?: Date) {
     const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
       if (isFolder(item)) {
         return {
@@ -992,8 +963,8 @@ export class Model {
       return {title: "", url: ""};
     };
 
-    await this.deleted_items.add(toDelItem(bm), undefined, deleted_at);
-    await this.bookmarks.removeTree(bm.id);
+    await this.deleted_items.add(toDelItem(node), undefined, deleted_at);
+    await this.bookmarks.removeTree(node);
   }
 
   /** Deletes the specified bookmark, saving it to deleted items.  If it was
@@ -1017,7 +988,7 @@ export class Model {
       deleted_at,
     );
 
-    await this.bookmarks.remove(bm.id);
+    await this.bookmarks.remove(bm);
   }
 
   /** Un-delete a deleted item, or part of a deleted item if `path' is
@@ -1044,40 +1015,40 @@ export class Model {
 
     // Try to find where to put the restored bookmark, if relevant.  We only try
     // to find the existing folder IF we're restoring a top-level item.
-    let toFolderId: Bookmarks.NodeID | undefined;
+    let toFolder: Bookmarks.Folder | undefined;
     let toIndex: number | undefined;
     if (deletion.deleted_from && (!path || path.length == 0)) {
       const from = deletion.deleted_from;
       const folder = this.bookmarks.folder(from.folder_id as Bookmarks.NodeID);
       if (folder) {
         // The exact folder we want still exists, use it
-        toFolderId = from.folder_id as Bookmarks.NodeID;
+        toFolder = folder;
       } else {
         // Search for an existing folder inside the stash root with
         // the same name as the folder it was deleted from.
         const child = stash_root.children.find(
-          c => "children" in c && c.title === from.title,
+          c => isFolder(c) && c.title === from.title,
         );
-        if (child) toFolderId = child.id;
+        if (child && isFolder(child)) toFolder = child;
       }
     }
 
     // If we still don't know where it came from or its prior containing folder
     // was deleted, AND the item we're restoring is not itself a folder, just
     // put it in an unnamed folder.
-    if (!toFolderId) {
+    if (!toFolder) {
       if (!("children" in item)) {
-        toFolderId = (await this.ensureRecentUnnamedFolder()).id;
+        toFolder = await this.ensureRecentUnnamedFolder();
       } else {
         // We're restoring a folder, and we don't know where to put it; just put
         // it in the stash root.
-        toFolderId = stash_root.id;
+        toFolder = stash_root;
         toIndex = 0;
       }
     }
 
     // Restore the deleted item.
-    await this.putItemsInFolder({items: [item], toFolderId, toIndex});
+    await this.putItemsInFolder({items: [item], toFolder, toIndex});
 
     // Restore any favicons.
     const restoreFavicons = (item: DeletedItems.DeletedItem) => {
@@ -1101,11 +1072,11 @@ export class Model {
     const tabs = await browser.tabs.query({hidden: true});
 
     const our_hidden_tabs = await Promise.allSettled(
-      tabs.map(tab =>
-        this.tabs
-          .wasTabHiddenByUs(tab.id! as Tabs.TabID)
-          .then(hidden_by_us => ({tab, hidden_by_us})),
-      ),
+      tabs.map(async bt => {
+        const mt = this.tabs.tab(bt.id!)!;
+        const hidden_by_us = await this.tabs.wasTabHiddenByUs(mt);
+        return {tab: mt, atime: bt.lastAccessed, hidden_by_us};
+      }),
     );
 
     const tab_ids_to_close = filterMap(our_hidden_tabs, res => {
@@ -1118,10 +1089,7 @@ export class Model {
       // If the tab was very recently accessed, we should ignore it; we might be
       // in the midst of stashing it right now (and it's possible the bookmark
       // hasn't been created yet).
-      if (
-        res.value.tab.lastAccessed &&
-        res.value.tab.lastAccessed > now - 2000
-      ) {
+      if (res.value.atime && res.value.atime > now - 2000) {
         return undefined;
       }
 

@@ -178,7 +178,7 @@ export default defineComponent({
       this.attempt(() =>
         the.model.putSelectedInFolder({
           copy: ev.altKey,
-          toFolderId: folder.id,
+          toFolder: folder,
         }),
       );
     },

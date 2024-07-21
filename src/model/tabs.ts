@@ -7,7 +7,6 @@ import {
   AsyncTaskQueue,
   backingOff,
   expect,
-  filterMap,
   shortPoll,
   tryAgain,
   urlToOpen,
@@ -191,6 +190,14 @@ export class Model {
   // Accessors
   //
 
+  allWindows(): Window[] {
+    return Array.from(this.windows.values());
+  }
+
+  allTabs(): Tab[] {
+    return this.allWindows().flatMap(w => w.children);
+  }
+
   window(id: number): Window | undefined {
     return this.windows.get(id as WindowID);
   }
@@ -200,12 +207,9 @@ export class Model {
 
   /** Returns the active tab in the specified window (or in
    * `this.current_window`, if no window is specified). */
-  activeTab(windowId?: WindowID): Tab | undefined {
-    if (windowId === undefined) windowId = this.targetWindow.value?.id;
-    if (windowId === undefined) return undefined;
-
-    const window = this.window(windowId);
-    if (!window) return undefined;
+  activeTab(window?: Window): Tab | undefined {
+    if (window === undefined) window = this.targetWindow.value;
+    if (window === undefined) return undefined;
 
     return window.children.filter(t => t.active)[0];
   }
@@ -221,9 +225,9 @@ export class Model {
   }
 
   /** Checks if the tab was hidden by us or by some other extension. */
-  async wasTabHiddenByUs(tabId: TabID): Promise<boolean> {
+  async wasTabHiddenByUs(tab: Tab): Promise<boolean> {
     const res = await browser.sessions.getTabValue(
-      tabId,
+      tab.id,
       SK_HIDDEN_BY_TAB_STASH,
     );
     return res ?? false;
@@ -293,28 +297,25 @@ export class Model {
   /** Moves a tab such that it precedes the item with index `toIndex` in
    * the destination window.  (You can pass an index `>=` the length of the
    * windows's tab list to move the item to the end of the window.) */
-  async move(id: TabID, toWindow: WindowID, toIndex: number): Promise<void> {
+  async move(tab: Tab, toWindow: Window, toIndex: number): Promise<void> {
     // This method mainly exists to provide consistent behavior between
-    // bookmarks.move() and tabs.move().
-    const tab = expect(this.tab(id), () => `Tab ${id} does not exist`);
-
-    // Unlike browser.bookmarks.move(), browser.tabs.move() behaves the same
-    // on both Firefox and Chrome.
+    // bookmarks.move() and tabs.move(). Unlike browser.bookmarks.move(),
+    // browser.tabs.move() behaves the same on both Firefox and Chrome.
     const pos = tab.position;
-    if (pos?.parent.id === toWindow && toIndex > pos.index) toIndex--;
+    if (pos?.parent === toWindow && toIndex > pos.index) toIndex--;
 
-    trace("moving tab", id, {toWindow, toIndex});
-    await browser.tabs.move(id, {windowId: toWindow, index: toIndex});
+    trace("moving tab", tab, {toWindow, toIndex});
+    await browser.tabs.move(tab.id, {windowId: toWindow.id, index: toIndex});
     await shortPoll(() => {
       const pos = tab.position;
       if (!pos) tryAgain();
-      if (pos.parent.id !== toWindow || pos.index !== toIndex) tryAgain();
+      if (pos.parent !== toWindow || pos.index !== toIndex) tryAgain();
     });
   }
 
   /** Shows a tab that was previously hidden. */
-  async show(tid: TabID): Promise<void> {
-    await browser.tabs.show(tid);
+  async show(tab: Tab): Promise<void> {
+    await browser.tabs.show(tab.id);
     // We expect SK_HIDDEN_BY_TAB_STASH to be cleared automatically by
     // whenTabUpdated().  We do it there, instead of here, because some other
     // extension or the user could have un-hid the tab without going thru us.
@@ -322,30 +323,32 @@ export class Model {
 
   /** Hides the specified tabs, optionally discarding them (to free up memory).
    * If the browser does not support hiding tabs, closes them instead. */
-  async hide(tabIds: TabID[], discard?: "discard"): Promise<void> {
+  async hide(tabs: Tab[], discard?: "discard"): Promise<void> {
     if (!!browser.tabs.hide) {
-      trace("hiding tabs", tabIds);
-      await this.refocusAwayFromTabs(tabIds);
+      const tids = tabs.map(t => t.id);
+      trace("hiding tabs", tabs);
+      await this.refocusAwayFromTabs(tabs);
 
-      await browser.tabs.hide(tabIds);
-      if (discard) await browser.tabs.discard(tabIds);
+      await browser.tabs.hide(tids);
+      if (discard) await browser.tabs.discard(tids);
 
-      for (const t of tabIds) {
-        await browser.sessions.setTabValue(t, SK_HIDDEN_BY_TAB_STASH, true);
+      for (const t of tabs) {
+        await browser.sessions.setTabValue(t.id, SK_HIDDEN_BY_TAB_STASH, true);
       }
     } else {
-      await this.remove(tabIds);
+      await this.remove(tabs);
     }
   }
 
   /** Close the specified tabs, but leave the browser window open (and create
    * a new tab if necessary to keep it open). */
-  async remove(tabIds: TabID[]): Promise<void> {
-    trace("removing tabs", tabIds);
-    await this.refocusAwayFromTabs(tabIds);
-    await browser.tabs.remove(tabIds);
+  async remove(tabs: Tab[]): Promise<void> {
+    const tids = tabs.map(t => t.id);
+    trace("removing tabs", tids);
+    await this.refocusAwayFromTabs(tabs);
+    await browser.tabs.remove(tids);
     await shortPoll(() => {
-      if (tabIds.find(tid => this.tabs.has(tid)) !== undefined) tryAgain();
+      if (tids.find(tid => this.tabs.has(tid)) !== undefined) tryAgain();
     });
   }
 
@@ -366,9 +369,8 @@ export class Model {
    * active tabs which we are about to close (so the browser doesn't stop us
    * from closing them).
    */
-  async refocusAwayFromTabs(tabIds: TabID[]): Promise<void> {
-    const closing_tabs = filterMap(tabIds, id => this.tabs.get(id));
-    const active_tabs = closing_tabs.filter(t => t.active);
+  async refocusAwayFromTabs(tabs: Tab[]): Promise<void> {
+    const active_tabs = tabs.filter(t => t.active);
 
     // NOTE: We expect there to be at most one active tab per window.
     for (const active_tab of active_tabs) {
@@ -378,7 +380,7 @@ export class Model {
       );
       const win = pos.parent;
       const tabs_in_window = win.children.filter(t => !t.hidden && !t.pinned);
-      const closing_tabs_in_window = closing_tabs.filter(
+      const closing_tabs_in_window = tabs.filter(
         t => t.position?.parent === active_tab.position?.parent,
       );
 
@@ -401,12 +403,12 @@ export class Model {
 
         let candidates = tabs_in_window.slice(pos.index + 1);
         let focus_tab = candidates.find(
-          t => t.id !== undefined && !tabIds.find(id => t.id === id),
+          c => c.id !== undefined && !tabs.includes(c),
         );
         if (!focus_tab) {
           candidates = tabs_in_window.slice(0, pos.index).reverse();
           focus_tab = candidates.find(
-            t => t.id !== undefined && !tabIds.find(id => t.id === id),
+            c => c.id !== undefined && !tabs.includes(c),
           );
         }
 

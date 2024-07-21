@@ -149,7 +149,7 @@ export default defineComponent({
       this.attempt(async () => {
         await the.model.putItemsInFolder({
           items: copyIf(ev.altKey, [this.tab]),
-          toFolderId: (await the.model.ensureRecentUnnamedFolder()).id,
+          toFolder: await the.model.ensureRecentUnnamedFolder(),
         });
       });
     },
@@ -166,7 +166,7 @@ export default defineComponent({
         if (this.stashedIn.length > 0) {
           await the.model.hideOrCloseStashedTabs([this.tab]);
         } else {
-          await the.model.tabs.remove([this.tab.id]);
+          await the.model.tabs.remove([this.tab]);
         }
       });
     },
