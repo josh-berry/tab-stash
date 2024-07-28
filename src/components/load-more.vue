@@ -14,9 +14,24 @@
 
 <script lang="ts">
 import type {PropType} from "vue";
-import {defineComponent, ref, shallowRef} from "vue";
+import {defineComponent, ref} from "vue";
 
 import {required} from "../util/index.js";
+
+// Shared global state; all LoadMores use the same observer, for performance
+// reasons.  see:
+// https://www.bennadel.com/blog/3954-intersectionobserver-api-performance-many-vs-shared-in-angular-11-0-5.htm
+const callbacks = new WeakMap<
+  Element,
+  (e: IntersectionObserverEntry) => void
+>();
+
+const observer = new IntersectionObserver(entries =>
+  entries.forEach(e => {
+    const cb = callbacks.get(e.target);
+    if (cb) cb(e);
+  }),
+);
 
 export default defineComponent({
   props: {
@@ -86,19 +101,19 @@ export default defineComponent({
   setup() {
     return {
       el: ref(null as Element | null),
-      observer: shallowRef(null as IntersectionObserver | null),
     };
   },
 
   mounted() {
-    this.observer = new IntersectionObserver(entries => {
-      this.isVisible = entries[0].isIntersecting;
+    callbacks.set(this.el!, e => {
+      this.isVisible = e.isIntersecting;
       this.tryLoadMore();
     });
-    this.observer.observe(this.el!);
+    observer.observe(this.el!);
   },
   unmounted() {
-    if (this.observer) this.observer.disconnect();
+    callbacks.delete(this.el!);
+    observer.unobserve(this.el!);
   },
 
   watch: {
