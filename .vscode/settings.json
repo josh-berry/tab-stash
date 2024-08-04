@@ -32,5 +32,7 @@
     }
   ],
   "html.format.wrapAttributes": "aligned-multiple",
-  "html.format.templating": true
+  "html.format.templating": true,
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifier": "relative"
 }
