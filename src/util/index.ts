@@ -238,13 +238,13 @@ export async function nextTick(): Promise<void> {
  *
  * If the function does not return a value within a reasonable amount of time,
  * throws {@link TimedOutError}.  */
-export async function shortPoll<T>(fn: () => T): Promise<T> {
+export async function shortPoll<T>(fn: () => T, ms: number = 10): Promise<T> {
   // Relies on the implicit behavior of setTimeout() being automatically
   // delayed--see "Nested timeouts" from:
   // https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
 
   const start = Date.now();
-  while (Date.now() - start < 10) {
+  while (Date.now() - start < ms) {
     try {
       return fn();
     } catch (e) {
@@ -349,6 +349,27 @@ export function nonReentrant(fn: () => Promise<void>): () => Promise<void> {
   };
 }
 
+export type BackingOffOptions = {
+  max_delay_ms: number;
+  first_delay_ms: number;
+  exponent: number;
+  reset_after_idle_ms?: number;
+};
+
+const backingOffDefaults: BackingOffOptions = (<any>globalThis).mock?.events
+  ? {
+      max_delay_ms: 2,
+      first_delay_ms: 1,
+      exponent: 0,
+      reset_after_idle_ms: 2,
+    }
+  : {
+      max_delay_ms: 60000,
+      first_delay_ms: 50,
+      exponent: 0.8,
+      reset_after_idle_ms: 300000,
+    };
+
 /** Wraps the passed-in async function so that only one call can be running at a
  * time, and if multiple calls are made within a short time, later calls are
  * deferred for some exponentially-increasing delay.  The delay is (by default)
@@ -359,12 +380,7 @@ export function nonReentrant(fn: () => Promise<void>): () => Promise<void> {
  * once, but events are delivered one at a time. */
 export function backingOff(
   fn: () => Promise<void>,
-  options: BackingOffOptions = {
-    max_delay_ms: 60000,
-    first_delay_ms: 100,
-    exponent: 2,
-    reset_after_idle_ms: 300000,
-  },
+  options: BackingOffOptions = backingOffDefaults,
 ): () => Promise<void> {
   let last_finished = Date.now();
   let retry_count = 0;
@@ -397,13 +413,6 @@ export function backingOff(
     }
   });
 }
-
-export type BackingOffOptions = {
-  max_delay_ms: number;
-  first_delay_ms: number;
-  exponent: number;
-  reset_after_idle_ms?: number;
-};
 
 // A "defer queue" is a queue of functions (and their arguments) to be called
 // later (referred to as "events").  This is mostly useful for event
