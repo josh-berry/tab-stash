@@ -291,12 +291,18 @@ export class Model {
   async loadedSubtree(folder: Folder): Promise<LoadedFolder> {
     if (folder.$recursiveStats.isLoaded) return folder as LoadedFolder;
 
-    // const children = await browser.bookmarks.getSubTree(folder.id);
-    // for (const c of children) this._upsertNode(c);
-
-    const lf = await this.loaded(folder);
-    for (const f of lf.children) if (isFolder(f)) await this.loadedSubtree(f);
-    return lf;
+    if (folder.children.length === 0) {
+      const children = await browser.bookmarks.getSubTree(folder.id);
+      for (const c of children) this._upsertNode(c);
+      folder.isLoaded = true;
+      return folder as LoadedFolder;
+    } else {
+      const lf = await this.loaded(folder);
+      for (const f of lf.children) {
+        if (isFolder(f)) await this.loadedSubtree(f);
+      }
+      return lf;
+    }
   }
 
   /** Ensures the entire stash is loaded, if it exists, and returns the root of
