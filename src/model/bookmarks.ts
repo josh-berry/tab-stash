@@ -118,6 +118,9 @@ export class Model {
    * the stash root in the background. */
   private _stash_root_watch = new Set<Node>();
 
+  /** Folders which we are in the middle of loading. */
+  private readonly _loading = new Map<Folder, Promise<LoadedFolder>>();
+
   //
   // Loading data and wiring up events
   //
@@ -159,8 +162,8 @@ export class Model {
     const rn = model._upsertNode(root);
     model.root = rn as Folder as LoadedFolder;
 
-    /* c8 ignore next -- bug-checking */
-    if (!model.root.isLoaded) throw new Error(`Root is not loaded`);
+    for (const c of children_of_root) model._upsertNode(c);
+    model.root.isLoaded = true;
 
     // Now that we have the bookmark root, we can search for the stash root,
     // which may or may not exist yet.
@@ -277,32 +280,80 @@ export class Model {
   /** Ensures the passed-in folder is fully-loaded, and returns it. Note that
    * this is NOT recursive, that is, child folders may still not be
    * fully-loaded. */
-  async loaded(folder: Folder): Promise<LoadedFolder> {
-    if (folder.isLoaded) return folder as LoadedFolder;
+  loaded(folder: Folder): Promise<LoadedFolder> {
+    if (folder.isLoaded) return Promise.resolve(folder as LoadedFolder);
 
-    const children = await browser.bookmarks.getChildren(folder.id);
-    for (const c of children) this._upsertNode(c);
+    return this._run_loader(folder, async () => {
+      const children = await browser.bookmarks.getChildren(folder.id);
+      for (const c of children) this._upsertNode(c);
 
-    folder.isLoaded = true;
-    return folder as LoadedFolder;
+      folder.isLoaded = true;
+      return folder as LoadedFolder;
+    });
   }
 
   /** Ensures the entire subtree underneath _folder_ is fully-loaded. */
-  async loadedSubtree(folder: Folder): Promise<LoadedFolder> {
-    if (folder.$recursiveStats.isLoaded) return folder as LoadedFolder;
-
-    if (folder.children.length === 0) {
-      const children = await browser.bookmarks.getSubTree(folder.id);
-      for (const c of children) this._upsertNode(c);
-      folder.isLoaded = true;
-      return folder as LoadedFolder;
-    } else {
-      const lf = await this.loaded(folder);
-      for (const f of lf.children) {
-        if (isFolder(f)) await this.loadedSubtree(f);
-      }
-      return lf;
+  loadedSubtree(folder: Folder): Promise<LoadedFolder> {
+    if (folder.$recursiveStats.isLoaded) {
+      return Promise.resolve(folder as LoadedFolder);
     }
+
+    // General case -- if the folder is already partially loaded, recursively
+    // try to load its descendants.
+    if (folder.children.length > 0) {
+      return (async () => {
+        const lf = await this.loaded(folder);
+        for (const f of lf.children) {
+          if (isFolder(f)) await this.loadedSubtree(f);
+        }
+        return lf;
+      })();
+    }
+
+    // Performance optimization -- if this folder has no children at all, fetch
+    // the whole subtree at once, but load it into the model asynchronously.
+    // However, we still need to yield back to the event loop periodically.
+    // This maintains responsiveness while still providing higher throughput
+    // than using browser.bookmarks.getChildren() recursively.
+
+    let start = Date.now();
+
+    return this._run_loader(folder, async () => {
+      // Performance optimization: fetch the whole subtree at once, but load it
+      // into the model asynchronously.
+      const f = await browser.bookmarks.getSubTree(folder.id);
+
+      const upsertAsync = async (
+        parent: Folder,
+        children: Bookmarks.BookmarkTreeNode[],
+      ) => {
+        const child_ps = [];
+
+        if (Date.now() - start >= 25) {
+          // Yield so UI events can be processed
+          await new Promise(r => setTimeout(r));
+          start = Date.now();
+        }
+
+        // This is written to avoid yielding inside the loop, so that both the
+        // child node and its loading state appear at the same time. Otherwise
+        // we might allow for multiple loaders for the same child to run.
+        // Worse, the other loader might be non-recursive, so loadedSubtree()
+        // wouldn't actually perform as expected.
+        for (const n of children) {
+          const f = this._upsertNode(n) as Folder;
+          const c = n.children;
+          if (!c) continue;
+          child_ps.push(this._run_loader(f, () => upsertAsync(f, c)));
+        }
+        parent.isLoaded = true;
+        await Promise.all(child_ps);
+        return parent as LoadedFolder;
+      };
+
+      if (f[0].children) await upsertAsync(folder, f[0].children);
+      return folder as LoadedFolder;
+    });
   }
 
   /** Ensures the entire stash is loaded, if it exists, and returns the root of
@@ -310,6 +361,21 @@ export class Model {
   async loadedStash(): Promise<LoadedFolder | undefined> {
     if (!this.stash_root.value) return;
     return await this.loadedSubtree(this.stash_root.value);
+  }
+
+  private _run_loader(
+    folder: Folder,
+    loader: () => Promise<LoadedFolder>,
+  ): Promise<LoadedFolder> {
+    let p = this._loading.get(folder);
+    if (p) return p;
+
+    trace("loading", folder.id);
+    p = loader();
+    this._loading.set(folder, p);
+    return p.finally(() => {
+      this._loading.delete(folder);
+    });
   }
 
   /** Returns a (reactive) set of bookmarks with the specified URL that are
@@ -764,7 +830,7 @@ export class Model {
     let node = this.by_id.get(nodeId);
     const parent = btn.parentId !== undefined && this.folder(btn.parentId);
 
-    trace("_upsertNode", nodeId, btn);
+    trace("_upsertNode", nodeId, btn.parentId, btn.index, btn.title);
 
     // Make sure the node exists.
     if (!node) {
@@ -801,14 +867,6 @@ export class Model {
     // might be a stash root.
     this._updateNode(node, btn);
 
-    // Finally, if we got children (e.g. as a result of getSubTree()), upsert
-    // them as well.
-    if (btn.children) {
-      const f = node as Folder;
-      for (const child of btn.children) this._upsertNode(child);
-      f.isLoaded = true;
-    }
-
     return node;
   }
 
@@ -818,10 +876,7 @@ export class Model {
     const urlChanged =
       btn.url !== undefined && isBookmark(node) && node.url !== btn.url;
 
-    trace("_updateNode", node.id, btn, {
-      titleChanged,
-      urlChanged,
-    });
+    trace("_updateNode", node.id, btn.url, urlChanged, btn.title, titleChanged);
 
     if (titleChanged) node.title = btn.title;
 
