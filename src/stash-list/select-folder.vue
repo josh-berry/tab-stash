@@ -51,6 +51,7 @@ const selection = the.model.selection;
 
 const visibleChildFolders = computed(() =>
   filterMap(props.folder.children, c =>
+    c &&
     "children" in c &&
     bookmark_filter.info(c).hasMatchInSubtree &&
     !selection.info(c).isSelected

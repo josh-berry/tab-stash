@@ -51,6 +51,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
       ? computedLazyEq(() => {
           if (isMatching.value) return true;
           for (const c of node.children) {
+            if (!c) continue;
             if (this.info(c).hasMatchInSubtree) return true;
           }
           return false;
@@ -61,6 +62,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
       ? computedLazyEq(() => {
           let count = 0;
           for (const c of node.children) {
+            if (!c) continue;
             if (!this.info(c).hasMatchInSubtree) ++count;
           }
           return count;

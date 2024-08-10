@@ -25,13 +25,14 @@ export type ExportBookmark = {
 };
 
 export function exportFolder(m: Model, f: Folder): ExportFolder {
+  const children = f.children.filter(c => c !== undefined);
   return {
     id: f.id,
     title: friendlyFolderName(f.title),
-    bookmarks: filterMap(f.children, c => (isBookmark(c) ? c : undefined)).map(
+    bookmarks: filterMap(children, c => (isBookmark(c) ? c : undefined)).map(
       exportBookmark,
     ),
-    folders: filterMap(f.children, c => (isFolder(c) ? c : undefined)).map(f =>
+    folders: filterMap(children, c => (isFolder(c) ? c : undefined)).map(f =>
       exportFolder(m, f),
     ),
   };

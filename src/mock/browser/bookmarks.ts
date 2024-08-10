@@ -47,10 +47,15 @@ class MockBookmarks implements BM.Static {
 
   /* c8 ignore next 3 -- not implemented */
   async get(idOrIdList: string | string[]): Promise<BM.BookmarkTreeNode[]> {
-    throw new Error("Method not implemented.");
+    if (idOrIdList instanceof Array) {
+      return idOrIdList.map(id => node_only(this._get(id)));
+    }
+    return [node_only(this._get(idOrIdList))];
   }
 
   async getChildren(id: string): Promise<BM.BookmarkTreeNode[]> {
+    // Firefox has this undocumented behavior; need to confirm on Chrome
+    if (id === "") return this.root.children.map(n => node_only(n));
     return this._getFolder(id).children.map(node => node_only(node));
   }
 
@@ -63,16 +68,25 @@ class MockBookmarks implements BM.Static {
     return [JSON.parse(JSON.stringify(this.root))];
   }
 
-  /* c8 ignore next -- not implemented */
   async getSubTree(id: string): Promise<BM.BookmarkTreeNode[]> {
-    throw new Error("Method not implemented.");
+    return [JSON.parse(JSON.stringify(this._getFolder(id)))];
   }
 
-  /* c8 ignore next 5 -- not implemented*/
   async search(
     query: string | BM.SearchQueryC2Type,
   ): Promise<BM.BookmarkTreeNode[]> {
-    throw new Error("Method not implemented.");
+    if (typeof query !== "string") throw new Error("Method not implemented.");
+
+    const matching: BM.BookmarkTreeNode[] = [];
+
+    const visit = (bm: Node) => {
+      if (bm.title === query) matching.push(node_only(bm));
+      if ("children" in bm) for (const c of bm.children) visit(c);
+    };
+
+    visit(this.root);
+
+    return matching;
   }
 
   async create(bookmark: BM.CreateDetails): Promise<BM.BookmarkTreeNode> {

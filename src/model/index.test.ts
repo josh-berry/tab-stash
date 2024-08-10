@@ -252,8 +252,10 @@ describe("model", () => {
           true,
         );
 
-        const doug_2 = model.bookmarks.bookmark(bookmarks.doug_2.id)!;
-        await model.bookmarks.remove(doug_2);
+        await browser.bookmarks.remove(bookmarks.doug_2.id);
+        while (model.bookmarks.node(bookmarks.doug_2.id) !== undefined) {
+          await new Promise(r => setTimeout(r));
+        }
 
         await model.closeOrphanedHiddenTabs();
 
@@ -535,12 +537,14 @@ describe("model", () => {
       ).to.deep.equal(children.map(c => bookmarks[c].id));
 
       const folder = model.bookmarks.folder(bookmarks[folderName].id)!;
+      expect(folder, `Folder ${folderName} is loaded in model`).to.not.be
+        .undefined;
       expect(
-        folder.children.map(c => c.title),
+        folder.children.map(c => c?.title),
         "Model bookmark titles",
       ).to.deep.equal(children.map(c => bookmarks[c].title));
       expect(
-        folder.children.map(bm => bm.id),
+        folder.children.map(bm => bm?.id),
         "Model bookmark IDs",
       ).to.deep.equal(children.map(c => bookmarks[c].id));
     }
@@ -564,6 +568,7 @@ describe("model", () => {
       };
 
     beforeEach(async () => {
+      await model.bookmarks.loadedSubtree(model.bookmarks.stash_root.value!);
       await check_folder("big_stash", [
         "one",
         "two",
@@ -853,11 +858,11 @@ describe("model", () => {
 
       const folder = model.bookmarks.folder(bookmarks.names.id)!;
       expect(
-        folder.children.map(c => c.title),
+        folder.children.map(c => c?.title),
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => isBookmark(c) && c.url),
+        folder.children.map(c => c && isBookmark(c) && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
     });
@@ -909,11 +914,11 @@ describe("model", () => {
 
       const folder = model.bookmarks.folder(bookmarks.names.id)!;
       expect(
-        folder.children.map(c => c.title),
+        folder.children.map(c => c?.title),
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => isBookmark(c) && c.url),
+        folder.children.map(c => c && isBookmark(c) && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
     });
@@ -978,18 +983,18 @@ describe("model", () => {
 
       const folder = model.bookmarks.folder(bookmarks.names.id)!;
       expect(
-        folder.children.map(c => c.title),
+        folder.children.map(c => c?.title),
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => isBookmark(c) && c.url),
+        folder.children.map(c => c && isBookmark(c) && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
 
       expect(
         model.bookmarks
           .folder(bookmarks.big_stash.id)!
-          .children.map(bm => bm.id),
+          .children.map(bm => bm?.id),
       ).to.deep.equal([
         bookmarks.one.id,
         bookmarks.three.id,
@@ -1035,8 +1040,10 @@ describe("model", () => {
         filterMap(res, r => (r as M.Bookmarks.Bookmark).url),
       ).to.deep.equal(urls);
 
-      expect(folder.children.map(bm => bm.id)).to.deep.equal(expectedIds);
-      expect(folder.children.map(b => isBookmark(b) && b.url)).to.deep.equal([
+      expect(folder.children.map(bm => bm?.id)).to.deep.equal(expectedIds);
+      expect(
+        folder.children.map(b => b && isBookmark(b) && b.url),
+      ).to.deep.equal([
         `${B}#helen`,
         `${B}#gazebo`,
         `${B}#doug`,
@@ -1081,14 +1088,14 @@ describe("model", () => {
       const topChild = folder.children[0] as Folder;
       expect(isFolder(topChild)).to.be.true;
       expect(topChild.title).to.equal("Folder");
-      expect(topChild.children.map(c => c.title)).to.deep.equal([
+      expect(topChild.children.map(c => c?.title)).to.deep.equal([
         "1",
         "2",
         "Nested",
       ]);
 
       const nestedChildren = (topChild.children[2] as Folder).children;
-      expect(nestedChildren.map(c => c.title)).to.deep.equal(["3", "4"]);
+      expect(nestedChildren.map(c => c?.title)).to.deep.equal(["3", "4"]);
     });
   });
 
@@ -1455,6 +1462,7 @@ describe("model", () => {
     });
 
     it("moves bookmarks into the window", async () => {
+      await model.bookmarks.loadedStash();
       expect(model.tabs.tab(tabs.real_helen.id)).to.deep.include({
         position: {
           parent: model.tabs.window(windows.real.id),
@@ -1518,7 +1526,7 @@ describe("model", () => {
       ).to.deep.equal(ids);
 
       expect(
-        model.bookmarks.folder(bookmarks.names.id)!.children.map(bm => bm.id),
+        model.bookmarks.folder(bookmarks.names.id)!.children.map(bm => bm?.id),
       ).to.deep.equal([bookmarks.doug_2.id, bookmarks.patricia.id]);
 
       expect(model.tabs.tab(tabs.real_helen.id)).to.deep.include({
@@ -1541,6 +1549,7 @@ describe("model", () => {
     });
 
     it("moves tabs and bookmarks into the window", async () => {
+      await model.bookmarks.loadedStash();
       const p = model.putItemsInWindow({
         items: [
           model.tabs.tab(tabs.right_doug.id)!,
@@ -1570,7 +1579,7 @@ describe("model", () => {
       ).to.deep.equal(urls);
 
       expect(
-        model.bookmarks.folder(bookmarks.names.id)!.children.map(bm => bm.id),
+        model.bookmarks.folder(bookmarks.names.id)!.children.map(bm => bm?.id),
       ).to.deep.equal([
         bookmarks.doug_2.id,
         bookmarks.helen.id,
@@ -1586,6 +1595,7 @@ describe("model", () => {
     });
 
     it("moves bookmarks with hidden tabs into the window (backward)", async () => {
+      await model.bookmarks.loadedStash();
       const p = model.putItemsInWindow({
         items: [model.bookmarks.bookmark(bookmarks.helen.id)!],
         toWindow: model.tabs.window(windows.real.id)!,
@@ -1613,6 +1623,7 @@ describe("model", () => {
     });
 
     it("moves bookmarks with hidden tabs into the window (forward)", async () => {
+      await model.bookmarks.loadedStash();
       const p = model.putItemsInWindow({
         items: [model.bookmarks.bookmark(bookmarks.doug_2.id)!],
         toWindow: model.tabs.window(windows.real.id)!,
@@ -1794,6 +1805,10 @@ describe("model", () => {
       expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
     }
 
+    beforeEach(async () => {
+      await model.bookmarks.loadedStash();
+    });
+
     it("deletes folders and remembers them as deleted items", async () => {
       const f = model.bookmarks.node(bookmarks.names.id)!;
       const p = model.deleteBookmarkTree(f);
@@ -1803,7 +1818,7 @@ describe("model", () => {
 
       expect(model.bookmarks.node(bookmarks.names.id)).to.be.undefined;
       expect(
-        model.bookmarks.stash_root.value!.children.map(bm => bm.id),
+        model.bookmarks.stash_root.value!.children.map(bm => bm?.id),
       ).to.deep.equal([
         bookmarks.unnamed.id,
         bookmarks.big_stash.id,
@@ -1837,7 +1852,7 @@ describe("model", () => {
 
       expect(model.bookmarks.node(bookmarks.helen.id)).to.be.undefined;
       expect(
-        model.bookmarks.folder(bookmarks.names.id)!.children.map(b => b.id),
+        model.bookmarks.folder(bookmarks.names.id)!.children.map(b => b?.id),
       ).to.deep.equal([
         bookmarks.doug_2.id,
         bookmarks.patricia.id,
@@ -1878,12 +1893,13 @@ describe("model", () => {
       expect(isFolder(restored)).to.be.true;
       expect(restored.title).to.equal(bookmarks.names.title);
       expect(
-        restored.children.map(bm => isBookmark(bm) && bm.url),
+        restored.children.map(bm => bm && isBookmark(bm) && bm.url),
       ).to.deep.equal(bookmarks.names.children!.map(bm => bm.url));
     });
 
     describe("un-deletes bookmarks", () => {
       beforeEach(async () => {
+        await model.bookmarks.loadedStash();
         const p = model.deleteBookmark(
           model.bookmarks.bookmark(bookmarks.helen.id)!,
         );
@@ -1898,7 +1914,7 @@ describe("model", () => {
 
         expect(model.bookmarks.node(bookmarks.helen.id)).to.be.undefined;
         expect(
-          model.bookmarks.folder(bookmarks.names.id)!.children.map(b => b.id),
+          model.bookmarks.folder(bookmarks.names.id)!.children.map(b => b?.id),
         ).to.deep.equal([
           bookmarks.doug_2.id,
           bookmarks.patricia.id,
@@ -1917,7 +1933,7 @@ describe("model", () => {
         await p;
 
         const bms = model.bookmarks.folder(bookmarks.names.id)!.children;
-        expect(bms.map(bm => isBookmark(bm) && bm.url)).to.deep.equal([
+        expect(bms.map(bm => bm && isBookmark(bm) && bm.url)).to.deep.equal([
           `${B}#doug`,
           `${B}#patricia`,
           `${B}#nate`,
@@ -1950,7 +1966,7 @@ describe("model", () => {
         expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
         const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
         expect(
-          restored_folder.children.map(bm => isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#helen`]);
       });
 
@@ -1986,7 +2002,7 @@ describe("model", () => {
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
           .null;
         expect(
-          restored_folder.children.map(bm => isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#helen`]);
       });
     });
@@ -2013,7 +2029,7 @@ describe("model", () => {
         expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
         const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
         expect(
-          restored_folder.children.map(bm => isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
 
         const item = model.deleted_items.state.entries[0].item as DeletedFolder;
@@ -2045,7 +2061,7 @@ describe("model", () => {
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
           .null;
         expect(
-          restored_folder.children.map(bm => isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#patricia`]);
 
         const item = model.deleted_items.state.entries[0].item as DeletedFolder;

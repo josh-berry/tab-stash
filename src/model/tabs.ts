@@ -15,7 +15,12 @@ import {
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
 
-import {setPosition, type TreeNode, type TreeParent} from "./tree.js";
+import {
+  insertNode,
+  removeNode,
+  type TreeNode,
+  type TreeParent,
+} from "./tree.js";
 
 export interface Window extends TreeParent<Window, Tab> {
   readonly id: WindowID;
@@ -440,6 +445,7 @@ export class Model {
         id: wid,
         position: undefined,
         children: [],
+        isLoaded: true,
       } as Window);
       this.windows.set(wid, window);
     }
@@ -545,7 +551,9 @@ export class Model {
         alwaysOnTop: false,
       });
     }
-    setPosition(t, {parent: win, index: tab.index});
+
+    if (t.position) removeNode(t.position);
+    insertNode(t, {parent: win, index: tab.index});
 
     // Insert the tab in its index
     this._add_url(t);
@@ -630,7 +638,8 @@ export class Model {
       });
     }
 
-    setPosition(t, {parent: newWindow, index: info.toIndex});
+    if (t.position) removeNode(t.position);
+    insertNode(t, {parent: newWindow, index: info.toIndex});
   }
 
   whenTabReplaced(newId: number, oldId: number) {
@@ -681,7 +690,7 @@ export class Model {
     if (!t) return; // tab is already removed
 
     const pos = t.position;
-    setPosition(t, undefined);
+    if (pos) removeNode(pos);
 
     trace("event ...tabRemoved", tabId, pos);
 

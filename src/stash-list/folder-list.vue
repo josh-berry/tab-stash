@@ -1,7 +1,14 @@
 <template>
+  <load-more
+    v-if="!parentFolder.isLoaded"
+    :load="loadMore"
+    :is-fully-loaded="false"
+  />
+
   <dnd-list
+    v-else
     class="forest"
-    v-model="parentFolder.children"
+    v-model="parentFolder.children as Node[]"
     :item-key="(item: Node) => item.id"
     :item-class="itemClasses"
     :accepts="accepts"
@@ -27,11 +34,12 @@ import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
 import type {DragAction, DropAction} from "../components/dnd-list.js";
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
+import LoadMore from "../components/load-more.vue";
 
 const DROP_FORMAT = "application/x-tab-stash-folder-id";
 
 export default defineComponent({
-  components: {DndList: DndList<Node>, Folder: FolderVue},
+  components: {DndList: DndList<Node>, Folder: FolderVue, LoadMore},
 
   props: {
     parentFolder: required(Object as PropType<Folder>),
@@ -53,6 +61,10 @@ export default defineComponent({
         hidden:
           !isFolder(f) || !(fi.hasMatchInSubtree || si.hasSelectionInSubtree),
       };
+    },
+
+    async loadMore() {
+      await the.model.bookmarks.loaded(this.parentFolder);
     },
 
     drag(ev: DragAction<Node>) {

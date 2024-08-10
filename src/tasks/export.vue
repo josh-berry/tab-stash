@@ -81,7 +81,7 @@ export default defineComponent({
     stash(): Node[] {
       const m = the.model.bookmarks;
       if (!m.stash_root.value) return [];
-      return m.stash_root.value.children;
+      return m.stash_root.value.children.filter(c => c !== undefined);
     },
     folders(): Folder[] {
       return this.stash.filter(t => "children" in t) as Folder[];
@@ -106,7 +106,7 @@ export default defineComponent({
     friendlyFolderName,
     leaves(folder: Folder): Bookmark[] {
       return filterMap(folder.children, node => {
-        if (isBookmark(node)) return node;
+        if (node && isBookmark(node)) return node;
         return undefined;
       });
     },

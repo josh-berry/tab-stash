@@ -148,8 +148,8 @@ import {
 } from "../model/bookmark-metadata.js";
 import {
   friendlyFolderName,
-  type Folder,
   type FolderStats,
+  type Folder,
 } from "../model/bookmarks.js";
 import type {Tab} from "../model/tabs.js";
 import {fetchInfoForSites} from "../tasks/siteinfo.js";
@@ -209,7 +209,9 @@ export default defineComponent({
       return m.targetWindow.value.children;
     },
     stashRoot(): Folder | undefined {
-      return the.model.bookmarks.stash_root.value;
+      const sr = the.model.bookmarks.stash_root.value;
+      if (!sr) return undefined;
+      return sr;
     },
 
     recently_updated(): undefined | "features" | "fixes" {
@@ -239,7 +241,7 @@ export default defineComponent({
 
     counts(): FolderStats {
       const stats = this.stashRoot?.$recursiveStats;
-      if (!stats) return {bookmarkCount: 0, folderCount: 0};
+      if (!stats) return {bookmarkCount: 0, folderCount: 0, isLoaded: false};
       return stats;
     },
 
@@ -247,7 +249,8 @@ export default defineComponent({
       const counts = this.counts;
       const groups = counts.folderCount == 1 ? "group" : "groups";
       const tabs = counts.bookmarkCount == 1 ? "tab" : "tabs";
-      return `Search ${counts.folderCount} ${groups}, ${counts.bookmarkCount} ${tabs}`;
+      const loading = counts.isLoaded ? "" : "+";
+      return `Search ${counts.folderCount}${loading} ${groups}, ${counts.bookmarkCount}${loading} ${tabs}`;
     },
 
     tabStats(): {open: number; discarded: number; hidden: number} {
@@ -342,7 +345,7 @@ export default defineComponent({
       const metadata = the.model.bookmark_metadata;
       metadata.setCollapsed(CUR_WINDOW_MD_ID, this.collapsed);
       for (const f of this.stashRoot?.children || []) {
-        metadata.setCollapsed(f.id, this.collapsed);
+        if (f) metadata.setCollapsed(f.id, this.collapsed);
       }
     },
 
@@ -403,7 +406,7 @@ export default defineComponent({
     async fetchMissingFavicons() {
       the.model.attempt(async () => {
         const favicons = the.model.favicons;
-        const urls = the.model.bookmarks.urlsInStash();
+        const urls = await the.model.bookmarks.urlsInStash();
 
         // This is just an async filter :/
         for (const url of urls) {

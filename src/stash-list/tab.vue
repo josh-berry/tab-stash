@@ -122,7 +122,7 @@ export default defineComponent({
       if (!this.tab.url) return [];
 
       return the.model.bookmarks
-        .foldersInStashContainingURL(this.tab.url)
+        .loadedFoldersInStashWithURL(this.tab.url)
         .map(f => friendlyFolderName(f.title));
     },
     container(): Container | undefined {

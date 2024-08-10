@@ -1,4 +1,4 @@
-import {computed, reactive, ref, type Ref} from "vue";
+import {computed, reactive, ref, watchEffect, type Ref} from "vue";
 import type {Bookmarks} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
@@ -7,6 +7,7 @@ import {
   backingOff,
   expect,
   filterMap,
+  nonReentrant,
   shortPoll,
   tryAgain,
   urlToOpen,
@@ -15,9 +16,12 @@ import {
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
 import {
+  insertNode,
   isChildInParent,
   pathTo,
-  setPosition,
+  placeNode,
+  removeNode,
+  type LoadedTreeParent,
   type TreeNode,
   type TreeParent,
 } from "./tree.js";
@@ -34,6 +38,8 @@ export interface Folder extends Node, TreeParent<Folder, Node> {
   $recursiveStats: FolderStats;
 }
 
+export type LoadedFolder = LoadedTreeParent<Folder, Node>;
+
 export interface Bookmark extends Node {
   url: string;
 }
@@ -49,6 +55,7 @@ export type NodePosition = {parent: Folder; index: number};
 export type FolderStats = {
   bookmarkCount: number;
   folderCount: number;
+  isLoaded: boolean;
 };
 
 export function isBookmark(node: Node): node is Bookmark {
@@ -80,13 +87,23 @@ export class Model {
   private readonly by_id = new Map<NodeID, Node>();
   private readonly by_url = new Map<OpenableURL, Set<Bookmark>>();
 
-  /** The ID of the root node (set only once the model is loaded). */
-  root_id: NodeID | undefined;
+  /** The root node of the bookmark tree. Contains all other bookmarks, in and
+   * out of the stash. (You probably want `stash_root` instead.) The bookmark
+   * tree is, in general, loaded lazily; it's possible that folders with
+   * unloaded elements will have `undefined` children. See the Folder and
+   * LoadedFolder types for more details. */
+  root: LoadedFolder = undefined!;
 
   /** The title to look for to locate the stash root. */
   readonly stash_root_name: string;
 
-  /** A Vue ref to the root folder for Tab Stash's saved tabs. */
+  /** A Vue ref to the root folder for Tab Stash's saved tabs. This is updated
+   * lazily as the model detects events that might cause the stash root to
+   * change. An update can also be triggered by calling findStashRoot().
+   *
+   * Whenever `stash_root` changes, the model will load the entire sub-tree
+   * under the new `stash_root` in the background.  There is generally no need
+   * to trigger loading manually. */
   readonly stash_root: Ref<Folder | undefined> = ref();
 
   /** If set, there is more than one candidate stash root, and it's not clear
@@ -96,23 +113,24 @@ export class Model {
     {text: string; help: () => void} | undefined
   > = ref();
 
-  /** Tracks folders which are candidates to be the stash root, and their
-   * parents (up to the root).  Any changes to these folders should recompute
-   * the stash root. */
-  private _stash_root_watch = new Set<Folder>();
-
-  /** Are we in the middle of a reload? */
-  private _is_reloading = false;
-
-  /** Did we receive an event since the last (re)load of the model? */
-  private _event_since_load: boolean = false;
+  /** Tracks nodes which are candidates to be the stash root, and their parents
+   * (up to the root).  Any changes to these nodes will trigger recomputation of
+   * the stash root in the background. */
+  private _stash_root_watch = new Set<Node>();
 
   //
   // Loading data and wiring up events
   //
 
   /** Construct a model by loading bookmarks from the browser bookmark store.
-   * It will listen for bookmark events to keep itself updated. */
+   * It will listen for bookmark events to keep itself updated.
+   *
+   * To start, we eagerly load the root of the bookmark tree and its children
+   * (e.g.  the bookmarks toolbar and menu).  We also load just enough to find
+   * the stash root, but we do not eagerly load anything else (not even the
+   * stash root).  A background load of the stash root is triggered
+   * automatically, but likely will not finish by the time from_browser()
+   * returns. */
   static async from_browser(
     stash_root_name_test_only?: string,
   ): Promise<Model> {
@@ -120,7 +138,41 @@ export class Model {
     if (!stash_root_name_test_only) stash_root_name_test_only = STASH_ROOT;
 
     const model = new Model(stash_root_name_test_only);
-    await model.reload();
+
+    /* c8 ignore start -- platform-specific defensive coding */
+    // Firefox hack that may not work on Chrome: Find the root by asking for its
+    // children. The empty string is not actually the root ID, but acts like it
+    // is.
+    const children_of_root = await browser.bookmarks.getChildren("");
+    if (children_of_root.length === 0) {
+      throw new Error(`Could not find bookmark root, no bookmarks found`);
+    }
+    const root = (
+      await browser.bookmarks.get(children_of_root[0].parentId!)
+    )[0];
+    if (!root || root.parentId !== undefined) {
+      throw new Error(`A non-child of root was returned`);
+    }
+    /* c8 ignore stop */
+
+    root.children = children_of_root;
+    const rn = model._upsertNode(root);
+    model.root = rn as Folder as LoadedFolder;
+
+    /* c8 ignore next -- bug-checking */
+    if (!model.root.isLoaded) throw new Error(`Root is not loaded`);
+
+    // Now that we have the bookmark root, we can search for the stash root,
+    // which may or may not exist yet.
+    await model._findStashRootCandidates();
+
+    // Make sure the stash root always stays fully-loaded.
+    watchEffect(() => {
+      if (!model.stash_root.value) return;
+      if (model.stash_root.value.$recursiveStats.isLoaded) return;
+      logErrorsFrom(() => model.loadedStash());
+    });
+
     return model;
   }
 
@@ -128,9 +180,7 @@ export class Model {
     this.stash_root_name = stash_root_name;
 
     const wiring = new EventWiring(this, {
-      onFired: () => {
-        this._event_since_load = true;
-      },
+      onFired: () => {},
       /* c8 ignore next 3 -- safety net for recovering from bugs */
       onError: () => {
         logErrorsFrom(() => this.reload());
@@ -143,48 +193,57 @@ export class Model {
     wiring.listen(browser.bookmarks.onRemoved, this.whenBookmarkRemoved);
   }
 
+  /* c8 ignore start -- for manual debugging only */
   dumpState(): any {
+    const state = (n: Node | undefined): any => {
+      if (n === undefined) return null;
+      return {
+        id: n.id,
+        title: n.title,
+        parentId: n.position?.parent?.id,
+        index: n.position?.index,
+        ...(isBookmark(n) ? {url: n.url} : {}),
+        ...(isFolder(n) ? {children: n.children.map(state)} : {}),
+      };
+    };
     return {
-      root: this.root_id,
+      root: this.root.id,
       stash_root: this.stash_root.value?.id,
-      bookmarks: JSON.parse(JSON.stringify(Object.fromEntries(this.by_id))),
+      bookmarks: state(this.root),
     };
   }
+  /* c8 ignore stop */
 
-  /** Fetch bookmarks from the browser again and update the model's
-   * understanding of the world with the browser's data.  Use this if it looks
-   * like the model has gotten out of sync with the browser (e.g. for crash
-   * recovery). */
+  /** Reload all bookmark data we know about from the browser.  This can help in
+   * crash-recovery or inconsistency situations where something has gone wrong
+   * and we don't know why. */
   readonly reload = backingOff(async () => {
-    function mark(marked: Set<string>, root: Bookmarks.BookmarkTreeNode) {
-      marked.add(root.id);
-      if (root.children) for (const c of root.children) mark(marked, c);
+    // Reload data on individual bookmarks. We also prune any "dead" bookmarks
+    // that were deleted while we weren't looking. We do NOT prune anything
+    // that's still known to exist, because that would make them potentially
+    // non-reactive and leave the UI in a stale state.
+    for (const node of this.by_id.values()) {
+      let btn: Bookmarks.BookmarkTreeNode[];
+
+      // We get each bookmark individually so we know which ones still exist.
+      try {
+        btn = await browser.bookmarks.get(node.id);
+      } catch (e) {
+        btn = [];
+      }
+
+      if (btn.length === 1) {
+        this._updateNode(node, btn[0]);
+      } else {
+        this.whenBookmarkRemoved(node.id);
+      }
     }
 
-    // We loop until we can complete a reload without receiving any
-    // concurrent events from the browser--if we get a concurrent event, we
-    // need to try loading again, since we don't know how the event was
-    // ordered with respect to the getTree().
-    this._is_reloading = true;
-    try {
-      this._event_since_load = true;
-      while (this._event_since_load) {
-        this._event_since_load = false;
-
-        const tree = await browser.bookmarks.getTree();
-        const root = tree[0]!;
-        this.root_id = root.id as NodeID;
-        this.whenBookmarkCreated(root.id, root);
-
-        // Clean up bookmarks that don't exist anymore
-        const marked = new Set<string>();
-        mark(marked, root);
-        for (const id of this.by_id.keys()) {
-          if (!marked.has(id)) this.whenBookmarkRemoved(id);
-        }
-      }
-    } finally {
-      this._is_reloading = false;
+    // Reload hierarchy information for each folder (including the root).
+    for (const node of this.by_id.values()) {
+      if (!isFolder(node)) continue;
+      node.isLoaded = false;
+      await this.loaded(node);
     }
   });
 
@@ -205,33 +264,57 @@ export class Model {
     return undefined;
   }
 
-  /** Retrieves the folder with the specified ID.  Returns `undefined` if it does not exist or is not a folder. */
+  /** Retrieves the folder with the specified ID.  Returns `undefined` if it
+   * does not exist or is not a folder. Note that the folder may not be
+   * fully-loaded (that is, not all its children may be available). If you want
+   * a LoadedFolder, combine this with `loaded()`. */
   folder(id: string): Folder | undefined {
     const node = this.node(id);
     if (node && isFolder(node)) return node;
     return undefined;
   }
 
-  /** Returns a (reactive) set of bookmarks with the specified URL. */
-  bookmarksWithURL(url: string): Set<Bookmark> {
+  /** Ensures the passed-in folder is fully-loaded, and returns it. Note that
+   * this is NOT recursive, that is, child folders may still not be
+   * fully-loaded. */
+  async loaded(folder: Folder): Promise<LoadedFolder> {
+    if (folder.isLoaded) return folder as LoadedFolder;
+
+    const children = await browser.bookmarks.getChildren(folder.id);
+    for (const c of children) this._upsertNode(c);
+
+    folder.isLoaded = true;
+    return folder as LoadedFolder;
+  }
+
+  /** Ensures the entire subtree underneath _folder_ is fully-loaded. */
+  async loadedSubtree(folder: Folder): Promise<LoadedFolder> {
+    if (folder.$recursiveStats.isLoaded) return folder as LoadedFolder;
+
+    // const children = await browser.bookmarks.getSubTree(folder.id);
+    // for (const c of children) this._upsertNode(c);
+
+    const lf = await this.loaded(folder);
+    for (const f of lf.children) if (isFolder(f)) await this.loadedSubtree(f);
+    return lf;
+  }
+
+  /** Ensures the entire stash is loaded, if it exists, and returns the root of
+   * the stash. */
+  async loadedStash(): Promise<LoadedFolder | undefined> {
+    if (!this.stash_root.value) return;
+    return await this.loadedSubtree(this.stash_root.value);
+  }
+
+  /** Returns a (reactive) set of bookmarks with the specified URL that are
+   * currently loaded in the model. */
+  loadedBookmarksWithURL(url: string): Set<Bookmark> {
     let index = this.by_url.get(urlToOpen(url));
     if (!index) {
       index = reactive(new Set<Bookmark>());
       this.by_url.set(urlToOpen(url), index);
     }
     return index;
-  }
-
-  /** Returns a (non-reactive) array of bookmarks in the stash with the
-   * specified URL. */
-  bookmarksWithURLInStash(url: string): Bookmark[] {
-    return Array.from(this.bookmarksWithURL(url)).filter(bm =>
-      this.isNodeInStashRoot(bm),
-    );
-  }
-
-  isParent(node: Node): node is Folder {
-    return isFolder(node);
   }
 
   /** Check if `node` is contained, directly or indirectly, by the stash root.
@@ -242,31 +325,31 @@ export class Model {
     return isChildInParent(node, this.stash_root.value);
   }
 
-  /** Returns true if a particular URL is present in the stash. */
-  isURLStashed(url: string): boolean {
+  /** Returns true if a particular URL is present in the stash in a bookmark
+   * that is currently loaded in the model. */
+  isURLLoadedInStash(url: string): boolean {
     const stash_root = this.stash_root.value;
     /* c8 ignore next -- uncommon and hard to test */
     if (!stash_root) return false;
 
-    for (const bm of this.bookmarksWithURL(url)) {
+    for (const bm of this.loadedBookmarksWithURL(url)) {
       if (this.isNodeInStashRoot(bm)) return true;
     }
     return false;
   }
 
-  /** Given a URL, find and return all the folders under the stash root which
-   * contain bookmarks with that URL.  (This is used by the UI to show "Stashed
-   * in ..." tooltips on tabs.) */
-  foldersInStashContainingURL(url: string): Folder[] {
+  /** Given a URL, find and return all the currently-loaded folders under the
+   * stash root which contain bookmarks with that URL.  (This is used by the UI
+   * to show "Stashed in ..." tooltips on tabs.) */
+  loadedFoldersInStashWithURL(url: string): Folder[] {
     const stash_root = this.stash_root.value;
     /* c8 ignore next -- uncommon and hard to test */
     if (!stash_root) return [];
 
     const ret: Folder[] = [];
-    for (const bm of this.bookmarksWithURL(url)) {
+    for (const bm of this.loadedBookmarksWithURL(url)) {
       const parent = bm.position?.parent;
-      /* c8 ignore next -- should never happen in practice; it's not */
-      // possible to place bookmarks directly under the root folder
+      /* c8 ignore next -- bookmarks should never be roots */
       if (!parent) continue;
       if (!isChildInParent(parent as Node, stash_root)) continue;
       ret.push(parent);
@@ -275,17 +358,22 @@ export class Model {
   }
 
   /** Return all the URLs present in the stash root. */
-  urlsInStash(): Set<string> {
+  async urlsInStash(): Promise<Set<string>> {
     const urls = new Set<string>();
 
     const urlsInChildren = (folder: Folder) => {
       for (const c of folder.children) {
+        /* c8 ignore next 3 -- bug-checking */
+        if (!c) {
+          throw new Error(`BUG: Some children are missing from ${folder.id}`);
+        }
         if (isBookmark(c)) urls.add(c.url);
         else if (isFolder(c)) urlsInChildren(c);
       }
     };
 
-    if (this.stash_root.value) urlsInChildren(this.stash_root.value);
+    const stash = await this.loadedStash();
+    if (stash) urlsInChildren(stash);
 
     return urls;
   }
@@ -417,9 +505,9 @@ export class Model {
     // we consistently see a single candidate over time, we can assume we're
     // the only one running right now.
     const start = Date.now();
-    let delay = 10;
+    let delay = 20;
 
-    let candidates = this._maybeUpdateStashRoot();
+    let candidates = await this._findStashRootCandidates();
     while (Date.now() - start < delay) {
       if (candidates.length > 1) {
         // If we find MULTIPLE candidates so soon after finding NONE,
@@ -432,7 +520,7 @@ export class Model {
         delay += 10;
       }
       await new Promise(r => setTimeout(r, 5 * Math.random()));
-      candidates = this._maybeUpdateStashRoot();
+      candidates = await this._findStashRootCandidates();
     }
     // END GROSS HACK
 
@@ -485,164 +573,46 @@ export class Model {
   //
 
   whenBookmarkCreated(id: string, new_bm: Bookmarks.BookmarkTreeNode) {
-    /* c8 ignore next -- conformance to interface / bug-checking */
-    if (id !== new_bm.id) throw new Error(`Bookmark IDs don't match`);
-
     trace("whenBookmarkCreated", new_bm);
 
-    const nodeId = id as NodeID;
-    const parentId = (new_bm.parentId ?? "") as NodeID;
+    /* c8 ignore start -- conformance to interface / bug-checking */
+    if (id !== new_bm.id) throw new Error(`Bookmark IDs don't match`);
+    /* c8 ignore stop */
 
-    // The parent must already exist and be a folder
-    const parent = this.folder(parentId);
-    if (parentId && !parent) {
-      // We ignore missing parents if we're reloading--this is probably an event
-      // for a child whose parent we haven't processed yet, and we'll just pick
-      // it up next time around.
-      if (this._is_reloading) return;
-      throw new Error(
-        `Trying to create a non-root bookmark "${id}" whose parent "${parentId}" doesn't exist`,
-      );
-    }
-
-    let node = this.by_id.get(nodeId);
-    if (!node) {
-      if (isBrowserBTNFolder(new_bm)) {
-        const folder: Folder = reactive({
-          position: undefined,
-          id: nodeId,
-          dateAdded: new_bm.dateAdded,
-          /* c8 ignore next -- trivial default value */
-          title: new_bm.title ?? "",
-          children: [],
-          $stats: computed(() => {
-            let bookmarkCount = 0;
-            let folderCount = 0;
-            for (const c of folder.children) {
-              if (isFolder(c)) ++folderCount;
-              if (isBookmark(c)) ++bookmarkCount;
-            }
-            return {bookmarkCount, folderCount};
-          }),
-          $recursiveStats: computed(() => {
-            let bookmarkCount = folder.$stats.bookmarkCount;
-            let folderCount = folder.$stats.folderCount;
-            for (const c of folder.children) {
-              if (!isFolder(c)) continue;
-              const stats = c.$recursiveStats;
-              bookmarkCount += stats.bookmarkCount;
-              folderCount += stats.folderCount;
-            }
-            return {bookmarkCount, folderCount};
-          }),
-        });
-        node = folder;
-      } else if (new_bm.type === "separator") {
-        node = reactive({
-          position: undefined,
-          id: nodeId,
-          dateAdded: new_bm.dateAdded,
-          type: "separator" as "separator",
-          title: "" as "",
-        });
-      } else {
-        node = reactive({
-          position: undefined,
-          id: nodeId,
-          dateAdded: new_bm.dateAdded,
-          /* c8 ignore next -- trivial default value */
-          title: new_bm.title ?? "",
-          /* c8 ignore next -- trivial default value */
-          url: new_bm.url ?? "",
-        });
-        this._add_url(node as Bookmark);
-      }
-
-      this.by_id.set(node.id, node);
-    } else {
-      // For idempotency, if the bookmark already exists, we merge the new
-      // info we got with the existing record.
-      node.title = new_bm.title;
-      if (isBookmark(node)) {
-        this._remove_url(node);
-        /* c8 ignore next -- trivial default value */
-        node.url = new_bm.url ?? "";
-        this._add_url(node);
-      }
-      node.dateAdded = new_bm.dateAdded;
-    }
-
-    // Move ourselves to the correct position in the tree.
-    setPosition(node, parent ? {parent, index: new_bm.index!} : undefined);
-
-    // If we got children, bring them in as well.
-    if (isBrowserBTNFolder(new_bm) && new_bm.children) {
-      for (const child of new_bm.children) {
-        this.whenBookmarkCreated(child.id, child);
-      }
-    }
-
-    // Finally, see if this folder is a candidate for being a stash root.
-    if (isFolder(node)) {
-      if (node.title === this.stash_root_name) this._stash_root_watch.add(node);
-      if (this._stash_root_watch.has(node)) this._maybeUpdateStashRoot();
-    }
+    this._upsertNode(new_bm, "shift-if-new");
   }
 
   whenBookmarkChanged(id: string, info: Bookmarks.OnChangedChangeInfoType) {
     trace("whenBookmarkChanged", id, info);
-    if (this._is_reloading) return;
-
-    const node = expect(
-      this.by_id.get(id as NodeID),
-      () => `Got change event for unknown node ${id}: ${JSON.stringify(info)}`,
-    );
-
-    if ("title" in info) {
-      node.title = info.title;
-      if (isFolder(node) && node.title === this.stash_root_name) {
-        this._stash_root_watch.add(node);
-      }
-    }
-
-    if (info.url !== undefined && isBookmark(node)) {
-      this._remove_url(node);
-      node.url = info.url;
-      this._add_url(node);
-    }
-
-    // If this bookmark has been renamed to != this.stash_root_name,
-    // _maybeUpdateStashRoot() will remove it from the watch set
-    // automatically.
-    if (isFolder(node) && this._stash_root_watch.has(node)) {
-      this._maybeUpdateStashRoot();
-    }
+    const node = this.node(id as NodeID);
+    if (!node) return;
+    this._updateNode(node, info);
   }
 
   whenBookmarkMoved(id: string, info: {parentId: string; index: number}) {
     trace("whenBookmarkMoved", id, info);
-    if (this._is_reloading) return;
 
-    const node = expect(
-      this.by_id.get(id as NodeID),
-      () => `Got move event for unknown node ${id}: ${JSON.stringify(info)}`,
-    );
+    const node = this.node(id as NodeID);
+    const parent = this.folder(info.parentId);
 
-    const new_parent = expect(
-      this.folder(info.parentId as NodeID),
-      () => `Move of ${id} is going to unknown folder ${info.parentId}`,
-    );
+    if (node) {
+      // If we don't know about the node's old parent, `node.position` will be
+      // undefined. If we don't know about the node's new parent, `parent` will
+      // be undefined.
+      if (node.position) removeNode(node.position);
+      if (parent) insertNode(node, {parent, index: info.index});
 
-    setPosition(node, {parent: new_parent, index: info.index});
-
-    if (isFolder(node) && this._stash_root_watch.has(node)) {
-      this._maybeUpdateStashRoot();
+      if (this._stash_root_watch.has(node)) this._maybeUpdateStashRoot();
+    } else if (parent) {
+      // An unloaded node was just moved into a loaded parent; make room for it
+      // in the parent and note that the parent is no longer loaded.
+      insertNode(undefined, {parent, index: info.index});
+      parent.isLoaded = false;
     }
   }
 
   whenBookmarkRemoved(id: string) {
     trace("whenBookmarkRemoved", id);
-    if (this._is_reloading) return;
 
     const node = this.by_id.get(id as NodeID);
     if (!node) return;
@@ -650,15 +620,19 @@ export class Model {
     // We must remove children before their parents, so that we never have a
     // child referencing a parent that doesn't exist.
     if (isFolder(node)) {
-      for (const c of Array.from(node.children)) this.whenBookmarkRemoved(c.id);
+      // Array.from() is needed here, because the removal process itself will
+      // alter `node.children`.
+      for (const c of Array.from(node.children)) {
+        if (c) this.whenBookmarkRemoved(c.id);
+      }
     }
 
-    setPosition(node, undefined);
+    if (node.position) removeNode(node.position);
 
     this.by_id.delete(node.id);
     if (isBookmark(node)) this._remove_url(node);
 
-    if (isFolder(node) && this._stash_root_watch.has(node)) {
+    if (this._stash_root_watch.has(node)) {
       // We must explicitly remove `node` here because its title is
       // still "Tab Stash" even after it is deleted.
       this._stash_root_watch.delete(node);
@@ -666,31 +640,55 @@ export class Model {
     }
   }
 
-  /** Update `this.stash_root` if appropriate.  This function tries to be
-   * fairly efficient in most cases since it is expected to be called quite
-   * frequently.
-   *
-   * We avoid using watch() or watchEffect() here because we have to inspect
-   * quite a few objects (starting from the root) to determine the stash root,
-   * and so we want to minimize when this search is actually done. */
-  private _maybeUpdateStashRoot(): Folder[] {
-    // Collect the current candidate set from the watch, limiting ourselves
-    // only to actual candidates (folders with the right name).
-    let candidates = Array.from(this._stash_root_watch).filter(
-      bm => bm.children && bm.title === this.stash_root_name,
-    );
+  /** Updates the stash root, if appropriate. */
+  private readonly _maybeUpdateStashRoot = nonReentrant(async () => {
+    await this._findStashRootCandidates();
+  });
 
-    // Find the path from each candidate to the root, and make sure we're
-    // watching the whole path (so if a parent gets moved, we get called
-    // again).
+  /** Finds the stash root, updates `this.stash_root`, and returns a sorted list
+   * of candidate folders that could have been used for the stash root.
+   *
+   * A folder is used for the stash root if it has the right name, and is the
+   * closest folder to the root with that name. Ties are broken in favor of the
+   * oldest folder, or folders are the same age, the folder with the lowest ID.
+   *
+   * This function is quite expensive, since it calls out to the browser
+   * multiple times, so it should be used quite sparingly.  Unless you need the
+   * candidates for some reason, you probably want `_maybeUpdateStashRoot()`
+   * instead. */
+  private async _findStashRootCandidates(): Promise<Folder[]> {
+    // Find all the candidate folders that have the right name.
+    const searched = (
+      await browser.bookmarks.search(this.stash_root_name)
+    ).filter(c => isBrowserBTNFolder(c) && c.title === this.stash_root_name);
+
+    // Make sure those folders and their parents (recursively) are loaded into
+    // the model. This is so we can keep an eye on changes and re-trigger the
+    // stash-root search if anything changes.
+    let to_fetch = searched.map(c => c.parentId!);
+    let to_upsert = Array.from(searched);
+
+    while (to_fetch.length > 0) {
+      const bms = await browser.bookmarks.get(to_fetch);
+
+      to_fetch = [];
+      for (const b of bms) {
+        if (b.parentId !== undefined) to_fetch.push(b.parentId);
+        to_upsert.push(b);
+      }
+    }
+
+    this._stash_root_watch = new Set();
+    to_upsert.reverse();
+    for (const b of to_upsert) this._stash_root_watch.add(this._upsertNode(b));
+
+    // Now we rank each candidate node.
+
+    let candidates = filterMap(searched, s => this.folder(s.id));
     const paths = filterMap(candidates, c => ({
       folder: c,
       path: pathTo<Folder, Node>(c),
     }));
-    this._stash_root_watch = new Set(candidates);
-    for (const p of paths) {
-      for (const pos of p.path) this._stash_root_watch.add(pos.parent);
-    }
 
     // Find the depth of the candidate closest to the root.
     const depth = Math.min(...paths.map(p => p.path.length));
@@ -712,13 +710,24 @@ export class Model {
     // The actual stash root is the first candidate.  The if-statement ensures
     // we only update the stash root if it's actually changed, since updating it
     // can be quite expensive (it will effectively redraw the whole UI).
-    if (this.stash_root.value !== candidates[0]) {
-      this.stash_root.value = candidates[0];
+    if (candidates.length > 0) {
+      if (this.stash_root.value !== candidates[0]) {
+        this.stash_root.value = candidates[0];
+        trace(
+          "_findStashRootCandidates",
+          "set stash_root to",
+          candidates[0].id,
+        );
+      }
+    } else if (this.stash_root.value !== undefined) {
+      trace("_findStashRootCandidates", "cleared stash_root");
+      this.stash_root.value = undefined;
     }
 
     // But if we have multiple candidates, we need to raise the alarm that
     // there is an ambiguity the user should resolve.
     if (candidates.length > 1) {
+      trace("_findStashRootCandidates", "found multiple candidates");
       this.stash_root_warning.value = {
         text:
           `You have multiple "${this.stash_root_name}" bookmark ` +
@@ -727,7 +736,8 @@ export class Model {
         /* istanbul ignore next */
         help: () => browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
       };
-    } else {
+    } else if (this.stash_root_warning.value !== undefined) {
+      trace("_findStashRootCandidates", "found single candidate");
       this.stash_root_warning.value = undefined;
     }
 
@@ -737,8 +747,101 @@ export class Model {
     return candidates;
   }
 
+  /** Update or create a model node, populating it with information from the
+   * browser. The model node is returned. */
+  private _upsertNode(
+    btn: Bookmarks.BookmarkTreeNode,
+    shiftIfNew?: "shift-if-new",
+  ): Node {
+    const nodeId = btn.id as NodeID;
+
+    let node = this.by_id.get(nodeId);
+    const parent = btn.parentId !== undefined && this.folder(btn.parentId);
+
+    trace("_upsertNode", nodeId, btn);
+
+    // Make sure the node exists.
+    if (!node) {
+      if (isBrowserBTNFolder(btn)) {
+        node = makeFolder(btn.id as NodeID);
+      } else if (btn.type === "separator") {
+        node = makeSeparator(btn.id as NodeID);
+      } else {
+        node = makeBookmark(btn.id as NodeID);
+      }
+      node.dateAdded = btn.dateAdded;
+      this.by_id.set(nodeId, node);
+    }
+
+    // Place the node in the right location in its parent. If we know this is a
+    // net-new node creation, rather than simply filling in a hole in the model,
+    // we will shift sibling nodes in the parent accordingly.
+    if (parent && btn.index !== undefined) {
+      const pos = {parent, index: btn.index!};
+      if (
+        parent !== node.position?.parent ||
+        pos.index !== node.position?.index
+      ) {
+        if (node.position) {
+          removeNode(node.position);
+          insertNode(node, pos);
+        } else {
+          (shiftIfNew ? insertNode : placeNode)(node, pos);
+        }
+      }
+    }
+
+    // Fill in the node details, update the URL index, and check if this node
+    // might be a stash root.
+    this._updateNode(node, btn);
+
+    // Finally, if we got children (e.g. as a result of getSubTree()), upsert
+    // them as well.
+    if (btn.children) {
+      const f = node as Folder;
+      for (const child of btn.children) this._upsertNode(child);
+      f.isLoaded = true;
+    }
+
+    return node;
+  }
+
+  /** Update an existing node with new information from the browser. */
+  private _updateNode(node: Node, btn: Bookmarks.OnChangedChangeInfoType) {
+    const titleChanged = btn.title !== undefined && node.title !== btn.title;
+    const urlChanged =
+      btn.url !== undefined && isBookmark(node) && node.url !== btn.url;
+
+    trace("_updateNode", node.id, btn, {
+      titleChanged,
+      urlChanged,
+    });
+
+    if (titleChanged) node.title = btn.title;
+
+    if (urlChanged) {
+      this._remove_url(node);
+      node.url = btn.url!;
+      this._add_url(node);
+    }
+
+    if (isFolder(node)) {
+      // Finally, see if this folder is a candidate for being a stash root.
+      if (node.title === this.stash_root_name) this._stash_root_watch.add(node);
+
+      // We have to explicitly check for title/parent changes, because
+      // _maybeUpdateStashRoot() will call out to the browser to search for
+      // candidate stash roots, and upsert those stash roots into the model,
+      // thus landing us right back here in a potentially-infinite loop.
+      if (titleChanged && this._stash_root_watch.has(node)) {
+        trace("_updateNode", "triggering stash root check");
+        this._maybeUpdateStashRoot();
+      }
+    }
+  }
+
   private _add_url(bm: Bookmark) {
-    this.bookmarksWithURL(bm.url).add(bm);
+    this.loadedBookmarksWithURL(bm.url).add(bm);
   }
 
   private _remove_url(bm: Bookmark) {
@@ -776,7 +879,7 @@ export class Model {
         for (let i = 0; i < options.tabs_per_folder; ++i) {
           await this.create({
             title: `Fake Tab #${i}`,
-            url: `http://example.com/#${path}-${i}`,
+            url: `http://localhost/#${path}-${i}`,
             parentId: parent.id,
             index: i,
           });
@@ -818,6 +921,64 @@ export function friendlyFolderName(name: string): string {
 //
 // Helper functions for the model
 //
+
+function makeFolder(nodeId: NodeID): Folder {
+  const folder: Folder = reactive({
+    id: nodeId,
+    position: undefined,
+    dateAdded: 0,
+    title: "",
+    isLoaded: false,
+    children: [],
+
+    $stats: computed(() => {
+      let bookmarkCount = 0;
+      let folderCount = 0;
+      for (const c of folder.children) {
+        if (!c) continue;
+        if (isFolder(c)) ++folderCount;
+        if (isBookmark(c)) ++bookmarkCount;
+      }
+      return {bookmarkCount, folderCount, isLoaded: folder.isLoaded};
+    }),
+
+    $recursiveStats: computed(() => {
+      let bookmarkCount = folder.$stats.bookmarkCount;
+      let folderCount = folder.$stats.folderCount;
+      let isLoaded = folder.isLoaded;
+      for (const c of folder.children) {
+        if (!c || !isFolder(c)) continue;
+        const stats = c.$recursiveStats;
+        bookmarkCount += stats.bookmarkCount;
+        folderCount += stats.folderCount;
+        isLoaded &&= stats.isLoaded;
+      }
+      return {bookmarkCount, folderCount, isLoaded};
+    }),
+  });
+
+  return folder;
+}
+
+function makeSeparator(nodeId: NodeID): Separator {
+  return reactive({
+    id: nodeId,
+    position: undefined,
+    dateAdded: 0,
+    type: "separator" as "separator",
+    title: "" as "",
+  });
+}
+
+function makeBookmark(nodeId: NodeID): Bookmark {
+  return reactive({
+    id: nodeId,
+    position: undefined,
+    dateAdded: 0,
+    title: "",
+    url: "",
+  });
+}
 
 /** A cross-browser compatible way to tell if a bookmark returned by the
  * `browser.bookmarks` API is a folder or not. */

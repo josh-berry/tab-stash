@@ -12,8 +12,17 @@ export interface TreeParent<
   P extends TreeParent<P, N>,
   N extends TreeNode<P, N>,
 > extends TreeNode<P, N> {
-  readonly children: (P | N)[];
+  isLoaded: boolean;
+  readonly children: (P | N | undefined)[];
 }
+
+export type LoadedTreeParent<
+  P extends TreeParent<P, N>,
+  N extends TreeNode<P, N>,
+> = Omit<P, "isLoaded" | "children"> & {
+  isLoaded: true;
+  readonly children: (P | N)[];
+};
 
 /** The position of a child node within the tree. */
 export interface TreePosition<
@@ -63,68 +72,126 @@ export function pathTo<P extends TreeParent<P, N>, N extends TreeNode<P, N>>(
   return path;
 }
 
-/** Moves a child to the specified position in the tree, removing it from its
- * prior parent if necessary. If _newPosition_ is `undefined` or omitted, the
- * child is removed from the tree.
+/** Places a node in the tree exactly at the specified position. Does not shift
+ * any other nodes to make room. If a node already exists at this location,
+ * throws.
  *
- * **WARNING:** This method **does not** check that the child is not its own
- * parent, so it is possible to create cycles accidentally.  It is assumed that
- * the caller will perform this check (e.g. using `isChildInParent()`).
+ * If the new index is past the end of the list of children in the parent, one
+ * of two things will happen:
  *
- * When re-ordering a child within the same parent, the movement happens as if
- * the child is first removed from its old location and then added to its new
- * location--that is, after the re-ordering is complete, `newPosition.index`
- * will be the new index of the child.
+ * - If the parent is fully-loaded, we will throw.  This is to prevent callers
+ *   from unintentionally creating gaps in the parent's list of children after
+ *   the parent has been fully-loaded.
+ * - Otherwise, we will extend the list by inserting `undefined`s, on the
+ *   assumption the other nodes in the list will be filled in later.
+ */
+export function placeNode<P extends TreeParent<P, N>, N extends TreeNode<P, N>>(
+  node: N,
+  newPosition: TreePosition<P, N>,
+) {
+  const newChildren = newPosition.parent.children;
+
+  if (node.position) throw new Error(`Can't add node that's already in a tree`);
+
+  if (newPosition.index < 0) {
+    throw new Error(`Index ${newPosition.index} out of bounds`);
+  }
+
+  if (newPosition.index > newChildren.length && newPosition.parent.isLoaded) {
+    throw new Error(
+      `Index ${newPosition.index} is past the end of a fully-loaded parent`,
+    );
+  }
+
+  if (newChildren[newPosition.index] !== undefined) {
+    throw new Error(`Node already exists at index ${newPosition.index}`);
+  }
+
+  // The new parent is only partially-loaded; extend it to make room for the
+  // child we're about to insert.
+  while (newPosition.index >= newChildren.length) newChildren.push(undefined);
+
+  newChildren[newPosition.index] = node;
+  node.position = newPosition;
+}
+
+/** Inserts a node into the tree at the specified position, shifting other nodes
+ * to the right to make room for the new node.
  *
- * For convenience, `newPosition.index` will be clamped to
- * `newPosition.children.length`, so it is possible to pass an arbitrarily large
- * index to indicate that you want the child to be appended to the parent's
- * children.
+ * If the new index is past the end of the list of children in the parent, one
+ * of two things will happen:
  *
- * Right now, the `newPosition` object is used (and modified in-place, if
- * necessary) directly as the child's new `.position`. This means that
- * `newPosition` must not be modified after it is passed to `setPosition()`, or
- * tree inconsistencies will result. This is an implementation detail that may
- * change in the future. */
-export function setPosition<
+ * - If the parent is fully-loaded, we will throw.  This is to prevent callers
+ *   from unintentionally creating gaps in the parent's list of children after
+ *   the parent has been fully-loaded.
+ * - Otherwise, we will extend the list by inserting `undefined`s, on the
+ *   assumption the other nodes in the list will be filled in later.
+ */
+export function insertNode<
   P extends TreeParent<P, N>,
   N extends TreeNode<P, N>,
->(child: N, newPosition: TreePosition<P, N> | undefined) {
-  const oldPosition = child.position;
-  if (oldPosition) {
-    const oldChildren = oldPosition.parent.children;
-    oldChildren.splice(oldPosition.index, 1);
-    for (let i = oldPosition.index; i < oldChildren.length; ++i) {
-      oldChildren[i].position!.index = i;
-    }
+>(node: N | undefined, newPosition: TreePosition<P, N>) {
+  const newChildren = newPosition.parent.children;
 
-    child.position = undefined;
+  if (node && node.position) {
+    throw new Error(`Can't add node that's already in a tree`);
   }
 
-  if (newPosition) {
-    const newChildren = newPosition.parent.children;
-    if (newPosition.index < 0) {
-      newPosition.index = 0;
-    } else if (newPosition.index > newChildren.length) {
-      newPosition.index = newChildren.length;
-    }
-
-    newChildren.splice(newPosition.index, 0, child);
-    for (let i = newPosition.index + 1; i < newChildren.length; ++i) {
-      newChildren[i].position!.index = i;
-    }
-
-    child.position = newPosition;
+  if (newPosition.index < 0) {
+    throw new Error(`Index ${newPosition.index} out of bounds`);
   }
+
+  if (newPosition.index > newChildren.length) {
+    if (newPosition.parent.isLoaded) {
+      throw new Error(
+        `Index ${newPosition.index} is past the end of a fully-loaded parent`,
+      );
+    }
+
+    // The new parent is only partially-loaded; extend it to make room for the
+    // child we're about to insert.
+    while (newPosition.index > newChildren.length) newChildren.push(undefined);
+  }
+
+  newChildren.splice(newPosition.index, 0, node);
+  for (let i = newPosition.index + 1; i < newChildren.length; ++i) {
+    const nc = newChildren[i];
+    if (nc) nc.position!.index = i;
+  }
+
+  if (node) node.position = newPosition;
+}
+
+/** Removes the node at the specified position from its parent, re-shuffling
+ * children in the parent to close the gap. The removed node's `.position` will
+ * then be `undefined`.
+ *
+ * This takes a position instead of a node, because it must be possible to
+ * remove nodes from the tree that are not loaded. */
+export function removeNode<
+  P extends TreeParent<P, N>,
+  N extends TreeNode<P, N>,
+>(position: TreePosition<P, N>) {
+  const node = position.parent.children[position.index];
+  const oldChildren = position.parent.children;
+
+  oldChildren.splice(position.index, 1);
+  for (let i = position.index; i < oldChildren.length; ++i) {
+    const oc = oldChildren[i];
+    if (oc) oc.position!.index = i;
+  }
+
+  if (node) node.position = undefined;
 }
 
 /** Calls a function for each node in a subtree, starting from the root.
- * Traversal is done pre-order, depth-first. */
+ * Traversal is done pre-order, depth-first. Nodes which are not loaded are
+ * skipped, since we have no way to load them. */
 export function forEachNodeInSubtree<
   P extends TreeParent<P, N>,
   N extends TreeNode<P, N>,
 >(subtree: P | N, isParent: IsParentFn<P, N>, f: (node: P | N) => void) {
   f(subtree);
   if (!isParent(subtree)) return;
-  for (const c of subtree.children) forEachNodeInSubtree(c, isParent, f);
+  for (const c of subtree.children) if (c) forEachNodeInSubtree(c, isParent, f);
 }

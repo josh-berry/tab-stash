@@ -78,6 +78,7 @@ describe("stash-list/dnd-proto", () => {
       bookmarks: await BM.Model.from_browser(),
       tabs: await T.Model.from_browser(),
     };
+    await model.bookmarks.loadedSubtree(model.bookmarks.root);
     expect(events.pendingCount()).to.equal(0);
   });
 

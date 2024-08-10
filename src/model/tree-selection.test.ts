@@ -2,7 +2,7 @@ import {expect} from "chai";
 import {computed, nextTick} from "vue";
 
 import {TreeSelection} from "./tree-selection.js";
-import {setPosition} from "./tree.js";
+import {insertNode, removeNode} from "./tree.js";
 import {isTestParent, makeDefaultTree, type TestNode} from "./tree.test.js";
 
 describe("model/tree-selection", () => {
@@ -60,8 +60,8 @@ describe("model/tree-selection", () => {
 
   it("updates counts when nodes move", async () => {
     sel.info(topNodes.c1a).isSelected = true;
-    sel.info(topNodes.c2b1).isSelected = true;
     sel.info(topNodes.c2b2).isSelected = true;
+    sel.info(topNodes.c2b4).isSelected = true;
     await nextTick();
     expect(sel.info(topNodes.c1).selectedCount, "c1 before").to.equal(1);
     expect(sel.info(topNodes.c2b).selectedCount, "c2b before").to.equal(2);
@@ -69,9 +69,10 @@ describe("model/tree-selection", () => {
     expect(sel.info(topNodes.c).selectedCount, "c before").to.equal(3);
     expect(sel.info(topNodes.e).selectedCount, "e before").to.equal(0);
     expect(sel.info(topNodes.root).selectedCount, "root before").to.equal(3);
-    await expectSelectedItems([topNodes.c1a, topNodes.c2b1, topNodes.c2b2], []);
+    await expectSelectedItems([topNodes.c1a, topNodes.c2b2, topNodes.c2b4], []);
 
-    setPosition(topNodes.c2, {parent: topParents.e, index: 0});
+    removeNode(topNodes.c2.position!);
+    insertNode(topNodes.c2, {parent: topParents.e, index: 0});
     await nextTick();
     expect(sel.info(topNodes.c1).selectedCount, "c1 after").to.equal(1);
     expect(sel.info(topNodes.c2b).selectedCount, "c2b after").to.equal(2);
@@ -79,7 +80,7 @@ describe("model/tree-selection", () => {
     expect(sel.info(topNodes.c).selectedCount, "c after").to.equal(1);
     expect(sel.info(topNodes.e).selectedCount, "e after").to.equal(2);
     expect(sel.info(topNodes.root).selectedCount, "root after").to.equal(3);
-    await expectSelectedItems([topNodes.c1a, topNodes.c2b1, topNodes.c2b2], []);
+    await expectSelectedItems([topNodes.c1a, topNodes.c2b2, topNodes.c2b4], []);
   });
 
   describe("toggleSelectOne()", () => {

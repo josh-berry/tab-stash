@@ -82,6 +82,7 @@ export class TreeSelection<
       ? computedLazyEq(() => {
           let count = isSelected.value ? 1 : 0;
           for (const c of node.children) {
+            if (!c) continue;
             const info = this.info(c);
             count += info.selectedCount;
           }
@@ -114,7 +115,7 @@ export class TreeSelection<
     // NOTE: We could optimize this by checking `hasSelectionInSubtree`,
     // however, that property is eventually-consistent and we want stronger
     // consistency here until we see that it's actually a performance issue.
-    for (const c of node.children) yield* this.selectedItemsInSubtree(c);
+    for (const c of node.children) if (c) yield* this.selectedItemsInSubtree(c);
   }
 
   /** Check if the provided node or any of its parents is selected.  Useful for
@@ -199,7 +200,7 @@ export class TreeSelection<
     }
 
     this.lastSelected.range = range;
-    for (const n of select) this.info(n).isSelected = selected;
+    for (const n of select) if (n) this.info(n).isSelected = selected;
   }
 
   // TODO Move me into tree.ts and find common parents
@@ -216,6 +217,8 @@ export class TreeSelection<
       startPos = tmp;
     }
 
-    return startPos.parent.children.slice(startPos.index, endPos.index + 1);
+    return startPos.parent.children
+      .slice(startPos.index, endPos.index + 1)
+      .filter(i => i !== undefined);
   }
 }

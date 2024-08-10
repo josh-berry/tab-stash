@@ -210,7 +210,7 @@ export class Model {
 
         if (
           this.options.sync.state.show_open_tabs === "unstashed" &&
-          this.bookmarks.isURLStashed(item.url)
+          this.bookmarks.isURLLoadedInStash(item.url)
         ) {
           return false;
         }
@@ -356,10 +356,15 @@ export class Model {
         60 *
         1000;
 
+    // Needed so that we can see every URL in the stash. Otherwise we might
+    // ignore tabs that can actually be closed, and we might drop
+    // metadata/favicons we want to keep.
+    await this.bookmarks.loadedStash();
+
     await this.deleted_items.dropOlderThan(deleted_exp);
     await this.favicons.gc(
       url =>
-        this.bookmarks.bookmarksWithURL(url).size > 0 ||
+        this.bookmarks.loadedBookmarksWithURL(url).size > 0 ||
         this.tabs.tabsWithURL(url).size > 0,
     );
     await this.bookmark_metadata.gc(
@@ -561,7 +566,7 @@ export class Model {
     allowDuplicates?: boolean;
     task?: TaskMonitor;
   }): Promise<Bookmarks.Node[]> {
-    const to_folder = options.toFolder;
+    const to_folder = await this.bookmarks.loaded(options.toFolder);
     const items = options.items;
 
     // Note: We explicitly DON'T check stashability here because the caller
@@ -943,11 +948,14 @@ export class Model {
    * will cleanup the parent folder if the parent folder has a "default" name
    * and would be empty. */
   async deleteBookmarkTree(node: Bookmarks.Node, deleted_at?: Date) {
-    const toDelItem = (item: Bookmarks.Node): DeletedItems.DeletedItem => {
+    const toDelItem = async (
+      item: Bookmarks.Node,
+    ): Promise<DeletedItems.DeletedItem> => {
       if (isFolder(item)) {
+        const lf = await this.bookmarks.loaded(item);
         return {
           title: item.title,
-          children: item.children.map(i => toDelItem(i)),
+          children: await Promise.all(lf.children.map(i => toDelItem(i))),
         };
       }
 
@@ -963,7 +971,11 @@ export class Model {
       return {title: "", url: ""};
     };
 
-    await this.deleted_items.add(toDelItem(node), undefined, deleted_at);
+    // Make sure the node we're about to delete is fully-loaded in the model, so
+    // we can save a complete view of it to deleted items.
+    if (isFolder(node)) await this.bookmarks.loadedSubtree(node);
+
+    await this.deleted_items.add(await toDelItem(node), undefined, deleted_at);
     await this.bookmarks.removeTree(node);
   }
 
@@ -1026,7 +1038,8 @@ export class Model {
       } else {
         // Search for an existing folder inside the stash root with
         // the same name as the folder it was deleted from.
-        const child = stash_root.children.find(
+        const loaded_root = await this.bookmarks.loaded(stash_root);
+        const child = loaded_root.children.find(
           c => isFolder(c) && c.title === from.title,
         );
         if (child && isFolder(child)) toFolder = child;
@@ -1071,6 +1084,9 @@ export class Model {
     const now = Date.now();
     const tabs = await browser.tabs.query({hidden: true});
 
+    // Required so we actually know which tabs have URLs in the stash.
+    await this.bookmarks.loadedStash();
+
     const our_hidden_tabs = await Promise.allSettled(
       tabs.map(async bt => {
         const mt = this.tabs.tab(bt.id!)!;
@@ -1095,7 +1111,9 @@ export class Model {
 
       // If there is a URL in the stash matching the tab's URL, we know this
       // tab is still in the stash and cannot be closed.
-      if (this.bookmarks.isURLStashed(res.value.tab.url!)) return undefined;
+      if (this.bookmarks.isURLLoadedInStash(res.value.tab.url!)) {
+        return undefined;
+      }
       return res.value.tab.id;
     });
 
@@ -1139,7 +1157,7 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
       if (isFolder(item)) {
         return {
           title: item.title,
-          children: copying(item.children),
+          children: copying(item.children.filter(c => c !== undefined)),
         };
       }
       // Separators are excluded

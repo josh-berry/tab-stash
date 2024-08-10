@@ -296,7 +296,7 @@ export default defineComponent({
       return (
         this.showStashedTabs ||
         (the.model.isURLStashable(t.url) &&
-          !the.model.bookmarks.isURLStashed(t.url))
+          !the.model.bookmarks.isURLLoadedInStash(t.url))
       );
     },
 
@@ -332,7 +332,7 @@ export default defineComponent({
             !t.pinned &&
             // Keep the active tab if it's the Tab Stash tab
             (!t.active || the.model.isURLStashable(t.url)) &&
-            !the.model.bookmarks.isURLStashed(t.url),
+            !the.model.bookmarks.isURLLoadedInStash(t.url),
         );
         if (!(await this.confirmRemove(to_remove.length))) return;
         await the.model.tabs.remove(to_remove);
@@ -343,7 +343,9 @@ export default defineComponent({
       this.attempt(async () => {
         const to_remove = this.tabs.filter(
           t =>
-            !t.hidden && !t.pinned && the.model.bookmarks.isURLStashed(t.url),
+            !t.hidden &&
+            !t.pinned &&
+            the.model.bookmarks.isURLLoadedInStash(t.url),
         );
         if (!(await this.confirmRemove(to_remove.length))) return;
         await the.model.hideOrCloseStashedTabs(to_remove);
@@ -355,7 +357,7 @@ export default defineComponent({
         if (ev.altKey) {
           // Discard hidden/stashed tabs to free memory.
           const tabs = this.tabs.filter(
-            t => t.hidden && the.model.bookmarks.isURLStashed(t.url),
+            t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
           );
           await the.model.tabs.remove(tabs);
         } else {
@@ -373,10 +375,10 @@ export default defineComponent({
               !t.pinned,
           );
           const hide_tabs = tabs.filter(t =>
-            the.model.bookmarks.isURLStashed(t.url),
+            the.model.bookmarks.isURLLoadedInStash(t.url),
           );
           const close_tabs = tabs
-            .filter(t => !the.model.bookmarks.isURLStashed(t.url))
+            .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
             .map(t => t.id);
 
           if (!(await this.confirmRemove(tabs.length))) return;

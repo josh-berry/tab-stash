@@ -39,19 +39,20 @@ logErrorsFrom(async () => {
   // Stash that keeps track of which tabs it was responsible for hiding.
   if (!model.options.local.state.migrated_tab_markers_applied) {
     logErrorsFrom(async () => {
-      // Don't do anything if the browser doesn't support hiding tabs.
-      if (!browser.tabs.hide) return;
+      if (!!browser.tabs.hide && model.bookmarks.stash_root.value) {
+        const tabs = await browser.tabs.query({hidden: true});
 
-      const tabs = await browser.tabs.query({hidden: true});
+        await model.bookmarks.loadedStash();
 
-      const stashed_hidden_tabs = tabs.filter(t =>
-        model.bookmarks.isURLStashed(t.url!),
-      );
+        const stashed_hidden_tabs = tabs.filter(t =>
+          model.bookmarks.isURLLoadedInStash(t.url!),
+        );
 
-      // This applies the tag as a side effect
-      await model.tabs.hide(
-        filterMap(stashed_hidden_tabs, t => model.tabs.tab(t.id!)),
-      );
+        // This applies the tag as a side effect
+        await model.tabs.hide(
+          filterMap(stashed_hidden_tabs, t => model.tabs.tab(t.id!)),
+        );
+      }
 
       await model.options.local.set({migrated_tab_markers_applied: true});
     });
@@ -410,13 +411,13 @@ logErrorsFrom(async () => {
   //
 
   logErrorsFrom(async () => {
-    let managed_urls = model.bookmarks.urlsInStash();
+    let managed_urls = await model.bookmarks.urlsInStash();
 
     const close_removed_bookmarks = backingOff(() =>
       model.attempt(async () => {
         // Garbage-collect hidden tabs by diffing the old and new sets of URLs
         // in the tree.
-        const new_urls = model.bookmarks.urlsInStash();
+        const new_urls = await model.bookmarks.urlsInStash();
 
         // Ugh, why am I open-coding a set-difference operation?  This
         // should be built-in!

@@ -32,6 +32,7 @@ describe("model/tree-filter", () => {
       let hasMatchInSubtree = false;
       let nonMatchingCount = 0;
       for (const c of n.children) {
+        if (!c) continue;
         const ci = treeFilter.info(c);
         visit(c);
         if (ci.isMatching || ci.hasMatchInSubtree) hasMatchInSubtree = true;
@@ -83,12 +84,12 @@ describe("model/tree-filter", () => {
       ["a", false],
       ["b2", true],
       ["c2", true],
-      ["c2b1", false],
       ["c2b2", true],
+      ["c2b4", false],
       ["e", false],
       ["e2", true],
     ] as const) {
-      expect(treeFilter.info(nodes[id]!).isMatching).to.equal(val);
+      expect(treeFilter.info(nodes[id]).isMatching).to.equal(val);
     }
 
     checkFilterInvariants();

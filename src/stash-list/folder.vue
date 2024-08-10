@@ -191,9 +191,16 @@
     />
   </div>
 
+  <load-more
+    v-if="!isVisible || !folder.isLoaded"
+    :load="loadMore"
+    :is-fully-loaded="false"
+  />
+
   <dnd-list
+    v-else
     :class="{'forest-children': true, collapsed}"
-    v-model="folder.children"
+    v-model="children"
     :item-key="(item: Node) => item.id"
     :item-class="childClasses"
     :accepts="accepts"
@@ -253,6 +260,7 @@ import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
+import LoadMore from "../components/load-more.vue";
 
 import type {DragAction, DropAction} from "../components/dnd-list.js";
 import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
@@ -273,6 +281,7 @@ export default defineComponent({
     ItemIcon,
     Menu,
     ShowFilteredItem,
+    LoadMore,
   },
 
   props: {
@@ -282,6 +291,7 @@ export default defineComponent({
 
   data: () => ({
     isRenaming: false,
+    isVisible: false,
   }),
 
   computed: {
@@ -328,7 +338,7 @@ export default defineComponent({
 
     childrenWithTabs(): readonly NodeWithTabs[] {
       const tab_model = the.model.tabs;
-      return this.folder.children.map(n => ({
+      return this.children.map(n => ({
         node: n,
         tabs:
           isBookmark(n) && n.url
@@ -388,13 +398,13 @@ export default defineComponent({
             !t.pinned &&
             !t.hidden &&
             the.model.isURLStashable(t.url) &&
-            (!the.model.bookmarks.isURLStashed(t.url) ||
+            (!the.model.bookmarks.isURLLoadedInStash(t.url) ||
               the.model.options.sync.state.show_open_tabs !== "unstashed"),
         )
         .map(tab => ({
           tab,
           stashedIn: the.model.bookmarks
-            .foldersInStashContainingURL(tab.url)
+            .loadedFoldersInStashWithURL(tab.url)
             .map(f => friendlyFolderName(f.title)),
         }));
     },
@@ -435,10 +445,13 @@ export default defineComponent({
       return `${this.title}\n${statstip}`;
     },
 
+    children(): Node[] {
+      if (this.folder.isLoaded) return this.folder.children as Node[];
+      return [];
+    },
+
     leafChildren(): Bookmark[] {
-      return filterMap(this.folder.children, c =>
-        isBookmark(c) ? c : undefined,
-      );
+      return filterMap(this.children, c => (isBookmark(c) ? c : undefined));
     },
 
     selectedCount(): number {
@@ -455,6 +468,18 @@ export default defineComponent({
       return the.model.attempt(fn);
     },
 
+    async loadMore(): Promise<void> {
+      // A very cursed hack: the model should be fully-loaded eagerly at
+      // startup, but most of the page load time is actually just creating DOM
+      // elements. So instead, we hide our children by default, and if the
+      // folder actually comes into view, then we actually populate the DOM.
+      this.isVisible = true;
+
+      // The folder should be fully-loaded already, but just in case, we trigger
+      // loading again anyway.
+      await the.model.bookmarks.loaded(this.folder);
+    },
+
     isFolder,
     isBookmark,
 
@@ -466,7 +491,7 @@ export default defineComponent({
       }
 
       // Toggle the collapsed state of all the child folders
-      const folders = filterMap(this.folder.children, c =>
+      const folders = filterMap(this.children, c =>
         "children" in c ? c : undefined,
       );
       if (folders.length === 0) return;
