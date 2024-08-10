@@ -847,10 +847,12 @@ export class Model {
   }
 
   private _add_url(bm: Bookmark) {
+    if (!bm.url) return;
     this.loadedBookmarksWithURL(bm.url).add(bm);
   }
 
   private _remove_url(bm: Bookmark) {
+    if (!bm.url) return;
     const index = this.by_url.get(urlToOpen(bm.url));
     /* c8 ignore next -- internal consistency */
     if (!index) return;
