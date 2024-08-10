@@ -7,8 +7,8 @@
       'fully-loaded': isFullyLoaded,
     }"
   >
-    <slot name="loading" v-if="!isFullyLoaded"> Loading... </slot>
-    <slot name="fully-loaded" v-else> fin </slot>
+    <slot name="loading" v-if="!isFullyLoaded"></slot>
+    <slot name="fully-loaded" v-else></slot>
   </component>
 </template>
 
@@ -111,7 +111,7 @@ export default defineComponent({
     });
     observer.observe(this.el!);
   },
-  unmounted() {
+  beforeUnmount() {
     callbacks.delete(this.el!);
     observer.unobserve(this.el!);
   },
