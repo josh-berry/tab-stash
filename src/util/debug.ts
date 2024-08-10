@@ -9,7 +9,7 @@ export type TracerFn = {
 };
 
 const tracers: Record<string, TracerFn> = {};
-const flags: Record<string, boolean> = {};
+const flags: Record<string, boolean | "stack"> = {};
 
 (<any>globalThis).trace = flags;
 
@@ -28,10 +28,26 @@ export function trace_fn(tag: string, ...context: any[]): TracerFn {
   const f =
     context.length > 0
       ? (...args: any[]) => {
-          if (flags[tag]) console.log(log_tag, ...context, ...args);
+          if (!flags[tag]) return;
+          console.log(log_tag, ...context, ...args);
+          if (flags[tag] === "stack") {
+            try {
+              throw new Error("stack trace");
+            } catch (e) {
+              console.log(e);
+            }
+          }
         }
       : (...args: any[]) => {
-          if (flags[tag]) console.log(log_tag, ...args);
+          if (!flags[tag]) return;
+          console.log(log_tag, ...args);
+          if (flags[tag] === "stack") {
+            try {
+              throw new Error("stack trace");
+            } catch (e) {
+              console.log(e);
+            }
+          }
         };
   (f as any).tag = tag;
   return f as TracerFn;
