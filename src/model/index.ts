@@ -361,11 +361,20 @@ export class Model {
     // metadata/favicons we want to keep.
     await this.bookmarks.loadedStash();
 
+    // Figure out which domains are in the stash so we know which domain-level
+    // favicons to keep.
+    const urls = await this.bookmarks.urlsInStash();
+    const domains_to_keep = new Set();
+    for (const u of urls) {
+      domains_to_keep.add(Favicons.domainForUrl(urlToOpen(u)));
+    }
+
     await this.deleted_items.dropOlderThan(deleted_exp);
     await this.favicons.gc(
       url =>
         this.bookmarks.loadedBookmarksWithURL(url).size > 0 ||
-        this.tabs.tabsWithURL(url).size > 0,
+        this.tabs.tabsWithURL(url).size > 0 ||
+        domains_to_keep.has(url),
     );
     await this.bookmark_metadata.gc(
       id =>
@@ -964,7 +973,8 @@ export class Model {
           title: item.title,
           url: item.url,
           favIconUrl:
-            this.favicons.get(item.url!).value?.favIconUrl || undefined,
+            this.favicons.get(urlToOpen(item.url!)).value?.favIconUrl ||
+            undefined,
         };
       }
 
@@ -989,7 +999,8 @@ export class Model {
       {
         title: bm.title ?? "<no title>",
         url: bm.url ?? "about:blank",
-        favIconUrl: this.favicons.get(bm.url!)?.value?.favIconUrl || undefined,
+        favIconUrl:
+          this.favicons.get(urlToOpen(bm.url!))?.value?.favIconUrl || undefined,
       },
       parent
         ? {
@@ -1066,7 +1077,7 @@ export class Model {
     // Restore any favicons.
     const restoreFavicons = (item: DeletedItems.DeletedItem) => {
       if ("url" in item && "favIconUrl" in item) {
-        this.favicons.maybeSet(item.url, item);
+        this.favicons.maybeSet(urlToOpen(item.url), item);
       }
       if ("children" in item) {
         for (const c of item.children) restoreFavicons(c);

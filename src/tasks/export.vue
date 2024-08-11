@@ -111,11 +111,6 @@ export default defineComponent({
       });
     },
 
-    faviconFor(bm: Bookmark): string | undefined {
-      if (!bm.url) return undefined;
-      return the.model.favicons.get(bm.url)?.value?.favIconUrl || undefined;
-    },
-
     copy() {
       document.execCommand("copy");
     },

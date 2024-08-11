@@ -1,7 +1,7 @@
 import type {Tabs} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
-import {urlToOpen} from "../util/index.js";
+import {urlToOpen, type OpenableURL} from "../util/index.js";
 import {logErrorsFrom} from "../util/oops.js";
 
 import type {KVSCache, MaybeEntry} from "../datastore/kvs/index.js";
@@ -64,55 +64,89 @@ export class Model {
     await this._kvc.kvs.set(toDelete);
   }
 
-  /** Retrieve a favicon from the cache.
+  /** Retrieves the favicon URL to display given a URL. Returns a page-specific
+   * icon, if available, or a domain-specific icon if not, or failing that,
+   * undefined. */
+  getFavIconUrl(url: OpenableURL): string | undefined {
+    return (
+      this.get(url).value?.favIconUrl ??
+      this.getForDomain(url).value?.favIconUrl ??
+      undefined
+    );
+  }
+
+  /** Retrieve a favicon from the cache for the specified URL.
    *
    * This always returns an object, but the object's .value property might not
    * be filled in if we don't know what icon to use (yet).  Once the icon is
    * known, the returned object will be filled in (and the change will be
    * visible to Vue's reactivity system).
    */
-  get(url: string): FaviconEntry {
-    return this._kvc.get(urlToOpen(url));
+  get(url: OpenableURL): FaviconEntry {
+    return this._kvc.get(url);
   }
 
-  /** Retrieves a favicon from the cache, but won't trigger loading
-   * if the icon is not already present in the store. */
-  getIfExists(url: string): FaviconEntry | undefined {
-    return this._kvc.getIfExists(urlToOpen(url));
+  /** Retrieve a favicon from the cache for the specified domain. Works just
+   * like get(); see get() for more details. */
+  getForDomain(url: OpenableURL): FaviconEntry {
+    return this._kvc.get(domainForUrl(url));
   }
 
-  /** Update the icon and page title for a URL in the cache.  Note that the
-   * update may be done in the background--that is, the returned FaviconEntry
-   * may be stale. */
-  set(url: string, updates: Partial<Favicon>): FaviconEntry {
+  /** Update the icon and page title for a URL in the cache. */
+  set(url: OpenableURL, updates: Partial<Favicon>) {
     if (!updates.favIconUrl && !updates.title) {
-      return this._kvc.get(urlToOpen(url));
+      return this._kvc.get(url);
     }
 
-    return this._kvc.merge(urlToOpen(url), old => {
-      if (!old) old = {favIconUrl: null, title: undefined};
-      if (updates.favIconUrl) old.favIconUrl = updates.favIconUrl;
-      if (updates.title) old.title = updates.title;
-      return old;
-    });
+    this._kvc.merge(url, old => merge_apply(old, updates));
+    this._kvc.merge(domainForUrl(url), old =>
+      merge_apply_if_unset(old, updates),
+    );
   }
 
-  /** Set the icon and page title for a URL in the cache, but only if the URL
-   * already exists in the cache and the title/icon aren't set already. */
-  maybeSet(url: string, updates: Partial<Favicon>) {
-    url = urlToOpen(url);
-    const entry = this._kvc.getIfExists(url)?.value;
-    if (!entry) return;
-    this.set(url, {
-      favIconUrl: entry.favIconUrl || updates.favIconUrl,
-      title: entry.title || updates.title,
-    });
+  /** Set the icon and page title for a URL in the cache, but only if the
+   * title/icon aren't set already. */
+  maybeSet(url: OpenableURL, updates: Partial<Favicon>) {
+    if (!updates.favIconUrl && !updates.title) {
+      return this._kvc.get(url);
+    }
+
+    this._kvc.merge(url, old => merge_apply_if_unset(old, updates));
+    this._kvc.merge(domainForUrl(url), old =>
+      merge_apply_if_unset(old, updates),
+    );
   }
 
   private _updateFavicon(tab: Tabs.Tab) {
     // We ignore favicons when the tab is still loading, because Firefox may
     // send us events where a tab has a new URL, but an old favicon which is
     // for the URL the tab is navigating away from.
-    if (tab.url && tab.status === "complete") this.set(tab.url, tab);
+    if (tab.url && tab.status === "complete") this.set(urlToOpen(tab.url), tab);
   }
+}
+
+export function domainForUrl(url: OpenableURL): string {
+  return new URL(url).hostname;
+}
+
+function merge_apply(
+  old: Favicon | undefined,
+  updates: Partial<Favicon>,
+): Favicon {
+  if (!old) old = {favIconUrl: null, title: undefined};
+  if (updates.favIconUrl) old.favIconUrl = updates.favIconUrl;
+  if (updates.title) old.title = updates.title;
+  return old;
+}
+
+function merge_apply_if_unset(
+  old: Favicon | undefined,
+  updates: Partial<Favicon>,
+): Favicon {
+  if (!old) old = {favIconUrl: null, title: undefined};
+  if (!old.favIconUrl && updates.favIconUrl) {
+    old.favIconUrl = updates.favIconUrl;
+  }
+  if (!old.title && updates.title) old.title = updates.title;
+  return old;
 }

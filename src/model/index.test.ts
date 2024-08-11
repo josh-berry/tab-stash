@@ -1887,7 +1887,7 @@ describe("model", () => {
       await events.nextN(browser.bookmarks.onCreated, 5);
       await events.next(deleted_items.onSet);
       await p;
-      await events.next(favicons.onSet);
+      await events.nextN(favicons.onSet, 2);
 
       const restored = model.bookmarks.stash_root.value!.children[0] as Folder;
       expect(isFolder(restored)).to.be.true;

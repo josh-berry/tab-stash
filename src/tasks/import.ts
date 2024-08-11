@@ -1,7 +1,12 @@
 import browser from "webextension-polyfill";
 
 import {trace_fn} from "../util/debug.js";
-import {AsyncChannel, filterMap, TaskMonitor} from "../util/index.js";
+import {
+  AsyncChannel,
+  filterMap,
+  TaskMonitor,
+  urlToOpen,
+} from "../util/index.js";
 
 import * as BM from "../model/bookmarks.js";
 import type {Model, NewFolder, NewTab} from "../model/index.js";
@@ -292,7 +297,7 @@ export async function importURLs(options: {
         }
       }
 
-      options.model.favicons.maybeSet(url, siteinfo);
+      options.model.favicons.maybeSet(urlToOpen(url), siteinfo);
       ++tm.value;
     }
 

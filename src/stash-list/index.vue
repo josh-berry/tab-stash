@@ -152,8 +152,14 @@ import {
   type Folder,
 } from "../model/bookmarks.js";
 import type {Tab} from "../model/tabs.js";
-import {fetchInfoForSites} from "../tasks/siteinfo.js";
-import {TaskMonitor, parseVersion} from "../util/index.js";
+import {fetchInfoForSites, type SiteInfo} from "../tasks/siteinfo.js";
+import {
+  type OpenableURL,
+  TaskMonitor,
+  parseVersion,
+  urlToOpen,
+  type TaskIterator,
+} from "../util/index.js";
 
 import Menu from "../components/menu.vue";
 import Notification from "../components/notification.vue";
@@ -166,6 +172,7 @@ import FolderList from "./folder-list.vue";
 import FolderVue from "./folder.vue";
 import SelectionMenu from "./selection-menu.vue";
 import WindowVue from "./window.vue";
+import {domainForUrl} from "../model/favicons.js";
 
 export default defineComponent({
   components: {
@@ -408,28 +415,54 @@ export default defineComponent({
         const favicons = the.model.favicons;
         const urls = await the.model.bookmarks.urlsInStash();
 
-        // This is just an async filter :/
+        const urls_to_fetch = new Set<OpenableURL>();
+        const domains_to_fetch = new Map<string, OpenableURL>();
         for (const url of urls) {
-          const favicon = favicons.get(url);
-          if (favicon?.value?.favIconUrl) urls.delete(url);
+          const norm_url = urlToOpen(url);
+          const domain = domainForUrl(norm_url);
+          if (!favicons.get(norm_url).value) urls_to_fetch.add(norm_url);
+          if (!favicons.getForDomain(norm_url).value) {
+            domains_to_fetch.set(domain, norm_url);
+          }
         }
 
-        const iter = TaskMonitor.run_iter(tm => fetchInfoForSites(urls, tm));
-        this.dialog = {
-          class: "ProgressDialog",
-          props: {progress: iter.progress, cancel: () => iter.cancel()},
-        };
+        const task = TaskMonitor.run(async tm => {
+          let iter: TaskIterator<SiteInfo>;
 
-        try {
-          for await (const info of iter) {
-            favicons.set(info.originalUrl, {
+          const updateIcon = (info: SiteInfo) =>
+            favicons.maybeSet(urlToOpen(info.originalUrl), {
               favIconUrl: info.favIconUrl ?? null,
               title: info.title,
             });
-          }
-        } finally {
+
+          tm.max = domains_to_fetch.size + urls_to_fetch.size;
+          tm.onCancel = () => {
+            if (iter) iter.cancel();
+          };
+
+          tm.status = "Fetching icons for each domain...";
+          iter = tm.wspawn_iter(domains_to_fetch.size, tm =>
+            fetchInfoForSites(new Set(domains_to_fetch.values()), tm),
+          );
+          for await (const info of iter) updateIcon(info);
+
+          tm.status = "Fetching icons for each page...";
+          iter = tm.wspawn_iter(urls_to_fetch.size, tm =>
+            fetchInfoForSites(urls_to_fetch, tm),
+          );
+          for await (const info of iter) updateIcon(info);
+        });
+
+        this.dialog = {
+          class: "ProgressDialog",
+          props: {
+            progress: task.progress,
+            cancel: () => task.cancel(),
+          },
+        };
+        task.finally(() => {
           this.dialog = undefined;
-        }
+        });
       });
     },
   },

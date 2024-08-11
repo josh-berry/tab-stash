@@ -96,14 +96,10 @@ export default defineComponent({
       return the.model.tabs.targetWindow.value;
     },
     favIcon(): string {
-      if (this.selectionInfo.isSelected) {
-        return "";
-      } else if (this.tab.favIconUrl) {
+      if (!this.selectionInfo.isSelected && this.tab.favIconUrl) {
         return this.tab.favIconUrl;
       }
-      return (
-        the.model.favicons.getIfExists(this.tab.url)?.value?.favIconUrl ?? ""
-      );
+      return "";
     },
     isStashable(): boolean {
       const t = this.tab;

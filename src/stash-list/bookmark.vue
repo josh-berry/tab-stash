@@ -28,7 +28,7 @@
         select: true,
       }"
       default-icon="tab"
-      :src="!selectionInfo.isSelected ? favicon?.value?.favIconUrl || '' : ''"
+      :src="!selectionInfo.isSelected ? favicon : ''"
       selectable
       :selected="selectionInfo.isSelected"
       @click.prevent.stop="select"
@@ -85,11 +85,16 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import {altKeyName, bgKeyName, bgKeyPressed, required} from "../util/index.js";
+import {
+  altKeyName,
+  bgKeyName,
+  bgKeyPressed,
+  required,
+  urlToOpen,
+} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import type {Bookmark} from "../model/bookmarks.js";
-import type {FaviconEntry} from "../model/favicons.js";
 import type {Tab} from "../model/tabs.js";
 import type {FilterInfo} from "../model/tree-filter.js";
 
@@ -177,14 +182,17 @@ export default defineComponent({
     },
 
     defaultTitle(): string {
+      const url = urlToOpen(this.bookmark.url);
+      const favicon = the.model.favicons.get(url);
       return (
-        this.tabState.title ?? this.favicon?.value?.title ?? this.bookmark.title
+        this.tabState.title ?? favicon?.value?.title ?? this.bookmark.title
       );
     },
 
-    favicon(): FaviconEntry | null {
-      if (!this.bookmark.url) return null;
-      return the.model.favicons.get(this.bookmark.url);
+    favicon(): string | undefined {
+      if (!this.bookmark.url) return "";
+      const url = urlToOpen(this.bookmark.url);
+      return the.model.favicons.getFavIconUrl(url);
     },
   },
 
