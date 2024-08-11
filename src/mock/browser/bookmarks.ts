@@ -54,8 +54,6 @@ class MockBookmarks implements BM.Static {
   }
 
   async getChildren(id: string): Promise<BM.BookmarkTreeNode[]> {
-    // Firefox has this undocumented behavior; need to confirm on Chrome
-    if (id === "") return this.root.children.map(n => node_only(n));
     return this._getFolder(id).children.map(node => node_only(node));
   }
 

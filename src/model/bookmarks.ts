@@ -92,7 +92,7 @@ export class Model {
    * tree is, in general, loaded lazily; it's possible that folders with
    * unloaded elements will have `undefined` children. See the Folder and
    * LoadedFolder types for more details. */
-  root: LoadedFolder = undefined!;
+  root: Folder | undefined = undefined;
 
   /** The title to look for to locate the stash root. */
   readonly stash_root_name: string;
@@ -142,32 +142,10 @@ export class Model {
 
     const model = new Model(stash_root_name_test_only);
 
-    /* c8 ignore start -- platform-specific defensive coding */
-    // Firefox hack that may not work on Chrome: Find the root by asking for its
-    // children. The empty string is not actually the root ID, but acts like it
-    // is.
-    const children_of_root = await browser.bookmarks.getChildren("");
-    if (children_of_root.length === 0) {
-      throw new Error(`Could not find bookmark root, no bookmarks found`);
-    }
-    const root = (
-      await browser.bookmarks.get(children_of_root[0].parentId!)
-    )[0];
-    if (!root || root.parentId !== undefined) {
-      throw new Error(`A non-child of root was returned`);
-    }
-    /* c8 ignore stop */
-
-    root.children = children_of_root;
-    const rn = model._upsertNode(root);
-    model.root = rn as Folder as LoadedFolder;
-
-    for (const c of children_of_root) model._upsertNode(c);
-    model.root.isLoaded = true;
-
-    // Now that we have the bookmark root, we can search for the stash root,
-    // which may or may not exist yet.
-    await model._findStashRootCandidates();
+    // Find the bookmark root and stash root. We do these together because we
+    // have to fetch the bookmark root anyway as part of finding the stash root,
+    // and the fewer times we can hit the browser.* APIs, the faster we load.
+    await model._findRoots();
 
     // Make sure the stash root always stays fully-loaded.
     watchEffect(() => {
@@ -210,7 +188,7 @@ export class Model {
       };
     };
     return {
-      root: this.root.id,
+      root: this.root?.id,
       stash_root: this.stash_root.value?.id,
       bookmarks: state(this.root),
     };
@@ -568,7 +546,11 @@ export class Model {
   async ensureStashRoot(): Promise<Folder> {
     if (this.stash_root.value) return this.stash_root.value;
 
-    await this.create({title: this.stash_root_name});
+    // NOTE: We don't use this.create() here because it's possible the
+    // newly-created stash root will never be loaded into the model, if its
+    // parent isn't present.  The subsequent call(s) to _findRoots() should take
+    // care of this for us.
+    await browser.bookmarks.create({title: this.stash_root_name});
 
     // GROSS HACK to avoid creating duplicate roots follows.
     //
@@ -580,7 +562,7 @@ export class Model {
     const start = Date.now();
     let delay = 20;
 
-    let candidates = await this._findStashRootCandidates();
+    let candidates = await this._findRoots();
     while (Date.now() - start < delay) {
       if (candidates.length > 1) {
         // If we find MULTIPLE candidates so soon after finding NONE,
@@ -593,7 +575,7 @@ export class Model {
         delay += 10;
       }
       await new Promise(r => setTimeout(r, 5 * Math.random()));
-      candidates = await this._findStashRootCandidates();
+      candidates = await this._findRoots();
     }
     // END GROSS HACK
 
@@ -715,11 +697,12 @@ export class Model {
 
   /** Updates the stash root, if appropriate. */
   private readonly _maybeUpdateStashRoot = nonReentrant(async () => {
-    await this._findStashRootCandidates();
+    await this._findRoots();
   });
 
-  /** Finds the stash root, updates `this.stash_root`, and returns a sorted list
-   * of candidate folders that could have been used for the stash root.
+  /** Finds the bookmark root and stash root, updates `this.root` and
+   * `this.stash_root`, and returns a sorted list of candidate folders that
+   * could have been used for the stash root.
    *
    * A folder is used for the stash root if it has the right name, and is the
    * closest folder to the root with that name. Ties are broken in favor of the
@@ -729,7 +712,7 @@ export class Model {
    * multiple times, so it should be used quite sparingly.  Unless you need the
    * candidates for some reason, you probably want `_maybeUpdateStashRoot()`
    * instead. */
-  private async _findStashRootCandidates(): Promise<Folder[]> {
+  private async _findRoots(): Promise<Folder[]> {
     // Find all the candidate folders that have the right name.
     const searched = (
       await browser.bookmarks.search(this.stash_root_name)
@@ -738,22 +721,26 @@ export class Model {
     // Make sure those folders and their parents (recursively) are loaded into
     // the model. This is so we can keep an eye on changes and re-trigger the
     // stash-root search if anything changes.
-    let to_fetch = searched.map(c => c.parentId!);
+    let to_fetch = new Set(searched.map(c => c.parentId!));
     let to_upsert = Array.from(searched);
 
-    while (to_fetch.length > 0) {
-      const bms = await browser.bookmarks.get(to_fetch);
+    while (to_fetch.size > 0) {
+      const bms = await browser.bookmarks.get(Array.from(to_fetch));
 
-      to_fetch = [];
+      to_fetch = new Set();
       for (const b of bms) {
-        if (b.parentId !== undefined) to_fetch.push(b.parentId);
+        if (b.parentId !== undefined) to_fetch.add(b.parentId);
         to_upsert.push(b);
       }
     }
 
     this._stash_root_watch = new Set();
     to_upsert.reverse();
-    for (const b of to_upsert) this._stash_root_watch.add(this._upsertNode(b));
+    for (const b of to_upsert) {
+      const node = this._upsertNode(b);
+      if (b.parentId === undefined) this.root = node as Folder;
+      this._stash_root_watch.add(node);
+    }
 
     // Now we rank each candidate node.
 

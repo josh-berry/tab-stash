@@ -10,6 +10,75 @@ import type {BookmarkFixture} from "./fixtures.testlib.js";
 import {B, make_bookmarks, STASH_ROOT_NAME} from "./fixtures.testlib.js";
 import {shortPoll, tryAgain} from "../util/index.js";
 
+describe("model/bookmarks - creating the stash root", () => {
+  let model: M.Model;
+
+  beforeEach(async () => {
+    model = await M.Model.from_browser(STASH_ROOT_NAME);
+  });
+
+  afterEach(async () => {
+    if (model && model.stash_root.value) {
+      const p = model.removeTree(model.stash_root.value);
+      await events.next(browser.bookmarks.onRemoved);
+      await p;
+    }
+  });
+
+  it("loads the model even without a stash root", async () => {
+    expect(model.root).to.be.undefined;
+    expect(model.stash_root.value).to.be.undefined;
+  });
+
+  it("creates a new stash root when requested", async () => {
+    const p = model.ensureStashRoot();
+    await events.next(browser.bookmarks.onCreated);
+    const stash_root = await p;
+    expect(stash_root.title).to.equal(STASH_ROOT_NAME);
+    expect(stash_root.isLoaded).to.be.true;
+    expect(stash_root.position?.parent).not.to.be.undefined;
+  });
+
+  it("populates model.root and .stash_root after creation", async () => {
+    const p = model.ensureStashRoot();
+    await events.next(browser.bookmarks.onCreated);
+    const stash_root = await p;
+    expect(model.root).not.to.be.undefined;
+    expect(model.stash_root.value).to.equal(stash_root);
+  });
+
+  it("reuses an existing stash root", async () => {
+    const p = model.ensureStashRoot();
+    await events.next(browser.bookmarks.onCreated);
+    const stash_root = await p;
+    const new_sr = await model.ensureStashRoot();
+    expect(new_sr).to.equal(stash_root);
+  });
+
+  it("creates only one stash root even if there's a race", async () => {
+    const model2 = await M.Model.from_browser(STASH_ROOT_NAME);
+    const model3 = await M.Model.from_browser(STASH_ROOT_NAME);
+
+    expect(model.stash_root.value).to.be.undefined;
+    expect(model2.stash_root.value).to.be.undefined;
+    expect(model3.stash_root.value).to.be.undefined;
+
+    const p1 = model.ensureStashRoot();
+    const p2 = model2.ensureStashRoot();
+    const p3 = model3.ensureStashRoot();
+    await events.nextN(browser.bookmarks.onCreated, 3);
+    await events.nextN(browser.bookmarks.onRemoved, 2);
+    const sr1 = await p1;
+    const sr2 = await p2;
+    const sr3 = await p3;
+    expect(sr1).to.equal(model.stash_root.value);
+    expect(sr2).to.equal(model2.stash_root.value);
+    expect(sr3).to.equal(model3.stash_root.value);
+    expect(sr1.id).to.equal(sr2.id);
+    expect(sr2.id).to.equal(sr3.id);
+  });
+});
+
 describe("model/bookmarks", () => {
   let bms: BookmarkFixture;
   let model: M.Model;
@@ -21,34 +90,6 @@ describe("model/bookmarks", () => {
   });
 
   describe("loads bookmarks from the browser", () => {
-    it("eagerly loads only the stash root", () => {
-      expect(model.root.isLoaded, `root isLoaded`).to.be.true;
-      expect(model.root.$recursiveStats.isLoaded, `root $r.isLoaded`).to.be
-        .false;
-      expect(
-        model.root.children.find(c => M.isFolder(c) && !c.isLoaded),
-        `root.children`,
-      ).to.not.be.undefined;
-
-      expect(model.stash_root.value, `stash_root`).to.not.be.undefined;
-      expect(
-        model.stash_root.value!.$recursiveStats.isLoaded,
-        `stash_root $r.isLoaded`,
-      ).to.be.true;
-
-      const checkLoaded = (f: M.Folder) => {
-        expect(f.isLoaded, `${f.id} ${f.title} isLoaded`).to.be.true;
-        expect(
-          f.children,
-          `${f.id} ${f.title} has all children`,
-        ).to.not.include(undefined);
-
-        for (const c of f.children) if (M.isFolder(c!)) checkLoaded(c);
-      };
-
-      checkLoaded(model.stash_root.value!);
-    });
-
     it("creates bookmark objects", () => {
       // Pick a few at random inside the stash, since bookmarks ones outside the
       // stash are only loaded as needed.
@@ -87,7 +128,7 @@ describe("model/bookmarks", () => {
         new Set([model.node(bms.doug_2.id)]),
       );
 
-      await model.loadedSubtree(model.root);
+      await model.loadedSubtree(model.root!);
 
       expect(model.loadedBookmarksWithURL(`${B}#doug`)).to.deep.equal(
         new Set([model.node(bms.doug_2.id), model.node(bms.doug_1.id)]),
@@ -184,7 +225,7 @@ describe("model/bookmarks", () => {
   });
 
   it("inserts duplicate bookmarks gracefully", async () => {
-    await model.loadedSubtree(model.root);
+    await model.loadedSubtree(model.root!);
     const new_a: Bookmarks.BookmarkTreeNode = {
       id: bms.alice.id,
       title: "The New A",
@@ -216,7 +257,7 @@ describe("model/bookmarks", () => {
   });
 
   it("updates bookmarks", async () => {
-    await model.loadedSubtree(model.root);
+    await model.loadedSubtree(model.root!);
     await browser.bookmarks.update(bms.alice.id, {
       title: "The New A",
       url: "/new_a",
@@ -243,7 +284,7 @@ describe("model/bookmarks", () => {
   });
 
   it("removes bookmarks idempotently", async () => {
-    await model.loadedSubtree(model.root);
+    await model.loadedSubtree(model.root!);
     await browser.bookmarks.remove(bms.bob.id);
     const ev = await events.next(browser.bookmarks.onRemoved);
 
@@ -258,7 +299,7 @@ describe("model/bookmarks", () => {
   });
 
   it("removes folders idempotently", async () => {
-    await model.loadedSubtree(model.root);
+    await model.loadedSubtree(model.root!);
     expect(model.node(bms.names.id)).not.to.be.undefined;
     await browser.bookmarks.removeTree(bms.names.id);
     const ev = await events.next(browser.bookmarks.onRemoved);
@@ -286,7 +327,7 @@ describe("model/bookmarks", () => {
   });
 
   it("reorders bookmarks (forward)", async () => {
-    await model.loadedSubtree(model.root);
+    await model.loadedSubtree(model.root!);
     const p = model.move(
       model.bookmark(bms.alice.id)!,
       model.folder(bms.outside.id)!,
@@ -301,7 +342,7 @@ describe("model/bookmarks", () => {
   });
 
   it("reorders bookmarks (backward)", async () => {
-    await model.loadedSubtree(model.root);
+    await model.loadedSubtree(model.root!);
     const p = model.move(
       model.node(bms.empty.id)!,
       model.folder(bms.outside.id)!,
@@ -398,7 +439,7 @@ describe("model/bookmarks", () => {
         expect(model.isURLLoadedInStash(`${B}#not-in-bookmarks`)).to.be.false;
       });
       it("returns false for URLs not in the stash w/fully-loaded bookmarks", async () => {
-        await model.loadedSubtree(model.root);
+        await model.loadedSubtree(model.root!);
         expect(model.loadedBookmarksWithURL(`${B}#francis`).size).to.equal(1);
         expect(model.isURLLoadedInStash(`${B}#francis`)).to.be.false;
       });
@@ -610,7 +651,7 @@ describe("model/bookmarks", () => {
       });
 
       it("when deleting bookmarks outside the stash root", async () => {
-        await model.loadedSubtree(model.root);
+        await model.loadedSubtree(model.root!);
         const p = model.remove(new_child);
         await events.nextN(browser.bookmarks.onRemoved, 1);
         await p;

@@ -9,6 +9,7 @@ import {
   B,
   make_bookmarks,
   make_tabs,
+  STASH_ROOT_NAME,
   type BookmarkFixture,
   type TabFixture,
 } from "../model/fixtures.testlib.js";
@@ -75,10 +76,10 @@ describe("stash-list/dnd-proto", () => {
     bookmarks = await make_bookmarks();
 
     model = {
-      bookmarks: await BM.Model.from_browser(),
+      bookmarks: await BM.Model.from_browser(STASH_ROOT_NAME),
       tabs: await T.Model.from_browser(),
     };
-    await model.bookmarks.loadedSubtree(model.bookmarks.root);
+    await model.bookmarks.loadedSubtree(model.bookmarks.root!);
     expect(events.pendingCount()).to.equal(0);
   });
 

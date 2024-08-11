@@ -25,6 +25,7 @@ const the = {
 export default the;
 
 export async function init() {
+  performance.mark("PAGE LOAD START");
   const sources = await resolveNamed({
     browser_settings: M.BrowserSettings.Model.live(),
     options: M.Options.Model.live(),
