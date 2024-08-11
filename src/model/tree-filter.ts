@@ -1,6 +1,5 @@
 import {computed, reactive, type Ref} from "vue";
 
-import {computedLazyEq} from "../util/index.js";
 import type {IsParentFn, TreeNode, TreeParent} from "./tree.js";
 
 export interface FilterInfo {
@@ -48,7 +47,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
     const isMatching = computed(() => this.predicate.value(node));
 
     const hasMatchInSubtree = isParent
-      ? computedLazyEq(() => {
+      ? computed(() => {
           if (isMatching.value) return true;
           for (const c of node.children) {
             if (!c) continue;
@@ -59,7 +58,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
       : isMatching;
 
     const nonMatchingCount = isParent
-      ? computedLazyEq(() => {
+      ? computed(() => {
           let count = 0;
           for (const c of node.children) {
             if (!c) continue;

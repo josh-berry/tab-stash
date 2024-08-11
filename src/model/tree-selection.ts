@@ -1,6 +1,5 @@
 import {computed, reactive, ref, type Ref} from "vue";
 
-import {computedLazyEq} from "../util/index.js";
 import {
   forEachNodeInSubtree,
   type IsParentFn,
@@ -62,7 +61,7 @@ export class TreeSelection<
   constructor(isParent: IsParentFn<P, N>, roots: Ref<P[]>) {
     this.isParent = isParent;
     this.roots = roots;
-    this.selectedCount = computedLazyEq(() =>
+    this.selectedCount = computed(() =>
       this.roots.value.reduce(
         (sum, root) => sum + this.info(root).selectedCount,
         0,
@@ -79,7 +78,7 @@ export class TreeSelection<
     const isSelected = ref(false);
 
     const selectedCount = isParent
-      ? computedLazyEq(() => {
+      ? computed(() => {
           let count = isSelected.value ? 1 : 0;
           for (const c of node.children) {
             if (!c) continue;
@@ -91,7 +90,7 @@ export class TreeSelection<
       : computed(() => (isSelected.value ? 1 : 0));
 
     const hasSelectionInSubtree = isParent
-      ? computedLazyEq(() => selectedCount.value !== 0)
+      ? computed(() => selectedCount.value !== 0)
       : isSelected;
 
     const i: SelectionInfo = reactive({
