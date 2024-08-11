@@ -31,23 +31,35 @@ describe("model/bookmarks - creating the stash root", () => {
   });
 
   it("creates a new stash root when requested", async () => {
+    expect(model.root).to.be.undefined;
+    expect(model.stash_root.value).to.be.undefined;
+
     const p = model.ensureStashRoot();
     await events.next(browser.bookmarks.onCreated);
     const stash_root = await p;
+
     expect(stash_root.title).to.equal(STASH_ROOT_NAME);
     expect(stash_root.isLoaded).to.be.true;
     expect(stash_root.position?.parent).not.to.be.undefined;
   });
 
   it("populates model.root and .stash_root after creation", async () => {
+    expect(model.root).to.be.undefined;
+    expect(model.stash_root.value).to.be.undefined;
+
     const p = model.ensureStashRoot();
     await events.next(browser.bookmarks.onCreated);
     const stash_root = await p;
+
     expect(model.root).not.to.be.undefined;
     expect(model.stash_root.value).to.equal(stash_root);
   });
 
   it("reuses an existing stash root", async () => {
+    await model.ensureStashRoot();
+    expect(model.root).not.to.be.undefined;
+    expect(model.stash_root.value).not.to.be.undefined;
+
     const p = model.ensureStashRoot();
     await events.next(browser.bookmarks.onCreated);
     const stash_root = await p;
@@ -76,6 +88,44 @@ describe("model/bookmarks - creating the stash root", () => {
     expect(sr3).to.equal(model3.stash_root.value);
     expect(sr1.id).to.equal(sr2.id);
     expect(sr2.id).to.equal(sr3.id);
+  });
+
+  it("detects when a new stash root is created", async () => {
+    expect(model.root).to.be.undefined;
+    expect(model.stash_root.value).to.be.undefined;
+
+    const btn = await browser.bookmarks.create({title: STASH_ROOT_NAME});
+    await events.next(browser.bookmarks.onCreated);
+
+    await shortPoll(() => {
+      if (!model.root) tryAgain();
+      if (!model.stash_root.value) tryAgain();
+    });
+    expect(model.stash_root.value!.id).to.equal(btn.id);
+  });
+
+  it("detects when a folder is renamed to be the stash root", async () => {
+    const btn = await browser.bookmarks.create({
+      title: `not ${STASH_ROOT_NAME}`,
+    });
+    await events.next(browser.bookmarks.onCreated);
+
+    // Re-create the model - we don't want it seeing the creation event
+    model = await M.Model.from_browser(STASH_ROOT_NAME);
+    expect(model.root).to.be.undefined;
+    expect(model.stash_root.value).to.be.undefined;
+
+    // Created bookmark should not be loaded since we're not tracking its parent
+    expect(model.bookmark(btn.id)).to.be.undefined;
+
+    await browser.bookmarks.update(btn.id, {title: STASH_ROOT_NAME});
+    await events.next(browser.bookmarks.onChanged);
+
+    await shortPoll(() => {
+      if (!model.root) tryAgain();
+      if (!model.stash_root.value) tryAgain();
+    });
+    expect(model.stash_root.value!.id).to.equal(btn.id);
   });
 });
 

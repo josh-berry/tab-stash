@@ -546,6 +546,8 @@ export class Model {
   async ensureStashRoot(): Promise<Folder> {
     if (this.stash_root.value) return this.stash_root.value;
 
+    trace("creating new stash root");
+
     // NOTE: We don't use this.create() here because it's possible the
     // newly-created stash root will never be loaded into the model, if its
     // parent isn't present.  The subsequent call(s) to _findRoots() should take
@@ -565,6 +567,12 @@ export class Model {
     let candidates = await this._findRoots();
     while (Date.now() - start < delay) {
       if (candidates.length > 1) {
+        trace(
+          "race detected; winner = ",
+          candidates[0].id,
+          "loser = ",
+          candidates[1].id,
+        );
         // If we find MULTIPLE candidates so soon after finding NONE,
         // there must be multiple threads trying to create the root
         // folder.  Let's try to remove one.  We are guaranteed that all
@@ -579,6 +587,7 @@ export class Model {
     }
     // END GROSS HACK
 
+    trace("converged on stash root = ", candidates[0].id);
     return candidates[0];
   }
 
@@ -640,7 +649,14 @@ export class Model {
   whenBookmarkChanged(id: string, info: Bookmarks.OnChangedChangeInfoType) {
     trace("whenBookmarkChanged", id, info);
     const node = this.node(id as NodeID);
-    if (!node) return;
+
+    if (!node) {
+      // If we see a node is being renamed to a name that matches the stash
+      // root, we should check if it's becoming the new stash root.
+      if (info.title === this.stash_root_name) this._maybeUpdateStashRoot();
+      return;
+    }
+
     this._updateNode(node, info);
   }
 
@@ -718,6 +734,8 @@ export class Model {
       await browser.bookmarks.search(this.stash_root_name)
     ).filter(c => isBrowserBTNFolder(c) && c.title === this.stash_root_name);
 
+    trace("_findRoots", searched.length, "folders named", this.stash_root_name);
+
     // Make sure those folders and their parents (recursively) are loaded into
     // the model. This is so we can keep an eye on changes and re-trigger the
     // stash-root search if anything changes.
@@ -725,6 +743,7 @@ export class Model {
     let to_upsert = Array.from(searched);
 
     while (to_fetch.size > 0) {
+      trace("_findRoots fetching", to_fetch);
       const bms = await browser.bookmarks.get(Array.from(to_fetch));
 
       to_fetch = new Set();
@@ -773,21 +792,17 @@ export class Model {
     if (candidates.length > 0) {
       if (this.stash_root.value !== candidates[0]) {
         this.stash_root.value = candidates[0];
-        trace(
-          "_findStashRootCandidates",
-          "set stash_root to",
-          candidates[0].id,
-        );
+        trace("_findRoots", "set stash_root to", candidates[0].id);
       }
     } else if (this.stash_root.value !== undefined) {
-      trace("_findStashRootCandidates", "cleared stash_root");
+      trace("_findRoots", "cleared stash_root");
       this.stash_root.value = undefined;
     }
 
     // But if we have multiple candidates, we need to raise the alarm that
     // there is an ambiguity the user should resolve.
     if (candidates.length > 1) {
-      trace("_findStashRootCandidates", "found multiple candidates");
+      trace("_findRoots", "found multiple stash_root candidates");
       this.stash_root_warning.value = {
         text:
           `You have multiple "${this.stash_root_name}" bookmark ` +
@@ -797,7 +812,7 @@ export class Model {
         help: () => browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
       };
     } else if (this.stash_root_warning.value !== undefined) {
-      trace("_findStashRootCandidates", "found single candidate");
+      trace("_findRoots", "found single stash_root candidate");
       this.stash_root_warning.value = undefined;
     }
 

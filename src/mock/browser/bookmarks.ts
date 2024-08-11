@@ -32,6 +32,8 @@ class MockBookmarks implements BM.Static {
   private readonly root: Folder;
   private readonly by_id = new Map<string, Node>();
 
+  private readonly new_bm_parent: Folder;
+
   constructor() {
     this.root = {
       id: this._freeID(),
@@ -42,6 +44,41 @@ class MockBookmarks implements BM.Static {
       dateAdded: 0,
     };
     this.by_id.set(this.root.id, this.root);
+
+    // Yes, these names are deliberately obtuse, to prevent application code
+    // from trying to guess at the bookmark structure. :)
+    this.root.children.push({
+      id: this._freeID(),
+      index: 0,
+      parentId: this.root.id,
+      title: "Toolbin",
+      children: [],
+      dateAdded: 0,
+    });
+    this.root.children.push({
+      id: this._freeID(),
+      index: 0,
+      parentId: this.root.id,
+      title: "Menu Can",
+      children: [],
+      dateAdded: 0,
+    });
+    this.root.children.push({
+      id: this._freeID(),
+      index: 0,
+      parentId: this.root.id,
+      title: "Compost Box",
+      children: [],
+      dateAdded: 0,
+    });
+    for (const c of this.root.children) this.by_id.set(c.id, c);
+
+    this.new_bm_parent = this.root.children[
+      Math.floor(Math.random() * 3)
+    ] as Folder;
+
+    if (!this.new_bm_parent) throw new Error(`bm startup: no new_bm_parent`);
+
     fixup_child_ordering(this.root);
   }
 
@@ -93,7 +130,7 @@ class MockBookmarks implements BM.Static {
       throw new Error(`Bookmark type is not supported on Chrome`);
     }
 
-    const parentId = bookmark.parentId ?? this.root.id;
+    const parentId = bookmark.parentId ?? this.new_bm_parent.id;
     const parent = this._getFolder(parentId);
 
     const index = bookmark.index ?? parent.children.length;
