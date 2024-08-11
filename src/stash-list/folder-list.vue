@@ -10,7 +10,6 @@
     class="forest"
     v-model="parentFolder.children as Node[]"
     :item-key="(item: Node) => item.id"
-    :item-class="itemClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
@@ -18,7 +17,7 @@
     ghost-mimics-height
   >
     <template #item="{item}: {item: Node}">
-      <Folder v-if="isFolder(item)" ref="folders" :folder="item" is-toplevel />
+      <Folder v-if="isVisible(item)" ref="folders" :folder="item" is-toplevel />
     </template>
   </dnd-list>
 </template>
@@ -54,13 +53,10 @@ export default defineComponent({
   methods: {
     isFolder,
 
-    itemClasses(f: Node): Record<string, boolean> {
+    isVisible(f: Node): f is Folder {
       const fi = the.model.filter.info(f);
       const si = the.model.selection.info(f);
-      return {
-        hidden:
-          !isFolder(f) || !(fi.hasMatchInSubtree || si.hasSelectionInSubtree),
-      };
+      return isFolder(f) && (fi.hasMatchInSubtree || si.hasSelectionInSubtree);
     },
 
     async loadMore() {

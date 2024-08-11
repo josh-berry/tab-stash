@@ -80,13 +80,12 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
     :class="{'forest-children': true, collapsed}"
     v-model="targetWindow.children"
     :item-key="(item: Tab) => item.id"
-    :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
     <template #item="{item}: {item: Tab}">
-      <tab v-if="isValidChild(item)" :tab="item" />
+      <tab v-if="isVisible(item)" :tab="item" />
     </template>
   </dnd-list>
 
@@ -280,15 +279,13 @@ export default defineComponent({
       });
     },
 
-    childClasses(t: Tab): Record<string, boolean> {
+    isVisible(t: Tab): boolean {
       const f = the.model.filter.info(t);
       const s = the.model.selection.info(t);
-      return {
-        hidden: !(
-          this.isValidChild(t) &&
-          (this.showFiltered || f.isMatching || s.isSelected)
-        ),
-      };
+      return (
+        this.isValidChild(t) &&
+        (this.showFiltered || f.isMatching || s.isSelected)
+      );
     },
 
     isValidChild(t: Tab): boolean {

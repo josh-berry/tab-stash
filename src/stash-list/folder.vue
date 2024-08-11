@@ -202,14 +202,15 @@
     :class="{'forest-children': true, collapsed}"
     v-model="children"
     :item-key="(item: Node) => item.id"
-    :item-class="childClasses"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
   >
     <template #item="{item}: {item: Node}">
-      <child-folder v-if="isFolder(item)" :folder="item" />
-      <bookmark v-else-if="isBookmark(item)" :bookmark="item" />
+      <template v-if="isChildVisible(item)">
+        <child-folder v-if="isFolder(item)" :folder="item" />
+        <bookmark v-else-if="isBookmark(item)" :bookmark="item" />
+      </template>
     </template>
   </dnd-list>
 
@@ -512,18 +513,16 @@ export default defineComponent({
       });
     },
 
-    childClasses(node: Node): Record<string, boolean> {
+    isChildVisible(node: Node): boolean {
       const fi = the.model.filter.info(node);
       const si = the.model.selection.info(node);
-      return {
-        hidden: !(
-          this.isValidChild(node) &&
-          (this.showFiltered ||
-            fi.hasMatchInSubtree ||
-            si.isSelected ||
-            si.hasSelectionInSubtree)
-        ),
-      };
+      return (
+        this.isValidChild(node) &&
+        (this.showFiltered ||
+          fi.hasMatchInSubtree ||
+          si.isSelected ||
+          si.hasSelectionInSubtree)
+      );
     },
 
     isValidChild(node: Node): node is Folder | Bookmark {
