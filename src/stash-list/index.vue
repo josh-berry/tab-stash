@@ -446,6 +446,8 @@ export default defineComponent({
           );
           for await (const info of iter) updateIcon(info);
 
+          if (tm.cancelled) return;
+
           tm.status = "Fetching icons for each page...";
           iter = tm.wspawn_iter(urls_to_fetch.size, tm =>
             fetchInfoForSites(urls_to_fetch, tm),
