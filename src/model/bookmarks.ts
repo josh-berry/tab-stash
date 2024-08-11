@@ -360,6 +360,7 @@ export class Model {
    * the stash. */
   async loadedStash(): Promise<LoadedFolder | undefined> {
     if (!this.stash_root.value) return;
+    await this.loaded(this.stash_root.value);
     return await this.loadedSubtree(this.stash_root.value);
   }
 
