@@ -54,7 +54,7 @@
     <header class="page action-container" @click.stop="">
       <Menu
         v-if="view !== 'popup'"
-        class="menu main-menu"
+        class="main-menu"
         summaryClass="action mainmenu"
       >
         <button @click.prevent="showOptions"><span>Options...</span></button>

@@ -68,7 +68,6 @@
         @click.prevent.stop="restoreAndRemove"
       />
       <Menu
-        class="menu"
         summaryClass="action neutral icon-item-menu last-toolbar-button"
         inPlace
         h-position="right"

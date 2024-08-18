@@ -1,5 +1,6 @@
 <template>
   <details
+    class="menu"
     ref="details"
     :open="isOpen"
     :class="{

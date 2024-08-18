@@ -1,7 +1,7 @@
 <template>
   <Menu
     ref="menu"
-    class="menu selection-menu"
+    class="selection-menu"
     modalClass="action-container"
     @open="onOpenMenu"
   >

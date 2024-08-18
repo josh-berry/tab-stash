@@ -41,7 +41,6 @@
         @click.prevent.stop="restore"
       />
       <Menu
-        class="menu"
         summaryClass="action remove last-toolbar-button"
         title="Delete Forever"
         inPlace
