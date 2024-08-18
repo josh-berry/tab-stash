@@ -10,6 +10,7 @@
       </button>
       <Self
         :folder="folder"
+        :filter="filter"
         :tooltips="props.tooltips"
         :button-classes="props.buttonClasses"
         @select="(ev, folder) => emit('select', ev, folder)"
@@ -19,17 +20,12 @@
 </template>
 
 <script lang="ts">
-import {computed, inject} from "vue";
+import {computed} from "vue";
 
 import {filterMap} from "../util/index.js";
 
 import the from "../globals-ui.js";
-import {
-  friendlyFolderName,
-  type Folder,
-  type Node,
-} from "../model/bookmarks.js";
-import {TreeFilter} from "../model/tree-filter.js";
+import {friendlyFolderName, type Folder} from "../model/bookmarks.js";
 
 import Self from "./select-folder.vue";
 </script>
@@ -39,22 +35,18 @@ const props = defineProps<{
   folder: Folder;
   tooltips: (f: Folder) => string;
   buttonClasses: (f: Folder) => Record<string, boolean> | string;
+  filter: (f: Folder) => boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "select", ev: MouseEvent | KeyboardEvent, folder: Folder): void;
 }>();
 
-const bookmark_filter = inject<TreeFilter<Folder, Node>>("bookmark_filter")!;
-
 const selection = the.model.selection;
 
 const visibleChildFolders = computed(() =>
   filterMap(props.folder.children, c =>
-    c &&
-    "children" in c &&
-    bookmark_filter.info(c).hasMatchInSubtree &&
-    !selection.info(c).isSelected
+    c && "children" in c && props.filter(c) && !selection.info(c).isSelected
       ? c
       : undefined,
   ),

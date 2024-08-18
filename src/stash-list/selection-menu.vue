@@ -51,6 +51,7 @@
       v-if="stashRoot"
       class="menu-scrollable-list"
       :folder="stashRoot"
+      :filter="nodeFilterFn"
       :tooltips="
         f =>
           `Move to &quot;${friendlyFolderName(
@@ -104,15 +105,6 @@ export default defineComponent({
     searchText: "",
   }),
 
-  provide() {
-    return {
-      bookmark_filter: new TreeFilter<Folder, Node>(
-        isFolder,
-        computed(() => this.filter),
-      ),
-    };
-  },
-
   computed: {
     altKey: altKeyName,
 
@@ -127,6 +119,15 @@ export default defineComponent({
     filter(): (node: Folder | Node) => boolean {
       const matcher = textMatcher(this.searchText);
       return node => isFolder(node) && matcher(friendlyFolderName(node.title));
+    },
+
+    nodeFilterFn() {
+      const tree = new TreeFilter<Folder, Node>(
+        isFolder,
+        computed(() => this.filter),
+      );
+
+      return (node: Node) => tree.info(node).hasMatchInSubtree;
     },
 
     createTitle(): string {
