@@ -203,6 +203,36 @@ export async function resolveNamed<T extends {[k: string]: any}>(
 export const later: <F extends () => any>(f: F) => void =
   (<any>globalThis).setImmediate ?? globalThis.setTimeout;
 
+/** Waits for a Vue ref to become not-undefined, and then runs its function
+ * once. (Note that the function is NOT re-run even if the ref becomes undefined
+ * and then not-undefined again.) */
+export function onceRefHasValue<T>(
+  r: Vue.Ref<T | undefined | null>,
+  fn: (v: T) => void,
+): Promise<void> {
+  return new Promise(resolve => {
+    let cancel: Vue.WatchStopHandle | undefined = undefined;
+    let cancelImmediately = false;
+
+    cancel = Vue.watchEffect(() => {
+      if (r.value === undefined || r.value === null) return;
+      fn(r.value);
+      resolve();
+
+      // The watchEffect() body is run synchronously the first time through, so
+      // cancel() might be undefined. If this happens, we need our caller to
+      // cancel us instead.
+      if (cancel) {
+        cancel();
+      } else {
+        cancelImmediately = true;
+      }
+    });
+
+    if (cancelImmediately) cancel();
+  });
+}
+
 /** Waits for the next iteration of the event loop and for Vue to flush any
  * pending watches (allowing event handlers etc. to run in the meantime). */
 export async function nextTick(): Promise<void> {

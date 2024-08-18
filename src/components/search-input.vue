@@ -26,7 +26,8 @@
 </template>
 
 <script lang="ts">
-import {ref, watch, watchEffect, type WatchStopHandle} from "vue";
+import {ref, watch} from "vue";
+import {onceRefHasValue} from "../util/index.js";
 </script>
 
 <script setup lang="ts">
@@ -68,16 +69,7 @@ const $search = ref(undefined! as HTMLInputElement);
 
 defineExpose({
   focus() {
-    // The watchEffect() is needed to avoid a race between the parent component
-    // being mounted and asking us to focus ourselves, and the actual mounting
-    // of this component.
-    let cancel: WatchStopHandle | undefined = undefined;
-    cancel = watchEffect(() => {
-      if ($search.value) {
-        $search.value.focus();
-        setTimeout(() => cancel!());
-      }
-    });
+    onceRefHasValue($search, s => s.focus());
   },
 });
 
