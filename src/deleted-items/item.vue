@@ -43,7 +43,6 @@
       <Menu
         summaryClass="action remove last-toolbar-button"
         title="Delete Forever"
-        inPlace
       >
         <button @click.prevent.stop="remove">
           <span>Delete Forever</span>

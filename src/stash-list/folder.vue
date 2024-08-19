@@ -69,7 +69,6 @@
       />
       <Menu
         summaryClass="action neutral icon-item-menu last-toolbar-button"
-        inPlace
         h-position="right"
       >
         <button
