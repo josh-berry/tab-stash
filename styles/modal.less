@@ -96,14 +96,14 @@ details.menu {
 }
 
 // The bounding box holding the menu.  We add padding here so the menu never
-// outgrows the viewport.  (The padding will be overridden by the Vue menu
-// component to position the menu properly.)
-.menu-bounds {
+// outgrows the viewport.  (The padding on some dimensions will be overridden by
+// the Vue menu component to position the menu properly.)
+.menu-modal {
   padding: var(--menu-mh) var(--menu-mw);
 }
 
 // The pop-up menu itself, showing a list of items
-.menu-bounds > nav {
+nav.menu {
   padding: var(--menu-mh) 0;
   background-color: var(--group-bg);
   box-shadow: var(--shadow);
