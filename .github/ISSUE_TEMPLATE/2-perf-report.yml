@@ -1,0 +1,126 @@
+name: Report a Performance Issue
+description: Tab Stash froze, responded too slowly, or caused high CPU or memory usage.
+labels: ["i-performance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sorry to hear you're having trouble, and thanks for taking the time to report a performance issue!
+
+        If you're not sure whether you have one problem or multiple problems, it's better to err on the side of opening separate reports for each potential problem, since it's much easier to close duplicates than split a single issue into multiple issues.
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Which operating system were you using when the problem happened?
+      placeholder: e.g. Windows 11, macOS 13, ...
+    validations:
+      required: true
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser Version
+      description: What browser/browser version were you using when the problem happened?
+      placeholder: e.g. Firefox 104.0
+    validations:
+      required: true
+
+  - type: input
+    id: tab-stash-version
+    attributes:
+      label: Tab Stash Version
+      description: You can find the Tab Stash version number by scrolling down to the bottom of the UI.  Or if the UI won't load, you can go to `about:addons`, click on "Tab Stash" and copy the version number from there.
+    validations:
+      required: true
+
+  - type: input
+    id: open-tab-count
+    attributes:
+      label: Number of Open Tabs
+      description: How many open tabs do you have across all your browser windows? (Take your best guess; an exact count isn't required.)
+    validations:
+      required: true
+
+  - type: input
+    id: stashed-bookmarks-count
+    attributes:
+      label: Number of Stashed Tabs
+      description: How many groups and tabs do you have in your stash? You can look at the search box in the Tab Stash UI for exact numbers, or take your best guess if you can't open the UI.
+    validations:
+      required: true
+
+  - type: input
+    id: total-bookmark-count
+    attributes:
+      label: Total Number of Bookmarks
+      description: How many bookmarks do you have, **in total**, both inside and outside of Tab Stash? Take your best guess if you don't know the exact number.
+    validations:
+      required: true
+
+  - type: input
+    id: performance-profile
+    attributes:
+      label: Performance Profile Link
+      description: If you have [collected a performance profile](https://github.com/josh-berry/tab-stash/wiki/Collect-a-Performance-Profile), please share the link here. (This is optional, but if your issue is particularly difficult to track down, having one would be helpful.  You can also collect one later and put the link in a comment.)
+    validations:
+      required: false
+
+  - type: textarea
+    id: installed-extensions
+    attributes:
+      label: Installed Extensions
+      description: List all other extensions you have installed.  Also, please double-check to make sure you don't have any extensions installed which are [incompatible with Tab Stash](https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions).
+      value: "- "
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: Give a brief summary of the problem you're having.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Steps to Reproduce
+      description: As best you can, describe what you did to trigger the issue (if anything) and what *actually* happened.  Be as specific and detailed as possible—the more detailed and concrete observations you provide, the better.  Screenshots and screen recordings are welcome!
+      placeholder: |
+        1. Go to ...
+        2. Click on ...
+        3. Tab Stash froze for a while
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: |
+        If you tried anything to work around or recover from the issue, or if the issue caused you additional problems, discuss it here.  Again, be as concrete, specific and detailed as possible.  For example, "searching locked up my whole computer and I had to restart everything" clearly illustrates the scale and scope of the problem.  Whereas, "This is a huge problem and should be fixed ASAP" is likely to be ignored because it doesn't provide any detail about WHY the problem is huge.
+    validations:
+      required: false
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional Details
+      description: Include any other context or details that might be helpful.  If possible, please share any error logs that you think might be relevant.  [Here's how to collect them.](https://github.com/josh-berry/tab-stash/wiki/Collect-Error-Logs)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: voting
+    attributes:
+      label: Vote for This Issue
+      description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include this message in the issue itself.
+      options:
+        - label: |
+            _Readers: If you are also experiencing this problem, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button below.  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system._
+          required: true
+    validations:
+      required: true

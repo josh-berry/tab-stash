@@ -1,10 +1,11 @@
 name: Report a Crash
 description: Tab Stash notified you about a crash, and you have the crash details.
+labels: ["i-bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a crash!
+        Sorry to hear you're having trouble, and thanks for taking the time to report a crash!
 
         If you're not sure whether you have one problem or multiple problems, it's better to err on the side of opening separate reports for each potential problem, since it's much easier to close duplicates than split a single issue into multiple issues.
 
@@ -65,3 +66,15 @@ body:
       label: Additional Details
       description: |
         Any other context that might be helpful.
+
+  - type: checkboxes
+    id: voting
+    attributes:
+      label: Vote for This Issue
+      description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include this message in the issue itself.
+      options:
+        - label: |
+            _Readers: If you are also experiencing this problem, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button below.  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system._
+          required: true
+    validations:
+      required: true
