@@ -29,6 +29,8 @@ body:
       description: |
         List all other extensions you have installed.  Also, please double-check to make sure you don't have any extensions installed which are [incompatible with Tab Stash](https://github.com/josh-berry/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions).
       value: "- "
+    validations:
+      required: true
 
   - type: textarea
     id: actual-behavior

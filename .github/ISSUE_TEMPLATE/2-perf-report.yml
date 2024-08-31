@@ -32,6 +32,7 @@ body:
     attributes:
       label: Tab Stash Version
       description: You can find the Tab Stash version number by scrolling down to the bottom of the UI.  Or if the UI won't load, you can go to `about:addons`, click on "Tab Stash" and copy the version number from there.
+      placeholder: 1.0
     validations:
       required: true
 
@@ -40,6 +41,7 @@ body:
     attributes:
       label: Number of Open Tabs
       description: How many open tabs do you have across all your browser windows? (Take your best guess; an exact count isn't required.)
+      placeholder: 27 open tabs
     validations:
       required: true
 
@@ -48,6 +50,7 @@ body:
     attributes:
       label: Number of Stashed Tabs
       description: How many groups and tabs do you have in your stash? You can look at the search box in the Tab Stash UI for exact numbers, or take your best guess if you can't open the UI.
+      placeholder: ~100 groups, ~1k tabs
     validations:
       required: true
 
@@ -56,6 +59,7 @@ body:
     attributes:
       label: Total Number of Bookmarks
       description: How many bookmarks do you have, **in total**, both inside and outside of Tab Stash? Take your best guess if you don't know the exact number.
+      placeholder: ~32k bookmarks
     validations:
       required: true
 
@@ -64,6 +68,7 @@ body:
     attributes:
       label: Performance Profile Link
       description: If you have [collected a performance profile](https://github.com/josh-berry/tab-stash/wiki/Collect-a-Performance-Profile), please share the link here. (This is optional, but if your issue is particularly difficult to track down, having one would be helpful.  You can also collect one later and put the link in a comment.)
+      placeholder: https://share.firefox.dev/...
     validations:
       required: false
 
@@ -81,6 +86,7 @@ body:
     attributes:
       label: Problem Description
       description: Give a brief summary of the problem you're having.
+      placeholder: Tab Stash freezes when...
     validations:
       required: true
 

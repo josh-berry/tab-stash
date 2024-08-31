@@ -36,6 +36,7 @@ body:
     attributes:
       label: Tab Stash Version
       description: You can find the Tab Stash version number by scrolling down to the bottom of the UI.  Or if the UI won't load, you can go to `about:addons`, click on "Tab Stash" and copy the version number from there.
+      placeholder: 1.0
     validations:
       required: true
 

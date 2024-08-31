@@ -17,6 +17,7 @@ body:
         What problem are you trying to solve that this feature could help with?  Why is this feature important to you?  Be as concrete, specific and detailed as possible.
 
         For example, "I have over 1,000,000 tabs stashed across 100,000 groups, and I can never find anything because scrolling takes a long time" clearly illustrates the scale and scope of the problem.  Whereas, "Missing search feature is a huge problem" is likely to be ignored because it doesn't provide any detail about WHY the lack of a search feature is a huge problem.
+      placeholder: I'm having trouble organizing my life because...
     validations:
       required: true
 
@@ -25,6 +26,7 @@ body:
       id: preferred-solution
       label: Preferred Solution(s)
       description: Describe your ideal solution.  What is different from today?  What would the solution look like?  How would you use it to solve your problem?
+      placeholder: To help me organize my life better, I would like Tab Stash to...
     validations:
       required: true
 
