@@ -5,7 +5,10 @@
   "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
   "homepage_url": "https://josh-berry.github.io/tab-stash/",
   "icons": {
+    "16": "icons/logo-16.png",
+    "32": "icons/logo-32.png",
     "48": "icons/logo-48.png",
+    "64": "icons/logo-64.png",
     "96": "icons/logo-96.png",
     "128": "icons/logo-128.png"
   },
@@ -35,7 +38,8 @@
     "default_title": "Tab Stash",
     "default_icon": {
       "16": "icons/light/logo-16.png",
-      "32": "icons/light/logo-32.png"
+      "32": "icons/light/logo-32.png",
+      "64": "icons/light/logo-64.png"
     },
     "theme_icons": [
       {
@@ -47,6 +51,11 @@
         "light": "icons/dark/logo-32.png",
         "dark": "icons/light/logo-32.png",
         "size": 32
+      },
+      {
+        "light": "icons/dark/logo-64.png",
+        "dark": "icons/light/logo-64.png",
+        "size": 64
       }
     ],
     "browser_style": false
@@ -55,7 +64,8 @@
     "default_title": "Stash this tab",
     "default_icon": {
       "16": "icons/light/stash-one.svg",
-      "32": "icons/light/stash-one.svg"
+      "32": "icons/light/stash-one.svg",
+      "64": "icons/light/stash-one.svg"
     },
     "theme_icons": [
       {
@@ -67,6 +77,11 @@
         "light": "icons/dark/stash-one.svg",
         "dark": "icons/light/stash-one.svg",
         "size": 32
+      },
+      {
+        "light": "icons/dark/stash-one.svg",
+        "dark": "icons/light/stash-one.svg",
+        "size": 64
       }
     ],
     "browser_style": false,
@@ -76,7 +91,8 @@
     "default_title": "Tab Stash",
     "default_icon": {
       "16": "icons/logo.svg",
-      "32": "icons/logo.svg"
+      "32": "icons/logo.svg",
+      "64": "icons/logo.svg"
     },
     "default_panel": "stash-list.html?view=sidebar",
     "browser_style": false
