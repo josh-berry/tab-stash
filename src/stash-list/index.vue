@@ -248,7 +248,7 @@ export default defineComponent({
 
     counts(): FolderStats {
       const stats = this.stashRoot?.$recursiveStats;
-      if (!stats) return {bookmarkCount: 0, folderCount: 0, isLoaded: false};
+      if (!stats) return {bookmarkCount: 0, folderCount: 0, isLoaded: true};
       return stats;
     },
 
