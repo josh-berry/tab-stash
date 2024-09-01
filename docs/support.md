@@ -20,9 +20,11 @@ easy to hard:
 
 If none of the above helps, or if your problem keeps recurring, you have a couple options:
 
-1. [Check GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
+1. [Search GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
    to see if someone else has run into your problem, and if it's been solved
-   already.
+   already. The most
+   [frequently-asked questions](https://github.com/josh-berry/tab-stash/issues?q=label%3AA-FAQ)
+   are tagged so they can be found easily.
 2. [Open a new issue](https://github.com/josh-berry/tab-stash/issues/new/choose)
    on GitHub. While I can't promise to get to your issue in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
@@ -39,7 +41,7 @@ it more quickly.
 I love to hear your suggestions because it helps me decide what to work on next!
 Before you submit a new suggestion, please make sure someone else hasn't
 submitted it already by
-[checking GitHub](https://github.com/josh-berry/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Ai-enhancement).
+[checking GitHub](https://github.com/josh-berry/tab-stash/issues?q=is%3Aopen+label%3Ai-enhancement+sort%3Areactions-%2B1-desc).
 
 If your idea is already filed as an issue, feel free to participate in the
 discussion, and **be sure to up-vote it** by leaving a thumbs-up reaction on the
