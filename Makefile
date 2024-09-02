@@ -195,9 +195,11 @@ dist/icons/light/%.svg: icons/%.svg
 
 ## Website
 
+BUNDLE = $(if $(shell type /opt/homebrew/opt/ruby/bin/bundle),/opt/homebrew/opt/ruby/bin/bundle,bundle)
+
 site:
-	cd docs; bundle install --deployment
-	cd docs; bundle exec jekyll serve -H 0.0.0.0
+	cd docs; $(BUNDLE) install
+	cd docs; $(BUNDLE) exec jekyll serve -H 0.0.0.0
 .PHONY: site
 
 
