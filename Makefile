@@ -26,9 +26,9 @@ DIST_PKG = $(RELEASE_DIR)/$(PACKAGE)-$(FULL_VERSION).zip
 # automatically fixed.
 debug:
 	$(MAKE) check-types
-	$(MAKE) check-style || ( $(MAKE) fix-style && $(MAKE) check-types )
 	$(MAKE) build-dbg build-chrome-dbg
 	$(MAKE) check-tests
+	$(MAKE) check-style || ( $(MAKE) fix-style && $(MAKE) debug )
 .PHONY: debug
 
 check: check-types check-tests check-style
