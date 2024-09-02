@@ -1,0 +1,32 @@
+name: test-release-build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      - name: Install Dependencies
+        run: sh ./install-deps.sh
+      - name: Make a Temporary Version Number (if needed)
+        run: |
+          if [ -z "$(git tag --points-at=HEAD)" ]; then
+            node -e "x=`cat assets/manifest.json`; x.version='9999.99.9999'; console.log(JSON.stringify(x))" >assets/manifest.json.new
+            mv assets/manifest.json.new assets/manifest.json
+            make fix-style
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "nobody@example.com"
+            git commit -m 'Make a temporary version number' assets/manifest.json
+          fi
+      - name: Try Building Release Artifacts
+        run: make rel

@@ -60,7 +60,13 @@ rel:
 rel-inner:
 	$(MAKE) pkg-webext pkg-source
 	$(MAKE) -C $(RELEASE_DIR)/$(SRCPKG_DIR) release-tag pkg-webext pkg-source
-	[ -z "$$(diff -Nru dist $(RELEASE_DIR)/$(SRCPKG_DIR)/dist)" ]
+	@if [ ! -z "$$(diff -Nru dist $(RELEASE_DIR)/$(SRCPKG_DIR)/dist)" ]; then \
+		diff -Nru dist $(RELEASE_DIR)/$(SRCPKG_DIR)/dist; \
+		echo "!!!" >&2; \
+		echo "!!! Build did not reproduce correctly; check diff output above" >&2; \
+		echo "!!!" >&2; \
+		exit 1; \
+	fi
 	rm -rf $(RELEASE_DIR)/$(SRCPKG_DIR)
 	@echo ""
 	@echo "Ready for release $(VERSION)!"
@@ -198,8 +204,9 @@ site:
 ## Cleanup
 
 distclean: clean
-	rm -rf node_modules $(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG) $(DIST_PKG)
-	rm -rf docs/vendor
+	rm -rf node_modules docs/vendor \
+		$(RELEASE_DIR)/$(SRCPKG_DIR) $(SRC_PKG) $(DIST_PKG) \
+		releases/*-dirty* releases/*-dev*
 .PHONY: distclean
 
 clean:
