@@ -120,7 +120,8 @@ class MockServicePort implements Proto.ServicePort<string, string> {
   async request(
     msg: Proto.ClientMsg<string, string>,
   ): Promise<Proto.ServiceMsg<string, string>> {
-    if (!msg) return null;
+    /* c8 ignore next */
+    if (!msg) throw "unreachable";
 
     if (this.inject) return await this.inject(msg);
 

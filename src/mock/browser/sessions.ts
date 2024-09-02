@@ -21,6 +21,7 @@ class MockSessions implements Sessions.Static {
     this._state = state;
   }
 
+  /* c8 ignore start -- not implemented */
   forgetClosedTab(windowId: number, sessionId: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
@@ -35,6 +36,7 @@ class MockSessions implements Sessions.Static {
   restore(sessionId?: string | undefined): Promise<Sessions.Session> {
     throw new Error("Method not implemented.");
   }
+  /* c8 ignore stop */
 
   async setTabValue(tabId: number, key: string, value: any): Promise<void> {
     const md = this._tab(tabId);

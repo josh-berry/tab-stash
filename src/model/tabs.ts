@@ -143,12 +143,14 @@ export class Model {
     wiring.listen(browser.tabs.onRemoved, this.whenTabRemoved);
   }
 
+  /* c8 ignore start -- for manual debugging only */
   dumpState(): any {
     return {
       windows: JSON.parse(JSON.stringify(Object.fromEntries(this.windows))),
       tabs: JSON.parse(JSON.stringify(Object.fromEntries(this.tabs))),
     };
   }
+  /* c8 ignore stop */
 
   /** Fetch tabs/windows from the browser again and update the model's
    * understanding of the world with the browser's data.  Use this if it looks
@@ -563,6 +565,7 @@ export class Model {
   whenTabUpdated(id: number, info: Tabs.OnUpdatedChangeInfoType) {
     trace("event tabUpdated", id, info.url, info);
     const t = this.tab(id as TabID);
+    /* c8 ignore start -- compensation for firefox inconsistency */
     if (!t) {
       // Firefox sometimes sends onUpdated events for a tab after it has been
       // closed.  Worse, the usual technique of reloading the model breaks
@@ -576,6 +579,7 @@ export class Model {
       );
       return;
     }
+    /* c8 ignore stop */
 
     if (info.status !== undefined) {
       if (t.status === "loading") --this.loadingCount.value;
@@ -615,11 +619,13 @@ export class Model {
   whenTabMoved(tabId: number, info: {windowId: number; toIndex: number}) {
     trace("event tabMoved", tabId, info);
     const t = this.tab(tabId as TabID);
+    /* c8 ignore next 4 -- compensation for firefox inconsistency */
     if (!t) {
       console.warn(`Got move event for unknown tab ${tabId}`);
       return;
     }
 
+    /* c8 ignore start -- compensation for firefox inconsistency */
     let newWindow = this.window(info.windowId as WindowID);
     if (!newWindow) {
       // Sometimes Firefox sends tabAttached (aka tabMoved) events before
@@ -637,6 +643,7 @@ export class Model {
         alwaysOnTop: false,
       });
     }
+    /* c8 ignore stop */
 
     if (t.position) removeNode(t.position);
     insertNode(t, {parent: newWindow, index: info.toIndex});
@@ -645,6 +652,7 @@ export class Model {
   whenTabReplaced(newId: number, oldId: number) {
     trace("event tabReplaced", oldId, "=>", newId);
     const t = this.tab(oldId as TabID);
+    /* c8 ignore next 4 -- compensation for firefox inconsistency */
     if (!t) {
       console.warn(`Got replace event for unknown tab ${oldId} (-> ${newId})`);
       return;
@@ -658,6 +666,7 @@ export class Model {
   whenTabActivated(info: Tabs.OnActivatedActiveInfoType) {
     trace("event tabActivated", info.tabId, info);
     const tab = this.tab(info.tabId as TabID);
+    /* c8 ignore next 4 -- compensation for firefox inconsistency */
     if (!tab) {
       console.warn(`Got activated event for unknown tab ${info.tabId}`);
       return;
@@ -674,6 +683,7 @@ export class Model {
   whenTabsHighlighted(info: Tabs.OnHighlightedHighlightInfoType) {
     trace("event tabsHighlighted", info);
     const win = this.window(info.windowId as WindowID);
+    /* c8 ignore next 4 -- compensation for firefox inconsistency */
     if (!win) {
       console.log(`Got highlighted event for unknown window ${info.windowId}`);
       return;

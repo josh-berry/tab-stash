@@ -73,6 +73,7 @@ export function findChildItem(
 
   let parent = item;
   for (const index of path.slice(0, path.length - 1)) {
+    /* c8 ignore next 3 -- bug-checking */
     if (!("children" in parent)) {
       throw new Error(`[${path}]: Invalid path in deleted item`);
     }
@@ -80,6 +81,7 @@ export function findChildItem(
   }
 
   const index = path[path.length - 1];
+  /* c8 ignore next 3 -- bug-checking */
   if (!("children" in parent) || !parent.children[index]) {
     throw new Error(`[${path}]: Invalid path in deleted item`);
   }

@@ -69,15 +69,15 @@ export const bgKeyPressed = (ev: KeyboardEvent | MouseEvent) =>
   PLATFORM_INFO.os === "mac" ? ev.metaKey : ev.ctrlKey;
 /* c8 ignore stop */
 
+/* c8 ignore start -- alt code paths in expect() only happen on bugs */
 /** Checks if its first argument is undefined.  If not, returns it.  If so,
  * throws an error with the message returned by the (optional) second
  * argument. */
 export function expect<T>(value: T | undefined, err: () => string): T {
-  /* c8 ignore start -- if the `throw` is reached, it's a bug */
   if (value !== undefined) return value;
   throw new Error(err());
-  /* c8 ignore stop */
 }
+/* c8 ignore stop */
 
 export const parseVersion = (v: string): number[] =>
   v.split(".").map(x => parseInt(x));
@@ -369,6 +369,7 @@ export type BackingOffOptions = {
   reset_after_idle_ms?: number;
 };
 
+/* c8 ignore start -- alt. config defaults used in testing only */
 const backingOffDefaults: BackingOffOptions = (<any>globalThis).mock?.events
   ? {
       max_delay_ms: 2,
@@ -382,6 +383,7 @@ const backingOffDefaults: BackingOffOptions = (<any>globalThis).mock?.events
       exponent: 0.8,
       reset_after_idle_ms: 300000,
     };
+/* c8 ignore stop */
 
 /** Wraps the passed-in async function so that only one call can be running at a
  * time, and if multiple calls are made within a short time, later calls are

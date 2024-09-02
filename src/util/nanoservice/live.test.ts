@@ -137,8 +137,9 @@ describe("util/nanoservice", function () {
         await events.next(svc.onMessage);
         await events.next("browser.runtime.onMessage");
         await req_p;
-
-        /* c8 ignore next */ throw "unreachable";
+        /* c8 ignore start */
+        throw "unreachable";
+        /* c8 ignore stop */
       } catch (e: any) {
         expect(e).to.be.instanceOf(M.RemoteNanoError);
         expect(e.name).to.equal("Oops");
@@ -241,7 +242,7 @@ describe("util/nanoservice", function () {
             expect(msg.tag).to.equal("b");
             expect(msg.response).to.equal(24);
             break;
-          /* istanbul ignore next */
+          /* c8 ignore next 2 */
           default:
             expect(false).to.be.true;
         }
@@ -287,7 +288,8 @@ describe("util/nanoservice", function () {
     it("drops malformed messages", async function () {
       const [client, svc] = await port_pair("test");
       let called = false;
-      client.onRequest = /* istanbul ignore next */ async () => {
+      /* c8 ignore next 4 */
+      client.onRequest = async () => {
         called = true;
         return null;
       };
@@ -305,7 +307,8 @@ describe("util/nanoservice", function () {
     it("drops responses to requests it didn't send", async () => {
       const [client, svc] = await port_pair("test");
       let called = false;
-      client.onRequest = /* istanbul ignore next */ async () => {
+      /* c8 ignore next 4 */
+      client.onRequest = async () => {
         called = true;
         return null;
       };
@@ -338,7 +341,8 @@ describe("util/nanoservice", function () {
       const p = client
         .request(42)
         .then(
-          /* istanbul ignore next */ () => {
+          /* c8 ignore next 3 */
+          () => {
             throw new Error("Unreachable code");
           },
         )
@@ -380,7 +384,8 @@ describe("util/nanoservice", function () {
     it("ignores connections for other services", async () => {
       let count = 0;
       M.listen("test", {
-        /* istanbul ignore next */ onConnect() {
+        /* c8 ignore next 3 */
+        onConnect() {
           ++count;
         },
       });

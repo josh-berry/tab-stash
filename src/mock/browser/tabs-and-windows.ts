@@ -301,7 +301,6 @@ class MockWindows implements W.Static {
     return JSON.parse(JSON.stringify(win));
   }
 
-  /* c8 ignore next -- not used by tests currently */
   async update(
     windowId: number,
     updateInfo: W.UpdateUpdateInfoType,
@@ -309,7 +308,7 @@ class MockWindows implements W.Static {
     const win = this._state.win(windowId);
 
     const notImplemented = (name: keyof W.UpdateUpdateInfoType) => {
-      /* c8 ignore next -- not implemented */
+      /* c8 ignore next 3 -- not implemented */
       if (name in updateInfo) {
         throw new Error(`Parameter ${name} is not implemented`);
       }

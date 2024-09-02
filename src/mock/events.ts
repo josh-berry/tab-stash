@@ -338,9 +338,10 @@ function filter_for(q: EventQuery<any>): (ev: EvMessage) => boolean {
     return _ => true;
   } else if (q instanceof MockEvent) {
     return ev => ev.event === q;
-  } /* c8 ignore next -- bug-checking */ else {
+  } /* c8 ignore start -- bug-checking */ else {
     throw new Error(`Invalid event query: ${inspect(q)}`);
   }
+  /* c8 ignore stop */
 }
 
 /* c8 ignore start -- for manual debugging only */

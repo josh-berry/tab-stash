@@ -17,6 +17,7 @@ import type {RootHookObject} from "mocha";
     id: "mock",
   },
 };
+/* c8 ignore next 3 -- covering for differences in Node versions */
 if (!(<any>globalThis).navigator) {
   (<any>globalThis).navigator = {hardwareConcurrency: 4};
 }

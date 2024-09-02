@@ -77,12 +77,12 @@ class MockBookmarks implements BM.Static {
       Math.floor(Math.random() * 3)
     ] as Folder;
 
+    /* c8 ignore next -- bug-checking */
     if (!this.new_bm_parent) throw new Error(`bm startup: no new_bm_parent`);
 
     fixup_child_ordering(this.root);
   }
 
-  /* c8 ignore next 3 -- not implemented */
   async get(idOrIdList: string | string[]): Promise<BM.BookmarkTreeNode[]> {
     if (idOrIdList instanceof Array) {
       return idOrIdList.map(id => node_only(this._get(id)));
@@ -110,6 +110,7 @@ class MockBookmarks implements BM.Static {
   async search(
     query: string | BM.SearchQueryC2Type,
   ): Promise<BM.BookmarkTreeNode[]> {
+    /* c8 ignore next -- not implemented */
     if (typeof query !== "string") throw new Error("Method not implemented.");
 
     const matching: BM.BookmarkTreeNode[] = [];
@@ -280,7 +281,7 @@ class MockBookmarks implements BM.Static {
 
   private _getFolder(id: string): Folder {
     const node = this._get(id);
-    /* c8 ignore next -- bug-checking */
+    /* c8 ignore next 3 -- bug-checking */
     if (!("children" in node)) {
       throw new Error(`${id} is not a folder`);
     }

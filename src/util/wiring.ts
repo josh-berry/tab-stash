@@ -26,13 +26,14 @@ export class EventWiring<M> {
       try {
         this.options.onFired();
         return f(...args);
-      } catch (e) /* istanbul ignore next */ {
+      } catch (e) /* c8 ignore start -- bug-checking */ {
         // This is a safety net; unhandled exceptions generally should
         // not happen inside event handlers.
         logError(e);
         this.options.onError(e);
         throw e;
       }
+      /* c8 ignore stop */
     };
 
     ev.addListener(handler);

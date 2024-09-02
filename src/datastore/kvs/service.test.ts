@@ -31,8 +31,15 @@ describe("datastore/kvs/service", function () {
       svc.onConnect(client);
     });
 
+    afterEach(async () => {
+      svc.onDisconnect(client);
+    });
+
     it("sends updates for new objects", async () => {
-      await svc.set([{key: "a", value: "b"}]);
+      await svc.onRequest(client, {
+        $type: "set",
+        entries: [{key: "a", value: "b"}],
+      });
       await events.next(svc.onSet);
 
       expect(client.received).to.deep.equal([
@@ -41,10 +48,13 @@ describe("datastore/kvs/service", function () {
     });
 
     it("sends updates for multiple new objects at once", async () => {
-      await svc.set([
-        {key: "a", value: "b"},
-        {key: "b", value: "c"},
-      ]);
+      await svc.onRequest(client, {
+        $type: "set",
+        entries: [
+          {key: "a", value: "b"},
+          {key: "b", value: "c"},
+        ],
+      });
       await events.next(svc.onSet);
 
       expect(client.received).to.deep.equal([
@@ -59,8 +69,14 @@ describe("datastore/kvs/service", function () {
     });
 
     it("sends updates for changed objects", async () => {
-      await svc.set([{key: "a", value: "a"}]);
-      await svc.set([{key: "a", value: "alison"}]);
+      await svc.onRequest(client, {
+        $type: "set",
+        entries: [{key: "a", value: "a"}],
+      });
+      await svc.onRequest(client, {
+        $type: "set",
+        entries: [{key: "a", value: "alison"}],
+      });
       await events.nextN(svc.onSet, 2);
 
       expect(client.received).to.deep.equal([
@@ -87,7 +103,7 @@ describe("datastore/kvs/service", function () {
       await svc.set([{key: "b", value: "b"}]);
       await events.nextN(svc.onSet, 2);
 
-      await svc.deleteAll();
+      await svc.onRequest(client, {$type: "deleteAll"});
       await events.next(svc.onSet);
 
       expect(client.received).to.deep.equal([

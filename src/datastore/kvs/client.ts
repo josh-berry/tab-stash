@@ -83,7 +83,8 @@ export default class Client<K extends Proto.Key, V extends Proto.Value>
   private _reconnect() {
     this._port = this.connect(this.name);
     this._port.onNotify = msg => {
-      /* istanbul ignore next */ if (!msg) return;
+      /* c8 ignore next */
+      if (!msg) return;
       switch (msg.$type) {
         case "set":
           this.onSet.send(msg.entries);
