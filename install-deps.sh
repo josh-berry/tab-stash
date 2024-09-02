@@ -44,6 +44,9 @@ deps_apt() {
 
         sudo apt-get update
         sudo apt-get install -y nodejs
+
+    elif [ "$(node --version |cut -c2-3)" -lt $NODE_VERSION ]; then
+        die "Please upgrade Node.js to v$NODE_VERSION or later (you have $(node --version))."
     fi
 }
 
