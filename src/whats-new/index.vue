@@ -10,6 +10,28 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.1">
+        <L v="Improved" :issue="[97, 508]"
+          >performance in many areas of Tab Stash, especially when first loading
+          the UI.</L
+        >
+
+        <L v="Fixed:" :issue="520"
+          >The Tab Stash icon was blurry when Tab Stash was not pinned to the
+          Firefox toolbar. A higher-resolution version of the icon is now
+          available for the browser to use in this situation.</L
+        >
+
+        <L v="" :issue="403"
+          ><em
+            >If you'd like, you can now leave me a tip on my
+            <a href="https://github.com/sponsors/josh-berry">GitHub Sponsor</a>
+            page. Tab Stash is 100% free and open source, so there's no
+            obligation, just my gratitude. 🙇</em
+          ></L
+        >
+      </Version>
+
       <Version v="3.0.1">
         <L v="Fixed" :issue="417"
           >an issue that might cause Tab Stash to crash on startup if Firefox's
