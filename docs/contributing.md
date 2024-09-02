@@ -1,6 +1,16 @@
-# Contributing Code to Tab Stash
+# Contributing to Tab Stash
 
-First of all, thanks for your interest in contributing to Tab Stash! Tab Stash
+## Sponsor Your Developer
+
+If Tab Stash has improved your life, and you want to leave me a one-time tip, or
+even a monthly sponsorship, I would be very grateful. Tab Stash will always be
+100% free and open source, no data collection and no strings attached.
+
+<a class="sponsor-button" href="https://github.com/sponsors/josh-berry">♥︎ Sponsor</a>
+
+## Contributing Code
+
+First of all, thanks for your interest in making Tab Stash better! Tab Stash
 has been a labor of love since 2018, and I never would have expected that N
 years later [*what year is it again?*], it would have grown to where it is
 today.
@@ -43,7 +53,7 @@ Again, thank you for your interest in contributing!
 
 _--- Josh_
 
-## Before You Start
+### Before You Start
 
 Before you get started, you may want to spend some time familiarizing yourself
 with the tools and technologies Tab Stash is built on. Here are some things
@@ -75,7 +85,7 @@ dive into the code:
    - [Vite](https://vitejs.dev/) (for builds)
    - [Mocha](https://mochajs.org/) and [Chai](https://www.chaijs.com/) (for testing)
 
-## Getting Started
+### Getting Started
 
 Here's how to get a build with your changes loaded into Firefox so you can try
 them out:
@@ -119,7 +129,7 @@ them out:
 [readme]: https://github.com/josh-berry/tab-stash/blob/master/README.md
 [visual studio code]: https://code.visualstudio.com/
 
-## Learning Your Way Around the Code
+### Learning Your Way Around the Code
 
 During the build, a few different types of source files are combined to produce
 the final Tab Stash extension. Let's go on a quick tour:
@@ -191,7 +201,7 @@ oriented and keep you from getting lost. Most of the rest should be easy to
 find by reading code and poking around. And if you do get lost, feel free to
 ask a question on GitHub!
 
-## Debugging / Global Variables
+### Debugging / Global Variables
 
 There are a few global variables made accessible to you from the console so you
 can inspect the state of the application at runtime:
@@ -212,13 +222,13 @@ can inspect the state of the application at runtime:
   verbose and/or cause performance problems, so be careful about turning on too
   many of them for too long.
 
-## Coding Conventions
+### Coding Conventions
 
 _Note:_ The existing code does not always follow these guidelines consistently;
 if you find inconsistencies, please feel free to correct them (but please submit
 corrections in PRs which are separate from functional changes).
 
-### Naming Things
+#### Naming Things
 
 Try to use clear and descriptive names, but use your best judgment---the larger
 the scope, the more carefully you should think about the name. A function that
@@ -239,7 +249,7 @@ scope fits on a single (small) screen.
   Prefer `const` for local variables when possible, or `let` when necessary.
   Don't use `var`.
 
-### Documentation
+#### Documentation
 
 - **API Docs:** [JSDoc](https://jsdoc.app/)-style comments (`/** ... */`) should
   be written for exported classes/functions. It is not necessary to write
@@ -265,7 +275,7 @@ scope fits on a single (small) screen.
   is, and explicitly state your expectations and assumptions. Use `//`
   comments, not `/* */` comments.
 
-### Formatting
+#### Formatting
 
 Tab Stash uses Prettier to format everything. Yes, sometimes it makes weird
 decisions that look strange or waste a lot of space, but it also removes a lot
@@ -275,7 +285,7 @@ standards. If you use Visual Studio Code as your editor, you can install the
 Prettier extension and Tab Stash's default project settings will make sure you
 rarely have to think about formatting.
 
-## Editing Icons
+### Editing Icons
 
 [Inkscape](https://inkscape.org/en/) is the recommended tool. Please be sure to
 follow the Firefox [Photon Design Guide](https://design.firefox.com/photon/).

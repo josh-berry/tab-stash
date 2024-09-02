@@ -84,8 +84,12 @@
           href="https://josh-berry.github.io/tab-stash/support.html"
           ><span>Help and Support</span></a
         >
+        <hr />
         <a tabindex="0" :href="pageref('whats-new.html')"
           ><span>What's New?</span></a
+        >
+        <a tabindex="0" href="https://github.com/sponsors/josh-berry"
+          ><span>Sponsor</span></a
         >
       </Menu>
 
