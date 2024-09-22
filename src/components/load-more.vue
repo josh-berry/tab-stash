@@ -76,10 +76,6 @@ export default defineComponent({
     /** Are we currently trying to load more data (i.e. waiting for load()
      * to return)? */
     isLoading: false,
-
-    /** We keep a ref to the IntersectionObserver so we can disconnect it
-     * when the component is unmounted. */
-    observer: undefined as IntersectionObserver | undefined,
   }),
 
   computed: {
@@ -112,6 +108,11 @@ export default defineComponent({
     observer.observe(this.el!);
   },
   beforeUnmount() {
+    // We must explicitly clear isVisible here because if we're in the middle of
+    // loadMore() when the component is unmounted, AND if `!this.isFullyLoaded`
+    // at unmount time, then loadMore() will continue to loop infinitely.
+    this.isVisible = false;
+
     callbacks.delete(this.el!);
     observer.unobserve(this.el!);
   },
