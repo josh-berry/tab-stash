@@ -81,16 +81,16 @@ export default defineComponent({
   computed: {
     actualInitialRetryMS(): number {
       // How long should we wait for the FIRST retry?
-      return Math.min(1, this.initialRetryMS ?? 5);
+      return Math.max(1, this.initialRetryMS ?? 5);
     },
     actualRetryBackoffExponent(): number {
-      return Math.min(1, Math.max(2, this.retryBackoffExponent ?? 1.3));
+      return Math.max(1, Math.min(2, this.retryBackoffExponent ?? 1.1));
     },
     actualMaxRetryMS(): number {
       // Minimum retry time is the length of a single frame (for most
       // people).  Generally this number should be much higher though (and
       // defaults to 15 seconds).
-      return Math.min(1 / 60.0, this.maxRetryMS ?? 15000);
+      return Math.max(1 / 60.0, this.maxRetryMS ?? 15000);
     },
   },
 
