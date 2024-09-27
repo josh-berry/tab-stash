@@ -64,6 +64,7 @@
 <script lang="ts">
 import {computed, nextTick, reactive, ref} from "vue";
 
+import {trace_fn} from "../util/debug.js";
 import type {DragAction, DropAction} from "./dnd-list.js";
 
 /** Reactive object describing the shared state of a <dnd-list>. */
@@ -84,6 +85,8 @@ type ListState<I = unknown> = {
    * be set iff this ListState is the `destList`. */
   droppingToIndex: number | undefined;
 };
+
+const trace = trace_fn("dnd-list");
 
 //
 // BEGIN UGLY GLOBAL STATE
@@ -206,6 +209,8 @@ function itemDragStart(ev: DragEvent, index: number) {
     return;
   }
 
+  trace("dragStart", index, props.modelValue[index]);
+
   props.drag({
     dataTransfer: ev.dataTransfer!,
     fromIndex: index,
@@ -233,6 +238,8 @@ function itemDragEnd() {
   // If a drop operation is committed/in progress, we don't clear the
   // DND until it actually completes.
   if (dropTask) return;
+
+  trace("dragEnd");
 
   if (sourceList) sourceList.draggingFromIndex = undefined;
   sourceList = undefined;
@@ -291,9 +298,12 @@ function parentDragExit(ev: DragEvent) {
   // we leave the parent list.
   if (ev.target && ev.target !== $top.value) return;
 
+  if (!allowDropHere(ev)) return;
+
   // If the user drags something completely out of the list, we don't want to
   // show a ghost at all. Clear the destination list.
   if (destList && destList !== state) {
+    trace("parentDragExit", "clearing destList", ev);
     destList.droppingToIndex = undefined;
     destList = undefined;
   }
@@ -364,6 +374,8 @@ function moveGhost(index: number) {
   }
   destList = state;
   state.droppingToIndex = index;
+
+  trace("moveGhost", destList);
 }
 
 /** Fired when it's time to actually perform the drop operation. */
@@ -394,10 +406,13 @@ function doDrop(ev: DragEvent) {
   }
   state.modelSnapshot = Array.from(props.modelValue);
 
+  trace("drop", "start", sourceList, destList);
+
   props
     .drop(drop_ev)
     .then(() => nextTick(), console.error) // wait for Vue model updates
     .finally(() => {
+      trace("drop", "end");
       if (sourceList) {
         sourceList.modelSnapshot = undefined;
         sourceList.draggingFromIndex = undefined;
