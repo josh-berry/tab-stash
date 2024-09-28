@@ -13,6 +13,7 @@
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
+    orientation="vertical"
     ghost-displaces-items
     ghost-mimics-height
   >

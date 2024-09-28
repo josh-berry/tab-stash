@@ -83,6 +83,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
+    orientation="vertical"
   >
     <template #item="{item}: {item: Tab}">
       <tab v-if="isVisible(item)" :tab="item" />

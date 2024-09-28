@@ -203,6 +203,7 @@
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
+    orientation="vertical"
   >
     <template #item="{item}: {item: Node}">
       <template v-if="isChildVisible(item)">

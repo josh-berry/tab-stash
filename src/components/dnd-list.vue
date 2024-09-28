@@ -6,7 +6,7 @@
     @dragenter="parentDragEnter"
     @dragleave="parentDragExit"
     @dragexit="parentDragExit"
-    @dragover="itemDragOver"
+    @dragover="parentDragOver"
     @drop="doDrop"
   >
     <template v-for="(item, index) of displayItems" :key="itemKey(item)">
@@ -16,7 +16,7 @@
         :style="ghostStyle"
         class="dnd-list-ghost dropping-here"
         :data-key="itemKey(item)"
-        @dragenter="ghostDragEnter($event, index)"
+        @dragenter="ghostDragEnter"
         @dragover="ghostDragOver($event)"
         @drop="doDrop"
       >
@@ -33,7 +33,7 @@
         @dragstart="itemDragStart($event, index)"
         @dragend="itemDragEnd"
         @dragenter="itemDragEnter($event, index)"
-        @dragover="itemDragOver"
+        @dragover="itemDragOver($event, index)"
         @drop="doDrop"
       >
         <slot name="item" :item="item" />
@@ -41,18 +41,11 @@
     </template>
 
     <component
-      v-if="state.droppingToIndex !== undefined"
+      v-if="state.droppingToIndex === displayItems.length"
       :is="itemIs || 'li'"
-      :style="state.droppingToIndex === displayItems.length && ghostStyle"
-      :class="{
-        // NOTE: This ghost must always be present when dropping into this list,
-        // so we have a drop target at the end of the list.  Otherwise, it's
-        // impossible for a user to drag a ghost to the end of the list unless
-        // the list has some padding at the end.
-        'dnd-list-ghost': true,
-        'dropping-here': state.droppingToIndex === displayItems.length,
-      }"
-      @dragenter="ghostDragEnter($event, displayItems.length)"
+      :style="ghostStyle"
+      class="dnd-list-ghost dropping-here"
+      @dragenter="ghostDragEnter"
       @dragover="ghostDragOver($event)"
       @drop="doDrop"
     >
@@ -124,6 +117,12 @@ const props = defineProps<{
 
   drag: (drag: DragAction<I>) => void;
   drop: (drop: DropAction) => Promise<void>;
+
+  /** What is the visual orientation of the list?
+   *
+   * If the list is actually a grid (e.g. flexbox), "vertical" and
+   * `ghostDisplacesItems: true` are recommended. */
+  orientation: "horizontal" | "vertical";
 
   /** When the ghost is displayed, does it cause items to change their positions
    * on the screen? */
@@ -265,6 +264,7 @@ function itemDragEnter(ev: DragEvent, index: number) {
     ghostSize.value = {width: rect.width, height: rect.height};
   }
 
+  index = desiredDropPosition(ev, index);
   moveGhost(index);
 }
 
@@ -272,8 +272,11 @@ function itemDragEnter(ev: DragEvent, index: number) {
  * potential drop target.  For stupid browser reasons, we must implement
  * both this AND dragEnter to let the browser know whether the element
  * is (still) a valid drop target. */
-function itemDragOver(ev: DragEvent) {
-  allowDropHere(ev); // called just for its side-effects
+function itemDragOver(ev: DragEvent, index: number) {
+  if (!allowDropHere(ev)) return;
+  trace("itemDragOver", ev.target, index);
+  index = desiredDropPosition(ev, index);
+  moveGhost(index);
 }
 
 /** Special dragEnter events for parent items, which need different
@@ -309,16 +312,18 @@ function parentDragExit(ev: DragEvent) {
   }
 }
 
+/** Fired continuously while an item is being dragged over its parent. */
+function parentDragOver(ev: DragEvent) {
+  // Called for its side-effects
+  allowDropHere(ev);
+}
+
 /** Fired on the "ghost" element when the cursor enters it (e.g. because
  * it was moved to be under the cursor, to indicate where the item will
  * be dropped). */
-function ghostDragEnter(ev: DragEvent, index: number) {
-  if (props.ghostDisplacesItems) {
-    ev.preventDefault(); // allow dropping here
-    ev.stopPropagation(); // consume the (potential) drop
-  } else {
-    itemDragEnter(ev, index);
-  }
+function ghostDragEnter(ev: DragEvent) {
+  ev.preventDefault(); // allow dropping here
+  ev.stopPropagation(); // consume the (potential) drop
 }
 
 /** Fired on the "ghost" element repeatedly while the cursor is inside
@@ -326,12 +331,8 @@ function ghostDragEnter(ev: DragEvent, index: number) {
  * let the browser know this is a valid drop target.  (We determined
  * this earlier before moving the ghost into place.) */
 function ghostDragOver(ev: DragEvent) {
-  if (props.ghostDisplacesItems) {
-    ev.preventDefault(); // allow dropping here
-    ev.stopPropagation(); // consume the (potential) drop
-  } else {
-    itemDragOver(ev);
-  }
+  ev.preventDefault(); // allow dropping here
+  ev.stopPropagation(); // consume the (potential) drop
 }
 
 /** Rejects the potential drop operation if this isn't a suitable
@@ -351,31 +352,54 @@ function allowDropHere(ev: DragEvent): boolean {
   return true;
 }
 
+/** Computes the desired drop position depending on where the mouse cursor is in
+ * the list item. Only applies to non-displacing ghosts. */
+function desiredDropPosition(ev: DragEvent, hoveredIndex: number): number {
+  let index = hoveredIndex;
+
+  if (props.ghostDisplacesItems) {
+    // If we are moving the ghost forward in the list from where it currently
+    // is, we need to account for the fact that it's being removed from its
+    // previous location, or it will appear at the entry prior to where the
+    // mouse cursor actually is.
+    if (state.droppingToIndex !== undefined && state.droppingToIndex <= index) {
+      index++;
+    }
+  } else {
+    // We determine the drop index based on where in the hovered item the mouse
+    // cursor is--if it's nearer the previous item, we insert the dragged item
+    // before (i.e. keep the index the same). If it's nearer the next item, we
+    // insert after (i.e. index + 1).
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+
+    switch (props.orientation) {
+      case "horizontal":
+        if (ev.offsetX > rect.width / 2) index++;
+        break;
+      case "vertical":
+        if (ev.offsetY > rect.height / 2) index++;
+        break;
+    }
+  }
+
+  index = Math.min(index, displayItems.value.length);
+
+  trace("desiredDropPosition", hoveredIndex, "->", index);
+  return index;
+}
+
 /** Moves the ghost to the specified location (sort of).  We want the
  * ghost to appear at `index`, which is presumed to be the location
  * currently under the mouse cursor.  (The actual index of the ghost may
  * vary depending on how it's being moved.) */
 function moveGhost(index: number) {
-  // NOTE: This is performance-critical code -- in particular,
-  // updating `DND` in the wrong way may cause cascading unintended
-  // updates across ALL <dnd-list> components in the page.
-
-  if (state.droppingToIndex !== undefined && state.droppingToIndex <= index) {
-    // If we are moving the ghost forward in the list from where it
-    // currently is, we need to account for the fact that it's being
-    // removed from its previous location, or it will appear at the
-    // entry prior to where the mouse cursor actually is.
-    if (props.ghostDisplacesItems) index++;
-  }
-  index = Math.min(index, displayItems.value.length);
-
   if (destList && destList !== state) {
     destList.droppingToIndex = undefined;
   }
   destList = state;
   state.droppingToIndex = index;
 
-  trace("moveGhost", destList);
+  trace("moveGhost", index, destList);
 }
 
 /** Fired when it's time to actually perform the drop operation. */
