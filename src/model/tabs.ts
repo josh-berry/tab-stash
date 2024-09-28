@@ -569,6 +569,16 @@ export class Model {
       });
     }
 
+    // If a tab is closed and then a new one opened in quick succession, Firefox
+    // will sometimes send us a tab-creation event with an index that still
+    // assumes the prior tab is open--that is, the index will be one larger than
+    // what it should be. If the new tab is opened in the rightmost position
+    // (which is by far the most common case), then `tab.index ===
+    // win.children.length + 1`, resulting in a crash.  Avoid the crash by
+    // clamping tab.index to the window length if the window is fully-loaded.
+    // See #537.
+    if (win.isLoaded) tab.index = Math.min(tab.index, win.children.length);
+
     if (t.position) removeNode(t.position);
     insertNode(t, {parent: win, index: tab.index});
 
