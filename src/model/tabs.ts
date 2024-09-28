@@ -144,11 +144,26 @@ export class Model {
   }
 
   /* c8 ignore start -- for manual debugging only */
-  dumpState(): any {
-    return {
-      windows: JSON.parse(JSON.stringify(Object.fromEntries(this.windows))),
-      tabs: JSON.parse(JSON.stringify(Object.fromEntries(this.tabs))),
-    };
+  dumpState() {
+    const windows = Array.from(this.windows.entries()).map(([id, w]) => ({
+      id,
+      children: w.children.map(t => ({
+        id: t.id,
+        status: t.status,
+        title: t.title,
+        url: t.url,
+        cookieStoreId: t.cookieStoreId,
+        pinned: t.pinned,
+        hidden: t.hidden,
+        active: t.active,
+        highlighted: t.highlighted,
+        discarded: t.discarded,
+      })),
+    }));
+
+    const tabs = windows.flatMap(w => w.children);
+
+    return {windows, tabs};
   }
   /* c8 ignore stop */
 
