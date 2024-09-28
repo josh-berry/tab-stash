@@ -50,4 +50,12 @@ export async function init() {
       ),
     ),
   });
+
+  // Hack to allow manual selection of the window to track, for debugging purposes
+  const loc = new URL(document.location.href);
+  const winId = loc.searchParams.get("window");
+  if (winId !== null) {
+    const win = the.model.tabs.window(Number.parseInt(winId));
+    if (win) the.model.tabs.initialWindow.value = win;
+  }
 }
