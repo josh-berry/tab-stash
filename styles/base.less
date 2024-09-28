@@ -188,13 +188,6 @@ label {
     height: var(--ghost-border-width);
     margin: calc(-1 * var(--ghost-border-width) / 2) 0;
 
-    &:last-child {
-      // We give the last child a little more space since it's otherwise very
-      // hard to actually hit it as a drop target.
-      height: calc(var(--item-h) * 2 / 3);
-      margin: calc(-1 * var(--item-h) / 3) 0;
-    }
-
     // Uncomment for debugging DnD ghost placement:
     // box-shadow: inset var(--ghost-border-width) var(--ghost-border-width)
     //   rgba(255, 0, 0, 40%);

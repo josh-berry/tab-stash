@@ -1,7 +1,7 @@
 <template>
   <component
     :is="is || 'ul'"
-    class="dnd-list"
+    :class="{'dnd-list': true, 'dnd-list-empty': displayItems.length === 0}"
     ref="$top"
     @dragenter="parentDragEnter"
     @dragleave="parentDragExit"

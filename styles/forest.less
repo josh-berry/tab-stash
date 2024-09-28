@@ -80,6 +80,13 @@
     // Show an indent guide
     border-left: var(--indent-guide-w) solid var(--indent-guide-border-clr);
 
+    // Make sure there is a big-enough empty space that it's clear the folder is
+    // actually empty, and also provide a large-enough target for dropping
+    // dragged items into the folder.
+    &.dnd-list-empty {
+      min-height: calc(var(--item-h) / 2);
+    }
+
     // Give ourselves a little space at the bottom of each child list, with a
     // nice curl to the indent guide--this makes drag-and-drop easier when
     // appending inside a child vs. inserting below the child
@@ -330,8 +337,6 @@
         box-sizing: border-box;
         border: var(--ghost-border-width) dashed var(--disabled-fg);
         background: transparent;
-        min-height: var(--item-h);
-        min-width: var(--icon-btn-size);
         margin: 0;
       }
     }
