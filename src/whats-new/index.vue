@@ -10,6 +10,42 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.1.1">
+        <L v="Fixed:" :issue="369"
+          >When stashing the active tab, an adjacent tab is now chosen as the
+          new active tab, instead of a random tab elsewhere in the window.</L
+        >
+
+        <L
+          v="Fixed"
+          subtext="I feel like it might be possible to build an entire career out of making drag-and-drop work well. It seems to be incredibly finicky and hard to get right."
+          :issue="524"
+          >an issue preventing drag-and-drop into an empty folder at the end of
+          a group, and made the drag-and-drop experience a little smoother in
+          general.</L
+        >
+
+        <L
+          v="Fixed"
+          subtext="We just keep loading and loading and loading and loading and"
+          :issue="533"
+          >a rare issue that could lead to high CPU usage when first opening the
+          Tab Stash UI.</L
+        >
+
+        <L
+          v="Fixed"
+          subtext="Tab Stash is probably not affected, but I pulled in the fix anyway out of an abundance of caution."
+          :pr="536"
+          >a security issue in one of Tab Stash's dependencies.</L
+        >
+
+        <L v="Fixed" :issue="537"
+          >a crash that could happen when closing and then opening a tab very
+          quickly.</L
+        >
+      </Version>
+
       <Version v="3.1">
         <L v="Improved" :issue="[97, 508]"
           >performance in many areas of Tab Stash, especially when first loading
