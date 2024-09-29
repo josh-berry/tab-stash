@@ -517,7 +517,7 @@ describe("model/tabs", () => {
       closingTab: keyof TabFixture["tabs"];
       newActiveTab?: keyof TabFixture["tabs"];
     }) {
-      it.only(JSON.stringify(options), async () => {
+      it(JSON.stringify(options), async () => {
         if (!tabs[options.activeTab].active) {
           await browser.tabs.update(tabs[options.activeTab].id, {active: true});
           await events.next(browser.tabs.onActivated);
