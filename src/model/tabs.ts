@@ -401,12 +401,12 @@ export class Model {
         () => `Couldn't find position of active tab ${active_tab.id}`,
       );
       const win = pos.parent;
-      const tabs_in_window = win.children.filter(t => !t.hidden && !t.pinned);
+      const visible_tabs = win.children.filter(t => !t.hidden && !t.pinned);
       const closing_tabs_in_window = tabs.filter(
         t => t.position?.parent === active_tab.position?.parent,
       );
 
-      if (closing_tabs_in_window.length >= tabs_in_window.length) {
+      if (closing_tabs_in_window.length >= visible_tabs.length) {
         // If we are about to close all visible tabs in the window, we
         // should open a new tab so the window doesn't close.
         trace("creating new empty tab in window", win.id);
@@ -423,14 +423,16 @@ export class Model {
         // from, to mimic the browser's behavior when closing the front
         // tab.
 
-        let candidates = tabs_in_window.slice(pos.index + 1);
+        let candidates = win.children.slice(pos.index + 1);
         let focus_tab = candidates.find(
-          c => c.id !== undefined && !tabs.includes(c),
+          c =>
+            c.id !== undefined && !c.hidden && !c.pinned && !tabs.includes(c),
         );
         if (!focus_tab) {
-          candidates = tabs_in_window.slice(0, pos.index).reverse();
+          candidates = win.children.slice(0, pos.index).reverse();
           focus_tab = candidates.find(
-            c => c.id !== undefined && !tabs.includes(c),
+            c =>
+              c.id !== undefined && !c.hidden && !c.pinned && !tabs.includes(c),
           );
         }
 

@@ -239,6 +239,7 @@ describe("model", () => {
 
         const hidden = await browser.tabs.query({hidden: true});
         expect(hidden.map(t => t.id!)).to.deep.equal([
+          tabs.small_hidden.id,
           tabs.real_doug_2.id,
           tabs.real_harry.id,
           tabs.real_helen.id,
@@ -261,6 +262,7 @@ describe("model", () => {
 
         const hidden = await browser.tabs.query({hidden: true});
         expect(hidden.map(t => t.id!)).to.deep.equal([
+          tabs.small_hidden.id,
           tabs.real_harry.id,
           tabs.real_helen.id,
         ]);
@@ -271,6 +273,7 @@ describe("model", () => {
 
         const hidden = await browser.tabs.query({hidden: true});
         expect(hidden.map(t => t.id!)).to.deep.equal([
+          tabs.small_hidden.id,
           tabs.real_doug_2.id,
           tabs.real_harry.id,
           tabs.real_helen.id,

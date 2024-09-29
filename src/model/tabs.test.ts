@@ -509,4 +509,87 @@ describe("model/tabs", () => {
     expect(model.tab(tabs.left_alice.id)!.active).to.equal(false);
     expect(model.tab(tabs.left_charlotte.id)!.active).to.equal(true);
   });
+
+  describe("refocusAwayFromTabs()", () => {
+    function test(options: {
+      window: keyof TabFixture["windows"];
+      activeTab: keyof TabFixture["tabs"];
+      closingTab: keyof TabFixture["tabs"];
+      newActiveTab?: keyof TabFixture["tabs"];
+    }) {
+      it.only(JSON.stringify(options), async () => {
+        if (!tabs[options.activeTab].active) {
+          await browser.tabs.update(tabs[options.activeTab].id, {active: true});
+          await events.next(browser.tabs.onActivated);
+          await events.next(browser.tabs.onHighlighted);
+        }
+
+        const closingTab = model.tab(tabs[options.closingTab].id)!;
+        const activeTab = model.tab(tabs[options.activeTab].id)!;
+        let newActiveTab = options.newActiveTab
+          ? model.tab(tabs[options.newActiveTab].id)!
+          : undefined;
+
+        expect(closingTab, "closingTab").to.not.be.undefined;
+        expect(activeTab, "activeTab").to.not.be.undefined;
+        if (options.newActiveTab) {
+          expect(newActiveTab, "newActiveTab").to.not.be.undefined;
+        }
+
+        await model.refocusAwayFromTabs([closingTab]);
+
+        if (activeTab !== newActiveTab) {
+          if (!options.newActiveTab) {
+            const ev = await events.next(browser.tabs.onCreated);
+            newActiveTab = model.tab(ev[0].id!);
+            expect(newActiveTab, "newActiveTab [opened]").to.not.be.undefined;
+            await events.next(browser.tabs.onUpdated);
+          }
+
+          await events.next(browser.tabs.onActivated);
+          await events.next(browser.tabs.onHighlighted);
+          expect(activeTab.active, "activeTab is not active").to.be.false;
+        }
+
+        expect(newActiveTab!.active, "newActiveTab is active").to.be.true;
+      });
+    }
+
+    test({
+      window: "real",
+      activeTab: "real_blank",
+      closingTab: "real_blank",
+      newActiveTab: "real_bob",
+    });
+    test({
+      window: "real",
+      activeTab: "real_blank",
+      closingTab: "real_bob",
+      newActiveTab: "real_blank",
+    });
+    test({
+      window: "real",
+      activeTab: "real_blank",
+      closingTab: "real_estelle",
+      newActiveTab: "real_blank",
+    });
+    test({
+      window: "real",
+      activeTab: "real_estelle",
+      closingTab: "real_estelle",
+      newActiveTab: "real_francis",
+    });
+    test({
+      window: "real",
+      activeTab: "real_unstashed",
+      closingTab: "real_unstashed",
+      newActiveTab: "real_francis",
+    });
+    test({
+      window: "small",
+      activeTab: "small_active",
+      closingTab: "small_active",
+      newActiveTab: undefined,
+    });
+  });
 });

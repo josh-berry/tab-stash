@@ -36,6 +36,11 @@ export const STASH_ROOT_NAME = `${TEST_TAG} - Stash Root`;
  * minimum since in real-world tests, all of these windows will be created for
  * each test (where windows are used). */
 const WINDOWS = {
+  small: [
+    {id: "small_pinned", url: `${B}#pinned`, pinned: true},
+    {id: "small_active", url: `${B}#active`, active: true},
+    {id: "small_hidden", url: `${B}#hidden`, hidden: true},
+  ],
   left: [
     {id: "left_alice", url: `${B}#alice`, active: true},
     {id: "left_betty", url: `${B}#betty`},
