@@ -23,6 +23,14 @@ body:
       required: true
 
   - type: textarea
+    id: nonstd-settings
+    attributes:
+      label: Non-Standard Browser Settings
+      description: Have you made any changes to your browser's settings related to history storage, privacy, or security? Do you use any custom browser mods (e.g. userChrome.css)? Have you made any changes in `about:config`? List any/all such changes here. (If not, you can just write "n/a" or similar.)
+    validations:
+      required: true
+
+  - type: textarea
     id: installed-extensions
     attributes:
       label: Installed Extensions
