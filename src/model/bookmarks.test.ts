@@ -141,13 +141,13 @@ describe("model/bookmarks", () => {
 
   describe("loads bookmarks from the browser", () => {
     it("creates bookmark objects", () => {
-      // Pick a few at random inside the stash, since bookmarks ones outside the
+      // Pick a few at random inside the stash, since bookmarks outside the
       // stash are only loaded as needed.
-      for (const l of ["one", "nested_child", "helen"]) {
+      for (const l of ["nested_child", "helen", "undyne"]) {
         const template = bms[l as keyof typeof bms];
         const bm = model.node(template.id);
         if (template.url) {
-          expect(bm).to.deep.include({
+          expect(bm, `${l} URL/title to be set`).to.deep.include({
             id: template.id,
             title: template.title,
             url: template.url,
@@ -155,7 +155,9 @@ describe("model/bookmarks", () => {
         }
 
         const parent = model.folder(template.parentId!)!;
-        expect(parent).to.have.property("children");
+        expect(parent, `${l} parent.children to exist`).to.have.property(
+          "children",
+        );
         expect(parent.children[template.index!]).to.equal(bm);
       }
     });
@@ -167,8 +169,8 @@ describe("model/bookmarks", () => {
 
         const bm = model.folder(template.id)!;
         expect(bm.id).to.equal(template.id);
-        expect(bm.children.map(bm => bm?.id)).to.deep.equal(
-          template.children.map(c => c.id),
+        expect(bm.children.map(bm => `${bm?.id} ${bm?.title}`)).to.deep.equal(
+          template.children.map(c => `${c.id} ${c.title}`),
         );
       }
     });

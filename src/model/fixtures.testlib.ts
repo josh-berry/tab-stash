@@ -107,14 +107,18 @@ const BOOKMARKS = {
           id: "big_stash",
           title: "Big Stash",
           children: [
-            {id: "one", title: "One", url: `${B}#1`},
-            {id: "two", title: "Two", url: `${B}#2`},
-            {id: "three", title: "Three", url: `${B}#3`},
-            {id: "four", title: "Four", url: `${B}#4`},
-            {id: "five", title: "Five", url: `${B}#5`},
-            {id: "six", title: "Six", url: `${B}#6`},
-            {id: "seven", title: "Seven", url: `${B}#7`},
-            {id: "eight", title: "Eight", url: `${B}#8`},
+            // The indexes in big_stash are intentionally corrupt/inconsistent
+            // with their actual positions in the folder, to simulate some
+            // common corruptions I've seen in Firefox's bookmarks DB (both
+            // duplicate indexes and negative indexes).
+            {_index: -2, id: "one", title: "One", url: `${B}#1`},
+            {_index: -1, id: "two", title: "Two", url: `${B}#2`},
+            {_index: 0, id: "three", title: "Three", url: `${B}#3`},
+            {_index: 2, id: "four", title: "Four", url: `${B}#4`},
+            {_index: 2, id: "five", title: "Five", url: `${B}#5`},
+            {_index: 5, id: "six", title: "Six", url: `${B}#6`},
+            {_index: 6, id: "seven", title: "Seven", url: `${B}#7`},
+            {_index: 7, id: "eight", title: "Eight", url: `${B}#8`},
           ],
         },
         {
@@ -227,10 +231,12 @@ type BookmarkNamesHere<B extends NamedBookmark> =
       ? BookmarkNamesHere<B["children"][any]>
       : never);
 interface NamedBookmark {
+  readonly index?: number;
   readonly id: string;
   readonly children?: readonly NamedBookmark[];
 }
 interface NamedBookmarkFolder {
+  readonly index?: number;
   readonly id: string;
   readonly children: readonly NamedBookmark[];
 }
@@ -253,7 +259,7 @@ export async function make_bookmarks(): Promise<BookmarkFixture> {
 
   async function gen(
     id: BookmarkName,
-    bm: any,
+    bm: NamedBookmark | NamedBookmarkFolder,
     parentId: string | undefined,
   ): Promise<Bookmarks.BookmarkTreeNode> {
     /* c8 ignore next -- bug-checking */
@@ -266,8 +272,6 @@ export async function make_bookmarks(): Promise<BookmarkFixture> {
     const new_kids: Bookmarks.BookmarkTreeNode[] = [];
     res[id]!.children = new_kids;
     for (const c of bm.children) {
-      c.parentId = res[id]!.id;
-      c.index = i;
       new_kids.push(await gen(c.id as BookmarkName, c, res[id]!.id));
       ++i;
     }

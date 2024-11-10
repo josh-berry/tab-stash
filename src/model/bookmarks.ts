@@ -263,6 +263,7 @@ export class Model {
 
     return this._run_loader(folder, async () => {
       const children = await browser.bookmarks.getChildren(folder.id);
+      fixupIndexes(children);
       for (const c of children) this._upsertNode(c);
 
       folder.isLoaded = true;
@@ -318,6 +319,7 @@ export class Model {
         // we might allow for multiple loaders for the same child to run.
         // Worse, the other loader might be non-recursive, so loadedSubtree()
         // wouldn't actually perform as expected.
+        fixupIndexes(children);
         for (const n of children) {
           const f = this._upsertNode(n) as Folder;
           const c = n.children;
@@ -528,6 +530,8 @@ export class Model {
         if (toIndex > position.index) toIndex--;
       }
     }
+    const oldParent = node.position?.parent;
+    const oldIndex = node.position?.index;
     await browser.bookmarks.move(node.id, {
       parentId: toParent.id,
       index: toIndex,
@@ -536,7 +540,19 @@ export class Model {
       const pos = node.position;
       /* c8 ignore next -- race avoidance */
       if (!pos) tryAgain();
-      if (pos.parent !== toParent || pos.index !== toIndex) tryAgain();
+
+      // We assume the bookmark move has happened even if the bookmark did not
+      // move to where we expect.  This is because the Firefox bookmark DB might
+      // have incorrect indexes in it, so the bookmark might not move to the
+      // position we expect even if no other concurrent moves are happening.
+      // There is unfortunately little we can do about this, so we ignore it.
+      if (pos.parent !== oldParent || pos.index !== oldIndex) return;
+
+      // It's possible the old and new parents/indexes are the same. If so, the
+      // bookmark will have "moved", but the check above will still fail.
+      if (pos.parent === toParent && pos.index === toIndex) return;
+
+      tryAgain();
     });
 
     await this.maybeCleanupEmptyFolder(position.parent);
@@ -1053,4 +1069,12 @@ function isBrowserBTNFolder(bm: Bookmarks.BookmarkTreeNode): boolean {
   if (bm.children) return true; // for Chrome (sometimes)
   if (!("type" in bm) && !("url" in bm)) return true; // for Chrome
   return false;
+}
+
+/** Firefox sometimes returns a list of bookmark children that have negative
+ * indexes, indexes with gaps, or duplicate indexes. We try to normalize these
+ * here so the rest of Tab Stash doesn't complain. See:
+ * https://github.com/josh-berry/tab-stash/issues/542 */
+function fixupIndexes(nodes: Bookmarks.BookmarkTreeNode[]): void {
+  for (let i = 0; i < nodes.length; ++i) nodes[i].index = i;
 }
