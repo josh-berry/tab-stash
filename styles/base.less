@@ -83,6 +83,8 @@ select,
 textarea {
   margin: 0;
   padding: var(--ctrl-ph) var(--ctrl-pw);
+  /** Overrides the browser's built-in min-width for these components. */
+  min-width: calc(4 * var(--ctrl-pw));
 }
 button,
 input,
