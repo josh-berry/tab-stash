@@ -246,12 +246,11 @@ export async function nextTick(): Promise<void> {
 }
 
 /** Calls `fn()` repeatedly for up to "a few" repetitions until `fn()` returns
- * without throwing `TRY_AGAIN`.  "A few" is implementation-dependent but is
- * guaranteed to be (approximately) less than 10ms.
+ * without throwing `TRY_AGAIN`.  "A few" is implementation-dependent.
  *
  * If the function does not return a value within a reasonable amount of time,
  * throws {@link TimedOutError}.  */
-export async function shortPoll<T>(fn: () => T, ms: number = 10): Promise<T> {
+export async function shortPoll<T>(fn: () => T, ms: number = 100): Promise<T> {
   // Relies on the implicit behavior of setTimeout() being automatically
   // delayed--see "Nested timeouts" from:
   // https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
