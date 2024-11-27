@@ -13,9 +13,7 @@
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
-    orientation="vertical"
-    ghost-displaces-items
-    ghost-mimics-height
+    orientation="grid"
   >
     <template #item="{item}: {item: Node}">
       <Folder v-if="isVisible(item)" ref="folders" :folder="item" is-toplevel />

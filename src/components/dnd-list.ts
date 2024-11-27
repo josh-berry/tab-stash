@@ -9,4 +9,5 @@ export type DragAction<V = any> = {
 export type DropAction = {
   dataTransfer: DataTransfer;
   toIndex: number;
+  dropInside?: boolean;
 };

@@ -200,6 +200,7 @@
     :class="{'forest-children': true, collapsed}"
     v-model="children"
     :item-key="(item: Node) => item.id"
+    :item-is-container="(item: Node) => isFolder(item)"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
@@ -695,14 +696,31 @@ export default defineComponent({
     async drop(ev: DropAction) {
       const items = recvDragData(ev.dataTransfer, the.model);
 
-      await the.model.attempt(() =>
-        the.model.putItemsInFolder({
-          items,
-          toFolder: this.folder,
-          toIndex: ev.toIndex,
-          allowDuplicates: true,
-        }),
-      );
+      if (ev.dropInside) {
+        const child = this.folder.children[ev.toIndex];
+        if (!child || !isFolder(child)) {
+          throw new Error(
+            `Attempt to drop inside non-folder node: ${child?.title} [${child?.id}]`,
+          );
+        }
+        await the.model.attempt(() =>
+          the.model.putItemsInFolder({
+            items,
+            toFolder: child,
+            toIndex: child.children.length,
+            allowDuplicates: true,
+          }),
+        );
+      } else {
+        await the.model.attempt(() =>
+          the.model.putItemsInFolder({
+            items,
+            toFolder: this.folder,
+            toIndex: ev.toIndex,
+            allowDuplicates: true,
+          }),
+        );
+      }
     },
   },
 });

@@ -247,7 +247,9 @@ export class Model {
       return await fn();
     } catch (e) {
       logError(e);
-      logErrorsFrom(async () => this.reload());
+      if (!(e instanceof UserError)) {
+        logErrorsFrom(async () => this.reload());
+      }
       throw e;
     }
   }
