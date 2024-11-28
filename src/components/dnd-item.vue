@@ -211,6 +211,9 @@ function clearDragState() {
 function allowDropHere(ev: DragEvent): boolean {
   if (!ev.dataTransfer) return false;
   const types = ev.dataTransfer.types;
+
+  if (!props.acceptPositions) return false;
+
   if (props.acceptTypes instanceof Array) {
     if (!types.find(t => props.acceptTypes!.includes(t))) return false;
   } else if (props.acceptTypes) {
@@ -218,6 +221,7 @@ function allowDropHere(ev: DragEvent): boolean {
   } else {
     return false;
   }
+
   ev.preventDefault();
   return true;
 }

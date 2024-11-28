@@ -200,7 +200,8 @@
     :class="{'forest-children': true, collapsed}"
     v-model="children"
     :item-key="(item: Node) => item.id"
-    :item-accepts-drop-inside="(item: Node) => isFolder(item)"
+    :item-accepts-drop-inside="childAcceptsDropInside"
+    parent-accepts-drop="end"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"
@@ -527,6 +528,11 @@ export default defineComponent({
 
     isValidChild(node: Node): node is Folder | Bookmark {
       return "url" in node || "children" in node;
+    },
+
+    childAcceptsDropInside(node: Node): boolean {
+      if (!isFolder(node)) return false;
+      return the.model.bookmark_metadata.get(node.id).value?.collapsed || false;
     },
 
     stash(ev: MouseEvent | KeyboardEvent) {

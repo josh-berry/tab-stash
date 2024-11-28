@@ -1,5 +1,11 @@
 <template>
-  <ul>
+  <dnd-item
+    is="ul"
+    :orientation="props.orientation"
+    :accept-positions="parentAcceptsDrop ? 'inside' : undefined"
+    :accept-types="props.accepts"
+    @drop="parentDrop"
+  >
     <dnd-item
       v-for="(item, index) of modelValue"
       :class="itemClass ? itemClass(item, index) : undefined"
@@ -15,7 +21,7 @@
     >
       <slot name="item" :item="item" />
     </dnd-item>
-  </ul>
+  </dnd-item>
 </template>
 
 <script lang="ts">
@@ -34,6 +40,7 @@ const props = defineProps<{
   itemKey: (item: I) => string | number;
   itemClass?: (item: I, index: number) => Record<string, boolean>;
   itemAcceptsDropInside?: (item: I, index: number) => boolean;
+  parentAcceptsDrop?: "beginning" | "end";
   accepts: string | readonly string[];
   modelValue: I[];
 
@@ -80,6 +87,25 @@ function itemDrop(ev: DropEvent, index: number) {
     dropInside: ev.position === "inside",
   };
 
+  logErrorsFrom(() => props.drop(drop_ev));
+}
+
+function parentDrop(ev: DropEvent) {
+  let drop_ev: DropAction;
+  switch (props.parentAcceptsDrop) {
+    case undefined:
+      return;
+    case "beginning":
+      drop_ev = {
+        dataTransfer: ev.dom.dataTransfer!,
+        toIndex: 0,
+      };
+    case "end":
+      drop_ev = {
+        dataTransfer: ev.dom.dataTransfer!,
+        toIndex: props.modelValue.length,
+      };
+  }
   logErrorsFrom(() => props.drop(drop_ev));
 }
 </script>
