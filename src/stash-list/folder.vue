@@ -200,7 +200,7 @@
     :class="{'forest-children': true, collapsed}"
     v-model="children"
     :item-key="(item: Node) => item.id"
-    :item-is-container="(item: Node) => isFolder(item)"
+    :item-accepts-drop-inside="(item: Node) => isFolder(item)"
     :accepts="accepts"
     :drag="drag"
     :drop="drop"

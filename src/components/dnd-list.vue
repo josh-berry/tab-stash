@@ -33,7 +33,7 @@ import dndItem, {
 const props = defineProps<{
   itemKey: (item: I) => string | number;
   itemClass?: (item: I, index: number) => Record<string, boolean>;
-  itemIsContainer?: (item: I, index: number) => boolean;
+  itemAcceptsDropInside?: (item: I, index: number) => boolean;
   accepts: string | readonly string[];
   modelValue: I[];
 
@@ -47,7 +47,7 @@ const props = defineProps<{
 const draggingIndex = ref(-1);
 
 function acceptPos(item: I, index: number): DNDAllowedDropPositions {
-  if (props.itemIsContainer && props.itemIsContainer(item, index)) {
+  if (props.itemAcceptsDropInside && props.itemAcceptsDropInside(item, index)) {
     if (props.orientation === "grid") {
       return draggingIndex.value < index ? "inside-after" : "before-inside";
     }
