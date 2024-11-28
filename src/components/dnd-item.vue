@@ -70,6 +70,10 @@ const emit = defineEmits<{
    * data-transfer object with relevant types and allowed drop effects. */
   (e: "drag", ev: DataTransfer): void;
 
+  /** Emitted on a dragged item when a drag ends, either because of success or
+   * cancellation/failure. */
+  (e: "dragend"): void;
+
   /** Emitted when a drop is completed. */
   (e: "drop", ev: DropEvent): void;
 }>();
@@ -115,6 +119,7 @@ function dragEnd(ev: DragEvent) {
   isDragging.value = false;
   dropPosition.value = undefined;
   clearDragState();
+  emit("dragend");
 }
 
 //
@@ -274,22 +279,28 @@ const dropPosImpls = {
       return isAboveDiagonal(ev, elSize) ? "before" : "after";
     },
     "before-inside"(ev: DragEvent): DNDDropPosition {
-      const elSize = $el.value.getBoundingClientRect();
-      return isAboveDiagonal(ev, elSize) ? "before" : "inside";
+      if (isInCenter(ev)) return "inside";
+      return "before";
     },
     "inside-after"(ev: DragEvent): DNDDropPosition {
-      const elSize = $el.value.getBoundingClientRect();
-      return isAboveDiagonal(ev, elSize) ? "inside" : "after";
+      if (isInCenter(ev)) return "inside";
+      return "after";
     },
     "before-inside-after"(ev: DragEvent): DNDDropPosition {
+      if (isInCenter(ev)) return "inside";
       const elSize = $el.value.getBoundingClientRect();
-      const x = Math.floor((3 * (ev.clientX - elSize.x)) / elSize.width);
-      const y = Math.floor((3 * (ev.clientY - elSize.y)) / elSize.height);
-      if (x === 1 && y === 1) return "inside";
       return isAboveDiagonal(ev, elSize) ? "before" : "after";
     },
   },
 };
+
+/** Is the mouse cursor in the center of the item? */
+function isInCenter(ev: DragEvent): boolean {
+  const elSize = $el.value.getBoundingClientRect();
+  const x = Math.floor((3 * (ev.clientX - elSize.x)) / elSize.width);
+  const y = Math.floor((3 * (ev.clientY - elSize.y)) / elSize.height);
+  return x === 1 && y === 1;
+}
 
 /** Is the mouse cursor below the diagonal "before/after" split in this item? */
 function isAboveDiagonal(ev: DragEvent, elSize: DOMRect): boolean {

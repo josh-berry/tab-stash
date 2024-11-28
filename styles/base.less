@@ -202,13 +202,12 @@ label {
 }
 
 [data-dnd-orientation="grid"] {
-  &[data-dnd-dropping="before"] {
-    box-shadow: calc(-1 * var(--ghost-border-width))
-      calc(-1 * var(--ghost-border-width)) 0 0 var(--userlink-fg) !important;
+  &[data-dnd-dropping="before"],
+  &[data-dnd-dropping="after"] {
+    box-shadow: 0 0 0 var(--ghost-border-width) var(--userlink-fg) !important;
   }
 
-  &[data-dnd-dropping="after"] {
-    box-shadow: calc(var(--ghost-border-width)) calc(var(--ghost-border-width))
-      0 0 var(--userlink-fg) !important;
+  &[data-dnd-dropping="inside"] {
+    box-shadow: inset 0 0 0 var(--ghost-border-width) var(--userlink-fg) !important;
   }
 }

@@ -7,13 +7,10 @@
       is="li"
       draggable
       :orientation="props.orientation"
-      :accept-positions="
-        itemIsContainer && itemIsContainer(item, index)
-          ? 'before-inside-after'
-          : 'before-after'
-      "
+      :accept-positions="acceptPos(item, index)"
       :accept-types="props.accepts"
       @drag="itemDrag($event, item, index)"
+      @dragend="itemDragEnd"
       @drop="itemDrop($event, index)"
     >
       <slot name="item" :item="item" />
@@ -26,8 +23,12 @@ import {type DragAction, type DropAction} from "./dnd-list.js";
 </script>
 
 <script setup lang="ts" generic="I">
+import {ref} from "vue";
 import {logErrorsFrom} from "../util/oops.js";
-import dndItem, {type DropEvent} from "./dnd-item.vue";
+import dndItem, {
+  type DNDAllowedDropPositions,
+  type DropEvent,
+} from "./dnd-item.vue";
 
 const props = defineProps<{
   itemKey: (item: I) => string | number;
@@ -43,12 +44,33 @@ const props = defineProps<{
   orientation: "horizontal" | "vertical" | "grid";
 }>();
 
+const draggingIndex = ref(-1);
+
+function acceptPos(item: I, index: number): DNDAllowedDropPositions {
+  if (props.itemIsContainer && props.itemIsContainer(item, index)) {
+    if (props.orientation === "grid") {
+      return draggingIndex.value < index ? "inside-after" : "before-inside";
+    }
+    return "before-inside-after";
+  } else {
+    if (props.orientation === "grid") {
+      return draggingIndex.value < index ? "after" : "before";
+    }
+    return "before-after";
+  }
+}
+
 function itemDrag(ev: DataTransfer, item: I, index: number) {
   props.drag({
     dataTransfer: ev,
     fromIndex: index,
     value: item,
   });
+  draggingIndex.value = index;
+}
+
+function itemDragEnd() {
+  draggingIndex.value = -1;
 }
 
 function itemDrop(ev: DropEvent, index: number) {
