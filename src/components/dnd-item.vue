@@ -6,8 +6,8 @@
     :data-dnd-dragging="isDragging"
     :data-dnd-dropping="dropPosition"
     :draggable="props.draggable && dragEnabled"
-    @mousedown.stop="dragEnabled = true"
-    @mouseup.stop="dragEnabled = false"
+    @mousedown="mouseDown"
+    @mouseup="mouseUp"
     @dragstart="dragStart"
     @dragend="dragEnd"
     @dragenter="dragEnter"
@@ -92,6 +92,18 @@ const dropPosition = ref(undefined as DNDDropPosition | undefined);
 //
 // EVENTS ON THE DRAGGED ITEM
 //
+
+function mouseDown(ev: MouseEvent) {
+  if (!props.draggable) return;
+  dragEnabled.value = true;
+  ev.stopPropagation();
+}
+
+function mouseUp(ev: MouseEvent) {
+  if (!props.draggable) return;
+  dragEnabled.value = false;
+  ev.stopPropagation();
+}
 
 /** Fired when the user actually starts dragging this item. */
 function dragStart(ev: DragEvent) {
