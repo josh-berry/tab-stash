@@ -311,6 +311,14 @@
       }
     }
 
+    & > :last-child {
+      // Otherwise if we give the child-list itself a border, it will look too
+      // square. This mainly comes into play when highlighting the list for
+      // drag-and-drop.
+      border-bottom-left-radius: var(--group-border-radius);
+      border-bottom-right-radius: var(--group-border-radius);
+    }
+
     & > .forest-children:last-child {
       // This is here, instead of the enclosing <li>, so the bottom margin
       // naturally disappears when the group is collapsed.  It should also be
