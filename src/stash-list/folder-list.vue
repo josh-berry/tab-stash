@@ -29,7 +29,7 @@ import {required} from "../util/index.js";
 import the from "../globals-ui.js";
 import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
 
-import type {DragAction, DropAction} from "../components/dnd-list.js";
+import type {DragAction, DropAction} from "../components/dnd.js";
 import DndList from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 import LoadMore from "../components/load-more.vue";

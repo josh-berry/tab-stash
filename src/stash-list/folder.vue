@@ -264,7 +264,7 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 import LoadMore from "../components/load-more.vue";
 
-import type {DragAction, DropAction} from "../components/dnd-list.js";
+import type {DragAction, DropAction} from "../components/dnd.js";
 import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
 
 type NodeWithTabs = {

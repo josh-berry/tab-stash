@@ -120,7 +120,7 @@ import browser from "webextension-polyfill";
 
 import {altKeyName, required} from "../util/index.js";
 
-import type {DragAction, DropAction} from "../components/dnd-list.js";
+import type {DragAction, DropAction} from "../components/dnd.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";

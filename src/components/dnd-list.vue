@@ -25,16 +25,15 @@
 </template>
 
 <script lang="ts">
-import {type DragAction, type DropAction} from "./dnd-list.js";
+import {type DragAction, type DropAction} from "./dnd.js";
 </script>
 
 <script setup lang="ts" generic="I">
 import {ref} from "vue";
 import {logErrorsFrom} from "../util/oops.js";
-import dndItem, {
-  type DNDAllowedDropPositions,
-  type DropEvent,
-} from "./dnd-item.vue";
+
+import {type DNDAllowedDropPositions, type DropEvent} from "./dnd.js";
+import dndItem from "./dnd-item.vue";
 
 const props = defineProps<{
   itemKey: (item: I) => string | number;
@@ -82,7 +81,7 @@ function itemDragEnd() {
 
 function itemDrop(ev: DropEvent, index: number) {
   const drop_ev: DropAction = {
-    dataTransfer: ev.dom.dataTransfer!,
+    dataTransfer: ev.data,
     toIndex: index + (ev.position === "after" ? 1 : 0),
     dropInside: ev.position === "inside",
   };
@@ -97,12 +96,12 @@ function parentDrop(ev: DropEvent) {
       return;
     case "beginning":
       drop_ev = {
-        dataTransfer: ev.dom.dataTransfer!,
+        dataTransfer: ev.data,
         toIndex: 0,
       };
     case "end":
       drop_ev = {
-        dataTransfer: ev.dom.dataTransfer!,
+        dataTransfer: ev.data,
         toIndex: props.modelValue.length,
       };
   }
