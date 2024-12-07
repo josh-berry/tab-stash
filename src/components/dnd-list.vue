@@ -9,8 +9,8 @@
   >
     <li
       v-for="(item, index) of modelValue"
+      :key="itemKey(item, index)"
       :class="itemClass ? itemClass(item, index) : undefined"
-      :key="itemKey(item)"
       v-draggable="{
         start: data => itemDragStart(data, item, index),
         end: itemDragEnd,
@@ -18,7 +18,7 @@
       v-droppable="{
         orientation: () => props.orientation,
         accepts: data => itemAccepts(data, item, index),
-        drop: ev => itemDrop(ev, index),
+        drop: ev => itemDrop(ev, item, index),
       }"
     >
       <slot name="item" :item="item" />
@@ -27,109 +27,177 @@
 </template>
 
 <script lang="ts">
-import {type DragAction, type DropAction} from "./dnd.js";
+/** Fired when the user begins dragging an item in the list. */
+export interface ListDragEvent<I> {
+  /** The item being dragged. */
+  item: I;
+
+  /** The index of the item being dragged. */
+  fromIndex: number;
+
+  /** The DataTransfer should be populated with information describing `item`,
+   * such that `item` can be moved or copied when dropped at its destination
+   * (which may be in a different app entirely). */
+  data: DataTransfer;
+}
+
+/** Fired when the user drops item(s) with the intention of inserting them into
+ * the list at the specified position. */
+export interface ListDropEvent {
+  /** The DataTransfer object that describes the dropped item(s). */
+  data: DataTransfer;
+
+  /** The position in the list at which to insert the dropped item(s).  The
+   * item(s) should be inserted in the list such that they precede the item
+   * _currently_ at index `insertBeforeIndex`. Or, if `insertBeforeIndex ==
+   * list.length`, the item(s) should be inserted at the end of the list. */
+  insertBeforeIndex: number;
+}
+
+/** Fired when the user drops item(s) with the intention of inserting them
+ * inside the specified item in the list (e.g. as children). */
+export interface ListDropInsideEvent<I> {
+  /** The DataTransfer object that describes the dropped item(s). */
+  data: DataTransfer;
+
+  /** The parent item into which the dropped item(s) should be inserted.  It is
+   * up to the callee where in the child they should be placed (typically they
+   * would be placed at the end). */
+  insertInParent: I;
+}
 </script>
 
 <script setup lang="ts" generic="I">
 import {ref} from "vue";
-import {logErrorsFrom} from "../util/oops.js";
 
 import {type DNDAcceptedDropPositions, type DropEvent} from "./dnd.js";
 import {vDraggable, vDroppable} from "./dnd-directives.js";
 
 const props = defineProps<{
-  itemKey: (item: I) => string | number;
-  itemClass?: (item: I, index: number) => Record<string, boolean>;
-  itemAcceptsDropInside?: (item: I, index: number) => boolean;
-  parentAcceptsDrop?: "beginning" | "end";
-  accepts: string | readonly string[];
+  /** What is the visual orientation of the list?  During a drag operation, this
+   * is used in conjunction with the position of the mouse cursor to decide
+   * whether the user intends to drop before, inside, or after the item they're
+   * hovering over. */
+  orientation: "horizontal" | "vertical" | "grid";
+
+  /** The items in the list. */
   modelValue: I[];
 
-  drag: (drag: DragAction<I>) => void;
-  drop: (drop: DropAction) => Promise<void>;
+  /** Returns a unique key for each item. This is the same as Vue's special
+   * `key` attribute inside `v-for`. */
+  itemKey: (item: I, index: number) => string | number;
 
-  /** What is the visual orientation of the list? */
-  orientation: "horizontal" | "vertical" | "grid";
+  /** Returns a set of CSS classes to apply to the specified item. */
+  itemClass?: (item: I, index: number) => Record<string, boolean>;
+
+  /** Checks whether the dragged data in `data` can be dropped within or
+   * adjacent to the specified item/index. */
+  itemAccepts: (
+    data: DataTransfer,
+    item: I,
+    index: number,
+  ) => DNDAcceptedDropPositions;
+
+  /** If the list is empty, checks whether the dragged data in `data` can be
+   * dropped in the list as its only item. */
+  listAccepts: (data: DataTransfer) => boolean;
+}>();
+
+const emit = defineEmits<{
+  /** Fired when the user starts to drag an item in the list.  The callee must
+   * fill in the `data` field of the ListDragEvent with information on the item
+   * being dragged. */
+  (e: "drag", event: ListDragEvent<I>): void;
+
+  /** Fired when the user drops an item into this list, adjacent to another
+   * item.  The dropped item is guaranteed to have been previously-validated by
+   * the `itemAccepts()` function. The callee should insert the dropped item
+   * into the list such that its index is `toIndex`. */
+  (e: "drop", event: ListDropEvent): void;
+
+  /** Fired when the user drops an item inside a particular item in this list.
+   * The dropped item should be inserted in an appropriate position as a child
+   * of the item it was dropped on. */
+  (e: "dropInside", event: ListDropInsideEvent<I>): void;
 }>();
 
 const draggingIndex = ref(-1);
-
-function parentAccepts(data: DataTransfer): DNDAcceptedDropPositions {
-  if (props.accepts instanceof Array) {
-    if (!data.types.find(t => props.accepts!.includes(t))) return null;
-  } else if (props.accepts) {
-    if (!data.types.includes(props.accepts)) return null;
-  } else {
-    return null;
-  }
-  return props.parentAcceptsDrop ? "inside" : null;
-}
 
 function itemAccepts(
   data: DataTransfer,
   item: I,
   index: number,
 ): DNDAcceptedDropPositions {
-  if (props.accepts instanceof Array) {
-    if (!data.types.find(t => props.accepts!.includes(t))) return null;
-  } else if (props.accepts) {
-    if (!data.types.includes(props.accepts)) return null;
-  } else {
-    return null;
-  }
+  const pos = props.itemAccepts(data, item, index);
+  if (!pos) return null;
 
-  if (props.itemAcceptsDropInside && props.itemAcceptsDropInside(item, index)) {
-    if (props.orientation === "grid") {
-      return draggingIndex.value < index ? "inside-after" : "before-inside";
+  if (props.orientation !== "grid") return pos;
+
+  // We do some wonkiness with grids because there's not a clear notion of
+  // "before" or "after".  So we generally try to make the insert point the same
+  // as the drop target.
+  if (draggingIndex.value !== -1) {
+    // If we're dragging within the same grid, we need to adjust the insertion
+    // point depending on whether we're moving an item forward or backward in
+    // the list.
+    switch (pos) {
+      case "before":
+      case "inside":
+      case "after":
+      case "before-inside":
+      case "inside-after":
+        return pos;
+      case "before-after":
+        return draggingIndex.value < index ? "after" : "before";
+      case "before-inside-after":
+        return draggingIndex.value < index ? "inside-after" : "before-inside";
     }
-    return "before-inside-after";
   } else {
-    if (props.orientation === "grid") {
-      return draggingIndex.value < index ? "after" : "before";
+    // Else we're dragging between grids; we generally use "before", except for
+    // the last item, where the insertion point could be "before" or "after",
+    // and the user will have to figure out which is which. :/  It's not ideal
+    // but better than doing nothing...
+    switch (pos) {
+      case "before":
+      case "inside":
+      case "after":
+      case "before-inside":
+      case "inside-after":
+        return pos;
+      case "before-after":
+        return index === props.modelValue.length - 1 ? pos : "before";
+      case "before-inside-after":
+        return index === props.modelValue.length - 1 ? pos : "before-inside";
     }
-    return "before-after";
   }
 }
 
-function itemDragStart(ev: DataTransfer, item: I, index: number) {
-  props.drag({
-    dataTransfer: ev,
-    fromIndex: index,
-    value: item,
-  });
-  draggingIndex.value = index;
+function itemDragStart(data: DataTransfer, item: I, fromIndex: number) {
+  emit("drag", {data, item, fromIndex});
+  draggingIndex.value = fromIndex;
 }
 
 function itemDragEnd() {
   draggingIndex.value = -1;
 }
 
-function itemDrop(ev: DropEvent, index: number) {
-  const drop_ev: DropAction = {
-    dataTransfer: ev.data,
-    toIndex: index + (ev.position === "after" ? 1 : 0),
-    dropInside: ev.position === "inside",
-  };
+function itemDrop(ev: DropEvent, item: I, index: number) {
+  if (ev.position === "inside") {
+    emit("dropInside", {data: ev.data, insertInParent: item});
+  } else {
+    emit("drop", {
+      data: ev.data,
+      insertBeforeIndex: index + (ev.position === "after" ? 1 : 0),
+    });
+  }
+}
 
-  logErrorsFrom(() => props.drop(drop_ev));
+function parentAccepts(data: DataTransfer): DNDAcceptedDropPositions {
+  if (props.listAccepts(data)) return "inside";
+  return null;
 }
 
 function parentDrop(ev: DropEvent) {
-  let drop_ev: DropAction;
-  switch (props.parentAcceptsDrop) {
-    case undefined:
-      return;
-    case "beginning":
-      drop_ev = {
-        dataTransfer: ev.data,
-        toIndex: 0,
-      };
-    case "end":
-      drop_ev = {
-        dataTransfer: ev.data,
-        toIndex: props.modelValue.length,
-      };
-  }
-  logErrorsFrom(() => props.drop(drop_ev));
+  emit("drop", {data: ev.data, insertBeforeIndex: props.modelValue.length});
 }
 </script>

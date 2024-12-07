@@ -78,12 +78,13 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
 
   <dnd-list
     :class="{'forest-children': true, collapsed}"
+    orientation="vertical"
     v-model="targetWindow.children"
     :item-key="(item: Tab) => item.id"
-    :accepts="accepts"
-    :drag="drag"
-    :drop="drop"
-    orientation="vertical"
+    :item-accepts="itemAccepts"
+    :list-accepts="listAccepts"
+    @drag="drag"
+    @drop="drop"
   >
     <template #item="{item}: {item: Tab}">
       <tab v-if="isVisible(item)" :tab="item" />
@@ -120,8 +121,6 @@ import browser from "webextension-polyfill";
 
 import {altKeyName, required} from "../util/index.js";
 
-import type {DragAction, DropAction} from "../components/dnd.js";
-
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
 import {copyIf} from "../model/index.js";
@@ -131,13 +130,18 @@ import type {Tab, Window} from "../model/tabs.js";
 import ConfirmDialog, {
   type ConfirmDialogEvent,
 } from "../components/confirm-dialog.vue";
-import DndList from "../components/dnd-list.vue";
+import DndList, {
+  type ListDragEvent,
+  type ListDropEvent,
+} from "../components/dnd-list.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
 import type {FilterInfo} from "../model/tree-filter.js";
 import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
+import {logErrorsFrom} from "../util/oops.js";
+import type {DNDAcceptedDropPositions} from "../components/dnd.js";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
   SyncState["show_open_tabs"],
@@ -193,10 +197,6 @@ export default defineComponent({
         }
         f.value = v;
       },
-    },
-
-    accepts() {
-      return ACCEPTS;
     },
 
     tabs(): Tab[] {
@@ -421,21 +421,35 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<Tab>) {
-      const items = the.model.selection.info(ev.value).isSelected
-        ? Array.from(the.model.selection.selectedItems())
-        : [ev.value];
-      sendDragData(ev.dataTransfer, items);
+    itemAccepts(
+      data: DataTransfer,
+      item: Tab,
+      index: number,
+    ): DNDAcceptedDropPositions {
+      return this.listAccepts(data) ? "before-after" : null;
     },
 
-    async drop(ev: DropAction) {
-      const items = recvDragData(ev.dataTransfer, the.model);
+    listAccepts(data: DataTransfer): boolean {
+      return data.types.find(i => ACCEPTS.includes(i)) !== undefined;
+    },
 
-      await the.model.attempt(() =>
-        the.model.putItemsInWindow({
-          items,
-          toIndex: ev.toIndex,
-        }),
+    drag(ev: ListDragEvent<Tab>) {
+      const items = the.model.selection.info(ev.item).isSelected
+        ? Array.from(the.model.selection.selectedItems())
+        : [ev.item];
+      sendDragData(ev.data, items);
+    },
+
+    drop(ev: ListDropEvent) {
+      const items = recvDragData(ev.data, the.model);
+
+      logErrorsFrom(() =>
+        the.model.attempt(() =>
+          the.model.putItemsInWindow({
+            items,
+            toIndex: ev.insertBeforeIndex,
+          }),
+        ),
       );
     },
   },

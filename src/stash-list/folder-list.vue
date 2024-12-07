@@ -8,15 +8,16 @@
   <dnd-list
     v-else
     class="forest"
+    orientation="grid"
     v-model="parentFolder.children as Node[]"
     :item-key="(item: Node) => item.id"
-    :accepts="accepts"
-    :drag="drag"
-    :drop="drop"
-    orientation="grid"
+    :item-accepts="itemAccepts"
+    :list-accepts="_ => false"
+    @drag="drag"
+    @drop="drop"
   >
     <template #item="{item}: {item: Node}">
-      <Folder v-if="isVisible(item)" ref="folders" :folder="item" is-toplevel />
+      <Folder v-if="isVisible(item)" :folder="item" is-toplevel />
     </template>
   </dnd-list>
 </template>
@@ -29,10 +30,14 @@ import {required} from "../util/index.js";
 import the from "../globals-ui.js";
 import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
 
-import type {DragAction, DropAction} from "../components/dnd.js";
-import DndList from "../components/dnd-list.vue";
+import DndList, {
+  type ListDragEvent,
+  type ListDropEvent,
+} from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 import LoadMore from "../components/load-more.vue";
+import type {DNDAcceptedDropPositions} from "../components/dnd.js";
+import {logErrorsFrom} from "../util/oops.js";
 
 const DROP_FORMAT = "application/x-tab-stash-folder-id";
 
@@ -41,12 +46,6 @@ export default defineComponent({
 
   props: {
     parentFolder: required(Object as PropType<Folder>),
-  },
-
-  computed: {
-    accepts() {
-      return DROP_FORMAT;
-    },
   },
 
   methods: {
@@ -62,17 +61,35 @@ export default defineComponent({
       await the.model.bookmarks.loaded(this.parentFolder);
     },
 
-    drag(ev: DragAction<Node>) {
-      ev.dataTransfer.setData(DROP_FORMAT, ev.value.id);
+    itemAccepts(
+      data: DataTransfer,
+      item: Node,
+      index: number,
+    ): DNDAcceptedDropPositions {
+      if (!data.types.includes(DROP_FORMAT)) return null;
+      return "before-after";
     },
 
-    async drop(ev: DropAction) {
-      const id = ev.dataTransfer.getData(DROP_FORMAT);
-      const node = the.model.bookmarks.node(id);
-      if (!node) throw new Error(`${id}: No such bookmark node`);
-
-      await the.model.bookmarks.move(node, this.parentFolder, ev.toIndex);
+    drag(ev: ListDragEvent<Node>) {
+      ev.data.setData(DROP_FORMAT, ev.item.id);
     },
+
+    drop(ev: ListDropEvent) {
+      logErrorsFrom(() =>
+        the.model.attempt(async () => {
+          const id = ev.data.getData(DROP_FORMAT);
+          const node = the.model.bookmarks.node(id);
+          if (!node) throw new Error(`${id}: No such bookmark node`);
+
+          await the.model.bookmarks.move(
+            node,
+            this.parentFolder,
+            ev.insertBeforeIndex,
+          );
+        }),
+      );
+    },
+
     setCollapsed(c: boolean) {
       for (const f of <any>this.$refs.folders) f.collapsed = c;
     },

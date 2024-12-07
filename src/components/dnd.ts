@@ -14,8 +14,10 @@ export type DNDOrientation = "vertical" | "horizontal" | "grid";
  * inserted `before`, `inside` or `after` the drop target. */
 export type DNDDropPosition = "before" | "inside" | "after";
 
-/** What combination of DNDDropPosition values should be allowed for dropping in
- * this item? */
+/** Where should dropped item(s) be inserted, relative to this item? Dropped
+ * items can be inserted adjacent to this item (`before` and/or `after`), and/or
+ * `inside` this item (e.g. as a child). `null` means a drop is not allowed
+ * here. */
 export type DNDAcceptedDropPositions =
   | DNDDropPosition
   | "before-after"
@@ -31,20 +33,6 @@ export interface DropEvent {
 
   /** The position the dropped item should take relative to the drop target. */
   position: DNDDropPosition;
-}
-
-// TODO
-export interface DragAction<V = any> {
-  dataTransfer: DataTransfer;
-  fromIndex: number;
-  value: V;
-}
-
-// TODO
-export interface DropAction {
-  dataTransfer: DataTransfer;
-  toIndex: number;
-  dropInside?: boolean;
 }
 
 export interface DraggableOptions {
