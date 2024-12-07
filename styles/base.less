@@ -189,13 +189,13 @@ label {
 
 [data-dnd-orientation="horizontal"],
 [data-dnd-orientation="vertical"] {
-  &[data-dnd-dropping="before"]::before {
+  & > [data-dnd-dropping="before"]::before {
     content: "";
     border: calc(var(--ghost-border-width) / 2) solid var(--userlink-fg);
     margin: calc(-1 * var(--ghost-border-width) / 2);
   }
 
-  &[data-dnd-dropping="after"]::after {
+  & > [data-dnd-dropping="after"]::after {
     content: "";
     border: calc(var(--ghost-border-width) / 2) solid var(--userlink-fg);
     margin: calc(-1 * var(--ghost-border-width) / 2);
@@ -203,8 +203,8 @@ label {
 }
 
 [data-dnd-orientation="grid"] {
-  &[data-dnd-dropping="before"],
-  &[data-dnd-dropping="after"] {
+  & > [data-dnd-dropping="before"],
+  & > [data-dnd-dropping="after"] {
     box-shadow: 0 0 calc(var(--ghost-border-width) / 2)
       var(--ghost-border-width) var(--userlink-fg) !important;
   }

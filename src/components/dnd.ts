@@ -1,5 +1,3 @@
-import {watchEffect, type ShallowRef} from "vue";
-
 /** The visual orientation of an element that can be a drop target.  The
  * position of the mouse cursor inside the drop target is used to determine
  * whether an item should be dropped `before`, `inside` or `after` the drop
@@ -18,7 +16,7 @@ export type DNDDropPosition = "before" | "inside" | "after";
 
 /** What combination of DNDDropPosition values should be allowed for dropping in
  * this item? */
-export type DNDAllowedDropPositions =
+export type DNDAcceptedDropPositions =
   | DNDDropPosition
   | "before-after"
   | "before-inside"
@@ -52,11 +50,11 @@ export interface DropAction {
 export interface DraggableOptions {
   /** Fired when the user starts to drag this item. The callee must fill in the
    * DataTransfer object with info about the dragged item. */
-  onDragStart(data: DataTransfer): void;
+  start(data: DataTransfer): void;
 
   /** Fired when this item is no longer being dragged, regardless of whether the
    * drop was completed or cancelled. */
-  onDragEnd?: () => void;
+  end?: () => void;
 }
 
 export interface DroppableOptions {
@@ -66,11 +64,16 @@ export interface DroppableOptions {
   /** Validator that returns the allowed drop positions for the data contained
    * in the provided DataTransfer.  Return `null` if a drop should not be
    * accepted. */
-  allowsDrop(data: DataTransfer): DNDAllowedDropPositions;
+  accepts(data: DataTransfer): DNDAcceptedDropPositions;
 
   /** Fired when something previously-validated by `allowsDrop()` is dropped on
    * this item. */
-  onDrop(event: DropEvent): void;
+  drop(event: DropEvent): void;
+}
+
+export interface DNDLifecycle<Options> {
+  update(options: Options): void;
+  cancel(): void;
 }
 
 // This is an ugly bit of global state to allow different drop targets to
@@ -101,43 +104,53 @@ function resetDragState(onNextReset: () => void) {
  * attribute set so they may be styled accordingly.
  */
 export function makeDraggable(
-  $domElement: Readonly<ShallowRef<HTMLElement | null>>,
+  $el: HTMLElement,
   options: DraggableOptions,
-): void {
-  watchEffect(() => {
-    if (!$domElement.value) return;
-    const $el = $domElement.value;
+): DNDLifecycle<DraggableOptions> {
+  $el.addEventListener("mousedown", onMouseDown);
+  $el.addEventListener("mouseup", onMouseUp);
+  $el.addEventListener("dragstart", onDragStart);
+  $el.addEventListener("dragend", onDragEnd);
 
-    $el.addEventListener("mousedown", onMouseDown);
-    $el.addEventListener("mouseup", onMouseUp);
-    $el.addEventListener("dragstart", onDragStart);
-    $el.addEventListener("dragend", onDragEnd);
+  function update(newOptions: DraggableOptions) {
+    options = newOptions;
+  }
 
-    function onMouseDown(ev: MouseEvent) {
-      $el.setAttribute("draggable", "true");
-      ev.stopPropagation();
-    }
+  function cancel() {
+    $el.removeAttribute("draggable");
+    delete $el.dataset.dndDragging;
+    $el.removeEventListener("mousedown", onMouseDown);
+    $el.removeEventListener("mouseup", onMouseUp);
+    $el.removeEventListener("dragstart", onDragStart);
+    $el.removeEventListener("dragend", onDragEnd);
+  }
 
-    function onMouseUp(ev: MouseEvent) {
-      $el.removeAttribute("draggable");
-      ev.stopPropagation();
-    }
+  function onMouseDown(ev: MouseEvent) {
+    $el.setAttribute("draggable", "true");
+    ev.stopPropagation();
+  }
 
-    function onDragStart(ev: DragEvent) {
-      if (!ev.dataTransfer) return;
-      ev.stopPropagation();
-      $el.removeAttribute("draggable");
-      $el.dataset.dndDragging = "true";
-      options.onDragStart(ev.dataTransfer);
-    }
+  function onMouseUp(ev: MouseEvent) {
+    $el.removeAttribute("draggable");
+    ev.stopPropagation();
+  }
 
-    function onDragEnd(ev: DragEvent) {
-      resetDragState(() => {});
-      $el.removeAttribute("draggable");
-      delete $el.dataset.dndDragging;
-      if (options.onDragEnd) options.onDragEnd();
-    }
-  });
+  function onDragStart(ev: DragEvent) {
+    if (!ev.dataTransfer) return;
+    ev.stopPropagation();
+    $el.removeAttribute("draggable");
+    $el.dataset.dndDragging = "true";
+    options.start(ev.dataTransfer);
+  }
+
+  function onDragEnd(ev: DragEvent) {
+    resetDragState(() => {});
+    $el.removeAttribute("draggable");
+    delete $el.dataset.dndDragging;
+    if (options.end) options.end();
+  }
+
+  return {update, cancel};
 }
 
 /** Sets up the provided DOM element to accept drops. Attaches `dragenter`,
@@ -148,57 +161,66 @@ export function makeDraggable(
  * depending on the desired drop position.  This can be used for styling (e.g.
  * showing some indication of where the dragged item will be dropped). */
 export function makeDroppable(
-  $domElement: Readonly<ShallowRef<HTMLElement | null>>,
+  $el: HTMLElement,
   options: DroppableOptions,
-): void {
-  watchEffect(() => {
-    if (!$domElement.value) return;
-    const $el = $domElement.value;
+): DNDLifecycle<DroppableOptions> {
+  $el.addEventListener("dragenter", onDragEnter);
+  $el.addEventListener("dragover", onDragOver);
+  $el.addEventListener("dragleave", onDragLeave);
+  $el.addEventListener("drop", onDrop);
 
-    $el.addEventListener("dragenter", onDragEnter);
-    $el.addEventListener("dragover", onDragOver);
-    $el.addEventListener("dragleave", onDragLeave);
-    $el.addEventListener("drop", onDrop);
+  function update(newOptions: DroppableOptions) {
+    options = newOptions;
+  }
 
-    function onDragEnter(ev: DragEvent) {
-      const position = getDropPosition(ev);
-      if (!position) return;
+  function cancel() {
+    delete $el.dataset.dndDropping;
+    $el.removeEventListener("dragenter", onDragEnter);
+    $el.removeEventListener("dragover", onDragOver);
+    $el.removeEventListener("dragleave", onDragLeave);
+    $el.removeEventListener("drop", onDrop);
+  }
 
-      resetDragState(() => {
-        delete $el.dataset.dndDropping;
-      });
-      $el.dataset.dndDropping = position;
-    }
+  function onDragEnter(ev: DragEvent) {
+    const position = getDropPosition(ev);
+    if (!position) return;
 
-    function onDragOver(ev: DragEvent) {
-      onDragEnter(ev);
-    }
-
-    function onDragLeave(ev: DragEvent) {
+    resetDragState(() => {
       delete $el.dataset.dndDropping;
-    }
+    });
+    $el.dataset.dndDropping = position;
+  }
 
-    function onDrop(ev: DragEvent) {
-      const position = getDropPosition(ev);
-      if (!position) return;
+  function onDragOver(ev: DragEvent) {
+    onDragEnter(ev);
+  }
 
-      resetDragState(() => {});
-      // CAST: We know the dataTransfer exists b/c getDropPosition() checks it.
-      options.onDrop({data: ev.dataTransfer!, position});
-    }
+  function onDragLeave(ev: DragEvent) {
+    delete $el.dataset.dndDropping;
+  }
 
-    /** Given a drag event, determine where the item should be dropped (and if
-     * it can be dropped in this drop target at all). */
-    function getDropPosition(ev: DragEvent): DNDDropPosition | undefined {
-      if (!ev.dataTransfer) return undefined;
-      const allowedPositions = options.allowsDrop(ev.dataTransfer);
-      if (!allowedPositions) return undefined;
-      ev.stopPropagation();
-      ev.preventDefault();
+  function onDrop(ev: DragEvent) {
+    const position = getDropPosition(ev);
+    if (!position) return;
 
-      return dropPosImpls[options.orientation()][allowedPositions]($el, ev);
-    }
-  });
+    resetDragState(() => {});
+    // CAST: We know the dataTransfer exists b/c getDropPosition() checks it.
+    options.drop({data: ev.dataTransfer!, position});
+  }
+
+  /** Given a drag event, determine where the item should be dropped (and if
+   * it can be dropped in this drop target at all). */
+  function getDropPosition(ev: DragEvent): DNDDropPosition | undefined {
+    if (!ev.dataTransfer) return undefined;
+    const allowedPositions = options.accepts(ev.dataTransfer);
+    if (!allowedPositions) return undefined;
+    ev.stopPropagation();
+    ev.preventDefault();
+
+    return dropPosImpls[options.orientation()][allowedPositions]($el, ev);
+  }
+
+  return {update, cancel};
 }
 
 const dropPosImpls = {

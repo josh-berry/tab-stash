@@ -1,27 +1,29 @@
 <template>
-  <dnd-item
-    is="ul"
-    :orientation="props.orientation"
-    :accept-positions="parentAcceptsDrop ? 'inside' : undefined"
-    :accept-types="props.accepts"
-    @drop="parentDrop"
+  <ul
+    :data-dnd-orientation="props.orientation"
+    v-droppable="{
+      orientation: () => props.orientation,
+      accepts: parentAccepts,
+      drop: parentDrop,
+    }"
   >
-    <dnd-item
+    <li
       v-for="(item, index) of modelValue"
       :class="itemClass ? itemClass(item, index) : undefined"
       :key="itemKey(item)"
-      is="li"
-      draggable
-      :orientation="props.orientation"
-      :accept-positions="acceptPos(item, index)"
-      :accept-types="props.accepts"
-      @drag="itemDrag($event, item, index)"
-      @dragend="itemDragEnd"
-      @drop="itemDrop($event, index)"
+      v-draggable="{
+        start: data => itemDragStart(data, item, index),
+        end: itemDragEnd,
+      }"
+      v-droppable="{
+        orientation: () => props.orientation,
+        accepts: data => itemAccepts(data, item, index),
+        drop: ev => itemDrop(ev, index),
+      }"
     >
       <slot name="item" :item="item" />
-    </dnd-item>
-  </dnd-item>
+    </li>
+  </ul>
 </template>
 
 <script lang="ts">
@@ -32,8 +34,8 @@ import {type DragAction, type DropAction} from "./dnd.js";
 import {ref} from "vue";
 import {logErrorsFrom} from "../util/oops.js";
 
-import {type DNDAllowedDropPositions, type DropEvent} from "./dnd.js";
-import dndItem from "./dnd-item.vue";
+import {type DNDAcceptedDropPositions, type DropEvent} from "./dnd.js";
+import {vDraggable, vDroppable} from "./dnd-directives.js";
 
 const props = defineProps<{
   itemKey: (item: I) => string | number;
@@ -52,7 +54,30 @@ const props = defineProps<{
 
 const draggingIndex = ref(-1);
 
-function acceptPos(item: I, index: number): DNDAllowedDropPositions {
+function parentAccepts(data: DataTransfer): DNDAcceptedDropPositions {
+  if (props.accepts instanceof Array) {
+    if (!data.types.find(t => props.accepts!.includes(t))) return null;
+  } else if (props.accepts) {
+    if (!data.types.includes(props.accepts)) return null;
+  } else {
+    return null;
+  }
+  return props.parentAcceptsDrop ? "inside" : null;
+}
+
+function itemAccepts(
+  data: DataTransfer,
+  item: I,
+  index: number,
+): DNDAcceptedDropPositions {
+  if (props.accepts instanceof Array) {
+    if (!data.types.find(t => props.accepts!.includes(t))) return null;
+  } else if (props.accepts) {
+    if (!data.types.includes(props.accepts)) return null;
+  } else {
+    return null;
+  }
+
   if (props.itemAcceptsDropInside && props.itemAcceptsDropInside(item, index)) {
     if (props.orientation === "grid") {
       return draggingIndex.value < index ? "inside-after" : "before-inside";
@@ -66,7 +91,7 @@ function acceptPos(item: I, index: number): DNDAllowedDropPositions {
   }
 }
 
-function itemDrag(ev: DataTransfer, item: I, index: number) {
+function itemDragStart(ev: DataTransfer, item: I, index: number) {
   props.drag({
     dataTransfer: ev,
     fromIndex: index,
