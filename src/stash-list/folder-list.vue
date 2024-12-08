@@ -105,10 +105,6 @@ export default defineComponent({
         });
       });
     },
-
-    setCollapsed(c: boolean) {
-      for (const f of <any>this.$refs.folders) f.collapsed = c;
-    },
   },
 });
 </script>
