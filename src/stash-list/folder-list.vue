@@ -8,9 +8,10 @@
   <dnd-list
     v-else
     class="forest"
-    orientation="grid"
+    :orientation="orientation"
     v-model="parentFolder.children as Node[]"
     :item-key="(item: Node) => item.id"
+    :item-class="itemClass"
     :item-accepts="itemAccepts"
     :list-accepts="_ => false"
     @drag="drag"
@@ -48,6 +49,13 @@ export default defineComponent({
     parentFolder: required(Object as PropType<Folder>),
   },
 
+  computed: {
+    orientation() {
+      if (document.documentElement.dataset.view === "tab") return "horizontal";
+      return "vertical";
+    },
+  },
+
   methods: {
     isFolder,
 
@@ -59,6 +67,14 @@ export default defineComponent({
 
     async loadMore() {
       await the.model.bookmarks.loaded(this.parentFolder);
+    },
+
+    itemClass(item: Node, index: number): Record<string, boolean> {
+      if (the.model.bookmark_metadata.get(item.id).value?.collapsed) {
+        return {collapsed: true};
+      } else {
+        return {};
+      }
     },
 
     itemAccepts(

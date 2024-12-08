@@ -693,7 +693,11 @@ export default defineComponent({
       item: Node,
       index: number,
     ): DNDAcceptedDropPositions {
-      if (isFolder(item)) {
+      if (
+        isFolder(item) &&
+        (item.children.length === 0 ||
+          the.model.bookmark_metadata.get(item.id).value?.collapsed)
+      ) {
         return dragDataType(data) ? "before-inside-after" : null;
       } else {
         return dragDataType(data) ? "before-after" : null;
@@ -701,9 +705,7 @@ export default defineComponent({
     },
 
     listAccepts(data: DataTransfer): boolean {
-      // return dragDataType(data) !== undefined;
-
-      // The parent is supposed to handle this
+      // The parent is supposed to handle dropping inside this folder.
       return false;
     },
 

@@ -273,10 +273,6 @@
   & > li {
     border-radius: var(--group-border-radius);
 
-    // Make sure the sidebar/panel views have a visible gap between groups.
-    // This should be overridden in the tab view.
-    margin-top: var(--group-ph);
-
     & > .forest-item {
       border-top: var(--group-border);
 
@@ -306,7 +302,7 @@
       &:not(.selected) {
         &:hover,
         &:focus-within {
-          background-color: inherit;
+          background-color: transparent;
         }
       }
     }
