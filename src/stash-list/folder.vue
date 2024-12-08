@@ -268,7 +268,7 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 import LoadMore from "../components/load-more.vue";
 
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
+import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
 import {logErrorsFrom} from "../util/oops.js";
 
@@ -531,11 +531,6 @@ export default defineComponent({
       return "url" in node || "children" in node;
     },
 
-    childAcceptsDropInside(node: Node): boolean {
-      if (!isFolder(node)) return false;
-      return the.model.bookmark_metadata.get(node.id).value?.collapsed || false;
-    },
-
     stash(ev: MouseEvent | KeyboardEvent) {
       const win = the.model.tabs.targetWindow.value;
       if (!win) return;
@@ -699,14 +694,17 @@ export default defineComponent({
       index: number,
     ): DNDAcceptedDropPositions {
       if (isFolder(item)) {
-        return this.listAccepts(data) ? "before-inside-after" : null;
+        return dragDataType(data) ? "before-inside-after" : null;
       } else {
-        return this.listAccepts(data) ? "before-after" : null;
+        return dragDataType(data) ? "before-after" : null;
       }
     },
 
     listAccepts(data: DataTransfer): boolean {
-      return data.types.find(t => ACCEPTS.includes(t)) !== undefined;
+      // return dragDataType(data) !== undefined;
+
+      // The parent is supposed to handle this
+      return false;
     },
 
     drag(ev: ListDragEvent<Node>) {
@@ -721,38 +719,32 @@ export default defineComponent({
         the.model.attempt(async () => {
           const items = recvDragData(ev.data, the.model);
 
-          await the.model.attempt(() =>
-            the.model.putItemsInFolder({
-              items,
-              toFolder: this.folder,
-              toIndex: ev.insertBeforeIndex,
-              allowDuplicates: true,
-            }),
-          );
+          await the.model.putItemsInFolder({
+            items,
+            toFolder: this.folder,
+            toIndex: ev.insertBeforeIndex,
+            allowDuplicates: true,
+          });
         }),
       );
     },
 
     dropInside(ev: ListDropInsideEvent<Node>) {
-      logErrorsFrom(() =>
-        the.model.attempt(async () => {
-          const items = recvDragData(ev.data, the.model);
-          const child = ev.insertInParent;
-          if (!isFolder(child)) {
-            throw new Error(
-              `Attempt to drop inside non-folder node: ${child?.title} [${child?.id}]`,
-            );
-          }
-          await the.model.attempt(() =>
-            the.model.putItemsInFolder({
-              items,
-              toFolder: child,
-              toIndex: child.children.length,
-              allowDuplicates: true,
-            }),
+      the.model.attempt(async () => {
+        const items = recvDragData(ev.data, the.model);
+        const child = ev.insertInParent;
+        if (!isFolder(child)) {
+          throw new Error(
+            `Attempt to drop inside non-folder node: ${child?.title} [${child?.id}]`,
           );
-        }),
-      );
+        }
+        await the.model.putItemsInFolder({
+          items,
+          toFolder: child,
+          toIndex: child.children.length,
+          allowDuplicates: true,
+        });
+      });
     },
   },
 });

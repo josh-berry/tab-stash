@@ -15,6 +15,7 @@
     :list-accepts="_ => false"
     @drag="drag"
     @drop="drop"
+    @drop-inside="dropInside"
   >
     <template #item="{item}: {item: Node}">
       <Folder v-if="isVisible(item)" :folder="item" is-toplevel />
@@ -33,13 +34,12 @@ import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
 import DndList, {
   type ListDragEvent,
   type ListDropEvent,
+  type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 import LoadMore from "../components/load-more.vue";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
-import {logErrorsFrom} from "../util/oops.js";
-
-const DROP_FORMAT = "application/x-tab-stash-folder-id";
+import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 
 export default defineComponent({
   components: {DndList: DndList<Node>, Folder: FolderVue, LoadMore},
@@ -66,28 +66,44 @@ export default defineComponent({
       item: Node,
       index: number,
     ): DNDAcceptedDropPositions {
-      if (!data.types.includes(DROP_FORMAT)) return null;
-      return "before-after";
+      const type = dragDataType(data);
+      if (type === "folders") return "before-inside-after";
+      if (type !== undefined) return "inside";
+      return null;
     },
 
     drag(ev: ListDragEvent<Node>) {
-      ev.data.setData(DROP_FORMAT, ev.item.id);
+      sendDragData(ev.data, [ev.item]);
     },
 
     drop(ev: ListDropEvent) {
-      logErrorsFrom(() =>
-        the.model.attempt(async () => {
-          const id = ev.data.getData(DROP_FORMAT);
-          const node = the.model.bookmarks.node(id);
-          if (!node) throw new Error(`${id}: No such bookmark node`);
+      the.model.attempt(async () => {
+        const items = recvDragData(ev.data, the.model);
 
-          await the.model.bookmarks.move(
-            node,
-            this.parentFolder,
-            ev.insertBeforeIndex,
-          );
-        }),
-      );
+        await the.model.putItemsInFolder({
+          items,
+          toFolder: this.parentFolder,
+          toIndex: ev.insertBeforeIndex,
+          allowDuplicates: true,
+        });
+      });
+    },
+
+    dropInside(ev: ListDropInsideEvent<Node>) {
+      the.model.attempt(async () => {
+        const items = recvDragData(ev.data, the.model);
+
+        const folder = ev.insertInParent;
+        if (!isFolder(folder)) {
+          throw new Error(`${folder.title}: Not a folder [${folder.id}]`);
+        }
+
+        await the.model.putItemsInFolder({
+          items,
+          toFolder: folder,
+          allowDuplicates: true,
+        });
+      });
     },
 
     setCollapsed(c: boolean) {

@@ -139,8 +139,7 @@ import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
 import type {FilterInfo} from "../model/tree-filter.js";
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
-import {logErrorsFrom} from "../util/oops.js";
+import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
@@ -430,7 +429,7 @@ export default defineComponent({
     },
 
     listAccepts(data: DataTransfer): boolean {
-      return data.types.find(i => ACCEPTS.includes(i)) !== undefined;
+      return dragDataType(data) === "items";
     },
 
     drag(ev: ListDragEvent<Tab>) {
@@ -443,13 +442,11 @@ export default defineComponent({
     drop(ev: ListDropEvent) {
       const items = recvDragData(ev.data, the.model);
 
-      logErrorsFrom(() =>
-        the.model.attempt(() =>
-          the.model.putItemsInWindow({
-            items,
-            toIndex: ev.insertBeforeIndex,
-          }),
-        ),
+      the.model.attempt(() =>
+        the.model.putItemsInWindow({
+          items,
+          toIndex: ev.insertBeforeIndex,
+        }),
       );
     },
   },

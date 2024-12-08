@@ -15,7 +15,7 @@ import {
 } from "../model/fixtures.testlib.js";
 import * as T from "../model/tabs.js";
 
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
+import {recvDragData, sendDragData} from "./dnd-proto.js";
 
 class TestDT implements DataTransfer {
   dropEffect: "link" | "none" | "copy" | "move" = "move";
@@ -62,7 +62,16 @@ class TestDT implements DataTransfer {
   /* c8 ignore stop */
 }
 
-const MT = ACCEPTS[0];
+// NOTE: Copied from dnd-proto.ts
+const MIXED_TYPE = "application/x-tab-stash-dnd-mixed" as const;
+const ONLY_FOLDERS_TYPE = "application/x-tab-stash-dnd-folders" as const;
+const ONLY_LEAVES_TYPE = "application/x-tab-stash-dnd-leaves" as const;
+
+const ALLOWED_TYPES = [
+  MIXED_TYPE,
+  ONLY_FOLDERS_TYPE,
+  ONLY_LEAVES_TYPE,
+] as const;
 
 describe("stash-list/dnd-proto", () => {
   let model: {bookmarks: BM.Model; tabs: T.Model};
@@ -84,10 +93,12 @@ describe("stash-list/dnd-proto", () => {
   });
 
   function testInvalid(desc: string, i: () => string) {
-    it(desc, () => {
-      const result = recvDragData(new TestDT({[MT]: i()}), model);
-      expect(result).to.deep.equal([]);
-    });
+    for (const type of ALLOWED_TYPES) {
+      it(`${desc} [${type}]`, () => {
+        const result = recvDragData(new TestDT({[type]: i()}), model);
+        expect(result).to.deep.equal([]);
+      });
+    }
   }
 
   function testValid(desc: string, items: () => (T.TabID | BM.NodeID)[]) {
@@ -105,8 +116,6 @@ describe("stash-list/dnd-proto", () => {
 
       const dt = new TestDT({});
       sendDragData(dt, valid_model_items);
-
-      expect(dt.getData(MT)).to.not.equal("");
 
       const result = recvDragData(dt, model);
       expect(result.map(i => "id" in i && i.id)).to.deep.equal(
