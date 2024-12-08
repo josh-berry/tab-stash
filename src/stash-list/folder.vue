@@ -87,25 +87,6 @@
           <span>Stash Tabs to New Child Group</span>
         </button>
 
-        <hr />
-
-        <button
-          v-if="isToplevel"
-          @click.prevent="moveSelfToChild"
-          title="Move this group inside a new top-level group"
-        >
-          <span class="menu-icon icon icon-pop-in" />
-          <span>Convert to Child Group</span>
-        </button>
-        <button
-          v-else
-          @click.prevent="moveSelfToTopLevel"
-          title="Move this group up to the top level"
-        >
-          <span class="menu-icon icon icon-pop-out" />
-          <span>Convert to Top-Level Group</span>
-        </button>
-
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <div class="menu-item disabled status-text">
@@ -253,7 +234,6 @@ import {
 } from "../model/bookmarks.js";
 import {copyIf} from "../model/index.js";
 import type {Tab, Window} from "../model/tabs.js";
-import {pathTo} from "../model/tree.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
@@ -556,40 +536,6 @@ export default defineComponent({
           items: copyIf(ev.altKey, [tab]),
           toFolder: this.folder,
         });
-      });
-    },
-
-    moveSelfToTopLevel() {
-      this.attempt(async () => {
-        const model = the.model.bookmarks;
-        const root = model.stash_root.value!;
-
-        // We put it directly above its parent in the stash root, so it's easy
-        // to find and continue interacting with.
-        const rootPos = pathTo<Folder, Node>(this.folder).find(
-          p => p.parent === root,
-        );
-
-        await model.move(this.folder, root, rootPos?.index ?? 0);
-      });
-    },
-
-    moveSelfToChild() {
-      this.attempt(async () => {
-        const model = the.model.bookmarks;
-        const pos = this.folder.position!;
-
-        // Create a new parent first, positioned at our current index
-        const newParent = await model.createFolder({
-          // We give the parent a default name so it will go away automatically
-          // when emptied.
-          title: genDefaultFolderName(new Date()),
-          parent: model.stash_root.value!,
-          index: pos.index,
-        });
-
-        // Then move ourselves into the parent
-        await model.move(this.folder, newParent, 0);
       });
     },
 
