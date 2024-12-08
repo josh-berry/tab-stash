@@ -54,7 +54,7 @@
 
     // Hide empty list items in the forest (as a workaround so that indexes in
     // <dnd-list> stay accurate)
-    &:empty:not(.dnd-list-ghost) {
+    &:empty {
       display: none;
     }
 
@@ -83,7 +83,8 @@
     // Make sure there is a big-enough empty space that it's clear the folder is
     // actually empty, and also provide a large-enough target for dropping
     // dragged items into the folder.
-    &.dnd-list-empty {
+    &.dnd-list-empty,
+    &:empty {
       min-height: calc(var(--item-h) / 2);
     }
 
@@ -272,10 +273,6 @@
   & > li {
     border-radius: var(--group-border-radius);
 
-    // Make sure the sidebar/panel views have a visible gap between groups.
-    // This should be overridden in the tab view.
-    margin-top: var(--group-ph);
-
     & > .forest-item {
       border-top: var(--group-border);
 
@@ -305,9 +302,17 @@
       &:not(.selected) {
         &:hover,
         &:focus-within {
-          background-color: inherit;
+          background-color: transparent;
         }
       }
+    }
+
+    & > :last-child {
+      // Otherwise if we give the child-list itself a border, it will look too
+      // square. This mainly comes into play when highlighting the list for
+      // drag-and-drop.
+      border-bottom-left-radius: var(--group-border-radius);
+      border-bottom-right-radius: var(--group-border-radius);
     }
 
     & > .forest-children:last-child {
@@ -319,26 +324,6 @@
       // drag-and-drop operations.
       padding-bottom: calc(var(--group-ph) + var(--page-ph));
       flex: auto; // Fill all leftover space so we're a bigger drop target
-    }
-  }
-
-  // Mods to how drag-and-drop looks, since the top-level grouping has a ghost
-  // which displaces items in the list.
-  &.dnd-list {
-    & > .dragging {
-      display: none;
-    }
-
-    & > .dnd-list-ghost {
-      display: none;
-
-      &.dropping-here {
-        display: block;
-        box-sizing: border-box;
-        border: var(--ghost-border-width) dashed var(--disabled-fg);
-        background: transparent;
-        margin: 0;
-      }
     }
   }
 }

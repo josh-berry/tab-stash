@@ -178,34 +178,53 @@ label {
   }
 }
 
-.dragging {
+[data-dnd-dragging="true"] {
   opacity: 50%;
 }
 
-.dnd-list {
-  & > .dnd-list-ghost {
-    display: block;
+[data-dnd-dropping="inside"] {
+  box-shadow: inset 0 0 var(--ghost-border-width) var(--ghost-border-width)
+    var(--userlink-fg) !important;
+}
+
+[data-dnd-orientation="horizontal"] {
+  & > [data-dnd-dropping] {
+    position: relative;
+  }
+
+  & > [data-dnd-dropping="before"]::before {
+    content: "";
+    position: absolute;
     z-index: 1;
+    left: 0;
+    height: 100%;
+    border: calc(var(--ghost-border-width) / 2) solid var(--userlink-fg);
+    margin: calc(-1 * var(--ghost-border-width) / 2);
+  }
 
-    height: var(--ghost-border-width);
-    margin: calc(-1 * var(--ghost-border-width) / 2) 0;
+  & > [data-dnd-dropping="after"]::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    height: 100%;
+    border: calc(var(--ghost-border-width) / 2) solid var(--userlink-fg);
+    margin: calc(-1 * var(--ghost-border-width) / 2);
+  }
+}
 
-    // Uncomment for debugging DnD ghost placement:
-    // box-shadow: inset var(--ghost-border-width) var(--ghost-border-width)
-    //   rgba(255, 0, 0, 40%);
-    // border-radius: var(--ctrl-border-radius);
+[data-dnd-orientation="vertical"] {
+  & > [data-dnd-dropping="before"]::before {
+    content: "";
+    z-index: 1;
+    border: calc(var(--ghost-border-width) / 2) solid var(--userlink-fg);
+    margin: calc(-1 * var(--ghost-border-width) / 2);
+  }
 
-    &.dropping-here {
-      background: linear-gradient(
-          to bottom,
-          transparent 0%,
-          transparent calc(50% - var(--ghost-border-width) / 2),
-          var(--userlink-fg) calc(50% - var(--ghost-border-width) / 2),
-          var(--userlink-fg) calc(50% + var(--ghost-border-width) / 2),
-          transparent calc(50% + var(--ghost-border-width) / 2),
-          transparent 100%
-        )
-        center center;
-    }
+  & > [data-dnd-dropping="after"]::after {
+    content: "";
+    z-index: 1;
+    border: calc(var(--ghost-border-width) / 2) solid var(--userlink-fg);
+    margin: calc(-1 * var(--ghost-border-width) / 2);
   }
 }

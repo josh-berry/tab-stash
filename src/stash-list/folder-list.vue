@@ -8,17 +8,18 @@
   <dnd-list
     v-else
     class="forest"
+    :orientation="orientation"
     v-model="parentFolder.children as Node[]"
     :item-key="(item: Node) => item.id"
-    :accepts="accepts"
-    :drag="drag"
-    :drop="drop"
-    orientation="vertical"
-    ghost-displaces-items
-    ghost-mimics-height
+    :item-class="itemClass"
+    :item-accepts="itemAccepts"
+    :list-accepts="_ => false"
+    @drag="drag"
+    @drop="drop"
+    @drop-inside="dropInside"
   >
     <template #item="{item}: {item: Node}">
-      <Folder v-if="isVisible(item)" ref="folders" :folder="item" is-toplevel />
+      <Folder v-if="isVisible(item)" :folder="item" is-toplevel />
     </template>
   </dnd-list>
 </template>
@@ -31,12 +32,15 @@ import {required} from "../util/index.js";
 import the from "../globals-ui.js";
 import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
 
-import type {DragAction, DropAction} from "../components/dnd-list.js";
-import DndList from "../components/dnd-list.vue";
+import DndList, {
+  type ListDragEvent,
+  type ListDropEvent,
+  type ListDropInsideEvent,
+} from "../components/dnd-list.vue";
 import FolderVue from "./folder.vue";
 import LoadMore from "../components/load-more.vue";
-
-const DROP_FORMAT = "application/x-tab-stash-folder-id";
+import type {DNDAcceptedDropPositions} from "../components/dnd.js";
+import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 
 export default defineComponent({
   components: {DndList: DndList<Node>, Folder: FolderVue, LoadMore},
@@ -46,8 +50,9 @@ export default defineComponent({
   },
 
   computed: {
-    accepts() {
-      return DROP_FORMAT;
+    orientation() {
+      if (document.documentElement.dataset.view === "tab") return "horizontal";
+      return "vertical";
     },
   },
 
@@ -64,19 +69,57 @@ export default defineComponent({
       await the.model.bookmarks.loaded(this.parentFolder);
     },
 
-    drag(ev: DragAction<Node>) {
-      ev.dataTransfer.setData(DROP_FORMAT, ev.value.id);
+    itemClass(item: Node, index: number): Record<string, boolean> {
+      if (the.model.bookmark_metadata.get(item.id).value?.collapsed) {
+        return {collapsed: true};
+      } else {
+        return {};
+      }
     },
 
-    async drop(ev: DropAction) {
-      const id = ev.dataTransfer.getData(DROP_FORMAT);
-      const node = the.model.bookmarks.node(id);
-      if (!node) throw new Error(`${id}: No such bookmark node`);
-
-      await the.model.bookmarks.move(node, this.parentFolder, ev.toIndex);
+    itemAccepts(
+      data: DataTransfer,
+      item: Node,
+      index: number,
+    ): DNDAcceptedDropPositions {
+      const type = dragDataType(data);
+      if (type === "folders") return "before-inside-after";
+      if (type !== undefined) return "inside";
+      return null;
     },
-    setCollapsed(c: boolean) {
-      for (const f of <any>this.$refs.folders) f.collapsed = c;
+
+    drag(ev: ListDragEvent<Node>) {
+      sendDragData(ev.data, [ev.item]);
+    },
+
+    drop(ev: ListDropEvent) {
+      the.model.attempt(async () => {
+        const items = recvDragData(ev.data, the.model);
+
+        await the.model.putItemsInFolder({
+          items,
+          toFolder: this.parentFolder,
+          toIndex: ev.insertBeforeIndex,
+          allowDuplicates: true,
+        });
+      });
+    },
+
+    dropInside(ev: ListDropInsideEvent<Node>) {
+      the.model.attempt(async () => {
+        const items = recvDragData(ev.data, the.model);
+
+        const folder = ev.insertInParent;
+        if (!isFolder(folder)) {
+          throw new Error(`${folder.title}: Not a folder [${folder.id}]`);
+        }
+
+        await the.model.putItemsInFolder({
+          items,
+          toFolder: folder,
+          allowDuplicates: true,
+        });
+      });
     },
   },
 });

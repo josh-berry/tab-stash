@@ -87,25 +87,6 @@
           <span>Stash Tabs to New Child Group</span>
         </button>
 
-        <hr />
-
-        <button
-          v-if="isToplevel"
-          @click.prevent="moveSelfToChild"
-          title="Move this group inside a new top-level group"
-        >
-          <span class="menu-icon icon icon-pop-in" />
-          <span>Convert to Child Group</span>
-        </button>
-        <button
-          v-else
-          @click.prevent="moveSelfToTopLevel"
-          title="Move this group up to the top level"
-        >
-          <span class="menu-icon icon icon-pop-out" />
-          <span>Convert to Top-Level Group</span>
-        </button>
-
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <div class="menu-item disabled status-text">
@@ -198,12 +179,14 @@
   <dnd-list
     v-else
     :class="{'forest-children': true, collapsed}"
+    orientation="vertical"
     v-model="children"
     :item-key="(item: Node) => item.id"
-    :accepts="accepts"
-    :drag="drag"
-    :drop="drop"
-    orientation="vertical"
+    :item-accepts="itemAccepts"
+    :list-accepts="listAccepts"
+    @drag="drag"
+    @drop="drop"
+    @drop-inside="dropInside"
   >
     <template #item="{item}: {item: Node}">
       <template v-if="isChildVisible(item)">
@@ -251,19 +234,23 @@ import {
 } from "../model/bookmarks.js";
 import {copyIf} from "../model/index.js";
 import type {Tab, Window} from "../model/tabs.js";
-import {pathTo} from "../model/tree.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
-import DndList from "../components/dnd-list.vue";
+import DndList, {
+  type ListDragEvent,
+  type ListDropEvent,
+  type ListDropInsideEvent,
+} from "../components/dnd-list.vue";
 import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 import LoadMore from "../components/load-more.vue";
 
-import type {DragAction, DropAction} from "../components/dnd-list.js";
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
+import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
+import type {DNDAcceptedDropPositions} from "../components/dnd.js";
+import {logErrorsFrom} from "../util/oops.js";
 
 type NodeWithTabs = {
   node: Node;
@@ -297,10 +284,6 @@ export default defineComponent({
   computed: {
     altKey: altKeyName,
     bgKey: bgKeyName,
-
-    accepts() {
-      return ACCEPTS;
-    },
 
     filterInfo() {
       return the.model.filter.info(this.folder);
@@ -556,40 +539,6 @@ export default defineComponent({
       });
     },
 
-    moveSelfToTopLevel() {
-      this.attempt(async () => {
-        const model = the.model.bookmarks;
-        const root = model.stash_root.value!;
-
-        // We put it directly above its parent in the stash root, so it's easy
-        // to find and continue interacting with.
-        const rootPos = pathTo<Folder, Node>(this.folder).find(
-          p => p.parent === root,
-        );
-
-        await model.move(this.folder, root, rootPos?.index ?? 0);
-      });
-    },
-
-    moveSelfToChild() {
-      this.attempt(async () => {
-        const model = the.model.bookmarks;
-        const pos = this.folder.position!;
-
-        // Create a new parent first, positioned at our current index
-        const newParent = await model.createFolder({
-          // We give the parent a default name so it will go away automatically
-          // when emptied.
-          title: genDefaultFolderName(new Date()),
-          parent: model.stash_root.value!,
-          index: pos.index,
-        });
-
-        // Then move ourselves into the parent
-        await model.move(this.folder, newParent, 0);
-      });
-    },
-
     move(ev: MouseEvent | KeyboardEvent) {
       const win_id = the.model.tabs.targetWindow.value;
       if (!win_id) return;
@@ -685,24 +634,65 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<Node>) {
-      const items = the.model.selection.info(ev.value).isSelected
-        ? Array.from(the.model.selection.selectedItems())
-        : [ev.value];
-      sendDragData(ev.dataTransfer, items);
+    itemAccepts(
+      data: DataTransfer,
+      item: Node,
+      index: number,
+    ): DNDAcceptedDropPositions {
+      if (
+        isFolder(item) &&
+        (item.children.length === 0 ||
+          the.model.bookmark_metadata.get(item.id).value?.collapsed)
+      ) {
+        return dragDataType(data) ? "before-inside-after" : null;
+      } else {
+        return dragDataType(data) ? "before-after" : null;
+      }
     },
 
-    async drop(ev: DropAction) {
-      const items = recvDragData(ev.dataTransfer, the.model);
+    listAccepts(data: DataTransfer): boolean {
+      // The parent is supposed to handle dropping inside this folder.
+      return false;
+    },
 
-      await the.model.attempt(() =>
-        the.model.putItemsInFolder({
-          items,
-          toFolder: this.folder,
-          toIndex: ev.toIndex,
-          allowDuplicates: true,
+    drag(ev: ListDragEvent<Node>) {
+      const items = the.model.selection.info(ev.item).isSelected
+        ? Array.from(the.model.selection.selectedItems())
+        : [ev.item];
+      sendDragData(ev.data, items);
+    },
+
+    drop(ev: ListDropEvent) {
+      logErrorsFrom(() =>
+        the.model.attempt(async () => {
+          const items = recvDragData(ev.data, the.model);
+
+          await the.model.putItemsInFolder({
+            items,
+            toFolder: this.folder,
+            toIndex: ev.insertBeforeIndex,
+            allowDuplicates: true,
+          });
         }),
       );
+    },
+
+    dropInside(ev: ListDropInsideEvent<Node>) {
+      the.model.attempt(async () => {
+        const items = recvDragData(ev.data, the.model);
+        const child = ev.insertInParent;
+        if (!isFolder(child)) {
+          throw new Error(
+            `Attempt to drop inside non-folder node: ${child?.title} [${child?.id}]`,
+          );
+        }
+        await the.model.putItemsInFolder({
+          items,
+          toFolder: child,
+          toIndex: child.children.length,
+          allowDuplicates: true,
+        });
+      });
     },
   },
 });

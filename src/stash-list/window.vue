@@ -1,126 +1,133 @@
 <template>
-  <div
-    :class="{
-      'action-container': true,
-      'forest-item': true,
-      selectable: true,
-      collapsed,
+  <li
+    v-droppable="{
+      orientation: () => 'vertical',
+      accepts: (data: DataTransfer) => (listAccepts(data) ? 'inside' : null),
+      drop: parentDrop,
     }"
   >
-    <a
+    <div
       :class="{
-        action: true,
-        'forest-collapse': true,
-        collapse: !collapsed,
-        expand: collapsed,
+        'action-container': true,
+        'forest-item': true,
+        selectable: true,
+        collapsed,
       }"
-      title="Hide the tabs for this group"
-      @click.prevent.stop="collapsed = !collapsed"
-    />
-    <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
-      <a
-        class="action stash"
-        :title="`Stash all ${
-          showStashedTabs ? 'open tabs' : 'unstashed tabs'
-        } to a new group (hold ${altKey} to keep tabs open)`"
-        @click.prevent.stop="stash"
-      />
-      <a
-        class="action stash newgroup"
-        title="Create a new empty group"
-        @click.prevent.stop="newGroup"
-      />
-      <a
-        class="action remove"
-        :title="`Close all unstashed tabs`"
-        @click.prevent.stop="removeUnstashed"
-      />
-      <a
-        class="action remove stashed"
-        :title="`Close all stashed tabs`"
-        @click.prevent.stop="removeStashed"
-      />
-      <a
-        class="action remove opened"
-        :title="`Click: Close all open tabs
-${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
-        @click.prevent.stop="removeOpen"
-      />
-    </nav>
-
-    <nav v-else class="action-group forest-toolbar">
-      <a
-        class="action stash newgroup"
-        :title="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
-        @click.prevent.stop="moveToNewGroup"
-      />
-      <a
-        v-if="selectedCount > 0"
-        class="action restore"
-        :title="`Open ${selectedCount} tab(s)`"
-        @click.prevent.stop="copyToWindow"
-      />
-      <a
-        v-if="selectedCount > 0"
-        class="action restore-remove"
-        :title="`Unstash ${selectedCount} tab(s)`"
-        @click.prevent.stop="moveToWindow"
-      />
-    </nav>
-
-    <span
-      :class="{'forest-title': true, editable: true, disabled: true}"
-      :title="tooltip"
-      @click.prevent.stop="toggleMode"
-      >{{ title }}</span
     >
-  </div>
-
-  <dnd-list
-    :class="{'forest-children': true, collapsed}"
-    v-model="targetWindow.children"
-    :item-key="(item: Tab) => item.id"
-    :accepts="accepts"
-    :drag="drag"
-    :drop="drop"
-    orientation="vertical"
-  >
-    <template #item="{item}: {item: Tab}">
-      <tab v-if="isVisible(item)" :tab="item" />
-    </template>
-  </dnd-list>
-
-  <ul v-if="filteredCount > 0" :class="{'forest-children': true, collapsed}">
-    <li>
-      <show-filtered-item
-        v-model:visible="showFiltered"
-        :count="filteredCount"
+      <a
+        :class="{
+          action: true,
+          'forest-collapse': true,
+          collapse: !collapsed,
+          expand: collapsed,
+        }"
+        title="Hide the tabs for this group"
+        @click.prevent.stop="collapsed = !collapsed"
       />
-    </li>
-  </ul>
+      <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
+        <a
+          class="action stash"
+          :title="`Stash all ${
+            showStashedTabs ? 'open tabs' : 'unstashed tabs'
+          } to a new group (hold ${altKey} to keep tabs open)`"
+          @click.prevent.stop="stash"
+        />
+        <a
+          class="action stash newgroup"
+          title="Create a new empty group"
+          @click.prevent.stop="newGroup"
+        />
+        <a
+          class="action remove"
+          :title="`Close all unstashed tabs`"
+          @click.prevent.stop="removeUnstashed"
+        />
+        <a
+          class="action remove stashed"
+          :title="`Close all stashed tabs`"
+          @click.prevent.stop="removeStashed"
+        />
+        <a
+          class="action remove opened"
+          :title="`Click: Close all open tabs
+${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
+          @click.prevent.stop="removeOpen"
+        />
+      </nav>
 
-  <confirm-dialog
-    v-if="confirmCloseTabs > 0"
-    :confirm="`Close ${confirmCloseTabs} tabs`"
-    cancel="Cancel"
-    @answer="confirmCloseTabsThen($event)"
-  >
-    <p>You're about to close {{ confirmCloseTabs }} tabs at once.</p>
+      <nav v-else class="action-group forest-toolbar">
+        <a
+          class="action stash newgroup"
+          :title="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+          @click.prevent.stop="moveToNewGroup"
+        />
+        <a
+          v-if="selectedCount > 0"
+          class="action restore"
+          :title="`Open ${selectedCount} tab(s)`"
+          @click.prevent.stop="copyToWindow"
+        />
+        <a
+          v-if="selectedCount > 0"
+          class="action restore-remove"
+          :title="`Unstash ${selectedCount} tab(s)`"
+          @click.prevent.stop="moveToWindow"
+        />
+      </nav>
 
-    <p>
-      Your browser may not keep this many tabs in its recent history, so THIS IS
-      IRREVERSIBLE. Are you sure?
-    </p>
-  </confirm-dialog>
+      <span
+        :class="{'forest-title': true, editable: true, disabled: true}"
+        :title="tooltip"
+        @click.prevent.stop="toggleMode"
+        >{{ title }}</span
+      >
+    </div>
+
+    <dnd-list
+      :class="{'forest-children': true, collapsed}"
+      orientation="vertical"
+      v-model="targetWindow.children"
+      :item-key="(item: Tab) => item.id"
+      :item-accepts="itemAccepts"
+      :list-accepts="_ => false"
+      @drag="drag"
+      @drop="drop"
+    >
+      <template #item="{item}: {item: Tab}">
+        <tab v-if="isVisible(item)" :tab="item" />
+      </template>
+    </dnd-list>
+
+    <ul v-if="filteredCount > 0" :class="{'forest-children': true, collapsed}">
+      <li>
+        <show-filtered-item
+          v-model:visible="showFiltered"
+          :count="filteredCount"
+        />
+      </li>
+    </ul>
+
+    <confirm-dialog
+      v-if="confirmCloseTabs > 0"
+      :confirm="`Close ${confirmCloseTabs} tabs`"
+      cancel="Cancel"
+      @answer="confirmCloseTabsThen($event)"
+    >
+      <p>You're about to close {{ confirmCloseTabs }} tabs at once.</p>
+
+      <p>
+        Your browser may not keep this many tabs in its recent history, so THIS
+        IS IRREVERSIBLE. Are you sure?
+      </p>
+    </confirm-dialog>
+  </li>
 </template>
 
 <script lang="ts">
-import {defineComponent, ref, type PropType} from "vue";
+import {defineComponent, ref, type PropType, type Directive} from "vue";
 import browser from "webextension-polyfill";
 
 import {altKeyName, required} from "../util/index.js";
-
-import type {DragAction, DropAction} from "../components/dnd-list.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
@@ -131,13 +138,22 @@ import type {Tab, Window} from "../model/tabs.js";
 import ConfirmDialog, {
   type ConfirmDialogEvent,
 } from "../components/confirm-dialog.vue";
-import DndList from "../components/dnd-list.vue";
+import DndList, {
+  type ListDragEvent,
+  type ListDropEvent,
+} from "../components/dnd-list.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
 import type {FilterInfo} from "../model/tree-filter.js";
-import {ACCEPTS, recvDragData, sendDragData} from "./dnd-proto.js";
+import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
+import type {
+  DNDAcceptedDropPositions,
+  DropEvent,
+  DroppableOptions,
+} from "../components/dnd.js";
+import {vDroppable} from "../components/dnd-directives.js";
 
 const NEXT_SHOW_OPEN_TAB_STATE: Record<
   SyncState["show_open_tabs"],
@@ -154,6 +170,12 @@ export default defineComponent({
     Tab: TabVue,
     Bookmark,
     ShowFilteredItem,
+  },
+
+  directives: {
+    // Cast needed 'cause options-based components have trouble with
+    // explicitly-disabled modifiers and args.
+    droppable: vDroppable as Directive<HTMLElement, DroppableOptions>,
   },
 
   props: {
@@ -193,10 +215,6 @@ export default defineComponent({
         }
         f.value = v;
       },
-    },
-
-    accepts() {
-      return ACCEPTS;
     },
 
     tabs(): Tab[] {
@@ -421,20 +439,36 @@ export default defineComponent({
       });
     },
 
-    drag(ev: DragAction<Tab>) {
-      const items = the.model.selection.info(ev.value).isSelected
-        ? Array.from(the.model.selection.selectedItems())
-        : [ev.value];
-      sendDragData(ev.dataTransfer, items);
+    itemAccepts(
+      data: DataTransfer,
+      item: Tab,
+      index: number,
+    ): DNDAcceptedDropPositions {
+      return this.listAccepts(data) ? "before-after" : null;
     },
 
-    async drop(ev: DropAction) {
-      const items = recvDragData(ev.dataTransfer, the.model);
+    listAccepts(data: DataTransfer): boolean {
+      return dragDataType(data) === "items";
+    },
 
-      await the.model.attempt(() =>
+    drag(ev: ListDragEvent<Tab>) {
+      const items = the.model.selection.info(ev.item).isSelected
+        ? Array.from(the.model.selection.selectedItems())
+        : [ev.item];
+      sendDragData(ev.data, items);
+    },
+
+    parentDrop({data}: DropEvent) {
+      this.drop({data, insertBeforeIndex: this.tabs.length});
+    },
+
+    drop(ev: ListDropEvent) {
+      const items = recvDragData(ev.data, the.model);
+
+      the.model.attempt(() =>
         the.model.putItemsInWindow({
           items,
-          toIndex: ev.toIndex,
+          toIndex: ev.insertBeforeIndex,
         }),
       );
     },
