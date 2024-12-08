@@ -117,9 +117,7 @@
     </header>
 
     <ul v-if="targetWindow" class="forest one-column">
-      <li>
-        <window :target-window="targetWindow" :metadata="curWindowMetadata" />
-      </li>
+      <window :target-window="targetWindow" :metadata="curWindowMetadata" />
     </ul>
 
     <folder-list ref="stashed" v-if="stashRoot" :parentFolder="stashRoot" />
