@@ -70,7 +70,11 @@ export interface ListDropInsideEvent<I> {
 <script setup lang="ts" generic="I">
 import {ref} from "vue";
 
-import {type DNDAcceptedDropPositions, type DropEvent} from "./dnd.js";
+import {
+  type DNDAcceptedDropPositions,
+  type DNDOrientation,
+  type DropEvent,
+} from "./dnd.js";
 import {vDraggable, vDroppable} from "./dnd-directives.js";
 
 const props = defineProps<{
@@ -78,7 +82,7 @@ const props = defineProps<{
    * is used in conjunction with the position of the mouse cursor to decide
    * whether the user intends to drop before, inside, or after the item they're
    * hovering over. */
-  orientation: "horizontal" | "vertical" | "grid";
+  orientation: DNDOrientation;
 
   /** The items in the list. */
   modelValue: I[];
@@ -122,55 +126,6 @@ const emit = defineEmits<{
 }>();
 
 const draggingIndex = ref(-1);
-
-function itemAccepts(
-  data: DataTransfer,
-  item: I,
-  index: number,
-): DNDAcceptedDropPositions {
-  const pos = props.itemAccepts(data, item, index);
-  if (!pos) return null;
-
-  if (props.orientation !== "grid") return pos;
-
-  // We do some wonkiness with grids because there's not a clear notion of
-  // "before" or "after".  So we generally try to make the insert point the same
-  // as the drop target.
-  if (draggingIndex.value !== -1) {
-    // If we're dragging within the same grid, we need to adjust the insertion
-    // point depending on whether we're moving an item forward or backward in
-    // the list.
-    switch (pos) {
-      case "before":
-      case "inside":
-      case "after":
-      case "before-inside":
-      case "inside-after":
-        return pos;
-      case "before-after":
-        return draggingIndex.value < index ? "after" : "before";
-      case "before-inside-after":
-        return draggingIndex.value < index ? "inside-after" : "before-inside";
-    }
-  } else {
-    // Else we're dragging between grids; we generally use "before", except for
-    // the last item, where the insertion point could be "before" or "after",
-    // and the user will have to figure out which is which. :/  It's not ideal
-    // but better than doing nothing...
-    switch (pos) {
-      case "before":
-      case "inside":
-      case "after":
-      case "before-inside":
-      case "inside-after":
-        return pos;
-      case "before-after":
-        return index === props.modelValue.length - 1 ? pos : "before";
-      case "before-inside-after":
-        return index === props.modelValue.length - 1 ? pos : "before-inside";
-    }
-  }
-}
 
 function itemDragStart(data: DataTransfer, item: I, fromIndex: number) {
   emit("drag", {data, item, fromIndex});

@@ -6,9 +6,14 @@
  * - For `vertical` orientation, dropping in the top part of the element means
  *   `before`, and in the bottom part of the element means `after`.
  * - For `horizontal` orientation, dropping left/right means `before`/`after`.
- * - For `grid` orientation, the item is split diagonally: dropping in the
- *   upper-left means `before`, and the lower-right means `after`. */
-export type DNDOrientation = "vertical" | "horizontal" | "grid";
+ *
+ * For grids, we recommend using the orientation that adjacent items follow--for
+ * example, a flexbox grid that puts adjacent items next to each other
+ * horizontally should use `horizontal`. (This is most common.) If items are
+ * stacked vertically first, and then a new column is started only after the
+ * first column is filled (as if reading a newspaper), then the `vertical`
+ * orientation should be used. */
+export type DNDOrientation = "vertical" | "horizontal";
 
 /** The drop position relative to the drop target. The dragged item should be
  * inserted `before`, `inside` or `after` the drop target. */
@@ -262,43 +267,4 @@ const dropPosImpls = {
       return POSITIONS[slice];
     },
   },
-  grid: {
-    before: (_h: HTMLElement, _e: DragEvent) => "before" as DNDDropPosition,
-    inside: (_h: HTMLElement, _e: DragEvent) => "inside" as DNDDropPosition,
-    after: (_h: HTMLElement, _e: DragEvent) => "after" as DNDDropPosition,
-    "before-after"(el: HTMLElement, ev: DragEvent): DNDDropPosition {
-      const elSize = el.getBoundingClientRect();
-      return isAboveDiagonal(ev, elSize) ? "before" : "after";
-    },
-    "before-inside"(el: HTMLElement, ev: DragEvent): DNDDropPosition {
-      if (isInCenter(el, ev)) return "inside";
-      return "before";
-    },
-    "inside-after"(el: HTMLElement, ev: DragEvent): DNDDropPosition {
-      if (isInCenter(el, ev)) return "inside";
-      return "after";
-    },
-    "before-inside-after"(el: HTMLElement, ev: DragEvent): DNDDropPosition {
-      if (isInCenter(el, ev)) return "inside";
-      const elSize = el.getBoundingClientRect();
-      return isAboveDiagonal(ev, elSize) ? "before" : "after";
-    },
-  },
 };
-
-/** Is the mouse cursor in the center of the item? */
-function isInCenter(el: HTMLElement, ev: DragEvent): boolean {
-  const elSize = el.getBoundingClientRect();
-  const x = Math.floor((3 * (ev.clientX - elSize.x)) / elSize.width);
-  const y = Math.floor((3 * (ev.clientY - elSize.y)) / elSize.height);
-  return x === 1 && y === 1;
-}
-
-/** Is the mouse cursor below the diagonal "before/after" split in this item? */
-function isAboveDiagonal(ev: DragEvent, elSize: DOMRect): boolean {
-  const slope = elSize.height / elSize.width;
-  return !(
-    ev.clientY - elSize.y >=
-    -slope * (ev.clientX - elSize.x) + elSize.height
-  );
-}
