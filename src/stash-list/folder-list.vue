@@ -19,7 +19,7 @@
     @drop-inside="dropInside"
   >
     <template #item="{item}: {item: Node}">
-      <Folder v-if="isVisible(item)" :folder="item" is-toplevel />
+      <Folder v-if="isVisible(item)" :folder="item" />
     </template>
   </dnd-list>
 </template>
@@ -89,7 +89,10 @@ export default defineComponent({
     },
 
     drag(ev: ListDragEvent<Node>) {
-      sendDragData(ev.data, [ev.item]);
+      const items = the.model.selection.info(ev.item).isSelected
+        ? Array.from(the.model.selection.selectedItems())
+        : [ev.item];
+      sendDragData(ev.data, items);
     },
 
     drop(ev: ListDropEvent) {

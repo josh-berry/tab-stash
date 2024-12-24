@@ -13,7 +13,6 @@
     }"
   >
     <item-icon
-      v-if="!isToplevel"
       :class="{
         'forest-icon': true,
         action: true,
@@ -273,7 +272,6 @@ export default defineComponent({
 
   props: {
     folder: required(Object as PropType<Folder>),
-    isToplevel: Boolean,
   },
 
   data: () => ({
