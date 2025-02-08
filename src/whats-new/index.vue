@@ -10,6 +10,29 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.2">
+        <L v="Added"
+          >the ability to select and operate on multiple top-level groups at
+          once.</L
+        >
+
+        <L v="Improved" :issue="407"
+          >drag-and-drop, especially for top-level and child groups. It is now
+          possible to drag top-level groups into child groups and vice versa.</L
+        >
+
+        <L v="Improved:"
+          >If a search is in progress, the search term will be used as the title
+          for newly-created groups, so such groups are immediately visible in
+          search results.
+        </L>
+
+        <L v="Fixed" :issue="542"
+          >an issue that could cause a crash if Firefox's bookmarks database
+          contains inconsistent information.</L
+        >
+      </Version>
+
       <Version v="3.1.1">
         <L v="Fixed:" :issue="369"
           >When stashing the active tab, an adjacent tab is now chosen as the
