@@ -567,11 +567,13 @@ export function batchesOf<I>(
 // may or may not be a regex, and is generally case-insensitive).
 export function textMatcher(query: string): (txt: string) => boolean {
   if (query === "") return txt => true;
+
+  const lower = query.normalize().toLocaleLowerCase();
   try {
     const re = new RegExp(query, "iu");
-    return txt => re.test(txt);
+    return txt =>
+      txt.normalize().toLocaleLowerCase().includes(lower) || re.test(txt);
   } catch (e) {
-    const lower = query.normalize().toLocaleLowerCase();
     return txt => txt.normalize().toLocaleLowerCase().includes(lower);
   }
 }
