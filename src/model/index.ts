@@ -344,6 +344,31 @@ export class Model {
     return selected.filter(t => !t.pinned);
   }
 
+  /** Create a new folder in the stash (creating the stash
+   * root itself if it does not exist).  If the name is not specified, a
+   * default name will be assigned based on the folder's creation time or the current search term. */
+  async createStashFolder(
+    name?: string,
+    parent?: Bookmarks.Folder,
+    position?: "top" | "bottom",
+  ): Promise<Bookmarks.Folder> {
+    const stash_root = await this.bookmarks.ensureStashRoot();
+
+    parent ??= stash_root;
+
+    position ??= "top";
+
+    name ??= this.searchText.value;
+    name ||= Bookmarks.genDefaultFolderName(new Date());
+
+    const bm = await this.bookmarks.create({
+      parentId: parent.id,
+      title: name,
+      index: position === "top" ? 0 : parent.children.length,
+    });
+    return bm as Bookmarks.Folder;
+  }
+
   //
   // Mutators
   //
@@ -402,7 +427,7 @@ export class Model {
 
     await this.putItemsInFolder({
       items: copyIf(!!options.copy, tabs),
-      toFolder: await this.bookmarks.createStashFolder(
+      toFolder: await this.createStashFolder(
         undefined,
         options.parent,
         options.position,
@@ -556,7 +581,7 @@ export class Model {
   async ensureRecentUnnamedFolder(): Promise<Bookmarks.Folder> {
     const folder = this.mostRecentUnnamedFolder();
     if (folder !== undefined) return folder;
-    return await this.bookmarks.createStashFolder();
+    return await this.createStashFolder();
   }
 
   /** Moves or copies items (bookmarks, tabs, and/or external items) to a
@@ -1132,6 +1157,50 @@ export class Model {
 
     await browser.tabs.remove(tab_ids_to_close);
   }
+
+  //
+  // Test-only code
+  //
+
+  /* c8 ignore start -- for manual debugging */
+  /** Create a bunch of fake(-ish) tabs for benchmarking purposes. This is
+   * private because no actual code should call this, but we want it accessible
+   * at runtime. */
+  async createTabsForBenchmarks_testonly(options: {
+    name?: string;
+    folder_count: number;
+    folder_levels: number;
+    tabs_per_folder: number;
+  }): Promise<void> {
+    const bench_folder = await this.createStashFolder(
+      options.name ?? "Fake Tabs",
+    );
+
+    const populate_folder = async (
+      parent: Bookmarks.Folder,
+      levels: number,
+      path: string,
+    ) => {
+      if (levels > 0) {
+        for (let i = 0; i < options.folder_count; ++i) {
+          const f = await this.createStashFolder(undefined, parent);
+          await populate_folder(f, levels - 1, `${path}-${i}`);
+        }
+      } else {
+        for (let i = 0; i < options.tabs_per_folder; ++i) {
+          await this.bookmarks.create({
+            title: `Fake Tab #${i}`,
+            url: `http://localhost/#${path}-${i}`,
+            parentId: parent.id,
+            index: i,
+          });
+        }
+      }
+    };
+
+    await populate_folder(bench_folder, options.folder_levels, "root");
+  }
+  /* c8 ignore stop */
 }
 
 export type BookmarkTabsResult = {

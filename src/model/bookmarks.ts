@@ -446,19 +446,6 @@ export class Model {
     });
   }
 
-  /** Creates a bookmark folder and waits for the model to see it. */
-  createFolder(opts: {
-    title: string;
-    parent: Folder;
-    index?: number;
-  }): Promise<Folder> {
-    return this.create({
-      title: opts.title,
-      parentId: opts.parent.id,
-      index: opts.index,
-    }) as Promise<Folder>;
-  }
-
   /** Updates a bookmark's title and waits for the model to reflect the
    * update. */
   async rename(bm: Bookmark | Folder, title: string): Promise<void> {
@@ -605,27 +592,6 @@ export class Model {
 
     trace("converged on stash root = ", candidates[0].id);
     return candidates[0];
-  }
-
-  /** Create a new folder at the top of the stash root (creating the stash
-   * root itself if it does not exist).  If the name is not specified, a
-   * default name will be assigned based on the folder's creation time. */
-  async createStashFolder(
-    name?: string,
-    parent?: Folder,
-    position?: "top" | "bottom",
-  ): Promise<Folder> {
-    const stash_root = await this.ensureStashRoot();
-    parent ??= stash_root;
-    position ??= "top";
-
-    const bm = await this.create({
-      parentId: parent.id,
-      title: name ?? genDefaultFolderName(new Date()),
-      // !-cast: this.create() will check the existence of the parent for us
-      index: position === "top" ? 0 : parent.children.length,
-    });
-    return bm as Folder;
   }
 
   /** Removes the folder if it is empty, unnamed and within the stash root. */
@@ -932,46 +898,6 @@ export class Model {
     if (!index) return;
     index.delete(bm);
   }
-
-  /* c8 ignore start -- for manual debugging */
-  /** Create a bunch of fake(-ish) tabs for benchmarking purposes. This is
-   * private because no actual code should call this, but we want it accessible
-   * at runtime. */
-  async createTabsForBenchmarks_testonly(options: {
-    name?: string;
-    folder_count: number;
-    folder_levels: number;
-    tabs_per_folder: number;
-  }): Promise<void> {
-    const bench_folder = await this.createStashFolder(
-      options.name ?? "Fake Tabs",
-    );
-
-    const populate_folder = async (
-      parent: Folder,
-      levels: number,
-      path: string,
-    ) => {
-      if (levels > 0) {
-        for (let i = 0; i < options.folder_count; ++i) {
-          const f = await this.createStashFolder(undefined, parent);
-          await populate_folder(f, levels - 1, `${path}-${i}`);
-        }
-      } else {
-        for (let i = 0; i < options.tabs_per_folder; ++i) {
-          await this.create({
-            title: `Fake Tab #${i}`,
-            url: `http://localhost/#${path}-${i}`,
-            parentId: parent.id,
-            index: i,
-          });
-        }
-      }
-    };
-
-    await populate_folder(bench_folder, options.folder_levels, "root");
-  }
-  /* c8 ignore stop */
 }
 
 //

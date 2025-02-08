@@ -318,7 +318,7 @@ export default defineComponent({
 
     async newGroup() {
       this.attempt(async () => {
-        await the.model.bookmarks.createStashFolder();
+        await the.model.createStashFolder();
       });
     },
 
@@ -335,7 +335,7 @@ export default defineComponent({
         if (stashable_children.length === 0) return;
         await the.model.putItemsInFolder({
           items: copyIf(ev.altKey, stashable_children),
-          toFolder: await the.model.bookmarks.createStashFolder(),
+          toFolder: await the.model.createStashFolder(),
         });
       });
     },
@@ -431,7 +431,7 @@ export default defineComponent({
 
     moveToNewGroup(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const folder = await the.model.bookmarks.createStashFolder();
+        const folder = await the.model.createStashFolder();
         await the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolder: folder,

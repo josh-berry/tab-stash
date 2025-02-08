@@ -212,8 +212,10 @@ export async function importURLs(options: {
       if (tm.cancelled) break;
 
       const res = await tm.spawn(async tm => {
-        const folder = await options.model.bookmarks.createStashFolder(
-          g.title || undefined,
+        const folder = await options.model.createStashFolder(
+          // Explicitly set the title so we avoid picking up a search term if
+          // one is active.
+          g.title || BM.genDefaultFolderName(new Date()),
         );
         const bookmarks = await options.model.putItemsInFolder({
           items: g.children,

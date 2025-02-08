@@ -162,7 +162,7 @@ export default defineComponent({
       this.attempt(async () => {
         let folder: Folder;
         if (!this.searchText) {
-          folder = await the.model.bookmarks.createStashFolder();
+          folder = await the.model.createStashFolder();
         } else {
           const stash_root = await the.model.bookmarks.ensureStashRoot();
           folder = (await the.model.bookmarks.create({

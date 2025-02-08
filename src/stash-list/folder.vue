@@ -551,10 +551,11 @@ export default defineComponent({
       if (!win_id) return;
 
       the.model.attempt(async () => {
-        const f = await the.model.bookmarks.createFolder({
-          parent: this.folder,
-          title: genDefaultFolderName(new Date()),
-        });
+        const f = await the.model.createStashFolder(
+          undefined,
+          this.folder,
+          "bottom",
+        );
         await the.model.putSelectedInFolder({copy: ev.altKey, toFolder: f});
       });
     },
@@ -606,10 +607,7 @@ export default defineComponent({
 
     newChildFolder() {
       return this.attempt(async () => {
-        await the.model.bookmarks.create({
-          parentId: this.folder.id,
-          title: genDefaultFolderName(new Date()),
-        });
+        await the.model.createStashFolder(undefined, this.folder, "bottom");
       });
     },
 

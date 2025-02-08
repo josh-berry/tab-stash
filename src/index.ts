@@ -195,7 +195,7 @@ logErrorsFrom(async () => {
       if (!tab) return;
       await model.putItemsInFolder({
         items: [tab],
-        toFolder: await model.bookmarks.createStashFolder(),
+        toFolder: await model.createStashFolder(),
       });
     },
 
