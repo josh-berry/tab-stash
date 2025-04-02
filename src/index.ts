@@ -256,7 +256,7 @@ logErrorsFrom(async () => {
       case "single":
         await model.putItemsInFolder({
           items: copyIf(!!options.copy, [options.tab]),
-          toFolder: await model.ensureRecentUnnamedFolder(),
+          toFolder: await model.ensureDefaultStashDestFolder(),
         });
         break;
 

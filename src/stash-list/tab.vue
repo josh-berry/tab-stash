@@ -145,7 +145,7 @@ export default defineComponent({
       this.attempt(async () => {
         await the.model.putItemsInFolder({
           items: copyIf(ev.altKey, [this.tab]),
-          toFolder: await the.model.ensureRecentUnnamedFolder(),
+          toFolder: await the.model.ensureDefaultStashDestFolder(),
         });
       });
     },

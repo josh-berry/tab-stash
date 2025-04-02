@@ -287,11 +287,10 @@ export class Model {
     return !url_str.startsWith(browser.runtime.getURL("stash-list.html"));
   }
 
-  /** If the topmost folder in the stash root is an unnamed folder which was
-   * created recently, return its ID.  Otherwise return `undefined`.  Used to
-   * determine where to place single bookmarks we are trying to stash, if we
-   * don't already know where they should go. */
-  mostRecentUnnamedFolder(): Bookmarks.Folder | undefined {
+  /** Returns the "default" folder into which newly-stashed tabs should be
+   * placed, if one exists.  Used to determine where to place single bookmarks
+   * we are trying to stash, if we don't already know where they should go. */
+  defaultStashDestFolder(): Bookmarks.Folder | undefined {
     const root = this.bookmarks.stash_root.value;
     if (!root) return undefined;
 
@@ -301,7 +300,13 @@ export class Model {
     if (!topmost || !isFolder(topmost)) return undefined;
 
     // Does the folder have a name which looks like a default name?
-    if (!Bookmarks.getDefaultFolderNameISODate(topmost.title)) return undefined;
+    // NOTE: This should match the default-name logic in createStashFolder().
+    if (
+      !Bookmarks.getDefaultFolderNameISODate(topmost.title) &&
+      !(this.searchText.value && topmost.title === this.searchText.value)
+    ) {
+      return undefined;
+    }
 
     // Did something create/update this folder recently?
     // #cast dateAdded is always present on folders
@@ -344,9 +349,9 @@ export class Model {
     return selected.filter(t => !t.pinned);
   }
 
-  /** Create a new folder in the stash (creating the stash
-   * root itself if it does not exist).  If the name is not specified, a
-   * default name will be assigned based on the folder's creation time or the current search term. */
+  /** Create a new folder in the stash (creating the stash root itself if it
+   * does not exist).  If the name is not specified, a default name will be
+   * assigned based on the folder's creation time or the current search term. */
   async createStashFolder(
     name?: string,
     parent?: Bookmarks.Folder,
@@ -358,6 +363,7 @@ export class Model {
 
     position ??= "top";
 
+    // NOTE: This should match what happens in defaultStashDestFolder().
     name ??= this.searchText.value;
     name ||= Bookmarks.genDefaultFolderName(new Date());
 
@@ -576,10 +582,10 @@ export class Model {
     return tabs;
   }
 
-  /** Returns the ID of an unnamed folder at the top of the stash, creating a
-   * new one if necessary. */
-  async ensureRecentUnnamedFolder(): Promise<Bookmarks.Folder> {
-    const folder = this.mostRecentUnnamedFolder();
+  /** Returns the "default" folder into which newly-stashed tabs should go,
+   * creating one at the top of the stash root if necessary. */
+  async ensureDefaultStashDestFolder(): Promise<Bookmarks.Folder> {
+    const folder = this.defaultStashDestFolder();
     if (folder !== undefined) return folder;
     return await this.createStashFolder();
   }
@@ -1089,7 +1095,7 @@ export class Model {
     // put it in an unnamed folder.
     if (!toFolder) {
       if (!("children" in item)) {
-        toFolder = await this.ensureRecentUnnamedFolder();
+        toFolder = await this.ensureDefaultStashDestFolder();
       } else {
         // We're restoring a folder, and we don't know where to put it; just put
         // it in the stash root.

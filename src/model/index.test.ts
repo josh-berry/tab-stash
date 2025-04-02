@@ -522,6 +522,60 @@ describe("model", () => {
     });
   });
 
+  describe("creates and uses default stash destinations", () => {
+    beforeEach(() => {
+      expect(model.bookmarks.stash_root.value).not.to.be.undefined;
+      expect(model.defaultStashDestFolder()).to.be.undefined;
+    });
+
+    async function createStashFolder() {
+      const p = model.createStashFolder();
+      await events.next(browser.bookmarks.onCreated);
+      return await p;
+    }
+
+    it("creates a new destination (no search)", async () => {
+      const f = await createStashFolder();
+
+      expect(model.bookmarks.stash_root.value!.children[0]).to.equal(f);
+      expect(M.Bookmarks.getDefaultFolderNameISODate(f.title)).to.be.a(
+        "string",
+      );
+      expect(model.defaultStashDestFolder()).to.equal(f);
+    });
+
+    it("creates a new destination (with search)", async () => {
+      model.searchText.value = "the folder title";
+      const f = await createStashFolder();
+
+      expect(model.bookmarks.stash_root.value!.children[0]).to.equal(f);
+      expect(f.title).to.equal("the folder title");
+      expect(model.defaultStashDestFolder()).to.equal(f);
+    });
+
+    it("reuses an existing (without search)", async () => {
+      const f = await createStashFolder();
+      const f2 = await model.ensureDefaultStashDestFolder();
+
+      expect(M.Bookmarks.getDefaultFolderNameISODate(f.title)).to.be.a(
+        "string",
+      );
+      expect(f).to.not.be.undefined;
+      expect(f).to.equal(f2);
+    });
+
+    it("reuses an existing (with search)", async () => {
+      model.searchText.value = "the folder title";
+
+      const f = await createStashFolder();
+      const f2 = await model.ensureDefaultStashDestFolder();
+
+      expect(f).to.not.be.undefined;
+      expect(f).to.equal(f2);
+      expect(f.title).to.equal("the folder title");
+    });
+  });
+
   describe("puts items in bookmark folders", () => {
     async function check_folder(
       folderName: keyof typeof bookmarks,
