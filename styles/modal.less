@@ -161,7 +161,12 @@ nav.menu {
       background-color: var(--selected-bg);
     }
 
-    &:not(.disabled) {
+    &.disabled,
+    &:disabled {
+      opacity: 60%;
+    }
+
+    &:not(.disabled):not(:disabled) {
       color: var(--page-fg);
       &:hover,
       &:focus-within {

@@ -37,22 +37,76 @@
           title="Create a new empty group"
           @click.prevent.stop="newGroup"
         />
-        <a
-          class="action remove"
-          :title="`Close all unstashed tabs`"
-          @click.prevent.stop="removeUnstashed"
-        />
-        <a
-          class="action remove stashed"
-          :title="`Close all stashed tabs`"
-          @click.prevent.stop="removeStashed"
-        />
-        <a
-          class="action remove opened"
-          :title="`Click: Close all open tabs
-${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
-          @click.prevent.stop="removeOpen"
-        />
+
+        <Menu
+          summaryClass="action neutral icon-item-menu last-toolbar-button"
+          h-position="right"
+        >
+          <button
+            title="Show only unstashed tabs"
+            @click.prevent="setMode('unstashed')"
+            :disabled="!showStashedTabs"
+          >
+            <span
+              :class="{
+                'menu-icon': true,
+                icon: true,
+                'icon-select': showStashedTabs,
+                'icon-select-selected': !showStashedTabs,
+              }"
+            />
+            <span>Show Unstashed Tabs Only</span>
+          </button>
+          <button
+            title="Show all open tabs in the window (excluding pinned tabs)"
+            @click.prevent="setMode('all')"
+            :disabled="showStashedTabs"
+          >
+            <span
+              :class="{
+                'menu-icon': true,
+                icon: true,
+                'icon-select': !showStashedTabs,
+                'icon-select-selected': showStashedTabs,
+              }"
+            />
+            <span>Show All Open Tabs</span>
+          </button>
+
+          <hr />
+
+          <button
+            :title="`Close all unstashed tabs (except pinned and hidden)`"
+            @click.prevent="removeUnstashed"
+          >
+            <span class="menu-icon icon icon-delete" />
+            <span>Close Unstashed Tabs</span>
+          </button>
+          <button
+            :title="`Close all stashed tabs (except pinned and hidden)`"
+            @click.prevent="removeStashed"
+          >
+            <span class="menu-icon icon icon-delete-stashed" />
+            <span>Close Stashed Tabs</span>
+          </button>
+          <button
+            :title="`Close all open tabs (except pinned and hidden)`"
+            @click.prevent="removeOpen"
+          >
+            <span class="menu-icon icon icon-delete-opened" />
+            <span>Close All Open Tabs</span>
+          </button>
+
+          <hr />
+
+          <button
+            :title="`Close any stashed tabs that are hidden (may reclaim memory)`"
+            @click.prevent="removeHidden"
+          >
+            <span class="menu-icon icon icon-delete-opened" />
+            <span>Close Hidden Tabs</span>
+          </button>
+        </Menu>
       </nav>
 
       <nav v-else class="action-group forest-toolbar">
@@ -75,12 +129,7 @@ ${altKey}+Click: Close any hidden/stashed tabs (reclaims memory)`"
         />
       </nav>
 
-      <span
-        :class="{'forest-title': true, editable: true, disabled: true}"
-        :title="tooltip"
-        @click.prevent.stop="toggleMode"
-        >{{ title }}</span
-      >
+      <span class="forest-title disabled" :title="tooltip">{{ title }}</span>
     </div>
 
     <dnd-list
@@ -143,6 +192,7 @@ import DndList, {
   type ListDropEvent,
 } from "../components/dnd-list.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
+import Menu from "../components/menu.vue";
 import Bookmark from "./bookmark.vue";
 import TabVue from "./tab.vue";
 
@@ -155,18 +205,11 @@ import type {
 } from "../components/dnd.js";
 import {vDroppable} from "../components/dnd-directives.js";
 
-const NEXT_SHOW_OPEN_TAB_STATE: Record<
-  SyncState["show_open_tabs"],
-  SyncState["show_open_tabs"]
-> = {
-  all: "unstashed",
-  unstashed: "all",
-};
-
 export default defineComponent({
   components: {
     ConfirmDialog,
     DndList: DndList<Tab>,
+    Menu,
     Tab: TabVue,
     Bookmark,
     ShowFilteredItem,
@@ -231,10 +274,7 @@ export default defineComponent({
     },
 
     tooltip(): string {
-      return (
-        `${this.displayCount} ${this.title}\n` +
-        `Click to change which tabs are shown.`
-      );
+      return `${this.displayCount} ${this.title}`;
     },
 
     collapsed: {
@@ -288,13 +328,10 @@ export default defineComponent({
       the.model.attempt(fn);
     },
 
-    toggleMode() {
+    setMode(mode: SyncState["show_open_tabs"]) {
       this.attempt(async () => {
         const options = the.model.options;
-        await options.sync.set({
-          show_open_tabs:
-            NEXT_SHOW_OPEN_TAB_STATE[options.sync.state.show_open_tabs],
-        });
+        await options.sync.set({show_open_tabs: mode});
       });
     },
 
@@ -368,42 +405,43 @@ export default defineComponent({
       });
     },
 
-    async removeOpen(ev: MouseEvent | KeyboardEvent) {
+    removeOpen() {
       this.attempt(async () => {
-        if (ev.altKey) {
-          // Discard hidden/stashed tabs to free memory.
-          const tabs = this.tabs.filter(
-            t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
-          );
-          await the.model.tabs.remove(tabs);
-        } else {
-          // Closes ALL open tabs (stashed and unstashed).
-          //
-          // For performance, we will try to identify stashed tabs the
-          // user might want to keep, and hide instead of close them.
-          //
-          // (Just as in remove(), we keep the active tab if it's a
-          // new-tab page or the Tab Stash page.)
-          const tabs = this.tabs.filter(
-            t =>
-              (!t.active || the.model.isURLStashable(t.url)) &&
-              !t.hidden &&
-              !t.pinned,
-          );
-          const hide_tabs = tabs.filter(t =>
-            the.model.bookmarks.isURLLoadedInStash(t.url),
-          );
-          const close_tabs = tabs
-            .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
-            .map(t => t.id);
+        // Closes ALL open tabs (stashed and unstashed).
+        //
+        // For performance, we will try to identify stashed tabs the
+        // user might want to keep, and hide instead of close them.
+        //
+        // (Just as in remove(), we keep the active tab if it's a
+        // new-tab page or the Tab Stash page.)
+        const tabs = this.tabs.filter(
+          t =>
+            (!t.active || the.model.isURLStashable(t.url)) &&
+            !t.hidden &&
+            !t.pinned,
+        );
+        const hide_tabs = tabs.filter(t =>
+          the.model.bookmarks.isURLLoadedInStash(t.url),
+        );
+        const close_tabs = tabs
+          .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
+          .map(t => t.id);
 
-          if (!(await this.confirmRemove(tabs.length))) return;
+        if (!(await this.confirmRemove(tabs.length))) return;
 
-          await the.model.tabs.refocusAwayFromTabs(tabs);
+        await the.model.tabs.refocusAwayFromTabs(tabs);
 
-          the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
-          browser.tabs.remove(close_tabs).catch(console.log);
-        }
+        the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+        browser.tabs.remove(close_tabs).catch(console.log);
+      });
+    },
+
+    removeHidden() {
+      this.attempt(async () => {
+        const tabs = this.tabs.filter(
+          t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
+        );
+        await the.model.tabs.remove(tabs);
       });
     },
 
