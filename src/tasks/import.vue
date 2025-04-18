@@ -44,7 +44,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent} from "vue";
+import {onMounted, ref} from "vue";
 
 import the from "../globals-ui.js";
 import {TaskMonitor, type Progress} from "../util/index.js";
@@ -52,52 +52,52 @@ import {importURLs, parse, type ParseOptions} from "./import.js";
 
 import Dialog from "../components/dialog.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
+</script>
 
-export default defineComponent({
-  components: {Dialog, ProgressDialog},
+<script setup lang="ts">
+const emit = defineEmits<{
+  (e: "close"): void;
+}>();
 
-  emits: ["close"],
+// const props = defineProps<{}>();
 
-  data: () => ({
-    cancel: undefined as undefined | (() => void),
-    progress: undefined as undefined | Progress,
-    splitOn: "p+h" as ParseOptions["splitOn"],
-    fetchIconsAndTitles: true,
-  }),
+const data = ref<HTMLElement>(undefined!);
 
-  mounted() {
-    (<HTMLElement>this.$refs.data).focus();
-  },
+const cancel = ref<(() => void) | undefined>();
+const progress = ref<Progress | undefined>();
+const splitOn = ref<ParseOptions["splitOn"]>("p+h");
+const fetchIconsAndTitles = ref(true);
 
-  methods: {
-    start() {
-      the.model.attempt(async () => {
-        const folders = parse(this.$refs.data as Element, the.model, {
-          splitOn: this.splitOn,
-        });
-
-        try {
-          const task = TaskMonitor.run(task =>
-            importURLs({
-              model: the.model,
-              folders,
-              fetchIconsAndTitles: this.fetchIconsAndTitles,
-              task,
-            }),
-          );
-
-          this.cancel = () => task.cancel();
-          this.progress = task.progress;
-          await task;
-        } finally {
-          this.cancel = undefined;
-          this.progress = undefined;
-          this.$emit("close");
-        }
-      });
-    },
-  },
+onMounted(() => {
+  data.value.focus();
 });
+
+function start() {
+  the.model.attempt(async () => {
+    const folders = parse(data.value, the.model, {
+      splitOn: splitOn.value,
+    });
+
+    try {
+      const task = TaskMonitor.run(task =>
+        importURLs({
+          model: the.model,
+          folders,
+          fetchIconsAndTitles: fetchIconsAndTitles.value,
+          task,
+        }),
+      );
+
+      cancel.value = () => task.cancel();
+      progress.value = task.progress;
+      await task;
+    } finally {
+      cancel.value = undefined;
+      progress.value = undefined;
+      emit("close");
+    }
+  });
+}
 </script>
 
 <style module>
