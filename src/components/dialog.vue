@@ -1,30 +1,32 @@
 <template>
-  <ModalBackdrop
-    :class="backdropClass"
-    @click="close"
-    @keydown.esc.prevent.stop="close"
-  >
-    <aside ref="dialog" class="dialog" v-bind="$attrs" @click.stop="">
-      <header class="dialog-title" v-if="$slots.title || showCloseButton">
-        <slot name="title"></slot>
-        <slot name="close" v-if="showCloseButton">
-          <button
-            class="dialog-close"
-            title="Close"
-            @click.prevent.stop="close"
-          />
-        </slot>
-      </header>
+  <teleport to="body">
+    <ModalBackdrop
+      :class="backdropClass"
+      @click="close"
+      @keydown.esc.prevent.stop="close"
+    >
+      <aside ref="dialog" class="dialog" v-bind="$attrs" @click.stop="">
+        <header class="dialog-title" v-if="$slots.title || showCloseButton">
+          <slot name="title"></slot>
+          <slot name="close" v-if="showCloseButton">
+            <button
+              class="dialog-close"
+              title="Close"
+              @click.prevent.stop="close"
+            />
+          </slot>
+        </header>
 
-      <section class="dialog-content">
-        <slot></slot>
-      </section>
+        <section class="dialog-content">
+          <slot></slot>
+        </section>
 
-      <footer class="dialog-buttons" v-if="$slots.buttons">
-        <slot name="buttons"></slot>
-      </footer>
-    </aside>
-  </ModalBackdrop>
+        <footer class="dialog-buttons" v-if="$slots.buttons">
+          <slot name="buttons"></slot>
+        </footer>
+      </aside>
+    </ModalBackdrop>
+  </teleport>
 </template>
 
 <script lang="ts">

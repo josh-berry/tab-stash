@@ -1,47 +1,45 @@
 <template>
-  <teleport to="body">
-    <Dialog @close="answer(false)">
-      <section>
-        <slot />
-      </section>
+  <Dialog @close="answer(false)">
+    <section>
+      <slot />
+    </section>
 
-      <section>
-        <label
-          for="ask_next_time"
-          title="If you change your mind, you can turn this confirmation on again in the options."
-        >
-          <input type="checkbox" id="ask_next_time" v-model="confirmNextTime" />
-          Ask me again next time
-        </label>
-      </section>
+    <section>
+      <label
+        for="ask_next_time"
+        title="If you change your mind, you can turn this confirmation on again in the options."
+      >
+        <input type="checkbox" id="ask_next_time" v-model="confirmNextTime" />
+        Ask me again next time
+      </label>
+    </section>
 
-      <template #buttons>
-        <button
-          :class="{'confirm-dialog-default': !props.confirmByDefault}"
-          :ref="
-            b => {
-              $cancel = b as HTMLButtonElement;
-            }
-          "
-          @click="answer(false)"
-        >
-          {{ props.cancel }}
-        </button>
+    <template #buttons>
+      <button
+        :class="{'confirm-dialog-default': !props.confirmByDefault}"
+        :ref="
+          b => {
+            $cancel = b as HTMLButtonElement;
+          }
+        "
+        @click="answer(false)"
+      >
+        {{ props.cancel }}
+      </button>
 
-        <button
-          :class="{'confirm-dialog-default': props.confirmByDefault}"
-          :ref="
-            b => {
-              $confirm = b as HTMLButtonElement;
-            }
-          "
-          @click="answer(true)"
-        >
-          {{ props.confirm }}
-        </button>
-      </template>
-    </Dialog>
-  </teleport>
+      <button
+        :class="{'confirm-dialog-default': props.confirmByDefault}"
+        :ref="
+          b => {
+            $confirm = b as HTMLButtonElement;
+          }
+        "
+        @click="answer(true)"
+      >
+        {{ props.confirm }}
+      </button>
+    </template>
+  </Dialog>
 </template>
 
 <script lang="ts">
