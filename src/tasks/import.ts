@@ -199,6 +199,11 @@ export async function importURLs(options: {
     );
   const urlset = new Set(flat(groups_rev.map(g => urls_in_tree(g))));
 
+  // Collect errors that occurred while fetching site info.  We won't allow
+  // these to terminate the import, but we do want to let the user know if
+  // something failed.
+  const errors: SiteInfo[] = [];
+
   // We start three tasks in parallel: Bookmark creation, fetching of site
   // information, and updating bookmarks with titles, favicons, etc.
 
@@ -266,24 +271,7 @@ export async function importURLs(options: {
 
     for await (const siteinfo of siteinfo_aiter) {
       if (siteinfo.error) {
-        options.task.cancel();
-        tm.cancel();
-
-        alert(
-          "Seems like an error occurred during the import.  We were " +
-            "trying to import the following URL:\n\n" +
-            siteinfo.originalUrl +
-            "\n\n" +
-            "The error was:\n\n" +
-            siteinfo.error +
-            "\n" +
-            (<any>siteinfo.error)?.stack +
-            "\n\n" +
-            "Really sorry about this!  Please let us know by filing " +
-            "a bug with the above error text (see the " +
-            '"Help and Support" menu).  We\'ll clean up any ' +
-            "imported tabs so you can try again.",
-        );
+        errors.push(siteinfo);
       }
 
       if (tm.cancelled) break;
@@ -307,6 +295,14 @@ export async function importURLs(options: {
       // If we were cancelled at any point in this process, delete
       // whatever we just created. :/
       for (const fid of folderIds) browser.bookmarks.removeTree(fid);
+    }
+
+    if (errors.length > 0) {
+      alert(`Info for the following URLs could not be fetched:
+
+${errors.map(e => e.originalUrl).join("\n")}
+
+Stashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!`);
     }
   });
 
