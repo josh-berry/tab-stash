@@ -38,7 +38,13 @@
     </section>
 
     <template #buttons>
-      <button class="clickme" @click="start">Import</button>
+      <button class="clickme" @click="start">
+        {{
+          props.toFolder
+            ? `Import to "${friendlyFolderName(props.toFolder.title)}"`
+            : "Import"
+        }}
+      </button>
     </template>
   </Dialog>
 </template>
@@ -52,6 +58,7 @@ import {importURLs, parse, type ParseOptions} from "./import.js";
 
 import Dialog from "../components/dialog.vue";
 import ProgressDialog from "../components/progress-dialog.vue";
+import {type Folder, friendlyFolderName} from "../model/bookmarks.js";
 </script>
 
 <script setup lang="ts">
@@ -59,7 +66,9 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-// const props = defineProps<{}>();
+const props = defineProps<{
+  toFolder: Folder | undefined;
+}>();
 
 const data = ref<HTMLElement>(undefined!);
 
@@ -82,6 +91,7 @@ function start() {
       const task = TaskMonitor.run(task =>
         importURLs({
           model: the.model,
+          toFolder: props.toFolder,
           folders,
           fetchIconsAndTitles: fetchIconsAndTitles.value,
           task,
@@ -90,7 +100,16 @@ function start() {
 
       cancel.value = () => task.cancel();
       progress.value = task.progress;
-      await task;
+      const failures = await task;
+      if (failures.sites.length > 0) {
+        alert(
+          `Info for the following URLs could not be fetched:
+
+${failures.urls.join("\n")}
+
+Stashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!`,
+        );
+      }
     } finally {
       cancel.value = undefined;
       progress.value = undefined;

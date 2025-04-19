@@ -432,15 +432,30 @@ class MockTabs implements T.Static {
 
   async create(options: T.CreateCreatePropertiesType): Promise<T.Tab> {
     /* c8 ignore next 3 -- not implemented */
-    if (options.windowId === undefined) {
-      throw new Error(`Creating without a windowId is not implemented`);
+    let windowId = options.windowId;
+    windowId ??= this._state.windows.find(w => w?.focused)?.id;
+    windowId ??= this._state.windows[0]?.id;
+    if (windowId === undefined) {
+      throw new Error(`No windows are open`);
     }
 
-    const win = this._state.win(options.windowId);
+    if (options.url) {
+      const url = new URL(options.url);
+      if (url.protocol === "file:") {
+        throw new Error(`File URLs are not supported`);
+      } else if (url.protocol === "about:") {
+        // about:blank is fine, but about:config and others are not
+        if (url.pathname !== "blank") {
+          throw new Error(`About URLs are not supported`);
+        }
+      }
+    }
+
+    const win = this._state.win(windowId);
     const id = this._state.next_tab_id++;
     const tab: Tab = {
       id,
-      windowId: options.windowId,
+      windowId: windowId,
       index: options.index ?? win.tabs.length,
       url: options.url ?? "about:blank",
       title: options.title,
@@ -885,6 +900,12 @@ class MockTabs implements T.Static {
   }
 }
 
+export interface UpdateTabInfoOptions {
+  title?: string;
+  favIconUrl?: string;
+  url?: string;
+}
+
 export default (() => {
   let state = new State();
 
@@ -899,6 +920,21 @@ export default (() => {
       exports.tabs = new MockTabs(state);
       (<any>globalThis).browser.windows = exports.windows;
       (<any>globalThis).browser.tabs = exports.tabs;
+    },
+
+    updateTabInfo(tabId: number, options: UpdateTabInfoOptions) {
+      const tab = state.tab(tabId);
+
+      const mods: UpdateTabInfoOptions = {};
+      for (const field of ["title", "url", "favIconUrl"] as const) {
+        if (options[field] !== undefined && options[field] !== tab[field]) {
+          mods[field] = options[field];
+          tab[field] = options[field];
+        }
+      }
+
+      if (Object.keys(mods).length === 0) return;
+      state.onTabUpdated.send(tabId, mods, JSON.parse(JSON.stringify(tab)));
     },
   };
 

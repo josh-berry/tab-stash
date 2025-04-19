@@ -39,6 +39,18 @@ export type ParseOptions = {
   splitOn: "" | "h" | "p+h";
 };
 
+export class ImportFailures {
+  readonly sites: SiteInfo[];
+
+  get urls(): string[] {
+    return this.sites.map(f => f.originalUrl);
+  }
+
+  constructor(failures: SiteInfo[]) {
+    this.sites = failures;
+  }
+}
+
 export function parse(
   node: Node,
   model: Model,
@@ -177,18 +189,21 @@ export function* extractURLs(str: string): Generator<NewTab> {
 
 export async function importURLs(options: {
   model: Model;
+  toFolder: BM.Folder | undefined;
   folders: NewFolder[];
   fetchIconsAndTitles: boolean;
   task: TaskMonitor;
-}): Promise<void> {
+}): Promise<ImportFailures> {
   options.task.status = "Importing tabs...";
   options.task.max = 100;
 
-  // We reverse the order of groups on import because the text/URLs that show
-  // up at the top of the imported list will also show up at the top of the
-  // stash.  Otherwise, the last folder to be created will show up first (so
-  // groups will appear "backwards" once imported).
-  const groups_rev = options.folders.reverse();
+  // For top-level imports, we reverse the order of groups, because the
+  // text/URLs that show up at the top of the imported list will also show up at
+  // the top of the stash.  Otherwise, the last folder to be created will show
+  // up first (so groups will appear "backwards" once imported).
+  const groups = !options.toFolder
+    ? options.folders.reverse()
+    : options.folders;
 
   const urls_in_tree = (f: NewFolder): string[] =>
     flat(
@@ -197,7 +212,7 @@ export async function importURLs(options: {
         return [c.url];
       }),
     );
-  const urlset = new Set(flat(groups_rev.map(g => urls_in_tree(g))));
+  const urlset = new Set(flat(groups.map(g => urls_in_tree(g))));
 
   // Collect errors that occurred while fetching site info.  We won't allow
   // these to terminate the import, but we do want to let the user know if
@@ -210,10 +225,10 @@ export async function importURLs(options: {
   // Task: Creating bookmarks
   const create_bms_p = options.task.wspawn(25, async tm => {
     tm.status = "Creating stash folders...";
-    tm.max = groups_rev.length;
+    tm.max = groups.length;
     const bm_groups: {folder: BM.Folder; bookmarks: BM.Node[]}[] = [];
 
-    for (const g of groups_rev) {
+    for (const g of groups) {
       if (tm.cancelled) break;
 
       const res = await tm.spawn(async tm => {
@@ -221,6 +236,7 @@ export async function importURLs(options: {
           // Explicitly set the title so we avoid picking up a search term if
           // one is active.
           g.title || BM.genDefaultFolderName(new Date()),
+          options.toFolder,
         );
         const bookmarks = await options.model.putItemsInFolder({
           items: g.children,
@@ -297,13 +313,7 @@ export async function importURLs(options: {
       for (const fid of folderIds) browser.bookmarks.removeTree(fid);
     }
 
-    if (errors.length > 0) {
-      alert(`Info for the following URLs could not be fetched:
-
-${errors.map(e => e.originalUrl).join("\n")}
-
-Stashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!`);
-    }
+    return new ImportFailures(errors);
   });
 
   options.task.onCancel = () => {
@@ -312,7 +322,7 @@ Stashed tabs for these URLs have been created anyway, but you may need to set th
     update_p.cancel();
   };
 
-  await update_p;
+  return await update_p;
 }
 
 // Polyfill for Array.flat(), which isn't available in FF 61.

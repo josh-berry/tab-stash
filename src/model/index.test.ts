@@ -4,24 +4,12 @@
 import {expect} from "chai";
 import browser from "webextension-polyfill";
 
-import storage_mock from "../mock/browser/storage.js";
 import * as events from "../mock/events.js";
-import type {BookmarkFixture, TabFixture} from "./fixtures.testlib.js";
-import {
-  B,
-  STASH_ROOT_NAME,
-  make_bookmark_metadata,
-  make_bookmarks,
-  make_deleted_items,
-  make_favicons,
-  make_tabs,
-} from "./fixtures.testlib.js";
+import {B} from "./fixtures.testlib.js";
+import {setupModelTestEnv, type ModelTestEnv} from "./index.testlib.js";
 
 import {filterMap, later} from "../util/index.js";
 
-import type {KeyValueStore} from "../datastore/kvs/index.js";
-import {KVSCache} from "../datastore/kvs/index.js";
-import MemoryKVS from "../datastore/kvs/memory.js";
 import {_StoredObjectFactory} from "../datastore/stored-object.js";
 import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
 import {
@@ -32,80 +20,13 @@ import {
 } from "./bookmarks.js";
 import type {DeletedFolder} from "./deleted-items.js";
 import * as M from "./index.js";
-import {LOCAL_DEF, SYNC_DEF} from "./options.js";
 import type {TabID} from "./tabs.js";
 
 describe("model", () => {
-  let tabs: TabFixture["tabs"];
-  let windows: TabFixture["windows"];
-  let bookmarks: BookmarkFixture;
-
-  let bookmark_metadata: KeyValueStore<
-    string,
-    M.BookmarkMetadata.BookmarkMetadata
-  >;
-  let favicons: KeyValueStore<string, M.Favicons.Favicon>;
-  let deleted_items: KeyValueStore<string, M.DeletedItems.SourceValue>;
-
-  let model: M.Model;
+  let env: ModelTestEnv = undefined!;
 
   beforeEach(async () => {
-    storage_mock.reset();
-    const stored_object_factory = new _StoredObjectFactory();
-
-    const tw = await make_tabs();
-    tabs = tw.tabs;
-    windows = tw.windows;
-    bookmarks = await make_bookmarks();
-
-    bookmark_metadata = new MemoryKVS("bookmark_metadata");
-    await make_bookmark_metadata(bookmark_metadata, bookmarks);
-
-    favicons = new MemoryKVS("favicons");
-    await make_favicons(favicons);
-
-    deleted_items = new MemoryKVS("deleted_items");
-    await make_deleted_items(deleted_items);
-
-    const tab_model = await M.Tabs.Model.from_browser();
-    const bm_model = await M.Bookmarks.Model.from_browser(STASH_ROOT_NAME);
-    model = new M.Model({
-      browser_settings: await M.BrowserSettings.Model.live(),
-      options: new M.Options.Model({
-        sync: await stored_object_factory.get("sync", "test_options", SYNC_DEF),
-        local: await stored_object_factory.get(
-          "local",
-          "test_options",
-          LOCAL_DEF,
-        ),
-      }),
-      tabs: tab_model,
-      containers: await M.Containers.Model.from_browser(),
-      bookmarks: bm_model,
-      deleted_items: new M.DeletedItems.Model(deleted_items),
-      favicons: new M.Favicons.Model(new KVSCache(favicons)),
-      bookmark_metadata: new M.BookmarkMetadata.Model(
-        new KVSCache(bookmark_metadata),
-      ),
-    });
-
-    // Cleanup timeouts
-    afterEach(() => {
-      model.deleted_items.clearRecentlyDeletedItems();
-    });
-
-    // We also need to wait for the favicon cache to update itself
-    await model.favicons.sync();
-    await events.watch(favicons.onSet).untilNextTick();
-
-    // We need the indexes in the models to be populated
-    await events
-      .watch(["EventfulMap.onInsert", "EventfulMap.onUpdate"])
-      .untilNextTick();
-    expect(tab_model.window(windows.left.id)!.children.length).to.equal(3);
-    expect(tab_model.window(windows.right.id)!.children.length).to.equal(3);
-    expect(tab_model.window(windows.real.id)!.children.length).to.equal(11);
-    expect(bm_model.stash_root.value!.id).to.equal(bookmarks.stash_root.id);
+    env = await setupModelTestEnv();
   });
 
   describe("garbage collection", () => {
@@ -123,28 +44,30 @@ describe("model", () => {
 
     it("remembers metadata for the current window", async () => {
       const entry = {key: CUR_WINDOW_MD_ID, value: {collapsed: true}};
-      await bookmark_metadata.set([entry]);
+      await env.bookmark_metadata.set([entry]);
 
-      await model.gc();
+      await env.model.gc();
 
-      expect(await bookmark_metadata.get([CUR_WINDOW_MD_ID])).to.deep.equal([
-        entry,
-      ]);
+      expect(await env.bookmark_metadata.get([CUR_WINDOW_MD_ID])).to.deep.equal(
+        [entry],
+      );
     });
 
     it("deletes bookmark metadata for deleted bookmarks", async () => {
-      expect(await bookmark_metadata.get(["nonexistent"])).to.deep.equal([
+      expect(await env.bookmark_metadata.get(["nonexistent"])).to.deep.equal([
         {key: "nonexistent", value: {collapsed: true}},
       ]);
 
-      await model.gc();
+      await env.model.gc();
 
-      expect(await bookmark_metadata.get(["nonexistent"])).to.deep.equal([]);
+      expect(await env.bookmark_metadata.get(["nonexistent"])).to.deep.equal(
+        [],
+      );
     });
 
     it("deletes cached favicons that are not in bookmarks or open tabs", async () => {
       expect(
-        await favicons.get([`${B}#sir-not-appearing-in-this-film`]),
+        await env.favicons.get([`${B}#sir-not-appearing-in-this-film`]),
       ).to.deep.equal([
         {
           key: `${B}#sir-not-appearing-in-this-film`,
@@ -152,20 +75,20 @@ describe("model", () => {
         },
       ]);
 
-      await model.gc();
+      await env.model.gc();
 
       expect(
-        await favicons.get([`${B}#sir-not-appearing-in-this-film`]),
+        await env.favicons.get([`${B}#sir-not-appearing-in-this-film`]),
       ).to.deep.equal([]);
     });
 
     it("deletes expired deleted items", async () => {
-      expect(model.options.sync.state.deleted_items_expiration_days).to.equal(
-        M.Options.SYNC_DEF.deleted_items_expiration_days.default,
-      );
+      expect(
+        env.model.options.sync.state.deleted_items_expiration_days,
+      ).to.equal(M.Options.SYNC_DEF.deleted_items_expiration_days.default);
 
       const old_deleted_item = (
-        await deleted_items.getStartingFrom(undefined, 1)
+        await env.deleted_items.getStartingFrom(undefined, 1)
       )[0];
       expect(old_deleted_item!.value.item).to.deep.include({
         title: "Older Deleted Bookmark",
@@ -175,50 +98,60 @@ describe("model", () => {
         new Date(old_deleted_item!.value.deleted_at).valueOf(),
       ).to.be.lessThan(deleted_item_cutoff);
 
-      await model.gc();
+      await env.model.gc();
 
-      expect(await deleted_items.get([old_deleted_item.key])).to.deep.equal([]);
-    });
-
-    it("keeps bookmark metadata for active bookmarks", async () => {
-      await model.gc();
-
-      expect(await bookmark_metadata.get([bookmarks.unnamed.id])).to.deep.equal(
-        [{key: bookmarks.unnamed.id, value: {collapsed: true}}],
+      expect(await env.deleted_items.get([old_deleted_item.key])).to.deep.equal(
+        [],
       );
     });
 
-    it("keeps cached favicons that are in open tabs", async () => {
-      await model.gc();
+    it("keeps bookmark metadata for active bookmarks", async () => {
+      await env.model.gc();
 
-      expect(await favicons.get([`${B}#doug`, `${B}#alice`])).to.deep.equal([
-        {key: `${B}#doug`, value: {favIconUrl: `${B}#doug.favicon`}},
-        {key: `${B}#alice`, value: {favIconUrl: `${B}#alice.favicon`}},
+      expect(
+        await env.bookmark_metadata.get([env.bookmarks.unnamed.id]),
+      ).to.deep.equal([
+        {key: env.bookmarks.unnamed.id, value: {collapsed: true}},
       ]);
     });
 
-    it("keeps cached favicons for bookmarks", async () => {
-      await model.gc();
+    it("keeps cached favicons that are in open tabs", async () => {
+      await env.model.gc();
 
-      expect(await favicons.get([`${B}#nate`, `${B}#undyne`])).to.deep.equal([
+      expect(await env.favicons.get([`${B}#doug`, `${B}#alice`])).to.deep.equal(
+        [
+          {key: `${B}#doug`, value: {favIconUrl: `${B}#doug.favicon`}},
+          {key: `${B}#alice`, value: {favIconUrl: `${B}#alice.favicon`}},
+        ],
+      );
+    });
+
+    it("keeps cached favicons for bookmarks", async () => {
+      await env.model.gc();
+
+      expect(
+        await env.favicons.get([`${B}#nate`, `${B}#undyne`]),
+      ).to.deep.equal([
         {key: `${B}#nate`, value: {favIconUrl: `${B}#nate.favicon`}},
         {key: `${B}#undyne`, value: {favIconUrl: `${B}#undyne.favicon`}},
       ]);
     });
 
     it("keeps recently deleted items", async () => {
-      expect(model.options.sync.state.deleted_items_expiration_days).to.equal(
-        M.Options.SYNC_DEF.deleted_items_expiration_days.default,
-      );
+      expect(
+        env.model.options.sync.state.deleted_items_expiration_days,
+      ).to.equal(M.Options.SYNC_DEF.deleted_items_expiration_days.default);
 
-      const newest_deleted = (await deleted_items.getEndingAt(undefined, 1))[0];
+      const newest_deleted = (
+        await env.deleted_items.getEndingAt(undefined, 1)
+      )[0];
       expect(Date.parse(newest_deleted.value.deleted_at)).to.be.greaterThan(
         deleted_item_cutoff,
       );
 
-      await model.gc();
+      await env.model.gc();
 
-      const items = await deleted_items.getEndingAt(undefined, 1000);
+      const items = await env.deleted_items.getEndingAt(undefined, 1000);
       expect(items.length).to.be.greaterThan(0);
       for (const item of items) {
         expect(Date.parse(item.value.deleted_at)).to.be.greaterThan(
@@ -230,53 +163,55 @@ describe("model", () => {
     describe("hidden tabs", () => {
       it("leaves stashed tabs alone", async () => {
         await browser.sessions.setTabValue(
-          tabs.real_doug_2.id,
+          env.tabs.real_doug_2.id,
           M.Tabs.SK_HIDDEN_BY_TAB_STASH,
           true,
         );
 
-        await model.closeOrphanedHiddenTabs();
+        await env.model.closeOrphanedHiddenTabs();
 
         const hidden = await browser.tabs.query({hidden: true});
         expect(hidden.map(t => t.id!)).to.deep.equal([
-          tabs.small_hidden.id,
-          tabs.real_doug_2.id,
-          tabs.real_harry.id,
-          tabs.real_helen.id,
+          env.tabs.small_hidden.id,
+          env.tabs.real_doug_2.id,
+          env.tabs.real_harry.id,
+          env.tabs.real_helen.id,
         ]);
       });
 
       it("closes orphaned stashed tabs", async () => {
         await browser.sessions.setTabValue(
-          tabs.real_doug_2.id,
+          env.tabs.real_doug_2.id,
           M.Tabs.SK_HIDDEN_BY_TAB_STASH,
           true,
         );
 
-        await browser.bookmarks.remove(bookmarks.doug_2.id);
-        while (model.bookmarks.node(bookmarks.doug_2.id) !== undefined) {
+        await browser.bookmarks.remove(env.bookmarks.doug_2.id);
+        while (
+          env.model.bookmarks.node(env.bookmarks.doug_2.id) !== undefined
+        ) {
           await new Promise(r => setTimeout(r));
         }
 
-        await model.closeOrphanedHiddenTabs();
+        await env.model.closeOrphanedHiddenTabs();
 
         const hidden = await browser.tabs.query({hidden: true});
         expect(hidden.map(t => t.id!)).to.deep.equal([
-          tabs.small_hidden.id,
-          tabs.real_harry.id,
-          tabs.real_helen.id,
+          env.tabs.small_hidden.id,
+          env.tabs.real_harry.id,
+          env.tabs.real_helen.id,
         ]);
       });
 
       it("leaves tabs hidden by other extensions alone", async () => {
-        await model.closeOrphanedHiddenTabs();
+        await env.model.closeOrphanedHiddenTabs();
 
         const hidden = await browser.tabs.query({hidden: true});
         expect(hidden.map(t => t.id!)).to.deep.equal([
-          tabs.small_hidden.id,
-          tabs.real_doug_2.id,
-          tabs.real_harry.id,
-          tabs.real_helen.id,
+          env.tabs.small_hidden.id,
+          env.tabs.real_doug_2.id,
+          env.tabs.real_harry.id,
+          env.tabs.real_helen.id,
         ]);
       });
     });
@@ -284,139 +219,152 @@ describe("model", () => {
 
   describe("choosing stashable tabs in a window", () => {
     it("throws when an invalid window is selected", () => {
-      expect(() => model.stashableTabsInWindow("asdf" as any)).to.throw(Error);
+      expect(() => env.model.stashableTabsInWindow("asdf" as any)).to.throw(
+        Error,
+      );
     });
 
     it("chooses all non-hidden, non-pinned and non-privileged tabs", () => {
-      const win = model.tabs.window(windows.real.id)!;
-      expect(model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal([
-        tabs.real_bob.id,
-        tabs.real_doug.id,
-        tabs.real_estelle.id,
-        tabs.real_francis.id,
-        tabs.real_unstashed.id,
-      ]);
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
+        [
+          env.tabs.real_bob.id,
+          env.tabs.real_doug.id,
+          env.tabs.real_estelle.id,
+          env.tabs.real_francis.id,
+          env.tabs.real_unstashed.id,
+        ],
+      );
     });
 
     it("allows user selection to override the default choice", async () => {
-      await browser.tabs.update(tabs.real_bob.id, {highlighted: true});
-      await browser.tabs.update(tabs.real_doug.id, {highlighted: true});
-      await browser.tabs.update(tabs.real_paul.id, {highlighted: true});
-      await browser.tabs.update(tabs.real_harry.id, {highlighted: true});
+      await browser.tabs.update(env.tabs.real_bob.id, {highlighted: true});
+      await browser.tabs.update(env.tabs.real_doug.id, {highlighted: true});
+      await browser.tabs.update(env.tabs.real_paul.id, {highlighted: true});
+      await browser.tabs.update(env.tabs.real_harry.id, {highlighted: true});
       await events.nextN(browser.tabs.onHighlighted, 4);
 
-      const win = model.tabs.window(windows.real.id)!;
-      expect(model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal([
-        // was previously active and therefore explicitly selected
-        tabs.real_blank.id,
-        // explicitly selected
-        tabs.real_bob.id,
-        // explicitly selected
-        tabs.real_doug.id,
-        // paul is always excluded because he's pinned
-        // harry is always excluded because he's hidden
-      ]);
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
+        [
+          // was previously active and therefore explicitly selected
+          env.tabs.real_blank.id,
+          // explicitly selected
+          env.tabs.real_bob.id,
+          // explicitly selected
+          env.tabs.real_doug.id,
+          // paul is always excluded because he's pinned
+          // harry is always excluded because he's hidden
+        ],
+      );
     });
   });
 
   describe("hides or closes stashed tabs", () => {
     describe("according to user settings", () => {
       it("hides tabs but keeps them loaded", async () => {
-        await model.options.local.set({after_stashing_tab: "hide"});
+        await env.model.options.local.set({after_stashing_tab: "hide"});
         await events.next(browser.storage.onChanged);
         await events.next(browser.storage.local.onChanged);
-        await events.next(model.options.local.onChanged);
-        expect(model.options.local.state.after_stashing_tab).to.equal("hide");
+        await events.next(env.model.options.local.onChanged);
+        expect(env.model.options.local.state.after_stashing_tab).to.equal(
+          "hide",
+        );
 
-        await model.hideOrCloseStashedTabs([
-          model.tabs.tab(tabs.right_doug.id)!,
+        await env.model.hideOrCloseStashedTabs([
+          env.model.tabs.tab(env.tabs.right_doug.id)!,
         ]);
         await events.next(browser.tabs.onUpdated); // hidden
 
-        const t = await browser.tabs.get(tabs.right_doug.id);
+        const t = await browser.tabs.get(env.tabs.right_doug.id);
         expect(t).to.deep.include({
-          url: tabs.right_doug.url,
+          url: env.tabs.right_doug.url,
           hidden: true,
         });
-        expect(model.tabs.tab(tabs.right_doug.id)).to.deep.include({
-          url: tabs.right_doug.url,
+        expect(env.model.tabs.tab(env.tabs.right_doug.id)).to.deep.include({
+          url: env.tabs.right_doug.url,
           hidden: true,
         });
-        expect(model.tabs.tab(tabs.right_doug.id)!.discarded).not.to.be.ok;
+        expect(env.model.tabs.tab(env.tabs.right_doug.id)!.discarded).not.to.be
+          .ok;
 
         const bm_id = await browser.sessions.getTabValue(
-          tabs.right_doug.id,
+          env.tabs.right_doug.id,
           M.Tabs.SK_HIDDEN_BY_TAB_STASH,
         );
         expect(bm_id).to.equal(true);
       });
 
       it("hides and unloads tabs", async () => {
-        await model.options.local.set({after_stashing_tab: "hide_discard"});
+        await env.model.options.local.set({after_stashing_tab: "hide_discard"});
         await events.next(browser.storage.onChanged);
         await events.next(browser.storage.local.onChanged);
-        await events.next(model.options.local.onChanged);
-        expect(model.options.local.state.after_stashing_tab).to.equal(
+        await events.next(env.model.options.local.onChanged);
+        expect(env.model.options.local.state.after_stashing_tab).to.equal(
           "hide_discard",
         );
 
-        await model.hideOrCloseStashedTabs([
-          model.tabs.tab(tabs.right_doug.id)!,
+        await env.model.hideOrCloseStashedTabs([
+          env.model.tabs.tab(env.tabs.right_doug.id)!,
         ]);
         await events.next(browser.tabs.onUpdated); // hidden
         await events.next(browser.tabs.onUpdated); // discarded
 
-        expect(await browser.tabs.get(tabs.right_doug.id)).to.deep.include({
-          url: tabs.right_doug.url,
+        expect(await browser.tabs.get(env.tabs.right_doug.id)).to.deep.include({
+          url: env.tabs.right_doug.url,
           hidden: true,
           discarded: true,
         });
-        expect(model.tabs.tab(tabs.right_doug.id)).to.deep.include({
-          url: tabs.right_doug.url,
+        expect(env.model.tabs.tab(env.tabs.right_doug.id)).to.deep.include({
+          url: env.tabs.right_doug.url,
           hidden: true,
           discarded: true,
         });
 
         const bm_id = await browser.sessions.getTabValue(
-          tabs.right_doug.id,
+          env.tabs.right_doug.id,
           M.Tabs.SK_HIDDEN_BY_TAB_STASH,
         );
         expect(bm_id).to.equal(true);
       });
 
       it("closes tabs", async () => {
-        await model.options.local.set({after_stashing_tab: "close"});
+        await env.model.options.local.set({after_stashing_tab: "close"});
         await events.next(browser.storage.onChanged);
         await events.next(browser.storage.local.onChanged);
-        await events.next(model.options.local.onChanged);
-        expect(model.options.local.state.after_stashing_tab).to.equal("close");
+        await events.next(env.model.options.local.onChanged);
+        expect(env.model.options.local.state.after_stashing_tab).to.equal(
+          "close",
+        );
 
-        const p = model.hideOrCloseStashedTabs([
-          model.tabs.tab(tabs.right_doug.id)!,
+        const p = env.model.hideOrCloseStashedTabs([
+          env.model.tabs.tab(env.tabs.right_doug.id)!,
         ]);
         await events.next(browser.tabs.onRemoved);
         await p;
 
-        await browser.tabs.get(tabs.right_doug.id).then(
+        await browser.tabs.get(env.tabs.right_doug.id).then(
           /* c8 ignore next -- bug-checking */
           () => expect.fail("browser.tabs.get did not throw"),
           () => {},
         );
-        expect(model.tabs.tab(tabs.right_doug.id)).to.be.undefined;
+        expect(env.model.tabs.tab(env.tabs.right_doug.id)).to.be.undefined;
       });
     });
 
     it("opens a new empty tab if needed to keep the window open", async () => {
-      await model.options.local.set({after_stashing_tab: "hide"});
+      await env.model.options.local.set({after_stashing_tab: "hide"});
       await events.next(browser.storage.onChanged);
       await events.next(browser.storage.local.onChanged);
-      await events.next(model.options.local.onChanged);
-      expect(model.options.local.state.after_stashing_tab).to.equal("hide");
+      await events.next(env.model.options.local.onChanged);
+      expect(env.model.options.local.state.after_stashing_tab).to.equal("hide");
 
-      await model.hideOrCloseStashedTabs(
-        [tabs.left_alice.id, tabs.left_betty.id, tabs.left_charlotte.id].map(
-          id => model.tabs.tab(id)!,
-        ),
+      await env.model.hideOrCloseStashedTabs(
+        [
+          env.tabs.left_alice.id,
+          env.tabs.left_betty.id,
+          env.tabs.left_charlotte.id,
+        ].map(id => env.model.tabs.tab(id)!),
       );
       await events.next(browser.tabs.onHighlighted); // un-highlight current tab
       await events.next(browser.tabs.onCreated);
@@ -424,24 +372,24 @@ describe("model", () => {
       await events.next(browser.tabs.onHighlighted);
       await events.nextN(browser.tabs.onUpdated, 4);
 
-      const win = await browser.tabs.query({windowId: windows.left.id});
+      const win = await browser.tabs.query({windowId: env.windows.left.id});
       expect(
         win.map(({id, url, active, hidden}) => ({id, url, active, hidden})),
       ).to.deep.equal([
         {
-          id: tabs.left_alice.id,
+          id: env.tabs.left_alice.id,
           url: `${B}#alice`,
           active: false,
           hidden: true,
         },
         {
-          id: tabs.left_betty.id,
+          id: env.tabs.left_betty.id,
           url: `${B}#betty`,
           active: false,
           hidden: true,
         },
         {
-          id: tabs.left_charlotte.id,
+          id: env.tabs.left_charlotte.id,
           url: `${B}#charlotte`,
           active: false,
           hidden: true,
@@ -450,46 +398,48 @@ describe("model", () => {
       ]);
 
       expect(
-        model.tabs.window(windows.left.id)!.children.map(bm => bm.id),
+        env.model.tabs.window(env.windows.left.id)!.children.map(bm => bm.id),
       ).to.deep.equal([
-        tabs.left_alice.id,
-        tabs.left_betty.id,
-        tabs.left_charlotte.id,
+        env.tabs.left_alice.id,
+        env.tabs.left_betty.id,
+        env.tabs.left_charlotte.id,
         win[3].id!,
       ]);
-      expect(model.tabs.tab(tabs.left_alice.id)!.hidden).to.be.true;
-      expect(model.tabs.tab(tabs.left_betty.id)!.hidden).to.be.true;
-      expect(model.tabs.tab(tabs.left_charlotte.id)!.hidden).to.be.true;
-      expect(model.tabs.tab(win[3].id as TabID)).to.deep.include({
+      expect(env.model.tabs.tab(env.tabs.left_alice.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.left_betty.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.left_charlotte.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(win[3].id as TabID)).to.deep.include({
         active: true,
       });
     });
 
     it("refocuses away from an active tab that is to be closed", async () => {
-      await model.hideOrCloseStashedTabs([model.tabs.tab(tabs.left_alice.id)!]);
+      await env.model.hideOrCloseStashedTabs([
+        env.model.tabs.tab(env.tabs.left_alice.id)!,
+      ]);
       await events.next(browser.tabs.onHighlighted); // un-highlight current tab
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
       await events.next(browser.tabs.onUpdated); // hidden
 
-      const win = await browser.tabs.query({windowId: windows.left.id});
+      const win = await browser.tabs.query({windowId: env.windows.left.id});
       expect(
         win.map(({id, url, active, hidden}) => ({id, url, active, hidden})),
       ).to.deep.equal([
         {
-          id: tabs.left_alice.id,
+          id: env.tabs.left_alice.id,
           url: `${B}#alice`,
           active: false,
           hidden: true,
         },
         {
-          id: tabs.left_betty.id,
+          id: env.tabs.left_betty.id,
           url: `${B}#betty`,
           active: true,
           hidden: undefined,
         },
         {
-          id: tabs.left_charlotte.id,
+          id: env.tabs.left_charlotte.id,
           url: `${B}#charlotte`,
           active: false,
           hidden: undefined,
@@ -498,11 +448,13 @@ describe("model", () => {
     });
 
     it("clears any selections on hidden tabs", async () => {
-      const tab = model.tabs.tab(tabs.real_bob.id)!;
-      const si = model.selection.info(tab);
+      const tab = env.model.tabs.tab(env.tabs.real_bob.id)!;
+      const si = env.model.selection.info(tab);
 
       si.isSelected = true;
-      expect(Array.from(model.selection.selectedItems())).to.deep.equal([tab]);
+      expect(Array.from(env.model.selection.selectedItems())).to.deep.equal([
+        tab,
+      ]);
 
       const p1 = browser.tabs.update(tab.id, {highlighted: true});
       await events.next(browser.tabs.onHighlighted);
@@ -510,7 +462,7 @@ describe("model", () => {
 
       expect(tab.highlighted).to.be.true;
 
-      const p2 = model.hideOrCloseStashedTabs([tab]);
+      const p2 = env.model.hideOrCloseStashedTabs([tab]);
       await events.next(browser.tabs.onHighlighted);
       await events.next(browser.tabs.onUpdated);
       await p2;
@@ -518,18 +470,18 @@ describe("model", () => {
       expect(tab.hidden).to.be.true;
       expect(tab.highlighted).to.be.false;
       expect(si.isSelected).to.be.false;
-      expect(Array.from(model.selection.selectedItems())).to.deep.equal([]);
+      expect(Array.from(env.model.selection.selectedItems())).to.deep.equal([]);
     });
   });
 
   describe("creates and uses default stash destinations", () => {
     beforeEach(() => {
-      expect(model.bookmarks.stash_root.value).not.to.be.undefined;
-      expect(model.defaultStashDestFolder()).to.be.undefined;
+      expect(env.model.bookmarks.stash_root.value).not.to.be.undefined;
+      expect(env.model.defaultStashDestFolder()).to.be.undefined;
     });
 
     async function createStashFolder() {
-      const p = model.createStashFolder();
+      const p = env.model.createStashFolder();
       await events.next(browser.bookmarks.onCreated);
       return await p;
     }
@@ -537,25 +489,25 @@ describe("model", () => {
     it("creates a new destination (no search)", async () => {
       const f = await createStashFolder();
 
-      expect(model.bookmarks.stash_root.value!.children[0]).to.equal(f);
+      expect(env.model.bookmarks.stash_root.value!.children[0]).to.equal(f);
       expect(M.Bookmarks.getDefaultFolderNameISODate(f.title)).to.be.a(
         "string",
       );
-      expect(model.defaultStashDestFolder()).to.equal(f);
+      expect(env.model.defaultStashDestFolder()).to.equal(f);
     });
 
     it("creates a new destination (with search)", async () => {
-      model.searchText.value = "the folder title";
+      env.model.searchText.value = "the folder title";
       const f = await createStashFolder();
 
-      expect(model.bookmarks.stash_root.value!.children[0]).to.equal(f);
+      expect(env.model.bookmarks.stash_root.value!.children[0]).to.equal(f);
       expect(f.title).to.equal("the folder title");
-      expect(model.defaultStashDestFolder()).to.equal(f);
+      expect(env.model.defaultStashDestFolder()).to.equal(f);
     });
 
     it("reuses an existing (without search)", async () => {
       const f = await createStashFolder();
-      const f2 = await model.ensureDefaultStashDestFolder();
+      const f2 = await env.model.ensureDefaultStashDestFolder();
 
       expect(M.Bookmarks.getDefaultFolderNameISODate(f.title)).to.be.a(
         "string",
@@ -565,10 +517,10 @@ describe("model", () => {
     });
 
     it("reuses an existing (with search)", async () => {
-      model.searchText.value = "the folder title";
+      env.model.searchText.value = "the folder title";
 
       const f = await createStashFolder();
-      const f2 = await model.ensureDefaultStashDestFolder();
+      const f2 = await env.model.ensureDefaultStashDestFolder();
 
       expect(f).to.not.be.undefined;
       expect(f).to.equal(f2);
@@ -578,45 +530,49 @@ describe("model", () => {
 
   describe("puts items in bookmark folders", () => {
     async function check_folder(
-      folderName: keyof typeof bookmarks,
-      children: (keyof typeof bookmarks)[],
+      folderName: keyof typeof env.bookmarks,
+      children: (keyof typeof env.bookmarks)[],
     ) {
       const real_folder = await browser.bookmarks.getChildren(
-        bookmarks[folderName].id,
+        env.bookmarks[folderName].id,
       );
       expect(
         real_folder.map(c => c.title),
         "Browser bookmark titles",
-      ).to.deep.equal(children.map(c => bookmarks[c].title));
+      ).to.deep.equal(children.map(c => env.bookmarks[c].title));
       expect(
         real_folder.map(c => c.id),
         "Browser bookmark IDs",
-      ).to.deep.equal(children.map(c => bookmarks[c].id));
+      ).to.deep.equal(children.map(c => env.bookmarks[c].id));
 
-      const folder = model.bookmarks.folder(bookmarks[folderName].id)!;
+      const folder = env.model.bookmarks.folder(env.bookmarks[folderName].id)!;
       expect(folder, `Folder ${folderName} is loaded in model`).to.not.be
         .undefined;
       expect(
         folder.children.map(c => c?.title),
         "Model bookmark titles",
-      ).to.deep.equal(children.map(c => bookmarks[c].title));
+      ).to.deep.equal(children.map(c => env.bookmarks[c].title));
       expect(
         folder.children.map(bm => bm?.id),
         "Model bookmark IDs",
-      ).to.deep.equal(children.map(c => bookmarks[c].id));
+      ).to.deep.equal(children.map(c => env.bookmarks[c].id));
     }
 
     const testMove =
       (options: {
-        items: (keyof typeof bookmarks)[];
-        toFolder: keyof typeof bookmarks;
+        items: (keyof typeof env.bookmarks)[];
+        toFolder: keyof typeof env.bookmarks;
         toIndex: number;
-        finalState: (keyof typeof bookmarks)[];
+        finalState: (keyof typeof env.bookmarks)[];
       }) =>
       async () => {
-        const p = model.putItemsInFolder({
-          items: options.items.map(i => model.bookmarks.node(bookmarks[i].id)!),
-          toFolder: model.bookmarks.folder(bookmarks[options.toFolder].id)!,
+        const p = env.model.putItemsInFolder({
+          items: options.items.map(
+            i => env.model.bookmarks.node(env.bookmarks[i].id)!,
+          ),
+          toFolder: env.model.bookmarks.folder(
+            env.bookmarks[options.toFolder].id,
+          )!,
           toIndex: options.toIndex,
         });
         await events.nextN(browser.bookmarks.onMoved, options.items.length);
@@ -625,7 +581,9 @@ describe("model", () => {
       };
 
     beforeEach(async () => {
-      await model.bookmarks.loadedSubtree(model.bookmarks.stash_root.value!);
+      await env.model.bookmarks.loadedSubtree(
+        env.model.bookmarks.stash_root.value!,
+      );
       await check_folder("big_stash", [
         "one",
         "two",
@@ -873,12 +831,12 @@ describe("model", () => {
     );
 
     it("copies external items into the folder", async () => {
-      const p = model.putItemsInFolder({
+      const p = env.model.putItemsInFolder({
         items: [
           {url: "foo", title: "Foo"},
           {url: "bar", title: "Bar"},
         ],
-        toFolder: model.bookmarks.folder(bookmarks.names.id)!,
+        toFolder: env.model.bookmarks.folder(env.bookmarks.names.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
@@ -902,7 +860,7 @@ describe("model", () => {
       ];
 
       const real_folder = await browser.bookmarks.getChildren(
-        bookmarks.names.id,
+        env.bookmarks.names.id,
       );
       expect(
         real_folder.map(c => c.title),
@@ -913,7 +871,7 @@ describe("model", () => {
         "Browser bookmark URLs",
       ).to.deep.equal(urls);
 
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
+      const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
       expect(
         folder.children.map(c => c?.title),
         "Model bookmark titles",
@@ -925,12 +883,12 @@ describe("model", () => {
     });
 
     it("moves tabs into the folder", async () => {
-      const p = model.putItemsInFolder({
+      const p = env.model.putItemsInFolder({
         items: [
-          model.tabs.tab(tabs.real_bob.id)!,
-          model.tabs.tab(tabs.real_estelle.id)!,
+          env.model.tabs.tab(env.tabs.real_bob.id)!,
+          env.model.tabs.tab(env.tabs.real_estelle.id)!,
         ],
-        toFolder: model.bookmarks.folder(bookmarks.names.id)!,
+        toFolder: env.model.bookmarks.folder(env.bookmarks.names.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
@@ -954,11 +912,11 @@ describe("model", () => {
         `${B}#nate`,
       ];
 
-      expect(model.tabs.tab(tabs.real_bob.id)!.hidden).to.be.true;
-      expect(model.tabs.tab(tabs.real_estelle.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.real_bob.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.real_estelle.id)!.hidden).to.be.true;
 
       const real_folder = await browser.bookmarks.getChildren(
-        bookmarks.names.id,
+        env.bookmarks.names.id,
       );
       expect(
         real_folder.map(c => c.title),
@@ -969,7 +927,7 @@ describe("model", () => {
         "Browser bookmark URLs",
       ).to.deep.equal(urls);
 
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
+      const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
       expect(
         folder.children.map(c => c?.title),
         "Model bookmark titles",
@@ -981,14 +939,14 @@ describe("model", () => {
     });
 
     it("moves tabs and bookmarks into the folder", async () => {
-      const p = model.putItemsInFolder({
+      const p = env.model.putItemsInFolder({
         items: [
-          model.tabs.tab(tabs.real_bob.id)!,
-          model.tabs.tab(tabs.real_estelle.id)!,
-          model.bookmarks.bookmark(bookmarks.two.id)!,
-          model.bookmarks.bookmark(bookmarks.four.id)!,
+          env.model.tabs.tab(env.tabs.real_bob.id)!,
+          env.model.tabs.tab(env.tabs.real_estelle.id)!,
+          env.model.bookmarks.bookmark(env.bookmarks.two.id)!,
+          env.model.bookmarks.bookmark(env.bookmarks.four.id)!,
         ],
-        toFolder: model.bookmarks.folder(bookmarks.names.id)!,
+        toFolder: env.model.bookmarks.folder(env.bookmarks.names.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
@@ -1017,17 +975,17 @@ describe("model", () => {
         `${B}#nate`,
       ];
 
-      expect(model.tabs.tab(tabs.real_bob.id)!.hidden).to.be.true;
-      expect(model.tabs.tab(tabs.real_estelle.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.real_bob.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.real_estelle.id)!.hidden).to.be.true;
       expect(
-        model.bookmarks.bookmark(bookmarks.two.id)!.position!.parent,
-      ).to.equal(model.bookmarks.folder(bookmarks.names.id));
+        env.model.bookmarks.bookmark(env.bookmarks.two.id)!.position!.parent,
+      ).to.equal(env.model.bookmarks.folder(env.bookmarks.names.id));
       expect(
-        model.bookmarks.bookmark(bookmarks.four.id)!.position!.parent,
-      ).to.equal(model.bookmarks.folder(bookmarks.names.id));
+        env.model.bookmarks.bookmark(env.bookmarks.four.id)!.position!.parent,
+      ).to.equal(env.model.bookmarks.folder(env.bookmarks.names.id));
 
       const real_folder = await browser.bookmarks.getChildren(
-        bookmarks.names.id,
+        env.bookmarks.names.id,
       );
       expect(
         real_folder.map(c => c.title),
@@ -1038,7 +996,7 @@ describe("model", () => {
         "Browser bookmark URLs",
       ).to.deep.equal(urls);
 
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
+      const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
       expect(
         folder.children.map(c => c?.title),
         "Model bookmark titles",
@@ -1049,16 +1007,16 @@ describe("model", () => {
       ).to.deep.equal(urls);
 
       expect(
-        model.bookmarks
-          .folder(bookmarks.big_stash.id)!
+        env.model.bookmarks
+          .folder(env.bookmarks.big_stash.id)!
           .children.map(bm => bm?.id),
       ).to.deep.equal([
-        bookmarks.one.id,
-        bookmarks.three.id,
-        bookmarks.five.id,
-        bookmarks.six.id,
-        bookmarks.seven.id,
-        bookmarks.eight.id,
+        env.bookmarks.one.id,
+        env.bookmarks.three.id,
+        env.bookmarks.five.id,
+        env.bookmarks.six.id,
+        env.bookmarks.seven.id,
+        env.bookmarks.eight.id,
       ]);
     });
 
@@ -1070,8 +1028,8 @@ describe("model", () => {
         `${B}#turtle`,
         `${B}#nate`,
       ];
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
-      const p = model.putItemsInFolder({
+      const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
+      const p = env.model.putItemsInFolder({
         toFolder: folder,
         toIndex: 2,
         items: urls.map(url => ({url})),
@@ -1084,13 +1042,13 @@ describe("model", () => {
       const res = await p;
 
       const expectedIds = [
-        bookmarks.helen.id,
+        env.bookmarks.helen.id,
         res[0].id,
-        bookmarks.doug_2.id,
+        env.bookmarks.doug_2.id,
         res[2].id,
         res[3].id,
-        bookmarks.nate.id,
-        bookmarks.patricia.id,
+        env.bookmarks.nate.id,
+        env.bookmarks.patricia.id,
       ];
 
       expect(
@@ -1111,15 +1069,15 @@ describe("model", () => {
       ]);
 
       expect(
-        (await browser.bookmarks.getChildren(bookmarks.names.id)).map(
+        (await browser.bookmarks.getChildren(env.bookmarks.names.id)).map(
           b => b.id,
         ),
       ).to.deep.equal(expectedIds);
     });
 
     it("puts nested folders into the stash", async () => {
-      const folder = model.bookmarks.folder(bookmarks.names.id)!;
-      const p = model.putItemsInFolder({
+      const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
+      const p = env.model.putItemsInFolder({
         toFolder: folder,
         toIndex: 0,
         items: [
@@ -1158,45 +1116,45 @@ describe("model", () => {
 
   describe("puts items in windows", () => {
     async function check_window(
-      windowName: keyof typeof windows,
-      children: (keyof typeof tabs)[],
+      windowName: keyof typeof env.windows,
+      children: (keyof typeof env.tabs)[],
     ) {
       const real_tabs = await browser.tabs.query({
-        windowId: windows[windowName].id,
+        windowId: env.windows[windowName].id,
       });
       expect(
         real_tabs.map(c => c.url),
         "Browser tab URLs",
-      ).to.deep.equal(children.map(c => tabs[c].url));
+      ).to.deep.equal(children.map(c => env.tabs[c].url));
       expect(
         real_tabs.map(c => c.id),
         "Browser tab IDs",
-      ).to.deep.equal(children.map(c => tabs[c].id));
+      ).to.deep.equal(children.map(c => env.tabs[c].id));
 
-      const win = model.tabs.window(windows[windowName].id)!;
+      const win = env.model.tabs.window(env.windows[windowName].id)!;
       // console.log(win.tabs);
       // console.log(children.map(c => ({[c]: tabs[c].id})));
       expect(
         win.children.map(c => c.url),
         "Model tab URLs",
-      ).to.deep.equal(children.map(c => tabs[c].url));
+      ).to.deep.equal(children.map(c => env.tabs[c].url));
       expect(
         win.children.map(t => t.id),
         "Model tab IDs",
-      ).to.deep.equal(children.map(c => tabs[c].id));
+      ).to.deep.equal(children.map(c => env.tabs[c].id));
     }
 
     const testMove =
       (options: {
-        items: (keyof typeof tabs)[];
-        toWindow: keyof typeof windows;
+        items: (keyof typeof env.tabs)[];
+        toWindow: keyof typeof env.windows;
         toIndex: number;
-        finalState: (keyof typeof tabs)[];
+        finalState: (keyof typeof env.tabs)[];
       }) =>
       async () => {
-        const p = model.putItemsInWindow({
-          items: options.items.map(i => model.tabs.tab(tabs[i].id)!),
-          toWindow: model.tabs.window(windows[options.toWindow].id)!,
+        const p = env.model.putItemsInWindow({
+          items: options.items.map(i => env.model.tabs.tab(env.tabs[i].id)!),
+          toWindow: env.model.tabs.window(env.windows[options.toWindow].id)!,
           toIndex: options.toIndex,
         });
         await events.nextN<any>(
@@ -1452,17 +1410,17 @@ describe("model", () => {
     // it('moves a combination of tabs from the same/different windows');
 
     it("immediately loads tabs if so requested", async () => {
-      await model.options.local.set({load_tabs_on_restore: "immediately"});
+      await env.model.options.local.set({load_tabs_on_restore: "immediately"});
       await events.next(browser.storage.onChanged);
       await events.next(browser.storage.local.onChanged);
       await events.next("StoredObject.onChanged");
-      expect(model.options.local.state.load_tabs_on_restore).to.equal(
+      expect(env.model.options.local.state.load_tabs_on_restore).to.equal(
         "immediately",
       );
 
-      const p = model.putItemsInWindow({
+      const p = env.model.putItemsInWindow({
         items: [{url: "http://example.com/#1"}, {url: "http://example.com/#2"}],
-        toWindow: model.tabs.window(windows.right.id)!,
+        toWindow: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1478,7 +1436,7 @@ describe("model", () => {
       ];
 
       const real_tabs = await browser.tabs.query({
-        windowId: windows.right.id,
+        windowId: env.windows.right.id,
       });
       expect(
         real_tabs.map(c => c.url),
@@ -1488,15 +1446,17 @@ describe("model", () => {
     });
 
     it("copies external items into the window", async () => {
-      await model.options.local.set({load_tabs_on_restore: "lazily"});
+      await env.model.options.local.set({load_tabs_on_restore: "lazily"});
       await events.next(browser.storage.onChanged);
       await events.next(browser.storage.local.onChanged);
       await events.next("StoredObject.onChanged");
-      expect(model.options.local.state.load_tabs_on_restore).to.equal("lazily");
+      expect(env.model.options.local.state.load_tabs_on_restore).to.equal(
+        "lazily",
+      );
 
-      const p = model.putItemsInWindow({
+      const p = env.model.putItemsInWindow({
         items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
-        toWindow: model.tabs.window(windows.right.id)!,
+        toWindow: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1505,13 +1465,15 @@ describe("model", () => {
 
       const urls = [`${B}`, `${B}#adam`, `${B}#new1`, `${B}#new2`, `${B}#doug`];
 
-      const real_tabs = await browser.tabs.query({windowId: windows.right.id});
+      const real_tabs = await browser.tabs.query({
+        windowId: env.windows.right.id,
+      });
       expect(
         real_tabs.map(c => c.url),
         "Browser tab URLs",
       ).to.deep.equal(urls);
 
-      const win = model.tabs.window(windows.right.id)!;
+      const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
         win.children.map(c => c.url),
         "Model tab URLs",
@@ -1519,21 +1481,21 @@ describe("model", () => {
     });
 
     it("moves bookmarks into the window", async () => {
-      await model.bookmarks.loadedStash();
-      expect(model.tabs.tab(tabs.real_helen.id)).to.deep.include({
+      await env.model.bookmarks.loadedStash();
+      expect(env.model.tabs.tab(env.tabs.real_helen.id)).to.deep.include({
         position: {
-          parent: model.tabs.window(windows.real.id),
+          parent: env.model.tabs.window(env.windows.real.id),
           index: 10,
         },
         hidden: true,
       });
 
-      const p = model.putItemsInWindow({
+      const p = env.model.putItemsInWindow({
         items: [
-          model.bookmarks.bookmark(bookmarks.helen.id)!, // hidden tab
-          model.bookmarks.bookmark(bookmarks.nate.id)!, // not open
+          env.model.bookmarks.bookmark(env.bookmarks.helen.id)!, // hidden tab
+          env.model.bookmarks.bookmark(env.bookmarks.nate.id)!, // not open
         ],
-        toWindow: model.tabs.window(windows.right.id)!,
+        toWindow: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN<any>(
@@ -1555,14 +1517,16 @@ describe("model", () => {
       ];
 
       const ids = [
-        tabs.right_blank.id,
-        tabs.right_adam.id,
-        tabs.real_helen.id,
+        env.tabs.right_blank.id,
+        env.tabs.right_adam.id,
+        env.tabs.real_helen.id,
         res[1].id,
-        tabs.right_doug.id,
+        env.tabs.right_doug.id,
       ];
 
-      const real_tabs = await browser.tabs.query({windowId: windows.right.id});
+      const real_tabs = await browser.tabs.query({
+        windowId: env.windows.right.id,
+      });
       expect(
         real_tabs.map(c => c.url),
         "Browser tab URLs",
@@ -1572,7 +1536,7 @@ describe("model", () => {
         "Browser tab IDs",
       ).to.deep.equal(ids);
 
-      const win = model.tabs.window(windows.right.id)!;
+      const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
         win.children.map(c => c.url),
         "Model tab URLs",
@@ -1583,12 +1547,14 @@ describe("model", () => {
       ).to.deep.equal(ids);
 
       expect(
-        model.bookmarks.folder(bookmarks.names.id)!.children.map(bm => bm?.id),
-      ).to.deep.equal([bookmarks.doug_2.id, bookmarks.patricia.id]);
+        env.model.bookmarks
+          .folder(env.bookmarks.names.id)!
+          .children.map(bm => bm?.id),
+      ).to.deep.equal([env.bookmarks.doug_2.id, env.bookmarks.patricia.id]);
 
-      expect(model.tabs.tab(tabs.real_helen.id)).to.deep.include({
+      expect(env.model.tabs.tab(env.tabs.real_helen.id)).to.deep.include({
         position: {
-          parent: model.tabs.window(windows.right.id),
+          parent: env.model.tabs.window(env.windows.right.id),
           index: 2,
         },
         hidden: false,
@@ -1596,23 +1562,23 @@ describe("model", () => {
 
       // We should get some deleted items since we moved bookmarks out
       await events.nextN("KVS.Memory.onSet", 2);
-      await model.deleted_items.loadMore();
-      expect(model.deleted_items.state.entries[0].item).to.deep.include({
-        url: bookmarks.helen.url,
+      await env.model.deleted_items.loadMore();
+      expect(env.model.deleted_items.state.entries[0].item).to.deep.include({
+        url: env.bookmarks.helen.url,
       });
-      expect(model.deleted_items.state.entries[1].item).to.deep.include({
-        url: bookmarks.nate.url,
+      expect(env.model.deleted_items.state.entries[1].item).to.deep.include({
+        url: env.bookmarks.nate.url,
       });
     });
 
     it("moves tabs and bookmarks into the window", async () => {
-      await model.bookmarks.loadedStash();
-      const p = model.putItemsInWindow({
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
         items: [
-          model.tabs.tab(tabs.right_doug.id)!,
-          model.bookmarks.bookmark(bookmarks.nate.id)!,
+          env.model.tabs.tab(env.tabs.right_doug.id)!,
+          env.model.bookmarks.bookmark(env.bookmarks.nate.id)!,
         ],
-        toWindow: model.tabs.window(windows.right.id)!,
+        toWindow: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 1,
       });
       await events.nextN(browser.tabs.onMoved, 1);
@@ -1623,39 +1589,43 @@ describe("model", () => {
 
       const urls = [`${B}`, `${B}#doug`, `${B}#nate`, `${B}#adam`];
 
-      const real_tabs = await browser.tabs.query({windowId: windows.right.id});
+      const real_tabs = await browser.tabs.query({
+        windowId: env.windows.right.id,
+      });
       expect(
         real_tabs.map(c => c.url),
         "Browser tab URLs",
       ).to.deep.equal(urls);
 
-      const win = model.tabs.window(windows.right.id)!;
+      const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
         win.children.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
 
       expect(
-        model.bookmarks.folder(bookmarks.names.id)!.children.map(bm => bm?.id),
+        env.model.bookmarks
+          .folder(env.bookmarks.names.id)!
+          .children.map(bm => bm?.id),
       ).to.deep.equal([
-        bookmarks.doug_2.id,
-        bookmarks.helen.id,
-        bookmarks.patricia.id,
+        env.bookmarks.doug_2.id,
+        env.bookmarks.helen.id,
+        env.bookmarks.patricia.id,
       ]);
 
       // We should get some deleted items since we moved bookmarks out
       await events.nextN("KVS.Memory.onSet", 1);
-      await model.deleted_items.loadMore();
-      expect(model.deleted_items.state.entries[0].item).to.deep.include({
-        url: bookmarks.nate.url,
+      await env.model.deleted_items.loadMore();
+      expect(env.model.deleted_items.state.entries[0].item).to.deep.include({
+        url: env.bookmarks.nate.url,
       });
     });
 
     it("moves bookmarks with hidden tabs into the window (backward)", async () => {
-      await model.bookmarks.loadedStash();
-      const p = model.putItemsInWindow({
-        items: [model.bookmarks.bookmark(bookmarks.helen.id)!],
-        toWindow: model.tabs.window(windows.real.id)!,
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
+        items: [env.model.bookmarks.bookmark(env.bookmarks.helen.id)!],
+        toWindow: env.model.tabs.window(env.windows.real.id)!,
         toIndex: 9,
       });
       await events.next(browser.tabs.onMoved);
@@ -1680,10 +1650,10 @@ describe("model", () => {
     });
 
     it("moves bookmarks with hidden tabs into the window (forward)", async () => {
-      await model.bookmarks.loadedStash();
-      const p = model.putItemsInWindow({
-        items: [model.bookmarks.bookmark(bookmarks.doug_2.id)!],
-        toWindow: model.tabs.window(windows.real.id)!,
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
+        items: [env.model.bookmarks.bookmark(env.bookmarks.doug_2.id)!],
+        toWindow: env.model.tabs.window(env.windows.real.id)!,
         toIndex: 9,
       });
       await events.next(browser.tabs.onMoved);
@@ -1710,14 +1680,14 @@ describe("model", () => {
 
   describe("restores tabs", () => {
     beforeEach(() => {
-      expect(model.tabs.initialWindow.value).to.equal(
-        model.tabs.window(windows.real.id),
+      expect(env.model.tabs.initialWindow.value).to.equal(
+        env.model.tabs.window(env.windows.real.id),
       );
-      expect(model.tabs.activeTab()!.url).to.equal(B);
+      expect(env.model.tabs.activeTab()!.url).to.equal(B);
     });
 
     it("restores a single hidden tab", async () => {
-      const p = model.restoreTabs([{url: `${B}#harry`}], {});
+      const p = env.model.restoreTabs([{url: `${B}#harry`}], {});
       await events.next(browser.tabs.onMoved);
       await events.next(browser.tabs.onUpdated);
       await events.next(browser.tabs.onActivated);
@@ -1725,36 +1695,36 @@ describe("model", () => {
       await events.next(browser.tabs.onRemoved); // closing new-tab page
       await p;
 
-      const restored = model.tabs.tab(tabs.real_harry.id)!;
+      const restored = env.model.tabs.tab(env.tabs.real_harry.id)!;
       expect(restored.hidden).to.be.false;
       expect(restored.active).to.be.true;
-      expect(restored.position?.parent.id).to.equal(windows.real.id);
+      expect(restored.position?.parent.id).to.equal(env.windows.real.id);
 
-      const win = model.tabs.window(windows.real.id)!;
+      const win = env.model.tabs.window(env.windows.real.id)!;
       expect(win.children[win.children.length - 1].id).to.equal(
-        tabs.real_harry.id,
+        env.tabs.real_harry.id,
       );
     });
 
     it("restores a single already-open tab by switching to it", async () => {
-      await model.restoreTabs([{url: `${B}#estelle`}], {});
+      await env.model.restoreTabs([{url: `${B}#estelle`}], {});
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
 
-      const restored = model.tabs.tab(tabs.real_estelle.id)!;
+      const restored = env.model.tabs.tab(env.tabs.real_estelle.id)!;
       expect(restored.hidden).to.be.false;
       expect(restored.active).to.be.true;
-      expect(restored.position?.parent.id).to.equal(windows.real.id);
+      expect(restored.position?.parent.id).to.equal(env.windows.real.id);
 
       // Nothing should have moved
-      const win = model.tabs.window(windows.real.id)!;
+      const win = env.model.tabs.window(env.windows.real.id)!;
       expect(win.children.map(t => t.id)).to.deep.equal(
-        windows.real.tabs!.map(t => t.id),
+        env.windows.real.tabs!.map(t => t.id),
       );
     });
 
     it("restores multiple tabs", async () => {
-      const p = model.restoreTabs(
+      const p = env.model.restoreTabs(
         [{url: `${B}#harry`}, {url: `${B}#new-restored`}],
         {},
       );
@@ -1772,24 +1742,24 @@ describe("model", () => {
       expect(restored[1].hidden).to.be.false;
       expect(restored[1].active).to.be.true;
 
-      const win = model.tabs.window(windows.real.id)!;
+      const win = env.model.tabs.window(env.windows.real.id)!;
       expect(win.children.map(t => t.id)).to.deep.equal([
-        tabs.real_patricia.id,
-        tabs.real_paul.id,
-        tabs.real_bob.id,
-        tabs.real_doug.id,
-        tabs.real_doug_2.id,
-        tabs.real_estelle.id,
-        tabs.real_francis.id,
-        tabs.real_unstashed.id,
-        tabs.real_helen.id,
-        tabs.real_harry.id,
+        env.tabs.real_patricia.id,
+        env.tabs.real_paul.id,
+        env.tabs.real_bob.id,
+        env.tabs.real_doug.id,
+        env.tabs.real_doug_2.id,
+        env.tabs.real_estelle.id,
+        env.tabs.real_francis.id,
+        env.tabs.real_unstashed.id,
+        env.tabs.real_helen.id,
+        env.tabs.real_harry.id,
         restored[1].id,
       ]);
     });
 
     it("steals duplicates when restoring tabs", async () => {
-      const p = model.restoreTabs(
+      const p = env.model.restoreTabs(
         [`${B}#harry`, `${B}#doug`, `${B}#betty`, `${B}#doug`, `${B}#paul`].map(
           url => ({url}),
         ),
@@ -1810,12 +1780,12 @@ describe("model", () => {
 
       expect(restored).to.deep.equal(
         [
-          tabs.real_harry.id,
-          tabs.real_doug_2.id,
+          env.tabs.real_harry.id,
+          env.tabs.real_doug_2.id,
           new_betty.id as TabID,
-          tabs.real_doug.id,
+          env.tabs.real_doug.id,
           new_paul.id as TabID,
-        ].map(id => model.tabs.tab(id)),
+        ].map(id => env.model.tabs.tab(id)),
       );
 
       expect(restored.map(t => t.hidden)).to.deep.equal([
@@ -1833,19 +1803,19 @@ describe("model", () => {
         true,
       ]);
 
-      const win = model.tabs.window(windows.real.id)!;
+      const win = env.model.tabs.window(env.windows.real.id)!;
       expect(win.children.map(t => t.id)).to.deep.equal([
-        tabs.real_patricia.id,
-        tabs.real_paul.id,
-        tabs.real_bob.id,
-        tabs.real_estelle.id,
-        tabs.real_francis.id,
-        tabs.real_unstashed.id,
-        tabs.real_helen.id,
-        tabs.real_harry.id,
-        tabs.real_doug_2.id,
+        env.tabs.real_patricia.id,
+        env.tabs.real_paul.id,
+        env.tabs.real_bob.id,
+        env.tabs.real_estelle.id,
+        env.tabs.real_francis.id,
+        env.tabs.real_unstashed.id,
+        env.tabs.real_helen.id,
+        env.tabs.real_harry.id,
+        env.tabs.real_doug_2.id,
         new_betty.id,
-        tabs.real_doug.id,
+        env.tabs.real_doug.id,
         new_paul.id,
       ]);
     });
@@ -1854,37 +1824,37 @@ describe("model", () => {
   describe("deletes and un-deletes bookmarks", () => {
     async function makeEmptyStashFolder() {
       await browser.bookmarks.create({
-        parentId: model.bookmarks.stash_root.value!.id,
+        parentId: env.model.bookmarks.stash_root.value!.id,
         index: 0,
         title: "Empty Folder",
       });
       await events.nextN(browser.bookmarks.onCreated, 1);
-      expect(model.bookmarks.stash_root.value!.children.length).to.equal(4);
+      expect(env.model.bookmarks.stash_root.value!.children.length).to.equal(4);
     }
 
     beforeEach(async () => {
-      await model.bookmarks.loadedStash();
+      await env.model.bookmarks.loadedStash();
     });
 
     it("deletes folders and remembers them as deleted items", async () => {
-      const f = model.bookmarks.node(bookmarks.names.id)!;
-      const p = model.deleteBookmarkTree(f);
+      const f = env.model.bookmarks.node(env.bookmarks.names.id)!;
+      const p = env.model.deleteBookmarkTree(f);
       await events.next(browser.bookmarks.onRemoved);
       await events.next("KVS.Memory.onSet");
       await p;
 
-      expect(model.bookmarks.node(bookmarks.names.id)).to.be.undefined;
+      expect(env.model.bookmarks.node(env.bookmarks.names.id)).to.be.undefined;
       expect(
-        model.bookmarks.stash_root.value!.children.map(bm => bm?.id),
+        env.model.bookmarks.stash_root.value!.children.map(bm => bm?.id),
       ).to.deep.equal([
-        bookmarks.unnamed.id,
-        bookmarks.big_stash.id,
-        bookmarks.nested.id,
+        env.bookmarks.unnamed.id,
+        env.bookmarks.big_stash.id,
+        env.bookmarks.nested.id,
       ]);
 
-      await model.deleted_items.loadMore();
-      expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
-      expect(model.deleted_items.state.entries[0].item).to.deep.equal({
+      await env.model.deleted_items.loadMore();
+      expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(0);
+      expect(env.model.deleted_items.state.entries[0].item).to.deep.equal({
         title: "Names",
         children: [
           {
@@ -1900,68 +1870,73 @@ describe("model", () => {
     });
 
     it("deletes bookmarks and remembers them as deleted items", async () => {
-      const p = model.deleteBookmark(
-        model.bookmarks.bookmark(bookmarks.helen.id)!,
+      const p = env.model.deleteBookmark(
+        env.model.bookmarks.bookmark(env.bookmarks.helen.id)!,
       );
       await events.next(browser.bookmarks.onRemoved);
       await events.next("KVS.Memory.onSet");
       await p;
 
-      expect(model.bookmarks.node(bookmarks.helen.id)).to.be.undefined;
+      expect(env.model.bookmarks.node(env.bookmarks.helen.id)).to.be.undefined;
       expect(
-        model.bookmarks.folder(bookmarks.names.id)!.children.map(b => b?.id),
+        env.model.bookmarks
+          .folder(env.bookmarks.names.id)!
+          .children.map(b => b?.id),
       ).to.deep.equal([
-        bookmarks.doug_2.id,
-        bookmarks.patricia.id,
-        bookmarks.nate.id,
+        env.bookmarks.doug_2.id,
+        env.bookmarks.patricia.id,
+        env.bookmarks.nate.id,
       ]);
 
-      await model.deleted_items.loadMore();
-      expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
-      expect(model.deleted_items.state.entries[0].item).to.deep.equal({
+      await env.model.deleted_items.loadMore();
+      expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(0);
+      expect(env.model.deleted_items.state.entries[0].item).to.deep.equal({
         title: "Helen Hidden",
         url: `${B}#helen`,
       });
-      expect(model.deleted_items.state.entries[0].deleted_from).to.deep.equal({
-        folder_id: bookmarks.names.id,
+      expect(
+        env.model.deleted_items.state.entries[0].deleted_from,
+      ).to.deep.equal({
+        folder_id: env.bookmarks.names.id,
         title: "Names",
       });
     });
 
     it("un-deletes folders", async () => {
-      const f = model.bookmarks.node(bookmarks.names.id)!;
-      const p1 = model.deleteBookmarkTree(f);
+      const f = env.model.bookmarks.node(env.bookmarks.names.id)!;
+      const p1 = env.model.deleteBookmarkTree(f);
       await events.next(browser.bookmarks.onRemoved);
-      await events.next(deleted_items.onSet);
+      await events.next(env.deleted_items.onSet);
       await p1;
 
-      expect(model.bookmarks.node(bookmarks.names.id)).to.be.undefined;
+      expect(env.model.bookmarks.node(env.bookmarks.names.id)).to.be.undefined;
 
-      await model.deleted_items.loadMore();
-      expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+      await env.model.deleted_items.loadMore();
+      expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(0);
 
-      const p = model.undelete(model.deleted_items.state.entries[0]);
+      const p = env.model.undelete(env.model.deleted_items.state.entries[0]);
       await events.nextN(browser.bookmarks.onCreated, 5);
-      await events.next(deleted_items.onSet);
+      await events.next(env.deleted_items.onSet);
       await p;
-      await events.nextN(favicons.onSet, 2);
+      await events.nextN(env.favicons.onSet, 2);
 
-      const restored = model.bookmarks.stash_root.value!.children[0] as Folder;
+      const restored = env.model.bookmarks.stash_root.value!
+        .children[0] as Folder;
       expect(isFolder(restored)).to.be.true;
-      expect(restored.title).to.equal(bookmarks.names.title);
+      expect(restored.title).to.equal(env.bookmarks.names.title);
       expect(
         restored.children.map(bm => bm && isBookmark(bm) && bm.url),
-      ).to.deep.equal(bookmarks.names.children!.map(bm => bm.url));
+      ).to.deep.equal(env.bookmarks.names.children!.map(bm => bm.url));
     });
 
     describe("un-deletes bookmarks", () => {
       beforeEach(async () => {
-        await model.bookmarks.loadedStash();
-        const p = model.deleteBookmark(
-          model.bookmarks.bookmark(bookmarks.helen.id)!,
+        await env.model.bookmarks.loadedStash();
+        const p = env.model.deleteBookmark(
+          env.model.bookmarks.bookmark(env.bookmarks.helen.id)!,
         );
         await events.next(browser.bookmarks.onRemoved);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p;
 
         // Wait for time to advance so we don't delete two items in the
@@ -1969,27 +1944,34 @@ describe("model", () => {
         const now = Date.now();
         while (Date.now() === now) await new Promise<void>(r => later(r));
 
-        expect(model.bookmarks.node(bookmarks.helen.id)).to.be.undefined;
+        expect(env.model.bookmarks.node(env.bookmarks.helen.id)).to.be
+          .undefined;
         expect(
-          model.bookmarks.folder(bookmarks.names.id)!.children.map(b => b?.id),
+          env.model.bookmarks
+            .folder(env.bookmarks.names.id)!
+            .children.map(b => b?.id),
         ).to.deep.equal([
-          bookmarks.doug_2.id,
-          bookmarks.patricia.id,
-          bookmarks.nate.id,
+          env.bookmarks.doug_2.id,
+          env.bookmarks.patricia.id,
+          env.bookmarks.nate.id,
         ]);
 
-        expect(model.deleted_items.state.entries.length).to.equal(0);
-        await model.deleted_items.loadMore();
-        expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+        expect(env.model.deleted_items.state.entries.length).to.equal(0);
+        await env.model.deleted_items.loadMore();
+        expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(
+          0,
+        );
       });
 
       it("into their old folder", async () => {
-        const p = model.undelete(model.deleted_items.state.entries[0]);
+        const p = env.model.undelete(env.model.deleted_items.state.entries[0]);
         await events.nextN(browser.bookmarks.onCreated, 1);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p;
 
-        const bms = model.bookmarks.folder(bookmarks.names.id)!.children;
+        const bms = env.model.bookmarks.folder(
+          env.bookmarks.names.id,
+        )!.children;
         expect(bms.map(bm => bm && isBookmark(bm) && bm.url)).to.deep.equal([
           `${B}#doug`,
           `${B}#patricia`,
@@ -2002,26 +1984,34 @@ describe("model", () => {
         // deleted item #1 is the item deleted in beforeEach() above
 
         // deleted item #0:
-        const f = model.bookmarks.node(bookmarks.names.id)!;
-        const p1 = model.deleteBookmarkTree(f);
+        const f = env.model.bookmarks.node(env.bookmarks.names.id)!;
+        const p1 = env.model.deleteBookmarkTree(f);
         await events.next(browser.bookmarks.onRemoved);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p1;
 
-        await model.deleted_items.loadMore();
-        expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
-        expect(model.deleted_items.state.entries[1].item.title).to.equal(
+        await env.model.deleted_items.loadMore();
+        expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(
+          1,
+        );
+        expect(env.model.deleted_items.state.entries[1].item.title).to.equal(
           "Helen Hidden",
         );
-        expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
+        expect(env.model.bookmarks.stash_root.value!.children.length).to.equal(
+          3,
+        );
 
-        const p = model.undelete(model.deleted_items.state.entries[1]);
+        const p = env.model.undelete(env.model.deleted_items.state.entries[1]);
         await events.nextN(browser.bookmarks.onCreated, 1);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p;
 
-        expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
-        const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
+        expect(env.model.bookmarks.stash_root.value!.children.length).to.equal(
+          3,
+        );
+        const restored_folder = env.model.bookmarks.folder(
+          env.bookmarks.unnamed.id,
+        )!;
         expect(
           restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#helen`]);
@@ -2031,15 +2021,17 @@ describe("model", () => {
         // deleted item #1 is the item deleted in beforeEach() above
 
         // deleted item #0:
-        const f = model.bookmarks.node(bookmarks.names.id)!;
-        const p1 = model.deleteBookmarkTree(f);
+        const f = env.model.bookmarks.node(env.bookmarks.names.id)!;
+        const p1 = env.model.deleteBookmarkTree(f);
         await events.next(browser.bookmarks.onRemoved);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p1;
 
-        await model.deleted_items.loadMore();
-        expect(model.deleted_items.state.entries.length).to.be.greaterThan(1);
-        expect(model.deleted_items.state.entries[1].item.title).to.equal(
+        await env.model.deleted_items.loadMore();
+        expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(
+          1,
+        );
+        expect(env.model.deleted_items.state.entries[1].item.title).to.equal(
           "Helen Hidden",
         );
 
@@ -2047,13 +2039,15 @@ describe("model", () => {
         // now an unnamed folder.
         await makeEmptyStashFolder();
 
-        const p = model.undelete(model.deleted_items.state.entries[1]);
+        const p = env.model.undelete(env.model.deleted_items.state.entries[1]);
         await events.nextN(browser.bookmarks.onCreated, 2);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p;
 
-        expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
-        const restored_folder = model.bookmarks.stash_root.value!
+        expect(env.model.bookmarks.stash_root.value!.children.length).to.equal(
+          5,
+        );
+        const restored_folder = env.model.bookmarks.stash_root.value!
           .children[0] as Folder;
         expect(isFolder(restored_folder)).to.be.true;
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
@@ -2066,30 +2060,39 @@ describe("model", () => {
 
     describe("un-deletes individual bookmarks in a deleted folder", () => {
       beforeEach(async () => {
-        const f = model.bookmarks.node(bookmarks.names.id)!;
-        const p = model.deleteBookmarkTree(f);
+        const f = env.model.bookmarks.node(env.bookmarks.names.id)!;
+        const p = env.model.deleteBookmarkTree(f);
         await events.next(browser.bookmarks.onRemoved);
-        await events.next(deleted_items.onSet);
+        await events.next(env.deleted_items.onSet);
         await p;
 
-        expect(model.deleted_items.state.entries.length).to.equal(0);
-        await model.deleted_items.loadMore();
-        expect(model.deleted_items.state.entries.length).to.be.greaterThan(0);
+        expect(env.model.deleted_items.state.entries.length).to.equal(0);
+        await env.model.deleted_items.loadMore();
+        expect(env.model.deleted_items.state.entries.length).to.be.greaterThan(
+          0,
+        );
       });
 
       it("into a recently-created unnamed folder", async () => {
-        const p = model.undelete(model.deleted_items.state.entries[0], [2]);
+        const p = env.model.undelete(env.model.deleted_items.state.entries[0], [
+          2,
+        ]);
         await events.nextN(browser.bookmarks.onCreated, 1);
-        await events.next(deleted_items.onSet); // deleted-item update
+        await events.next(env.deleted_items.onSet); // deleted-item update
         await p;
 
-        expect(model.bookmarks.stash_root.value!.children.length).to.equal(3);
-        const restored_folder = model.bookmarks.folder(bookmarks.unnamed.id)!;
+        expect(env.model.bookmarks.stash_root.value!.children.length).to.equal(
+          3,
+        );
+        const restored_folder = env.model.bookmarks.folder(
+          env.bookmarks.unnamed.id,
+        )!;
         expect(
           restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
 
-        const item = model.deleted_items.state.entries[0].item as DeletedFolder;
+        const item = env.model.deleted_items.state.entries[0]
+          .item as DeletedFolder;
         expect(item.children).to.deep.equal([
           {
             title: "Doug Duplicate",
@@ -2106,13 +2109,17 @@ describe("model", () => {
         // now an unnamed folder.
         await makeEmptyStashFolder();
 
-        const p = model.undelete(model.deleted_items.state.entries[0], [2]);
+        const p = env.model.undelete(env.model.deleted_items.state.entries[0], [
+          2,
+        ]);
         await events.nextN(browser.bookmarks.onCreated, 2);
-        await events.next(deleted_items.onSet); // deleted-item update
+        await events.next(env.deleted_items.onSet); // deleted-item update
         await p;
 
-        expect(model.bookmarks.stash_root.value!.children.length).to.equal(5);
-        const restored_folder = model.bookmarks.stash_root.value!
+        expect(env.model.bookmarks.stash_root.value!.children.length).to.equal(
+          5,
+        );
+        const restored_folder = env.model.bookmarks.stash_root.value!
           .children[0] as Folder;
         expect(isFolder(restored_folder)).to.be.true;
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
@@ -2121,7 +2128,8 @@ describe("model", () => {
           restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
         ).to.deep.equal([`${B}#patricia`]);
 
-        const item = model.deleted_items.state.entries[0].item as DeletedFolder;
+        const item = env.model.deleted_items.state.entries[0]
+          .item as DeletedFolder;
         expect(item.children).to.deep.equal([
           {
             title: "Doug Duplicate",

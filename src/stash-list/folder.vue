@@ -118,6 +118,15 @@
 
         <hr />
         <button
+          @click.prevent="isShowingImportDialog = true"
+          title="Import links and URLs into this group"
+        >
+          <span class="menu-icon icon icon-import" />
+          <span>Import...</span>
+        </button>
+
+        <hr />
+        <button
           @click.prevent="closeStashedTabs"
           :title="`Close any open tabs that are stashed in this group`"
         >
@@ -206,6 +215,12 @@
       />
     </li>
   </ul>
+
+  <import-dialog
+    v-if="isShowingImportDialog"
+    :to-folder="folder"
+    @close="isShowingImportDialog = false"
+  />
 </template>
 
 <script lang="ts">
@@ -246,6 +261,7 @@ import Menu from "../components/menu.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 import LoadMore from "../components/load-more.vue";
+import ImportDialog from "../tasks/import.vue";
 
 import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
@@ -268,6 +284,7 @@ export default defineComponent({
     Menu,
     ShowFilteredItem,
     LoadMore,
+    ImportDialog,
   },
 
   props: {
@@ -277,6 +294,7 @@ export default defineComponent({
   data: () => ({
     isRenaming: false,
     isVisible: false,
+    isShowingImportDialog: false,
   }),
 
   computed: {
@@ -551,11 +569,7 @@ export default defineComponent({
       if (!win_id) return;
 
       the.model.attempt(async () => {
-        const f = await the.model.createStashFolder(
-          undefined,
-          this.folder,
-          "bottom",
-        );
+        const f = await the.model.createStashFolder(undefined, this.folder);
         await the.model.putSelectedInFolder({copy: ev.altKey, toFolder: f});
       });
     },
@@ -607,7 +621,7 @@ export default defineComponent({
 
     newChildFolder() {
       return this.attempt(async () => {
-        await the.model.createStashFolder(undefined, this.folder, "bottom");
+        await the.model.createStashFolder(undefined, this.folder);
       });
     },
 
@@ -616,7 +630,7 @@ export default defineComponent({
         if (the.model.tabs.targetWindow.value === undefined) return;
         await the.model.stashAllTabsInWindow(
           the.model.tabs.targetWindow.value,
-          {copy: ev.altKey, parent: this.folder, position: "bottom"},
+          {copy: ev.altKey, parent: this.folder},
         );
       });
     },

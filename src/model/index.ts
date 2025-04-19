@@ -355,13 +355,10 @@ export class Model {
   async createStashFolder(
     name?: string,
     parent?: Bookmarks.Folder,
-    position?: "top" | "bottom",
   ): Promise<Bookmarks.Folder> {
     const stash_root = await this.bookmarks.ensureStashRoot();
 
     parent ??= stash_root;
-
-    position ??= "top";
 
     // NOTE: This should match what happens in defaultStashDestFolder().
     name ??= this.searchText.value;
@@ -370,7 +367,7 @@ export class Model {
     const bm = await this.bookmarks.create({
       parentId: parent.id,
       title: name,
-      index: position === "top" ? 0 : parent.children.length,
+      index: parent === stash_root ? 0 : parent.children.length,
     });
     return bm as Bookmarks.Folder;
   }
@@ -425,7 +422,6 @@ export class Model {
     options: {
       copy?: boolean;
       parent?: Bookmarks.Folder;
-      position?: "top" | "bottom";
     },
   ) {
     const tabs = this.stashableTabsInWindow(window);
@@ -433,11 +429,7 @@ export class Model {
 
     await this.putItemsInFolder({
       items: copyIf(!!options.copy, tabs),
-      toFolder: await this.createStashFolder(
-        undefined,
-        options.parent,
-        options.position,
-      ),
+      toFolder: await this.createStashFolder(undefined, options.parent),
     });
   }
 

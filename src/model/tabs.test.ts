@@ -57,7 +57,7 @@ describe("model/tabs", () => {
     const t = await browser.tabs.create({
       windowId: windows.left.id,
       index: 3,
-      url: "a",
+      url: "about:blank#insert-new-tab",
       active: false,
     });
     await events.next(browser.tabs.onCreated);
@@ -66,7 +66,7 @@ describe("model/tabs", () => {
       id: t.id,
       status: "loading",
       title: "",
-      url: "a",
+      url: "about:blank#insert-new-tab",
       favIconUrl: "",
       hidden: false,
       active: false,
@@ -85,7 +85,7 @@ describe("model/tabs", () => {
       id: t.id,
       status: "complete",
       title: "",
-      url: "a",
+      url: "about:blank#insert-new-tab",
     });
     expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
       parent: model.window(windows.left.id),
