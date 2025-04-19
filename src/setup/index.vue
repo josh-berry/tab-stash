@@ -18,54 +18,51 @@
       </p>
 
       <p>
-        <label :class="{disabled: !the.options.canBrowserActionStash('all')}"
+        <label :class="{disabled: !options.canBrowserActionStash('all')}"
           ><input
             type="radio"
             name="browser_action_stash"
             value="all"
             v-model="browser_action_stash"
-            :disabled="!the.options.canBrowserActionStash('all')"
+            :disabled="!options.canBrowserActionStash('all')"
           />
           Save all open tabs to the stash</label
         >
       </p>
       <p>
-        <label :class="{disabled: !the.options.canBrowserActionStash('single')}"
+        <label :class="{disabled: !options.canBrowserActionStash('single')}"
           ><input
             type="radio"
             name="browser_action_stash"
             value="single"
             v-model="browser_action_stash"
-            :disabled="!the.options.canBrowserActionStash('single')"
+            :disabled="!options.canBrowserActionStash('single')"
           />
           Save the active tab to the stash</label
         >
       </p>
       <p
         v-if="
-          !the.options.canBrowserActionStash('single') ||
-          !the.options.canBrowserActionStash('all')
+          !options.canBrowserActionStash('single') ||
+          !options.canBrowserActionStash('all')
         "
         class="status-text note"
       >
         You can't show the popup and save tabs at the same time.
       </p>
       <p>
-        <label :class="{disabled: !the.options.canBrowserActionStash('none')}"
+        <label :class="{disabled: !options.canBrowserActionStash('none')}"
           ><input
             type="radio"
             name="browser_action_stash"
             value="none"
             v-model="browser_action_stash"
-            :disabled="!the.options.canBrowserActionStash('none')"
+            :disabled="!options.canBrowserActionStash('none')"
           />
           Don't save anything to the stash</label
         >
       </p>
-      <p
-        v-if="!the.options.canBrowserActionStash('none')"
-        class="status-text note"
-      >
+      <p v-if="!options.canBrowserActionStash('none')" class="status-text note">
         Choose a different "Show..." option to enable this
       </p>
     </section>
@@ -80,64 +77,58 @@
 
       <p>
         <label
-          v-if="the.options.hasSidebar()"
-          :class="{disabled: !the.options.canBrowserActionShow('sidebar')}"
+          v-if="options.hasSidebar()"
+          :class="{disabled: !options.canBrowserActionShow('sidebar')}"
           ><input
             type="radio"
             name="browser_action_show"
             value="sidebar"
             v-model="browser_action_show"
-            :disabled="!the.options.canBrowserActionShow('sidebar')"
+            :disabled="!options.canBrowserActionShow('sidebar')"
           />
           Show my stashed tabs in the sidebar</label
         >
       </p>
       <p>
-        <label :class="{disabled: !the.options.canBrowserActionShow('tab')}"
+        <label :class="{disabled: !options.canBrowserActionShow('tab')}"
           ><input
             type="radio"
             name="browser_action_show"
             value="tab"
             v-model="browser_action_show"
-            :disabled="!the.options.canBrowserActionShow('tab')"
+            :disabled="!options.canBrowserActionShow('tab')"
           />
           Show my stashed tabs in a tab</label
         >
       </p>
       <p>
-        <label :class="{disabled: !the.options.canBrowserActionShow('popup')}"
+        <label :class="{disabled: !options.canBrowserActionShow('popup')}"
           ><input
             type="radio"
             name="browser_action_show"
             value="popup"
             v-model="browser_action_show"
-            :disabled="!the.options.canBrowserActionShow('popup')"
+            :disabled="!options.canBrowserActionShow('popup')"
           />
           Show my stashed tabs in a popup</label
         >
       </p>
-      <p
-        v-if="!the.options.canBrowserActionShow('popup')"
-        class="status-text note"
-      >
+      <p v-if="!options.canBrowserActionShow('popup')" class="status-text note">
         To use the popup, choose "Don't save anything to the stash"
       </p>
       <p>
-        <label :class="{disabled: !the.options.canBrowserActionShow('none')}"
+        <label :class="{disabled: !options.canBrowserActionShow('none')}"
           ><input
             type="radio"
             name="browser_action_show"
             value="none"
             v-model="browser_action_show"
-            :disabled="!the.options.canBrowserActionShow('none')"
+            :disabled="!options.canBrowserActionShow('none')"
           />
           Don't show me anything</label
         >
       </p>
-      <p
-        v-if="!the.options.canBrowserActionShow('none')"
-        class="status-text note"
-      >
+      <p v-if="!options.canBrowserActionShow('none')" class="status-text note">
         Choose a different "Save..." option to enable this
       </p>
     </section>
@@ -151,7 +142,7 @@
         want to see?
       </p>
 
-      <p v-if="the.options.hasSidebar()">
+      <p v-if="options.hasSidebar()">
         <label
           ><input
             type="radio"
@@ -196,17 +187,17 @@
 import {computed, ref, watch, type WritableComputedRef} from "vue";
 
 import * as Options from "../model/options.js";
-import the from "./globals.js";
+import the from "../globals-ui.js";
 
 function computedOption<K extends keyof Options.SyncState>(
   name: K,
 ): WritableComputedRef<Options.SyncState[K]> {
   return computed<Options.SyncState[K]>({
     get() {
-      return the.options.sync.state[name];
+      return the.model.options.sync.state[name];
     },
     set(v) {
-      the.options.sync.set({[name]: v}).catch(console.error);
+      the.model.options.sync.set({[name]: v}).catch(console.error);
     },
   });
 }
@@ -214,6 +205,8 @@ function computedOption<K extends keyof Options.SyncState>(
 
 <script setup lang="ts">
 defineProps<{}>();
+
+const options = the.model.options;
 
 const browser_action_stash = computedOption("browser_action_stash");
 const browser_action_show = computedOption("browser_action_show");

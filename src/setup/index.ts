@@ -2,12 +2,9 @@
 
 import launch from "../launch-vue.js";
 
-import {init} from "./globals.js";
 import Main from "./index.vue";
 
 launch(Main, async () => {
-  await init();
-
   return {
     propsData: {},
   };

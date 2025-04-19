@@ -9,9 +9,9 @@ export type TracerFn = {
 };
 
 const tracers: Record<string, TracerFn> = {};
-const flags: Record<string, boolean | "stack"> = {};
+export const tracersEnabled: Record<string, boolean | "stack"> = {};
 
-(<any>globalThis).trace = flags;
+(<any>globalThis).trace = tracersEnabled;
 
 /** Return a "tracer" function that just calls `console.log()`, but only if
  * `trace[tag]` is true.  Logs are always emitted prefixed with `[tag]`, so it's
@@ -22,15 +22,15 @@ const flags: Record<string, boolean | "stack"> = {};
  * tracer function. */
 export function trace_fn(tag: string, ...context: any[]): TracerFn {
   if (tracers[tag]) return tracers[tag];
-  flags[tag] = false;
+  if (!(tag in tracersEnabled)) tracersEnabled[tag] = false;
   const log_tag = `[${tag}]`;
 
   const f =
     context.length > 0
       ? (...args: any[]) => {
-          if (!flags[tag]) return;
+          if (!tracersEnabled[tag]) return;
           console.log(log_tag, ...context, ...args);
-          if (flags[tag] === "stack") {
+          if (tracersEnabled[tag] === "stack") {
             try {
               throw new Error("stack trace");
             } catch (e) {
@@ -39,9 +39,9 @@ export function trace_fn(tag: string, ...context: any[]): TracerFn {
           }
         }
       : (...args: any[]) => {
-          if (!flags[tag]) return;
+          if (!tracersEnabled[tag]) return;
           console.log(log_tag, ...args);
-          if (flags[tag] === "stack") {
+          if (tracersEnabled[tag] === "stack") {
             try {
               throw new Error("stack trace");
             } catch (e) {

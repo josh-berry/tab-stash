@@ -5,10 +5,9 @@
 
 import type {ExtractPropTypes, MethodOptions} from "vue";
 import {createApp} from "vue";
-import browser from "webextension-polyfill";
 
-import "./util/debug.js"; // To setup globalThis.trace
-import {asyncEvent, resolveNamed} from "./util/index.js";
+import {asyncEvent} from "./util/index.js";
+import the, {initTheGlobals} from "./globals-ui.js";
 
 import * as Options from "./model/options.js";
 
@@ -31,28 +30,18 @@ export default function launch<
   }
 
   const loader = async function () {
-    document.documentElement.dataset!.view =
-      loc.searchParams.get("view") ?? "tab";
+    await initTheGlobals();
 
-    const plat = await resolveNamed({
-      browser: browser.runtime.getBrowserInfo
-        ? browser.runtime.getBrowserInfo()
-        : {name: "chrome"},
-      platform: browser.runtime.getPlatformInfo
-        ? browser.runtime.getPlatformInfo()
-        : {os: "unknown"},
-      options: Options.Model.live(),
-    });
-
-    document.documentElement.dataset!.browser = plat.browser.name.toLowerCase();
-    document.documentElement.dataset!.os = plat.platform.os;
+    document.documentElement.dataset!.view = the.view;
+    document.documentElement.dataset!.browser = the.browser;
+    document.documentElement.dataset!.os = the.os;
 
     function updateStyle(opts: Options.SyncModel) {
       document.documentElement.dataset!.metrics = opts.state.ui_metrics;
       document.documentElement.dataset!.theme = opts.state.ui_theme;
     }
-    updateStyle(plat.options.sync);
-    plat.options.sync.onChanged.addListener(updateStyle);
+    updateStyle(the.model.options.sync);
+    the.model.options.sync.onChanged.addListener(updateStyle);
 
     const opts = await options();
     const app = createApp(
