@@ -118,7 +118,7 @@
 
         <hr />
         <button
-          @click.prevent="isShowingImportDialog = true"
+          @click.prevent="showImportDialog"
           title="Import links and URLs into this group"
         >
           <span class="menu-icon icon icon-import" />
@@ -301,6 +301,10 @@ export default defineComponent({
     altKey: altKeyName,
     bgKey: bgKeyName,
 
+    isPopupView(): boolean {
+      return the.view === "popup";
+    },
+
     filterInfo() {
       return the.model.filter.info(this.folder);
     },
@@ -481,6 +485,20 @@ export default defineComponent({
 
     isFolder,
     isBookmark,
+
+    showImportDialog() {
+      if (the.view !== "popup") {
+        this.isShowingImportDialog = true;
+      } else {
+        logErrorsFrom(async () => {
+          await the.model.openMainUI({
+            action: "import",
+            "to-folder": this.folder.id,
+          });
+          window.close();
+        });
+      }
+    },
 
     toggleCollapsed(ev: MouseEvent) {
       if (!ev.altKey) {
