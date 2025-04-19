@@ -14,6 +14,9 @@ import {tracersEnabled} from "./util/debug.js";
  * `undefined!`, and then initialized properly in the async `init()` function
  * which must be called on startup. */
 const the = {
+  /** Search params passed to this page. */
+  searchParams: new URLSearchParams(document.location.search),
+
   /** The OS the browser is running on. */
   os: undefined! as string,
 
@@ -40,19 +43,17 @@ export default the;
 export async function initTheGlobals() {
   performance.mark("PAGE LOAD START");
 
-  const loc = new URL(document.location.href);
-
   // Figure out which form factor we're running in.
-  switch (loc.searchParams.get("view")) {
+  switch (the.searchParams.get("view")) {
     case "popup":
     case "sidebar":
     case "tab":
-      the.view = loc.searchParams.get("view") as "tab" | "popup" | "sidebar";
+      the.view = the.searchParams.get("view") as "tab" | "popup" | "sidebar";
       break;
   }
 
   // Enable tracing at load time if needed
-  const trace = (loc.searchParams.get("trace") ?? "").split(",");
+  const trace = (the.searchParams.get("trace") ?? "").split(",");
   for (const t of trace) {
     the.tracersEnabled[t] = true;
   }
@@ -93,7 +94,7 @@ export async function initTheGlobals() {
   });
 
   // Hack to allow manual selection of the window to track, for debugging purposes
-  const winId = loc.searchParams.get("window");
+  const winId = the.searchParams.get("window");
   if (winId !== null) {
     const win = the.model.tabs.window(Number.parseInt(winId));
     if (win) the.model.tabs.initialWindow.value = win;

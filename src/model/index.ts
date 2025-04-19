@@ -495,6 +495,34 @@ export class Model {
     }
   }
 
+  /** Opens the main Tab Stash UI. Has all the semantics of restoreTabs(), but
+   * will also pass along the current selection (if any). */
+  openMainUI(
+    searchParams: Record<string, string[] | string>,
+  ): Promise<Tabs.Tab[]> {
+    const url = new URL(browser.runtime.getURL("stash-list.html"));
+
+    for (const [k, vals] of Object.entries(searchParams)) {
+      if (vals instanceof Array) {
+        for (const v of vals) url.searchParams.append(k, v);
+      } else {
+        url.searchParams.set(k, vals);
+      }
+    }
+
+    for (const item of this.selection.selectedItems()) {
+      if (isNode(item)) {
+        url.searchParams.append("bm", item.id);
+      } else if (isTab(item)) {
+        url.searchParams.append("t", item.id.toString());
+      } else {
+        // Windows should never be selected; ignore them.
+      }
+    }
+
+    return this.restoreTabs([{title: "Tab Stash", url: url.href}], {});
+  }
+
   /** Restores the specified URLs as new tabs in the current window.  Returns
    * the IDs of the restored tabs.
    *

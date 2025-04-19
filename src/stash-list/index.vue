@@ -175,6 +175,7 @@ import FolderVue from "./folder.vue";
 import SelectionMenu from "./selection-menu.vue";
 import WindowVue from "./window.vue";
 import {domainForUrl} from "../model/favicons.js";
+import {logErrorsFrom} from "../util/oops.js";
 
 export default defineComponent({
   components: {
@@ -301,8 +302,53 @@ export default defineComponent({
   },
 
   mounted() {
-    if (document.documentElement.dataset.view === "popup") {
+    if (the.view === "popup") {
       (<any>this.$refs.search).focus();
+    }
+
+    const selectBookmarks = the.searchParams.getAll("bm");
+
+    if (selectBookmarks.length > 0) {
+      logErrorsFrom(() =>
+        the.model.bookmarks.loadedStash().then(() => {
+          for (const bm_id of selectBookmarks) {
+            const bm = the.model.bookmarks.node(bm_id);
+            if (bm) the.model.selection.info(bm).isSelected = true;
+          }
+        }),
+      );
+    }
+
+    for (const tab_id of the.searchParams.getAll("t") || []) {
+      const id = Number.parseInt(tab_id);
+      if (isNaN(id)) continue;
+
+      const tab = the.model.tabs.tab(id);
+      if (tab) the.model.selection.info(tab).isSelected = true;
+    }
+
+    switch (the.searchParams.get("action")) {
+      case "import":
+        const toFolderId = the.searchParams.get("to-folder");
+        logErrorsFrom(() =>
+          the.model.bookmarks.loadedStash().then(() => {
+            this.dialog = {
+              class: "ImportDialog",
+              props: {
+                toFolder: toFolderId
+                  ? the.model.bookmarks.folder(toFolderId)
+                  : undefined,
+              },
+            };
+          }),
+        );
+        break;
+      case "export":
+        this.dialog = {class: "ExportDialog"};
+        break;
+      case "fetch-favicons":
+        this.fetchMissingFavicons();
+        break;
     }
 
     // The following block of code is just to help me test out progress
@@ -384,15 +430,7 @@ export default defineComponent({
 
     showTabUI() {
       the.model.attempt(async () => {
-        await the.model.restoreTabs(
-          [
-            {
-              title: "Tab Stash",
-              url: browser.runtime.getURL("stash-list.html"),
-            },
-          ],
-          {},
-        );
+        await the.model.openMainUI({});
         window.close();
       });
     },
