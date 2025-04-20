@@ -344,7 +344,7 @@ export default defineComponent({
         );
         break;
       case "export":
-        this.dialog = {class: "ExportDialog"};
+        this.showExportDialog();
         break;
       case "fetch-favicons":
         this.fetchMissingFavicons();
@@ -443,7 +443,12 @@ export default defineComponent({
     },
 
     showExportDialog() {
-      this.dialog = {class: "ExportDialog", props: {}};
+      this.dialog = {
+        class: "ExportDialog",
+        props: {
+          items: the.model.bookmarks.stash_root.value?.children ?? [],
+        },
+      };
     },
 
     plural(n: number): string {

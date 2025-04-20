@@ -125,6 +125,14 @@
           <span>Import...</span>
         </button>
 
+        <button
+          @click.prevent="isShowingExportDialog = true"
+          title="Export links and URLs from this group"
+        >
+          <span class="menu-icon icon icon-export" />
+          <span>Export...</span>
+        </button>
+
         <hr />
         <button
           @click.prevent="closeStashedTabs"
@@ -221,6 +229,12 @@
     :to-folder="folder"
     @close="isShowingImportDialog = false"
   />
+
+  <export-dialog
+    v-if="isShowingExportDialog"
+    :items="[folder]"
+    @close="isShowingExportDialog = false"
+  />
 </template>
 
 <script lang="ts">
@@ -262,6 +276,7 @@ import ShowFilteredItem from "../components/show-filtered-item.vue";
 import BookmarkVue from "./bookmark.vue";
 import LoadMore from "../components/load-more.vue";
 import ImportDialog from "../tasks/import.vue";
+import ExportDialog from "../tasks/export.vue";
 
 import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
@@ -285,6 +300,7 @@ export default defineComponent({
     ShowFilteredItem,
     LoadMore,
     ImportDialog,
+    ExportDialog,
   },
 
   props: {
@@ -295,6 +311,7 @@ export default defineComponent({
     isRenaming: false,
     isVisible: false,
     isShowingImportDialog: false,
+    isShowingExportDialog: false,
   }),
 
   computed: {

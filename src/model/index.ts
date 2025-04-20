@@ -76,7 +76,7 @@ const trace = trace_fn("model");
  * at all (no `id`).  It captures just the essential details of an item, like
  * its title, URL and identity (if it's part of the model). */
 export type StashItem = NewTab | NewFolder | ModelItem;
-
+export type StashParent = NewFolder | Bookmarks.Folder | Tabs.Window;
 export type StashLeaf = NewTab | Bookmarks.Bookmark | Tabs.Tab;
 
 /** A container (bookmark folder or window) that is part of the model. */
@@ -87,6 +87,12 @@ export type ModelItem = Bookmarks.Node | Tabs.Tab | Tabs.Window;
 
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
+
+export const isParent = (item: StashItem): item is StashParent =>
+  "children" in item;
+
+export const isLeaf = (item: StashItem): item is StashLeaf =>
+  !isParent(item) && "url" in item;
 
 export const isModelParent = (
   item: ModelItem | ModelParent,

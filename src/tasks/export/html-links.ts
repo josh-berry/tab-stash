@@ -1,26 +1,33 @@
 import {defineComponent, h, type PropType, type VNode} from "vue";
 
+import {
+  type StashItem,
+  type StashLeaf,
+  type StashParent,
+} from "../../model/index.js";
+import {getParentInfo, renderItems} from "./helpers.js";
 import {required} from "../../util/index.js";
-import type {ExportBookmark, ExportFolder} from "./model.js";
 
-function renderFolder(level: number, folder: ExportFolder): VNode {
+function renderParent(level: number, folder: StashParent): VNode {
+  const {title, leaves, parents} = getParentInfo(folder);
   return h("section", {}, [
-    h(`h${level}`, {}, [folder.title]),
-    h("ul", {}, folder.bookmarks.map(renderBookmark)),
-    ...folder.folders.map(f => renderFolder(Math.min(level + 1, 5), f)),
+    h(`h${level}`, {}, [title]),
+    h("ul", {}, leaves.map(renderLeaf)),
+    ...parents.map(f => renderParent(Math.min(level + 1, 5), f)),
   ]);
 }
 
-function renderBookmark(node: ExportBookmark): VNode {
+function renderLeaf(node: StashLeaf): VNode {
   return h("li", {}, [h("a", {href: node.url}, [node.title])]);
 }
 
-export default defineComponent({
-  props: {
-    folders: required(Object as PropType<ExportFolder[]>),
+export default defineComponent(
+  (props: {items: StashItem[]}) => {
+    return () =>
+      renderItems(props.items, {
+        parent: p => [renderParent(2, p)],
+        leaf: l => [renderLeaf(l)],
+      });
   },
-
-  setup(props) {
-    return () => props.folders.map(f => renderFolder(2, f));
-  },
-});
+  {props: {items: required(Array as PropType<StashItem[]>)}},
+); // TODO: add type for items

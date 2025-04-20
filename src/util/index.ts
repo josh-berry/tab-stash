@@ -529,9 +529,9 @@ export class AsyncChannel<V> implements AsyncIterableIterator<V> {
 }
 
 // Maps and filters an array at the same time, removing `undefined`s
-export function filterMap<T, U>(
-  array: readonly T[],
-  map: (i: T) => U | undefined,
+export function filterMap<T extends readonly any[], U>(
+  array: T,
+  map: (i: T[number]) => U | undefined,
 ): U[] {
   const res = [];
   for (const i of array) {

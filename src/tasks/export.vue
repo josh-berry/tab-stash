@@ -28,64 +28,39 @@
     </form>
 
     <output
-      v-if="export_folders"
       ref="output"
       :for="$style.dlg"
       :class="{[$style.plaintext]: format !== 'html-links'}"
       tabindex="0"
     >
-      <html-links v-if="format === 'html-links'" :folders="export_folders" />
-      <url-list v-if="format === 'url-list'" :folders="export_folders" />
-      <markdown v-if="format === 'markdown'" :folders="export_folders" />
-      <one-tab v-if="format === 'one-tab'" :folders="export_folders" />
+      <html-links v-if="format === 'html-links'" :items="items" />
+      <url-list v-else-if="format === 'url-list'" :items="items" />
+      <markdown v-else-if="format === 'markdown'" :items="items" />
+      <one-tab v-else-if="format === 'one-tab'" :items="items" />
     </output>
   </Dialog>
 </template>
 
 <script lang="ts">
-import {defineComponent, nextTick} from "vue";
+import {defineComponent, nextTick, type PropType} from "vue";
 
-import {filterMap} from "../util/index.js";
-
-import the from "../globals-ui.js";
-import {
-  friendlyFolderName,
-  isBookmark,
-  type Bookmark,
-  type Folder,
-  type Node,
-} from "../model/bookmarks.js";
+import type {StashItem} from "../model/index.js";
 
 import Dialog from "../components/dialog.vue";
-
-import {exportFolder, type ExportFolder} from "./export/model.js";
 
 import HtmlLinks from "./export/html-links.js";
 import Markdown from "./export/markdown.js";
 import OneTab from "./export/one-tab.js";
 import UrlList from "./export/url-list.js";
+import {required} from "../util/index.js";
 
 export default defineComponent({
   components: {Dialog, HtmlLinks, Markdown, OneTab, UrlList},
 
   emits: ["close"],
 
-  props: {},
-
-  computed: {
-    export_folders(): ExportFolder[] | undefined {
-      const root = the.model.bookmarks.stash_root.value;
-      if (!root) return undefined;
-      return exportFolder(the.model.bookmarks, root).folders;
-    },
-    stash(): Node[] {
-      const m = the.model.bookmarks;
-      if (!m.stash_root.value) return [];
-      return m.stash_root.value.children.filter(c => c !== undefined);
-    },
-    folders(): Folder[] {
-      return this.stash.filter(t => "children" in t) as Folder[];
-    },
+  props: {
+    items: required(Array as PropType<StashItem[]>),
   },
 
   data: () => ({
@@ -103,14 +78,6 @@ export default defineComponent({
   },
 
   methods: {
-    friendlyFolderName,
-    leaves(folder: Folder): Bookmark[] {
-      return filterMap(folder.children, node => {
-        if (node && isBookmark(node)) return node;
-        return undefined;
-      });
-    },
-
     copy() {
       document.execCommand("copy");
     },

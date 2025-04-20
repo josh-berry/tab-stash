@@ -26,7 +26,13 @@
       <span class="menu-icon icon icon-restore-del"></span>
       <span>Unstash</span>
     </button>
-
+    <button
+      @click.prevent="showExportDialog"
+      title="Export selected links and URLs"
+    >
+      <span class="menu-icon icon icon-export" />
+      <span>Export...</span>
+    </button>
     <hr />
 
     <search-input
@@ -72,6 +78,12 @@
       <span>Delete or Close</span>
     </button>
   </Menu>
+
+  <export-dialog
+    v-if="selectedItemsToExport.length > 0"
+    :items="selectedItemsToExport"
+    @close="selectedItemsToExport = []"
+  />
 </template>
 
 <script lang="ts">
@@ -91,9 +103,11 @@ import {TreeFilter} from "../model/tree-filter.js";
 import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";
 import SelectFolder from "./select-folder.vue";
+import ExportDialog from "../tasks/export.vue";
+import type {StashItem} from "../model/index.js";
 
 export default defineComponent({
-  components: {Menu, SearchInput, SelectFolder},
+  components: {Menu, SearchInput, SelectFolder, ExportDialog},
 
   // If `props` is an empty object, Vue thinks the props of the component are of
   // type `unknown` rather than `{}`. See:
@@ -103,6 +117,7 @@ export default defineComponent({
 
   data: () => ({
     searchText: "",
+    selectedItemsToExport: [] as StashItem[],
   }),
 
   computed: {
@@ -190,6 +205,12 @@ export default defineComponent({
 
     moveToWindow() {
       this.attempt(() => the.model.putSelectedInWindow({copy: false}));
+    },
+
+    showExportDialog() {
+      this.selectedItemsToExport = Array.from(
+        the.model.selection.selectedItems(),
+      );
     },
 
     remove() {
