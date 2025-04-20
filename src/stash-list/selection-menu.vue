@@ -26,6 +26,9 @@
       <span class="menu-icon icon icon-restore-del"></span>
       <span>Unstash</span>
     </button>
+
+    <hr />
+
     <button
       @click.prevent="showExportDialog"
       title="Export selected links and URLs"
