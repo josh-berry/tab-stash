@@ -88,32 +88,34 @@
 
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
-          <div class="menu-item disabled status-text">
-            <span>Stash to "{{ title }}":</span>
-          </div>
-          <ul class="menu-scrollable-list">
-            <li v-for="t of unstashedOrOpenTabs" :key="t.tab.id">
-              <a
-                :href="t.tab.url"
-                :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
-                @click.prevent.stop="stashSpecificTab($event, t.tab)"
-              >
-                <item-icon
-                  class="menu-icon"
-                  default-icon="tab"
-                  :src="t.tab.favIconUrl"
-                />
-                <span>{{ t.tab.title }}</span>
-                <span
-                  v-if="t.stashedIn.length > 0"
-                  class="menu-icon icon icon-stashed status-text"
-                  :title="
-                    ['This tab is stashed in:', ...t.stashedIn].join('\n')
-                  "
-                />
-              </a>
-            </li>
-          </ul>
+          <details @click.stop="">
+            <summary class="menu-item">
+              <span>Stash to "{{ title }}"...</span>
+            </summary>
+            <ul>
+              <li v-for="t of unstashedOrOpenTabs" :key="t.tab.id">
+                <a
+                  :href="t.tab.url"
+                  :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
+                  @click.prevent.stop="stashSpecificTab($event, t.tab)"
+                >
+                  <item-icon
+                    class="menu-icon"
+                    default-icon="tab"
+                    :src="t.tab.favIconUrl"
+                  />
+                  <span>{{ t.tab.title }}</span>
+                  <span
+                    v-if="t.stashedIn.length > 0"
+                    class="menu-icon icon icon-stashed status-text"
+                    :title="
+                      ['This tab is stashed in:', ...t.stashedIn].join('\n')
+                    "
+                  />
+                </a>
+              </li>
+            </ul>
+          </details>
         </template>
 
         <hr />
