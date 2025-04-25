@@ -53,6 +53,9 @@ import Markdown from "./export/markdown.js";
 import OneTab from "./export/one-tab.js";
 import UrlList from "./export/url-list.js";
 import {required} from "../util/index.js";
+import type {ExportFormat} from "../model/options.js";
+import the from "../globals-ui.js";
+import {logErrorsFrom} from "../util/oops.js";
 
 export default defineComponent({
   components: {Dialog, HtmlLinks, Markdown, OneTab, UrlList},
@@ -63,18 +66,22 @@ export default defineComponent({
     items: required(Array as PropType<StashItem[]>),
   },
 
-  data: () => ({
-    format: "html-links",
-  }),
+  computed: {
+    format: {
+      get(): ExportFormat {
+        return the.model.options.local.state.last_export_format;
+      },
+      set(value: ExportFormat) {
+        this.select_all();
+        logErrorsFrom(() =>
+          the.model.options.local.set({last_export_format: value}),
+        );
+      },
+    },
+  },
 
   mounted(this: any) {
     this.select_all();
-  },
-
-  watch: {
-    format(this: any, val: string) {
-      this.select_all();
-    },
   },
 
   methods: {

@@ -126,6 +126,13 @@ export const LOCAL_DEF = {
   /** Disable crash reports for a certain amount of time. */
   hide_crash_reports_until: {default: undefined, is: maybeUndef(aNumber)},
 
+  /** The last export format chosen by the user.  There's no options UI for this,
+   * because it's selected only from the export dialog itself. */
+  last_export_format: {
+    default: "html-links",
+    is: anEnum("html-links", "url-list", "markdown", "one-tab"),
+  },
+
   // Feature flags
 
   /** Re-open a recently-closed tab if one can't be found.  Disabled by
@@ -141,6 +148,9 @@ export const LOCAL_DEF = {
    * belonging to Tab Stash. */
   migrated_tab_markers_applied: {default: false, is: aBoolean},
 } as const;
+
+/** The name of a supported export format. */
+export type ExportFormat = LocalState["last_export_format"];
 
 export type Source = {
   readonly sync: StoredObject<typeof SYNC_DEF>;
