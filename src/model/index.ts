@@ -45,6 +45,7 @@ import {
   urlToStash,
 } from "../util/index.js";
 import {logError, logErrorsFrom, UserError} from "../util/oops.js";
+import {makeRandomString} from "../util/random.js";
 
 import * as BookmarkMetadata from "./bookmark-metadata.js";
 import * as Bookmarks from "./bookmarks.js";
@@ -525,6 +526,14 @@ export class Model {
         // Windows should never be selected; ignore them.
       }
     }
+
+    // If there's some state we're carrying over from the current environment,
+    // put a random nonce in the hash so that the URL is unique.  This is needed
+    // to ensure we ALWAYS open a new tab.  Otherwise, if the user already has a
+    // UI open with the same URL, we'll switch to that tab instead of opening a
+    // new one, and the UI's state might be wrong (e.g. because the user had
+    // previously closed the import dialog, changed the selection, etc.).
+    if (url.searchParams.size > 0) url.hash = makeRandomString(8);
 
     return this.restoreTabs([{title: "Tab Stash", url: url.href}], {});
   }
