@@ -18,6 +18,27 @@
 import type {PropType} from "vue";
 import {defineComponent} from "vue";
 
+export type Verb =
+  | ""
+  | CapitalizeWords<DashesToSpaces<NormalizedVerb>>
+  | `${CapitalizeWords<DashesToSpaces<NormalizedVerb>>}:`;
+
+export type NormalizedVerb =
+  | "new"
+  | "added"
+  | "improved"
+  | "fixed"
+  | "removed"
+  | "new-experiment"
+  | "experiment-released";
+
+type DashesToSpaces<T extends string> = T extends `${infer L}-${infer R}`
+  ? `${L} ${DashesToSpaces<R>}`
+  : T;
+type CapitalizeWords<T extends string> = T extends `${infer L} ${infer R}`
+  ? `${Capitalize<L>} ${CapitalizeWords<R>}`
+  : Capitalize<T>;
+
 function coerceArray<T>(i: T | T[]): T[] {
   if (i instanceof Array) return i;
   return [i];
@@ -25,16 +46,19 @@ function coerceArray<T>(i: T | T[]): T[] {
 
 export default defineComponent({
   props: {
-    v: String, // v is for "verb"
+    v: String as PropType<Verb>, // v is for "verb"
     subtext: String,
     issue: [Array, Number] as PropType<number | number[]>,
     pr: [Array, Number] as PropType<number | number[]>,
     thanks: [Array, String] as PropType<string | string[]>,
   },
   computed: {
-    verbClass(): string {
+    verbClass(): NormalizedVerb | "" {
       if (!this.v) return "";
-      return this.v.toLowerCase().replace(":", "").replace(" ", "-");
+      return this.v
+        .toLowerCase()
+        .replace(":", "")
+        .replace(" ", "-") as NormalizedVerb;
     },
 
     emoji(): string {
