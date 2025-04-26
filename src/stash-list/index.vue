@@ -18,8 +18,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} improves drag-and-drop and makes it easier to
-        manage top-level groups. See what's new!
+        Tab Stash {{ my_version }} offers more convenient import/export of
+        stashed tabs. See what's new!
       </Notification>
       <Notification
         key="new-fixes"
@@ -27,8 +27,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} improves drag-and-drop and makes it easier to
-        manage top-level groups. See what's new!
+        Tab Stash {{ my_version }} offers more convenient import/export of
+        stashed tabs. See what's new!
       </Notification>
       <Notification
         key="stash-root-warning"

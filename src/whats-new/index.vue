@@ -10,6 +10,52 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.3">
+        <L v="New:" :issue="484"
+          >Import into specific groups using the "Import..." option from the
+          group's menu.</L
+        >
+
+        <L v="New:" :issue="120"
+          >Export specific groups using the "Export..." option from the group's
+          menu, or export selected items from the blue selection menu that
+          appears at the top of the UI.
+        </L>
+
+        <L v="Improved:" :issue="500"
+          >Import will no longer fail if it can't fetch a title/icon for a
+          particular URL. Instead, failing URLs will be imported without a title
+          or icon.</L
+        >
+
+        <L v="Improved:">Export now remembers the last-used format.</L>
+
+        <L
+          v="Improved:"
+          :issue="590"
+          :subtext="
+            `Quite a few folks clicked on the header by mistake and ` +
+            `were confused when their stashed tabs disappeared. Sorry about ` +
+            `that, hopefully moving this into the menu will help!`
+          "
+          >Switching between "Open Tabs" and "Unstashed Tabs" has been moved to
+          the new "Open/Unstashed Tabs" menu, so it's harder to do
+          accidentally.</L
+        >
+
+        <L v="Improved:"
+          >If you select some items in the popup view and then open the full tab
+          view, the tab view will now remember the items you selected in the
+          popup.</L
+        >
+
+        <L v="Fixed:" :issue="581"
+          >Stashing a single tab while a search is active will no longer create
+          duplicate folders. Instead, the tab will be saved to the topmost
+          folder if the folder's title matches the search term.</L
+        >
+      </Version>
+
       <Version v="3.2">
         <L v="Added"
           >the ability to select and operate on multiple top-level groups at
