@@ -84,8 +84,8 @@ async function theEasyWay(data: any[], parent_tm: TaskMonitor) {
 
         await parent_tm.spawn(child_tm => asyncCallee(x, child_tm));
 
-        // tm.value is automatically incremented in fractional steps as the
-        // callee makes progress.
+        // parent_tm.value is automatically incremented in fractional steps as
+        // the callee makes progress.
     }
 }
 
@@ -108,8 +108,8 @@ async function theHardWay(data: any[], parent_tm: TaskMonitor) {
             });
         });
 
-        // tm.value is automatically incremented in fractional steps as the task
-        // makes progress.
+        // parent_tm.value is automatically incremented in fractional steps as
+        // the task makes progress.
     }
 }
 
