@@ -164,6 +164,7 @@ describe("model/tabs", () => {
     // Cleanup for running this test in a live environment - close the
     // window we just created
     await browser.windows.remove(win.id!);
+    await events.next(browser.tabs.onRemoved);
     await events.next(browser.windows.onRemoved);
     await events.next(browser.windows.onFocusChanged);
 
@@ -263,6 +264,7 @@ describe("model/tabs", () => {
     // Cleanup when running in a live environment - close the window we just
     // created
     await browser.windows.remove(win.id!);
+    await events.next(browser.tabs.onRemoved);
     await events.next(browser.windows.onRemoved);
     await events.next(browser.windows.onFocusChanged);
 
@@ -283,6 +285,7 @@ describe("model/tabs", () => {
 
   it("closes windows", async () => {
     const p = model.removeWindows([model.window(windows.left.id)!]);
+    await events.nextN(browser.tabs.onRemoved, 3);
     await events.next(browser.windows.onRemoved);
     await p;
 
@@ -308,6 +311,7 @@ describe("model/tabs", () => {
   it("drops tabs in a window when the window is closed", async () => {
     // Initial state validated by the earlier tabs-by-window test
     await browser.windows.remove(windows.right.id);
+    await events.nextN(browser.tabs.onRemoved, 3);
     await events.next(browser.windows.onRemoved);
 
     expect(model.window(windows.right.id)).to.be.undefined;

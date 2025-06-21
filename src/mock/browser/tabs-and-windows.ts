@@ -2,6 +2,7 @@ import type {
   ExtensionTypes,
   Runtime,
   Tabs as T,
+  TabGroups as G,
   Windows as W,
 } from "webextension-polyfill";
 
@@ -16,6 +17,11 @@ export class State {
   readonly onWindowCreated: events.MockEvent<(window: W.Window) => void>;
   readonly onWindowRemoved: events.MockEvent<(windowId: number) => void>;
   readonly onWindowFocusChanged: events.MockEvent<(windowId: number) => void>;
+
+  readonly onTabGroupCreated: events.MockEvent<(group: G.TabGroup) => void>;
+  readonly onTabGroupUpdated: events.MockEvent<(group: G.TabGroup) => void>;
+  readonly onTabGroupMoved: events.MockEvent<(group: G.TabGroup) => void>;
+  readonly onTabGroupRemoved: events.MockEvent<(group: G.TabGroup) => void>;
 
   readonly onTabCreated: events.MockEvent<(tab: T.Tab) => void>;
   readonly onTabUpdated: events.MockEvent<
@@ -47,13 +53,26 @@ export class State {
   >;
 
   next_tab_id = 0;
+  next_group_id = 0;
   readonly windows: (Window | undefined)[] = [];
+  readonly groups = new Map<number, G.TabGroup>();
 
   constructor() {
     this.onWindowCreated = new events.MockEvent("browser.windows.onCreated");
     this.onWindowRemoved = new events.MockEvent("browser.windows.onRemoved");
     this.onWindowFocusChanged = new events.MockEvent(
       "browser.windows.onFocusChanged",
+    );
+
+    this.onTabGroupCreated = new events.MockEvent(
+      "browser.tabGroups.onCreated",
+    );
+    this.onTabGroupUpdated = new events.MockEvent(
+      "browser.tabGroups.onUpdated",
+    );
+    this.onTabGroupMoved = new events.MockEvent("browser.tabGroups.onMoved");
+    this.onTabGroupRemoved = new events.MockEvent(
+      "browser.tabGroups.onRemoved",
     );
 
     this.onTabCreated = new events.MockEvent("browser.tabs.onCreated");
@@ -75,6 +94,13 @@ export class State {
     return win;
   }
 
+  group(id: number): G.TabGroup {
+    const group = this.groups.get(id);
+    /* c8 ignore next -- bug-checking */
+    if (!group) throw new Error(`No such group: ${id}`);
+    return group;
+  }
+
   tab(id: number): Tab {
     for (const w of this.windows) {
       /* c8 ignore next -- tests don't delete windows right now */
@@ -88,6 +114,7 @@ export class State {
 
   validate() {
     const seen_tab_ids = new Set<number>();
+    const seen_group_ids = new Set<number>();
     let focused_win: Window | undefined = undefined;
 
     for (const w of this.windows) {
@@ -99,7 +126,23 @@ export class State {
       }
 
       let active_tab: Tab | undefined = undefined;
+      let last_group_id: number | undefined = undefined;
       for (const t of w.tabs) {
+        // Make sure all tabs in a group are contiguous.
+        if (t.groupId !== undefined) {
+          if (t.groupId !== last_group_id) {
+            if (seen_group_ids.has(t.groupId)) {
+              throw new Error(
+                "Tab ${t.id} in window ${w.id} is not adjacent to its group ${t.groupId}",
+              );
+            }
+            last_group_id = t.groupId;
+            seen_group_ids.add(t.groupId);
+          }
+        } else {
+          last_group_id = undefined;
+        }
+
         if (t.active) {
           /* c8 ignore next 3 -- bug-checking */
           if (active_tab) {
@@ -123,6 +166,12 @@ export class State {
     /* c8 ignore next 3 -- bug-checking */
     if (this.windows.length > 0 && !focused_win) {
       throw new Error(`No focused windows found`);
+    }
+
+    for (const g of this.groups.values()) {
+      if (!seen_group_ids.has(g.id)) {
+        throw new Error(`Group ${g.id} is not associated with any tabs`);
+      }
     }
   }
 
@@ -341,7 +390,23 @@ class MockWindows implements W.Static {
   async remove(windowId: number): Promise<void> {
     const win = this._state.win(windowId);
     this._state.windows[windowId] = undefined;
+
+    const groups = new Set<number>();
+    for (const t of win.tabs) {
+      if (t.groupId !== undefined) groups.add(t.groupId);
+      this._state.onTabRemoved.send(t.id, {
+        windowId: win.id,
+        isWindowClosing: true,
+      });
+    }
+
     this.onRemoved.send(windowId);
+
+    for (const g of groups) {
+      const group = this._state.group(g);
+      this._state.groups.delete(g);
+      this._state.onTabGroupRemoved.send(JSON.parse(JSON.stringify(group)));
+    }
 
     if (win.focused) {
       // This is an oversimplification, but it works
@@ -473,6 +538,10 @@ class MockTabs implements T.Static {
       let first_unpinned = win.tabs.find(t => !t.pinned);
       /* c8 ignore next -- we never create pinned after creating unpinned */
       tab.index = Math.min(tab.index, first_unpinned?.index ?? win.tabs.length);
+    }
+
+    if (tab.index < win.tabs.length) {
+      tab.groupId = win.tabs[tab.index].groupId;
     }
 
     win.tabs.splice(tab.index, 0, tab);
@@ -655,6 +724,9 @@ class MockTabs implements T.Static {
         );
       }
 
+      tab.groupId =
+        to_win.tabs[Math.min(to_index, to_win.tabs.length - 1)]?.groupId;
+
       // console.log('from before', from_win.tabs);
       // console.log('to before', to_win.tabs);
       from_win.tabs.splice(tab.index, 1);
@@ -678,8 +750,11 @@ class MockTabs implements T.Static {
     }
 
     for (const w of windows_to_fixup) this._state.fixup_tab_indices(w);
+
     // console.log(`After window fixup`);
     // for (const w of windows_to_fixup) console.log(w);
+
+    this._state.validate();
 
     /* c8 ignore next -- tests never move multiple tabs */
     if (tabIds instanceof Array) return JSON.parse(JSON.stringify(ret));
@@ -711,6 +786,19 @@ class MockTabs implements T.Static {
         throw new Error(
           `BUG: Tab ${tid} is not at the right index in window ${win.id}`,
         );
+      }
+
+      if (tab.groupId !== undefined) {
+        // If the tab is the only one in its group, remove the group
+        if (
+          (tab.index == 0 || win.tabs[tab.index - 1].groupId !== tab.groupId) &&
+          (tab.index === win.tabs.length - 1 ||
+            win.tabs[tab.index + 1].groupId !== tab.groupId)
+        ) {
+          const group = this._state.group(tab.groupId);
+          this._state.groups.delete(tab.groupId);
+          this._state.onTabGroupRemoved.send(JSON.parse(JSON.stringify(group)));
+        }
       }
 
       win.tabs.splice(tab.index, 1);
