@@ -15,20 +15,16 @@ import {
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
 
-import {
-  insertNode,
-  removeNode,
-  type TreeNode,
-  type TreeParent,
-} from "./tree.js";
+import {Tree, type TreePosition} from "./tree.js";
 
-export interface Window extends TreeParent<Window, Tab> {
+export interface Window {
   readonly id: WindowID;
   readonly position: undefined;
   readonly children: Tab[];
 }
 
-export interface Tab extends TreeNode<Window, Tab> {
+export interface Tab {
+  position: TreePosition<Window> | undefined;
   id: TabID;
   status: Tabs.TabStatus;
   title: string;
@@ -44,6 +40,27 @@ export interface Tab extends TreeNode<Window, Tab> {
 
 export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
+
+export const WindowTree = new (class extends Tree<Window, Tab> {
+  isParent(node: Window | Tab): node is Window {
+    return node.position === undefined;
+  }
+  isLoaded(parent: Window): boolean {
+    return parent.children.every(child => child?.status === "complete");
+  }
+  positionOf(node: Window | Tab): TreePosition<Window> | undefined {
+    return node.position;
+  }
+  childrenOf(parent: Window): (Tab | undefined)[] {
+    return parent.children;
+  }
+  protected setPosition(
+    node: Tab,
+    position: TreePosition<Window> | undefined,
+  ): void {
+    node.position = position;
+  }
+})();
 
 const trace = trace_fn("tabs");
 
@@ -579,10 +596,10 @@ export class Model {
     // win.children.length + 1`, resulting in a crash.  Avoid the crash by
     // clamping tab.index to the window length if the window is fully-loaded.
     // See #537.
-    if (win.isLoaded) tab.index = Math.min(tab.index, win.children.length);
+    tab.index = Math.min(tab.index, win.children.length);
 
-    if (t.position) removeNode(t.position);
-    insertNode(t, {parent: win, index: tab.index});
+    if (t.position) WindowTree.removeNode(t.position);
+    WindowTree.insertNode(t, {parent: win, index: tab.index});
 
     // Insert the tab in its index
     this._add_url(t);
@@ -672,8 +689,8 @@ export class Model {
     }
     /* c8 ignore stop */
 
-    if (t.position) removeNode(t.position);
-    insertNode(t, {parent: newWindow, index: info.toIndex});
+    if (t.position) WindowTree.removeNode(t.position);
+    WindowTree.insertNode(t, {parent: newWindow, index: info.toIndex});
   }
 
   whenTabReplaced(newId: number, oldId: number) {
@@ -727,7 +744,7 @@ export class Model {
     if (!t) return; // tab is already removed
 
     const pos = t.position;
-    if (pos) removeNode(pos);
+    if (pos) WindowTree.removeNode(pos);
 
     trace("event ...tabRemoved", tabId, pos);
 

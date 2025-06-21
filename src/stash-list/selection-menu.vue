@@ -96,6 +96,7 @@ import {altKeyName, textMatcher} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import {
+  BookmarkTree,
   friendlyFolderName,
   isFolder,
   type Folder,
@@ -107,7 +108,7 @@ import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";
 import SelectFolder from "./select-folder.vue";
 import ExportDialog from "../tasks/export.vue";
-import type {StashItem} from "../model/index.js";
+import {type StashItem} from "../model/index.js";
 
 export default defineComponent({
   components: {Menu, SearchInput, SelectFolder, ExportDialog},
@@ -141,7 +142,7 @@ export default defineComponent({
 
     nodeFilterFn() {
       const tree = new TreeFilter<Folder, Node>(
-        isFolder,
+        BookmarkTree,
         computed(() => this.filter),
       );
 

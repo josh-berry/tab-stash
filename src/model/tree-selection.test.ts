@@ -2,14 +2,13 @@ import {expect} from "chai";
 import {computed, nextTick} from "vue";
 
 import {TreeSelection} from "./tree-selection.js";
-import {insertNode, removeNode} from "./tree.js";
-import {isTestParent, makeDefaultTree, type TestNode} from "./tree.test.js";
+import {makeDefaultTree, type TestNode, TestTree} from "./tree.test.js";
 
 describe("model/tree-selection", () => {
   let [topRoot, topParents, topNodes] = makeDefaultTree();
   let [bottomRoot, _bottomParents, bottomNodes] = makeDefaultTree();
   let sel = new TreeSelection(
-    isTestParent,
+    TestTree,
     computed(() => [topRoot, bottomRoot]),
   );
 
@@ -35,7 +34,7 @@ describe("model/tree-selection", () => {
 
   beforeEach(() => {
     sel = new TreeSelection(
-      isTestParent,
+      TestTree,
       computed(() => [topRoot, bottomRoot]),
     );
   });
@@ -71,8 +70,8 @@ describe("model/tree-selection", () => {
     expect(sel.info(topNodes.root).selectedCount, "root before").to.equal(3);
     await expectSelectedItems([topNodes.c1a, topNodes.c2b2, topNodes.c2b4], []);
 
-    removeNode(topNodes.c2.position!);
-    insertNode(topNodes.c2, {parent: topParents.e, index: 0});
+    TestTree.removeNode(topNodes.c2.position!);
+    TestTree.insertNode(topNodes.c2, {parent: topParents.e, index: 0});
     await nextTick();
     expect(sel.info(topNodes.c1).selectedCount, "c1 after").to.equal(1);
     expect(sel.info(topNodes.c2b).selectedCount, "c2b after").to.equal(2);

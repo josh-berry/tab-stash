@@ -1,11 +1,6 @@
 import {computed, reactive, ref, type Ref} from "vue";
 
-import {
-  forEachNodeInSubtree,
-  type IsParentFn,
-  type TreeNode,
-  type TreeParent,
-} from "./tree.js";
+import {Tree} from "./tree.js";
 
 export interface SelectionInfo {
   /** Is this node selected? */
@@ -29,11 +24,8 @@ export interface SelectionInfo {
   readonly hasSelectionInSubtree: boolean;
 }
 
-export class TreeSelection<
-  P extends TreeParent<P, N>,
-  N extends TreeNode<P, N>,
-> {
-  readonly isParent: IsParentFn<P, N>;
+export class TreeSelection<P extends object, N extends object> {
+  readonly tree: Tree<P, N>;
 
   /** The roots of the tree, mainly used to calculate the count of selected
    * nodes. */
@@ -58,8 +50,8 @@ export class TreeSelection<
 
   private readonly nodes = new WeakMap<P | N, SelectionInfo>();
 
-  constructor(isParent: IsParentFn<P, N>, roots: Ref<P[]>) {
-    this.isParent = isParent;
+  constructor(tree: Tree<P, N>, roots: Ref<P[]>) {
+    this.tree = tree;
     this.roots = roots;
     this.selectedCount = computed(() =>
       this.roots.value.reduce(
@@ -73,14 +65,14 @@ export class TreeSelection<
     const n = this.nodes.get(node);
     if (n) return n;
 
-    const isParent = this.isParent(node);
+    const isParent = this.tree.isParent(node);
 
     const isSelected = ref(false);
 
     const selectedCount = isParent
       ? computed(() => {
           let count = isSelected.value ? 1 : 0;
-          for (const c of node.children) {
+          for (const c of this.tree.childrenOf(node)) {
             if (!c) continue;
             const info = this.info(c);
             count += info.selectedCount;
@@ -109,12 +101,14 @@ export class TreeSelection<
 
   *selectedItemsInSubtree(node: P | N): Generator<P | N> {
     if (this.info(node).isSelected) yield node;
-    if (!this.isParent(node)) return;
+    if (!this.tree.isParent(node)) return;
 
     // NOTE: We could optimize this by checking `hasSelectionInSubtree`,
     // however, that property is eventually-consistent and we want stronger
     // consistency here until we see that it's actually a performance issue.
-    for (const c of node.children) if (c) yield* this.selectedItemsInSubtree(c);
+    for (const c of this.tree.childrenOf(node)) {
+      if (c) yield* this.selectedItemsInSubtree(c);
+    }
   }
 
   /** Check if the provided node or any of its parents is selected.  Useful for
@@ -123,7 +117,7 @@ export class TreeSelection<
     while (node) {
       const si = this.info(node);
       if (si.isSelected) return true;
-      node = node.position?.parent;
+      node = this.tree.positionOf(node)?.parent;
     }
     return false;
   }
@@ -132,7 +126,7 @@ export class TreeSelection<
   clearSelection(): void {
     this.lastSelected = undefined;
     for (const r of this.roots.value) {
-      forEachNodeInSubtree(r, this.isParent, n => {
+      this.tree.forEachNodeInSubtree(r, n => {
         this.info(n).isSelected = false;
       });
     }
@@ -204,8 +198,8 @@ export class TreeSelection<
 
   // TODO Move me into tree.ts and find common parents
   itemsInRange(start: P | N, end: P | N): (P | N)[] | undefined {
-    let startPos = start.position;
-    let endPos = end.position;
+    let startPos = this.tree.positionOf(start);
+    let endPos = this.tree.positionOf(end);
 
     if (!startPos || !endPos) return undefined;
     if (startPos.parent !== endPos.parent) return undefined;
@@ -216,7 +210,8 @@ export class TreeSelection<
       startPos = tmp;
     }
 
-    return startPos.parent.children
+    return this.tree
+      .childrenOf(startPos.parent)
       .slice(startPos.index, endPos.index + 1)
       .filter(i => i !== undefined);
   }

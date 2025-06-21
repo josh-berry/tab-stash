@@ -57,7 +57,8 @@ import * as Options from "./options.js";
 import * as Tabs from "./tabs.js";
 import {TreeFilter} from "./tree-filter.js";
 import {TreeSelection} from "./tree-selection.js";
-import {pathTo} from "./tree.js";
+import {BookmarkTree} from "./bookmarks.js";
+import {Tree, type TreePosition} from "./tree.js";
 
 export {
   BookmarkMetadata,
@@ -125,6 +126,46 @@ export const isNewTab = (item: StashItem): item is NewTab =>
 export const isNewFolder = (item: StashItem): item is NewFolder =>
   !("id" in item) && "children" in item;
 
+export const ModelTree = new (class extends Tree<
+  Bookmarks.Folder | Tabs.Window,
+  Bookmarks.Node | Tabs.Tab
+> {
+  isParent(
+    node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
+  ): node is Bookmarks.Folder | Tabs.Window {
+    return "children" in node;
+  }
+
+  isLoaded(parent: Tabs.Window | Bookmarks.Folder): boolean {
+    return isWindow(parent) || (isFolder(parent) && parent.isLoaded);
+  }
+
+  positionOf(
+    node: Bookmarks.Node | Tabs.Tab | Tabs.Window | Bookmarks.Folder,
+  ): TreePosition<Tabs.Window | Bookmarks.Folder> | undefined {
+    return node.position;
+  }
+
+  childrenOf(
+    parent: Tabs.Window | Bookmarks.Folder,
+  ): (
+    | Bookmarks.Node
+    | Tabs.Tab
+    | Tabs.Window
+    | Bookmarks.Folder
+    | undefined
+  )[] {
+    return parent.children;
+  }
+
+  protected setPosition(
+    node: Bookmarks.Node | Tabs.Tab | Tabs.Window | Bookmarks.Folder,
+    position: TreePosition<Tabs.Window | Bookmarks.Folder> | undefined,
+  ): void {
+    throw new Error(`Cannot move a node using the ModelTree`);
+  }
+})();
+
 export type Source = {
   readonly browser_settings: BrowserSettings.Model;
   readonly options: Options.Model;
@@ -170,7 +211,10 @@ export class Model {
    * visible when doing a multi-select. */
   readonly showFilteredChildren = new WeakMap<ModelItem, Ref<boolean>>();
 
-  readonly selection: TreeSelection<ModelParent, ModelItem>;
+  readonly selection: TreeSelection<
+    Tabs.Window | Bookmarks.Folder,
+    Bookmarks.Node | Tabs.Tab
+  >;
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;
@@ -185,7 +229,7 @@ export class Model {
     this.bookmark_metadata = src.bookmark_metadata;
 
     this.filter = new TreeFilter(
-      isModelParent,
+      ModelTree,
       computed(() => {
         const searchText = this.searchText.value;
         if (!searchText) return _ => true;
@@ -198,7 +242,7 @@ export class Model {
     );
 
     this.selection = new TreeSelection(
-      isModelParent,
+      ModelTree,
       computed(() =>
         filterMap(
           [this.tabs.targetWindow.value, this.bookmarks.stash_root.value],
@@ -655,9 +699,7 @@ export class Model {
     // put in the folder.
 
     // Check if we're trying to move a parent into itself or one of its children
-    const cyclic_sources = pathTo<Bookmarks.Folder, Bookmarks.Node>(
-      to_folder,
-    ).map(p => p.parent.id);
+    const cyclic_sources = BookmarkTree.pathTo(to_folder).map(p => p.parent.id);
     cyclic_sources.push(to_folder.id);
     for (const i of items) {
       if (!isFolder(i)) continue;

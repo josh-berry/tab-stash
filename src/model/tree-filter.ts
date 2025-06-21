@@ -1,6 +1,6 @@
 import {computed, reactive, type Ref} from "vue";
 
-import type {IsParentFn, TreeNode, TreeParent} from "./tree.js";
+import type {Tree} from "./tree.js";
 
 export interface FilterInfo {
   /** Does this node match the predicate function? */
@@ -17,9 +17,8 @@ export interface FilterInfo {
 }
 
 /** A Tree whose nodes have been filtered by a predicate function. */
-export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
-  /** Check if a particular node is a parent node or not. */
-  readonly isParent: IsParentFn<P, N>;
+export class TreeFilter<P extends object, N extends object> {
+  readonly tree: Tree<P, N>;
 
   /** The predicate function used to determine whether a node `isMatching` or
    * not.  Updating this ref will update the `.isMatching` property on every
@@ -28,11 +27,8 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
 
   private readonly nodes = new WeakMap<P | N, FilterInfo>();
 
-  constructor(
-    isParent: IsParentFn<P, N>,
-    predicate: Ref<(node: P | N) => boolean>,
-  ) {
-    this.isParent = isParent;
+  constructor(tree: Tree<P, N>, predicate: Ref<(node: P | N) => boolean>) {
+    this.tree = tree;
     this.predicate = predicate;
   }
 
@@ -42,13 +38,13 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
     const n = this.nodes.get(node);
     if (n) return n;
 
-    const isParent = this.isParent(node);
+    const isParent = this.tree.isParent(node);
 
     const isMatching = computed(() => this.predicate.value(node));
 
     const hasMatchInSubtree = isParent
       ? computed(() => {
-          for (const c of node.children) {
+          for (const c of this.tree.childrenOf(node)) {
             if (!c) continue;
             const i = this.info(c);
             if (i.isMatching || i.hasMatchInSubtree) return true;
@@ -60,7 +56,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
     const nonMatchingCount = isParent
       ? computed(() => {
           let count = 0;
-          for (const c of node.children) {
+          for (const c of this.tree.childrenOf(node)) {
             if (!c) continue;
             const i = this.info(c);
             if (!i.isMatching && !i.hasMatchInSubtree) ++count;

@@ -15,30 +15,27 @@ import {
 } from "../util/index.js";
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
-import {
-  insertNode,
-  isChildInParent,
-  pathTo,
-  placeNode,
-  removeNode,
-  type LoadedTreeParent,
-  type TreeNode,
-  type TreeParent,
-} from "./tree.js";
+import {Tree, type TreePosition} from "./tree.js";
 
 /** A node in the bookmark tree. */
-export interface Node extends TreeNode<Folder, Node> {
+export interface Node {
+  position: TreePosition<Folder> | undefined;
   id: NodeID;
   dateAdded?: number;
   title: string;
 }
 
-export interface Folder extends Node, TreeParent<Folder, Node> {
+export interface Folder extends Node {
+  isLoaded: boolean;
+  readonly children: (Node | undefined)[];
   $stats: FolderStats;
   $recursiveStats: FolderStats;
 }
 
-export type LoadedFolder = LoadedTreeParent<Folder, Node>;
+export interface LoadedFolder extends Folder {
+  isLoaded: true;
+  readonly children: Node[];
+}
 
 export interface Bookmark extends Node {
   url: string;
@@ -67,6 +64,27 @@ export function isFolder(node: Node): node is Folder {
 export function isSeparator(node: Node): node is Separator {
   return "type" in node && node.type === "separator";
 }
+
+export const BookmarkTree = new (class extends Tree<Folder, Node> {
+  isParent(node: Node): node is Folder {
+    return isFolder(node);
+  }
+  isLoaded(parent: Folder): boolean {
+    return parent.isLoaded;
+  }
+  positionOf(node: Node): TreePosition<Folder> | undefined {
+    return node.position;
+  }
+  childrenOf(parent: Folder): (Node | undefined)[] {
+    return parent.children;
+  }
+  protected setPosition(
+    node: Node,
+    position: TreePosition<Folder> | undefined,
+  ): void {
+    node.position = position;
+  }
+})();
 
 const trace = trace_fn("bookmarks");
 
@@ -375,7 +393,7 @@ export class Model {
   isNodeInStashRoot(node: Node): boolean {
     /* c8 ignore next -- we always have a root in tests */
     if (!this.stash_root.value) return false;
-    return isChildInParent(node, this.stash_root.value);
+    return BookmarkTree.isChildInParent(node, this.stash_root.value);
   }
 
   /** Returns true if a particular URL is present in the stash in a bookmark
@@ -404,7 +422,7 @@ export class Model {
       const parent = bm.position?.parent;
       /* c8 ignore next -- bookmarks should never be roots */
       if (!parent) continue;
-      if (!isChildInParent(parent as Node, stash_root)) continue;
+      if (!BookmarkTree.isChildInParent(parent as Node, stash_root)) continue;
       ret.push(parent);
     }
     return ret;
@@ -615,7 +633,9 @@ export class Model {
     if (getDefaultFolderNameISODate(folder.title) === null) return;
     if (folder.children.length > 0) return;
     if (!this.stash_root.value) return;
-    if (!isChildInParent(folder as Node, this.stash_root.value)) return;
+    if (!BookmarkTree.isChildInParent(folder as Node, this.stash_root.value)) {
+      return;
+    }
 
     // NOTE: This will never be recursive because remove() only calls us if
     // we're removing a leaf node, which we are never doing here.
@@ -667,14 +687,14 @@ export class Model {
       // If we don't know about the node's old parent, `node.position` will be
       // undefined. If we don't know about the node's new parent, `parent` will
       // be undefined.
-      if (node.position) removeNode(node.position);
-      if (parent) insertNode(node, {parent, index: info.index});
+      if (node.position) BookmarkTree.removeNode(node.position);
+      if (parent) BookmarkTree.insertNode(node, {parent, index: info.index});
 
       if (this._stash_root_watch.has(node)) this._maybeUpdateStashRoot();
     } else if (parent) {
       // An unloaded node was just moved into a loaded parent; make room for it
       // in the parent and note that the parent is no longer loaded.
-      insertNode(undefined, {parent, index: info.index});
+      BookmarkTree.insertNode(undefined, {parent, index: info.index});
       parent.isLoaded = false;
     }
   }
@@ -695,7 +715,7 @@ export class Model {
       }
     }
 
-    if (node.position) removeNode(node.position);
+    if (node.position) BookmarkTree.removeNode(node.position);
 
     this.by_id.delete(node.id);
     if (isBookmark(node)) this._remove_url(node);
@@ -763,7 +783,7 @@ export class Model {
     let candidates = filterMap(searched, s => this.folder(s.id));
     const paths = filterMap(candidates, c => ({
       folder: c,
-      path: pathTo<Folder, Node>(c),
+      path: BookmarkTree.pathTo(c),
     }));
 
     // Find the depth of the candidate closest to the root.
@@ -855,10 +875,12 @@ export class Model {
         pos.index !== node.position?.index
       ) {
         if (node.position) {
-          removeNode(node.position);
-          insertNode(node, pos);
+          BookmarkTree.removeNode(node.position);
+          BookmarkTree.insertNode(node, pos);
+        } else if (shiftIfNew) {
+          BookmarkTree.insertNode(node, pos);
         } else {
-          (shiftIfNew ? insertNode : placeNode)(node, pos);
+          BookmarkTree.placeNode(node, pos);
         }
       }
     }

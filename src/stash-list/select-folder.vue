@@ -25,7 +25,7 @@ import {computed} from "vue";
 import {filterMap} from "../util/index.js";
 
 import the from "../globals-ui.js";
-import {friendlyFolderName, type Folder} from "../model/bookmarks.js";
+import {friendlyFolderName, isFolder, type Folder} from "../model/bookmarks.js";
 
 import Self from "./select-folder.vue";
 </script>
@@ -46,7 +46,7 @@ const selection = the.model.selection;
 
 const visibleChildFolders = computed(() =>
   filterMap(props.folder.children, c =>
-    c && "children" in c && props.filter(c) && !selection.info(c).isSelected
+    c && isFolder(c) && props.filter(c) && !selection.info(c).isSelected
       ? c
       : undefined,
   ),

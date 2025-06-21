@@ -4,8 +4,8 @@ import {nextTick, ref, type Ref} from "vue";
 import {TreeFilter} from "./tree-filter.js";
 
 import {
-  isTestParent,
   makeDefaultTree,
+  TestTree,
   type TestNode,
   type TestParent,
 } from "./tree.test.js";
@@ -53,7 +53,7 @@ describe("model/tree-filter", () => {
   beforeEach(() => {
     /* c8 ignore next -- default impl is always overridden by tests */
     predicate.value = _ => false;
-    treeFilter = new TreeFilter(isTestParent, predicate);
+    treeFilter = new TreeFilter(TestTree, predicate);
   });
 
   it("reports when nothing matches the filter", () => {
