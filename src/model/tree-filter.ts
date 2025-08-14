@@ -6,8 +6,8 @@ export interface FilterInfo {
   /** Does this node match the predicate function? */
   readonly isMatching: boolean;
 
-  /** Do any nodes in this node's sub-tree match the predicate? (Includes the
-   * node itself.) */
+  /** Do any nodes in this node's sub-tree match the predicate? (Excludes the
+   * node itself.) If the node is not a parent, this is always false. */
   readonly hasMatchInSubtree: boolean;
 
   /** How many direct child nodes do NOT have a match in their subtree? (This is
@@ -55,7 +55,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
           }
           return false;
         })
-      : isMatching;
+      : computed(() => false);
 
     const nonMatchingCount = isParent
       ? computed(() => {

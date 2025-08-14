@@ -36,7 +36,7 @@ describe("model/tree-filter", () => {
         const ci = treeFilter.info(c);
         visit(c);
         if (ci.isMatching || ci.hasMatchInSubtree) hasMatchInSubtree = true;
-        if (!ci.hasMatchInSubtree) ++nonMatchingCount;
+        if (!ci.isMatching && !ci.hasMatchInSubtree) ++nonMatchingCount;
       }
       expect(i.hasMatchInSubtree).to.equal(
         hasMatchInSubtree,
