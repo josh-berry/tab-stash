@@ -48,10 +48,10 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
 
     const hasMatchInSubtree = isParent
       ? computed(() => {
-          if (isMatching.value) return true;
           for (const c of node.children) {
             if (!c) continue;
-            if (this.info(c).hasMatchInSubtree) return true;
+            const i = this.info(c);
+            if (i.isMatching || i.hasMatchInSubtree) return true;
           }
           return false;
         })
@@ -62,7 +62,8 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
           let count = 0;
           for (const c of node.children) {
             if (!c) continue;
-            if (!this.info(c).hasMatchInSubtree) ++count;
+            const i = this.info(c);
+            if (!i.isMatching && !i.hasMatchInSubtree) ++count;
           }
           return count;
         })

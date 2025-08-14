@@ -9,7 +9,8 @@
       collapsed: collapsed,
       selected: selectionInfo.isSelected,
       'no-match': !filterInfo.isMatching,
-      'has-matching-children': filterInfo.hasMatchInSubtree,
+      'has-matching-children':
+        filterInfo.isMatching || filterInfo.hasMatchInSubtree,
     }"
   >
     <item-icon
@@ -554,6 +555,7 @@ export default defineComponent({
       return (
         this.isValidChild(node) &&
         (this.showFiltered ||
+          fi.isMatching ||
           fi.hasMatchInSubtree ||
           si.isSelected ||
           si.hasSelectionInSubtree)
@@ -689,7 +691,8 @@ export default defineComponent({
       if (
         isFolder(item) &&
         (item.children.length === 0 ||
-          the.model.bookmark_metadata.get(item.id).value?.collapsed)
+          the.model.bookmark_metadata.get(item.id).value?.collapsed ||
+          !the.model.filter.info(item).hasMatchInSubtree)
       ) {
         return dragDataType(data) ? "before-inside-after" : null;
       } else {

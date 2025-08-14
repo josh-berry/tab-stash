@@ -62,7 +62,10 @@ export default defineComponent({
     isVisible(f: Node): f is Folder {
       const fi = the.model.filter.info(f);
       const si = the.model.selection.info(f);
-      return isFolder(f) && (fi.hasMatchInSubtree || si.hasSelectionInSubtree);
+      return (
+        isFolder(f) &&
+        (fi.isMatching || fi.hasMatchInSubtree || si.hasSelectionInSubtree)
+      );
     },
 
     async loadMore() {

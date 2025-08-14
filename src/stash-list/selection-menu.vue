@@ -145,7 +145,10 @@ export default defineComponent({
         computed(() => this.filter),
       );
 
-      return (node: Node) => tree.info(node).hasMatchInSubtree;
+      return (node: Node) => {
+        const i = tree.info(node);
+        return i.isMatching || i.hasMatchInSubtree;
+      };
     },
 
     createTitle(): string {
