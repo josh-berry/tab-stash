@@ -1,9 +1,10 @@
-import type {
-  ExtensionTypes,
-  Runtime,
-  Tabs as T,
-  TabGroups as G,
-  Windows as W,
+import {
+  type ExtensionTypes,
+  type Runtime,
+  type Tabs as T,
+  type TabGroups as G,
+  type Windows as W,
+  type Events,
 } from "webextension-polyfill";
 
 import {later} from "../../util/index.js";
@@ -53,7 +54,7 @@ export class State {
   >;
 
   next_tab_id = 0;
-  next_group_id = 0;
+  next_group_id = 1;
   readonly windows: (Window | undefined)[] = [];
   readonly groups = new Map<number, G.TabGroup>();
 
@@ -321,7 +322,8 @@ class MockWindows implements W.Static {
       : ["about:blank"];
     let i = 0;
     for (const url of urls) {
-      const tab_id = this._state.next_tab_id++;
+      const tab_id = this._state.next_tab_id;
+      this._state.next_tab_id += 2;
       const tab: Tab = {
         id: tab_id,
         windowId: win_id,
@@ -517,7 +519,8 @@ class MockTabs implements T.Static {
     }
 
     const win = this._state.win(windowId);
-    const id = this._state.next_tab_id++;
+    const id = this._state.next_tab_id;
+    this._state.next_tab_id += 2;
     const tab: Tab = {
       id,
       windowId: windowId,
@@ -984,6 +987,190 @@ class MockTabs implements T.Static {
   }
   /* c8 ignore stop */
 
+  async group(options: {
+    tabIds: number | number[];
+    groupId?: number;
+    createProperties?: {windowId?: number};
+  }): Promise<number> {
+    const tabIds = Array.isArray(options.tabIds)
+      ? options.tabIds
+      : [options.tabIds];
+
+    if (tabIds.length === 0) {
+      throw new Error("At least one tab ID must be provided");
+    }
+
+    const tabs = tabIds.map(id => this._state.tab(id));
+
+    const windowId = tabs[0].windowId;
+    if (!tabs.every(tab => tab.windowId === windowId)) {
+      throw new Error("All tabs must be in the same window");
+    }
+
+    const win = this._state.win(windowId);
+    let groupId = options.groupId;
+
+    // Create new group if no groupId provided
+    if (groupId === undefined) {
+      groupId = this._state.next_group_id;
+      this._state.next_group_id += 2;
+
+      const newGroup: G.TabGroup = {
+        id: groupId,
+        windowId: windowId,
+        title: "",
+        color: "blue",
+        collapsed: false,
+      };
+
+      this._state.groups.set(groupId, newGroup);
+      this._state.onTabGroupCreated.send(JSON.parse(JSON.stringify(newGroup)));
+    } else {
+      const group = this._state.groups.get(groupId);
+      if (!group) {
+        throw new Error(`Group ${groupId} does not exist`);
+      }
+      if (group.windowId !== windowId) {
+        throw new Error("Group must be in the same window as the tabs");
+      }
+    }
+
+    // Unpin any pinned tabs
+    for (const tab of tabs) {
+      if (tab.pinned) {
+        tab.pinned = false;
+        this.onUpdated.send(
+          tab.id,
+          {pinned: false},
+          JSON.parse(JSON.stringify(tab)),
+        );
+      }
+    }
+
+    // Sort tabs by their current index so that we can position the group at the
+    // location of the first tab.
+    tabs.sort((a, b) => a.index - b.index);
+
+    // Pick the insertion point for the group--this is where the first tab in
+    // the group should land. If the first tab was previously a pinned tab, we
+    // will have to choose an insertion point just after the last pinned tab so
+    // that all the pinned tabs remain at the beginning of the window.
+    let toIndex = tabs[0].index;
+    if (tabs[0].pinned) {
+      const lastPinnedTab = win.tabs
+        .slice(0, tabs[0].index)
+        .reverse()
+        .find(t => t.pinned);
+      if (lastPinnedTab) toIndex = lastPinnedTab.index + 1;
+    }
+
+    // Now move all of the tabs into position. We maintain `targetIndex` as the
+    // insertion point, update the tabs' indices and position in the window, and
+    // fire onMoved events accordingly. Note that, because some tabs might be
+    // pinned, they might presently be BEFORE the insertion point, so we have to
+    // adjust targetIndex accordingly.
+    for (const tab of tabs) {
+      const fromIndex = tab.index;
+
+      win.tabs.splice(tab.index, 1);
+      win.tabs.splice(toIndex, 0, tab);
+
+      if (fromIndex !== toIndex) {
+        this.onMoved.send(tab.id, {windowId: tab.windowId, fromIndex, toIndex});
+      }
+
+      if (tab.index >= toIndex) ++toIndex;
+    }
+
+    this._state.fixup_tab_indices(win);
+
+    // Update group membership for all the tabs. If the tab is in a pre-existing
+    // group and that group becomes empty, we must also destroy that group.
+    for (const tab of tabs) {
+      const oldGroupId = tab.groupId;
+      tab.groupId = groupId;
+
+      if (oldGroupId !== groupId) {
+        this.onUpdated.send(
+          tab.id,
+          {groupId} as T.OnUpdatedChangeInfoType,
+          JSON.parse(JSON.stringify(tab)),
+        );
+      }
+
+      if (
+        oldGroupId !== undefined &&
+        !win.tabs.some(t => t.groupId === oldGroupId)
+      ) {
+        // This was the last tab in the group; destroy it
+        const oldGroup = this._state.group(oldGroupId);
+        this._state.groups.delete(oldGroupId);
+        this._state.onTabGroupRemoved.send(
+          JSON.parse(JSON.stringify(oldGroup)),
+        );
+      }
+    }
+
+    this._state.validate();
+    return groupId;
+  }
+
+  async ungroup(tabIds: number | number[]): Promise<void> {
+    tabIds = Array.isArray(tabIds) ? tabIds : [tabIds];
+
+    const tabs = tabIds.map(id => this._state.tab(id));
+    const windowsToFix = [];
+
+    // Sort tabs in reverse index order, so that it's easier to move them
+    // outside of the group as described below.
+    tabs.sort((a, b) => b.index - a.index);
+
+    for (const tab of tabs) {
+      if (tab.groupId === undefined) continue;
+
+      const win = this._state.win(tab.windowId);
+      const group = this._state.groups.get(tab.groupId);
+
+      if (!group) continue;
+
+      // If this tab is in the middle of a group, we have to move it so it is
+      // just after the group.  Because of the reverse sort above, we know that
+      // this is the last tab in the group that we will be processing, so we can
+      // just move it to the same index as the next tab after the group.
+      const toIndex =
+        win.tabs.reverse().find(t => t.groupId === tab.groupId)!.index + 1;
+      if (tab.index !== toIndex) {
+        const fromIndex = tab.index;
+
+        win.tabs.splice(tab.index, 1);
+        win.tabs.splice(toIndex, 0, tab);
+
+        this.onMoved.send(tab.id, {windowId: win.id, fromIndex, toIndex});
+        windowsToFix.push(win);
+      }
+
+      // Then remove the tab from the group.  If the group becomes empty,
+      // destroy it.
+      tab.groupId = undefined;
+      this.onUpdated.send(
+        tab.id,
+        {groupId: -1} as T.OnUpdatedChangeInfoType,
+        JSON.parse(JSON.stringify(tab)),
+      );
+      if (
+        group.id !== undefined &&
+        !win.tabs.some(t => t.groupId === group.id)
+      ) {
+        this._state.groups.delete(group.id);
+        this._state.onTabGroupRemoved.send(JSON.parse(JSON.stringify(group)));
+      }
+    }
+
+    for (const w of windowsToFix) this._state.fixup_tab_indices(w);
+
+    this._state.validate();
+  }
+
   _finish_loading(t: Tab) {
     later(() => {
       t.status = "complete";
@@ -993,6 +1180,84 @@ class MockTabs implements T.Static {
         JSON.parse(JSON.stringify(t)),
       );
     });
+  }
+}
+
+class MockTabGroups implements G.Static {
+  private _state: State;
+
+  onCreated: Events.Event<(group: G.TabGroup) => void>;
+  onMoved: Events.Event<(group: G.TabGroup) => void>;
+  onRemoved: Events.Event<(group: G.TabGroup) => void>;
+  onUpdated: Events.Event<(group: G.TabGroup) => void>;
+
+  readonly TAB_GROUP_ID_NONE = -1;
+
+  constructor(state: State) {
+    this._state = state;
+    this.onCreated = state.onTabGroupCreated;
+    this.onMoved = state.onTabGroupMoved;
+    this.onRemoved = state.onTabGroupRemoved;
+    this.onUpdated = state.onTabGroupUpdated;
+  }
+
+  async get(groupId: number): Promise<G.TabGroup> {
+    return JSON.parse(JSON.stringify(this._state.group(groupId)));
+  }
+
+  async move(
+    groupId: number,
+    moveProperties: G.MoveMovePropertiesType,
+  ): Promise<G.TabGroup | undefined> {
+    throw new Error("Method not implemented.");
+  }
+
+  async query(queryInfo: G.QueryQueryInfoType): Promise<G.TabGroup[]> {
+    const notSupported = (k: keyof G.QueryQueryInfoType) => {
+      if (k in queryInfo) throw new Error(`${k}: Query key not supported`);
+    };
+    notSupported("collapsed");
+    notSupported("color");
+    notSupported("title");
+    notSupported("windowId");
+
+    return JSON.parse(JSON.stringify(Array.from(this._state.groups.values())));
+  }
+
+  async update(
+    groupId: number,
+    updateProperties: G.UpdateUpdatePropertiesType,
+  ): Promise<G.TabGroup | undefined> {
+    const group = this._state.group(groupId);
+
+    let fireEvent = false;
+
+    // There's a less verbose way to do this, but we can't use it because some
+    // of the types of the properties of TabGroup and UpdateUpdatePropertiesType
+    // are (erroneously) different.
+    if (updateProperties.collapsed !== undefined) {
+      // The type of `collapsed` is wrong in the schema. Should be fixed along
+      // with https://github.com/Lusito/webextension-polyfill-ts/issues/116
+      const uCollapsed = updateProperties.collapsed as unknown as boolean;
+      if (group.collapsed !== uCollapsed) fireEvent = true;
+      group.collapsed = uCollapsed;
+    }
+
+    if (updateProperties.color !== undefined) {
+      if (group.color !== updateProperties.color) fireEvent = true;
+      group.color = updateProperties.color;
+    }
+
+    if (updateProperties.title !== undefined) {
+      if (group.title !== updateProperties.title) fireEvent = true;
+      group.title = updateProperties.title;
+    }
+
+    if (fireEvent) {
+      this._state.onTabGroupUpdated.send(JSON.parse(JSON.stringify(group)));
+    }
+
+    return group;
   }
 }
 
@@ -1009,13 +1274,16 @@ export default (() => {
     state,
     windows: new MockWindows(state),
     tabs: new MockTabs(state),
+    tabGroups: new MockTabGroups(state),
 
     reset() {
       exports.state = state = new State();
       exports.windows = new MockWindows(state);
       exports.tabs = new MockTabs(state);
+      exports.tabGroups = new MockTabGroups(state);
       (<any>globalThis).browser.windows = exports.windows;
       (<any>globalThis).browser.tabs = exports.tabs;
+      (<any>globalThis).browser.tabGroups = exports.tabGroups;
     },
 
     updateTabInfo(tabId: number, options: UpdateTabInfoOptions) {

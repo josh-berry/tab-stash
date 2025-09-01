@@ -8,6 +8,7 @@ import browser, {
   type Bookmarks,
   type Tabs,
   type Windows,
+  type TabGroups,
 } from "webextension-polyfill";
 
 import * as events from "../mock/events.js";
@@ -18,7 +19,7 @@ import type {NodeID} from "./bookmarks.js";
 import type * as DeletedItems from "./deleted-items.js";
 import type * as Favicons from "./favicons.js";
 import {Options} from "./index.js";
-import type {Tab, TabID, WindowID} from "./tabs.js";
+import type {Tab, TabGroupID, TabID, WindowID} from "./tabs.js";
 
 //
 // The test data.
@@ -58,12 +59,28 @@ const WINDOWS = {
     {id: "real_bob", url: `${B}#bob`},
     {id: "real_doug", url: `${B}#doug`},
     {id: "real_doug_2", url: `${B}#doug`, hidden: true},
-    {id: "real_estelle", url: `${B}#estelle`},
-    {id: "real_francis", url: `${B}#francis`},
+    {
+      id: "real_estelle",
+      url: `${B}#estelle`,
+      groupId: "ef" satisfies TabGroupName,
+    },
+    {
+      id: "real_francis",
+      url: `${B}#francis`,
+      groupId: "ef" satisfies TabGroupName,
+    },
     {id: "real_harry", url: `${B}#harry`, hidden: true},
     {id: "real_unstashed", url: `${B}#unstashed`},
     {id: "real_helen", url: `${B}#helen`, hidden: true},
   ],
+} as const;
+
+const GROUPS = {
+  ef: {
+    id: "ef",
+    title: "EF Group",
+    color: "red" satisfies TabGroups.ColorEnum,
+  },
 } as const;
 
 const BOOKMARKS = {
@@ -214,9 +231,11 @@ const DELETED_ITEMS: Omit<DeletedItems.SourceValue, "deleted_at">[] = [
 export type TabFixture = {
   windows: {[k in WindowName]: Windows.Window & {id: WindowID}};
   tabs: {[k in TabName]: Tabs.Tab & {id: TabID}};
+  groups: {[k in TabGroupName]: TabGroups.TabGroup & {id: TabGroupID}};
 };
 type WindowName = keyof typeof WINDOWS;
 type TabName = (typeof WINDOWS)[WindowName][any]["id"];
+type TabGroupName = keyof typeof GROUPS;
 
 export type BookmarkFixture = {
   [k in BookmarkName]: Bookmarks.BookmarkTreeNode & {
@@ -287,7 +306,9 @@ export async function make_bookmarks(): Promise<BookmarkFixture> {
 export async function make_tabs(): Promise<TabFixture> {
   // TODO: Cleanup from any prior failed runs (if we're in a real browser)
   const windows: Partial<TabFixture["windows"]> = {};
+  const groups: Partial<TabFixture["groups"]> = {};
   const tabs: Partial<TabFixture["tabs"]> = {};
+
   for (const w in WINDOWS) {
     const win = await browser.windows.create();
     await events.next(browser.windows.onCreated);
@@ -321,6 +342,27 @@ export async function make_tabs(): Promise<TabFixture> {
         tab.hidden = true;
       }
 
+      if ("groupId" in tab_def) {
+        const browser_gid = groups[tab_def.groupId]?.id;
+        if (browser_gid === undefined) {
+          const gid = await browser.tabs.group({
+            tabIds: [tab.id!],
+          });
+          groups[tab_def.groupId] = {
+            windowId: win.id!,
+            id: gid as TabGroupID,
+            collapsed: false,
+            color: "grey",
+            title: "",
+          };
+        } else {
+          await browser.tabs.group({
+            groupId: browser_gid,
+            tabIds: [tab.id!],
+          });
+        }
+      }
+
       tab.windowId = win.id;
       tab.index = i;
       tabs[tab_def.id] = tab as Tabs.Tab & {id: TabID};
@@ -336,9 +378,21 @@ export async function make_tabs(): Promise<TabFixture> {
     windows[w as keyof typeof WINDOWS] = win as Windows.Window & {id: string};
   }
 
+  for (const gid in GROUPS) {
+    const g = gid as TabGroupName;
+    if (groups[g]?.id === undefined) {
+      throw new Error(`${gid}: Group was not referenced by any tabs`);
+    }
+
+    const info = await browser.tabGroups.get(groups[g]?.id);
+    if (!info) throw new Error(`${g}: Group was not found`);
+    groups[g] = info as TabGroups.TabGroup & {id: TabGroupID};
+  }
+
   expect(events.pendingCount()).to.equal(0);
   return {
     windows: windows as TabFixture["windows"],
+    groups: groups as TabFixture["groups"],
     tabs: tabs as TabFixture["tabs"],
   };
 }
