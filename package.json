@@ -32,7 +32,7 @@
     "vite": "^6.3",
     "vue": "^3.4",
     "vue-tsc": "^2.0",
-    "web-ext": "^8.2",
+    "web-ext": "^8.10",
     "webextension-polyfill": "^0.10"
   },
   "scripts": {}
