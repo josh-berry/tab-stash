@@ -302,8 +302,13 @@ export default defineComponent({
   },
 
   mounted() {
-    if (the.view === "popup") {
-      (<any>this.$refs.search).focus();
+    if (the.view !== "tab") {
+      // We wait a few frames before focusing the search box, because when
+      // opening the popup view, there are other browser-internal things that
+      // might steal focus and put it on the popup itself.
+      setTimeout(() => {
+        (<any>this.$refs.search).focus();
+      }, 50);
     }
 
     const selectBookmarks = the.searchParams.getAll("bm");
