@@ -517,6 +517,10 @@ export class Model {
       }
     }
 
+    if (this.searchText.value) {
+      url.searchParams.set("q", this.searchText.value);
+    }
+
     for (const item of this.selection.selectedItems()) {
       if (isNode(item)) {
         url.searchParams.append("bm", item.id);

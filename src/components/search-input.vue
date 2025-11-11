@@ -26,7 +26,7 @@
 </template>
 
 <script lang="ts">
-import {ref, watch} from "vue";
+import {ref, watch, watchEffect} from "vue";
 import {onceRefHasValue} from "../util/index.js";
 </script>
 
@@ -52,6 +52,11 @@ const emit = defineEmits<{
 // performance as much.
 const searchContent = ref("");
 let debounceTimeout: number | undefined = undefined;
+
+watchEffect(() => {
+  searchContent.value = props.modelValue;
+});
+
 watch(searchContent, () => {
   // If debounce is disabled or we're clearing the search field, emit the update
   // immediately. We never want to debounce on clear, because it usually means

@@ -194,13 +194,21 @@ export default defineComponent({
 
   data: () => ({
     collapsed: false,
-    searchText: "",
     dialog: undefined as undefined | {class: string; props?: any},
   }),
 
   computed: {
     my_version(): string {
       return the.version;
+    },
+
+    searchText: {
+      get(): string {
+        return the.model.searchText.value;
+      },
+      set(v: string) {
+        the.model.searchText.value = v;
+      },
     },
 
     view(): string {
@@ -311,6 +319,8 @@ export default defineComponent({
       }, 50);
     }
 
+    this.searchText = the.searchParams.get("q") || "";
+
     const selectBookmarks = the.searchParams.getAll("bm");
 
     if (selectBookmarks.length > 0) {
@@ -389,12 +399,6 @@ export default defineComponent({
       },
     };
     */
-  },
-
-  watch: {
-    searchText() {
-      the.model.searchText.value = this.searchText;
-    },
   },
 
   methods: {
