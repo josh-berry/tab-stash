@@ -155,7 +155,7 @@ export function urlToStash(url: string | OpenableURL): string {
   return url;
 }
 
-function redirUrl(url: string): OpenableURL {
+export function redirUrl(url: string): OpenableURL {
   return `${REDIR_PAGE}?url=${encodeURIComponent(url)}` as OpenableURL;
 }
 

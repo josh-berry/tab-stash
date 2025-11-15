@@ -723,8 +723,8 @@ export class Model {
           ? to_folder.children.filter(
               bm =>
                 !dont_steal_bms.has(bm.id) &&
-                "url" in bm &&
-                bm.url === item.url &&
+                isBookmark(bm) &&
+                urlToStash(bm.url) === urlToStash(item.url) &&
                 (item.title ? item.title === bm.title : true),
             )
           : [];

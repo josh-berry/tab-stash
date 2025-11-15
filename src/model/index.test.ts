@@ -8,7 +8,7 @@ import * as events from "../mock/events.js";
 import {B} from "./fixtures.testlib.js";
 import {setupModelTestEnv, type ModelTestEnv} from "./index.testlib.js";
 
-import {filterMap, later} from "../util/index.js";
+import {filterMap, later, redirUrl, urlToStash} from "../util/index.js";
 
 import {_StoredObjectFactory} from "../datastore/stored-object.js";
 import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
@@ -1027,6 +1027,8 @@ describe("model", () => {
         `${B}#gazebo`,
         `${B}#turtle`,
         `${B}#nate`,
+        // https://github.com/josh-berry/tab-stash/issues/638
+        redirUrl(`${B}#patricia`),
       ];
       const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
       const p = env.model.putItemsInFolder({
@@ -1038,6 +1040,7 @@ describe("model", () => {
       await events.next(browser.bookmarks.onMoved);
       await events.next(browser.bookmarks.onCreated);
       await events.next(browser.bookmarks.onCreated);
+      await events.next(browser.bookmarks.onMoved);
       await events.next(browser.bookmarks.onMoved);
       const res = await p;
 
@@ -1053,7 +1056,7 @@ describe("model", () => {
 
       expect(
         filterMap(res, r => (r as M.Bookmarks.Bookmark).url),
-      ).to.deep.equal(urls);
+      ).to.deep.equal(urls.map(u => urlToStash(u)));
 
       expect(folder.children.map(bm => bm?.id)).to.deep.equal(expectedIds);
       expect(
