@@ -5,6 +5,7 @@
       accepts: (data: DataTransfer) => (listAccepts(data) ? 'inside' : null),
       drop: parentDrop,
     }"
+    :class="{collapsed}"
   >
     <div
       :class="{
