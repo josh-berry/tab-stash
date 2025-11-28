@@ -7,8 +7,9 @@ export type EventSource<L extends (...args: any[]) => any> = Events.Event<L>;
 /** An event.  Events have listeners which are managed through the usual
  * add/has/removeListener() methods.  A message can be broadcast to all
  * listeners using the send() method. */
-export interface Event<L extends (...args: any[]) => any>
-  extends EventSource<L> {
+export interface Event<
+  L extends (...args: any[]) => any,
+> extends EventSource<L> {
   /** Send a message to all listeners.  send() will arrange for each listener
    * to be called with the arguments provided after send() returns. */
   send(...args: Args<L>): void;
@@ -22,9 +23,9 @@ if ((<any>globalThis).mock?.events) {
   // instead, which allows for snooping on events.
   eventClass = (<any>globalThis).MockEvent;
 } else {
-  eventClass = class Event<L extends (...args: any[]) => any>
-    implements Event<L>
-  {
+  eventClass = class Event<
+    L extends (...args: any[]) => any,
+  > implements Event<L> {
     private _listeners: Set<L> = new Set();
 
     addListener(l: L) {

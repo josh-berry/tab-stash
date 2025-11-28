@@ -61,11 +61,9 @@ that would be useful to know (or at least references to have handy) when you
 dive into the code:
 
 1. If this is your first time coding, here's where to start:
-
    - [How to develop for the web](https://developer.mozilla.org/en-US/docs/Learn)
 
 2. Learn about the languages used in Tab Stash:
-
    - [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
    - [TypeScript](https://www.typescriptlang.org/docs/)
    - [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML) for building web
@@ -77,7 +75,6 @@ dive into the code:
    Firefox](https://extensionworkshop.com/extension-basics/) are put together.
 
 4. Learn about the major libraries and frameworks used in Tab Stash:
-
    - [The WebExtension APIs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API)
      (for interacting with the browser)
    - [Vue.js](https://v3.vuejs.org/) (for creating UI elements)
@@ -97,7 +94,6 @@ them out:
    You should see that all the tests are passing.
 
 3. Load your build into Firefox:
-
    1. Go to `about:debugging` and click on "This Firefox".
 
    2. Click "Load Temporary Addon..." and choose the `manifest.json` file in Tab
@@ -106,7 +102,6 @@ them out:
    3. The Tab Stash sidebar and toolbar button should appear.
 
 4. Make your changes:
-
    1. Use your favorite editor (e.g. [Visual Studio Code]) to make your changes.
 
    2. Rebuild Tab Stash and run the unit tests (just run `make`). Be sure the
@@ -135,7 +130,6 @@ During the build, a few different types of source files are combined to produce
 the final Tab Stash extension. Let's go on a quick tour:
 
 1. Files in `assets/` are copied directly into the extension unchanged.
-
    1. `manifest.json` describes the extension to the browser. This is the place
       to start to understand how the browser interacts with Tab Stash.
 
@@ -146,7 +140,6 @@ the final Tab Stash extension. Let's go on a quick tour:
 
 3. `styles/` use CSS (as processed by [Less](https://lesscss.org/)) to define
    how the UI looks. In general, styles are broken down as follows:
-
    - `index.less` is the "top-level" file which loads all the others and acts as
      a "catch-all" for styles that don't fit anywhere else.
 
@@ -165,7 +158,6 @@ the final Tab Stash extension. Let's go on a quick tour:
 4. `src/` is where all the action is---all the TypeScript and Vue.js code that
    makes up Tab Stash lives here. Here are some places to check out to learn
    your way around:
-
    1. `src/index.ts` is the main entry point for the background page (the part
       of Tab Stash that is always loaded in the background). Integrations with
       the browser (e.g. the context menu, toolbar button, etc.) are all defined

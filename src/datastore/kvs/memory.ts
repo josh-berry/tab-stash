@@ -12,9 +12,10 @@ const byKey = ([k1, v1]: [any, any], [k2, v2]: [any, any]) =>
       : /* c8 ignore next -- because k1 != k2 always */ 0;
 
 // XXX optimize me if performance ever becomes important
-export default class MemoryKVS<K extends Key, V extends Value>
-  implements KeyValueStore<K, V>
-{
+export default class MemoryKVS<
+  K extends Key,
+  V extends Value,
+> implements KeyValueStore<K, V> {
   readonly name: string;
   readonly onSet: Event<(entries: MaybeEntry<K, V>[]) => void>;
   readonly onSyncLost: Event<() => void>;

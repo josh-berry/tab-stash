@@ -30,7 +30,6 @@ welcome). Here's what you need to do:
 1. Install dependencies. You can use the handy `install-deps.sh` script to do
    it automatically on supported OSes/distros (latest macOS and Ubuntu 22.04 are
    known to work). Or if you prefer to do it manually, install the following:
-
    - GNU `make`, `git`, `diff`, `patch`, `rsync`, `zip` (plus the usual set of
      standard UNIX utilities like `mkdir`, `sed`, etc.)
 
@@ -44,7 +43,6 @@ welcome). Here's what you need to do:
    if you want for a parallel build.)
 
 3. **To build a release version (for packaging or review):**
-
    1. Make sure your source tree has no uncommitted changes (`git status` should
       say, `nothing to commit, working tree clean`).
 
@@ -55,7 +53,6 @@ welcome). Here's what you need to do:
    3. Run `make rel`. (You can use `-j<...>` if you want for a parallel build.)
 
 4. You'll get the following artifacts:
-
    - `dist`: The unpacked Firefox extension
 
    - `dist-chrome`: A highly-experimental port to Chrome (also unpacked)

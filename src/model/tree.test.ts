@@ -17,8 +17,7 @@ export interface TestNode extends TreeNode<TestParent, TestNode> {
 }
 
 export interface TestParent
-  extends TestNode,
-    TreeParent<TestParent, TestNode> {}
+  extends TestNode, TreeParent<TestParent, TestNode> {}
 
 export type TestPosition = TreePosition<TestParent, TestNode>;
 

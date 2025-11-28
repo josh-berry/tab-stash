@@ -2077,9 +2077,10 @@ describe("model", () => {
       });
 
       it("into a recently-created unnamed folder", async () => {
-        const p = env.model.undelete(env.model.deleted_items.state.entries[0], [
-          2,
-        ]);
+        const p = env.model.undelete(
+          env.model.deleted_items.state.entries[0],
+          [2],
+        );
         await events.nextN(browser.bookmarks.onCreated, 1);
         await events.next(env.deleted_items.onSet); // deleted-item update
         await p;
@@ -2112,9 +2113,10 @@ describe("model", () => {
         // now an unnamed folder.
         await makeEmptyStashFolder();
 
-        const p = env.model.undelete(env.model.deleted_items.state.entries[0], [
-          2,
-        ]);
+        const p = env.model.undelete(
+          env.model.deleted_items.state.entries[0],
+          [2],
+        );
         await events.nextN(browser.bookmarks.onCreated, 2);
         await events.next(env.deleted_items.onSet); // deleted-item update
         await p;

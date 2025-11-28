@@ -3,9 +3,10 @@ import * as NanoService from "../../util/nanoservice/index.js";
 import {genericList, type KeyValueStore} from "./index.js";
 import type * as Proto from "./proto.js";
 
-export default class Client<K extends Proto.Key, V extends Proto.Value>
-  implements KeyValueStore<K, V>
-{
+export default class Client<
+  K extends Proto.Key,
+  V extends Proto.Value,
+> implements KeyValueStore<K, V> {
   readonly name: string;
   readonly connect: (name: string) => Proto.ServicePort<K, V>;
 
