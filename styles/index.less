@@ -203,37 +203,10 @@
       }
     }
 
-    &.active {
+    :where(&.active) {
       font-weight: bold;
-      background: linear-gradient(
-        to right,
-        var(--userlink-fg) var(--active-marker-bw),
-        transparent var(--active-marker-bw)
-      );
-
-      &.selected {
-        background: linear-gradient(
-          to right,
-          var(--userlink-fg) var(--active-marker-bw),
-          var(--selected-bg) var(--active-marker-bw)
-        );
-
-        &:hover {
-          background: linear-gradient(
-            to right,
-            var(--userlink-fg) var(--active-marker-bw),
-            var(--selected-hover-bg) var(--active-marker-bw)
-          );
-        }
-      }
-
-      &:hover {
-        background: linear-gradient(
-          to right,
-          var(--userlink-fg) var(--active-marker-bw),
-          var(--item-hover-bg) var(--active-marker-bw)
-        );
-      }
+      background-color: var(--active-tab-bg);
+      box-shadow: var(--active-tab-shadow);
     }
 
     &.discarded {
@@ -252,7 +225,8 @@
 
     // Colorize tabs that are open inside containers
     &[data-container-color] {
-      box-shadow: var(--container-indicator-shadow-style)
+      margin-right: calc(var(--page-pw) - var(--container-indicator-bw));
+      border-right: solid var(--container-indicator-bw)
         var(--container-indicator-color);
     }
     &[data-container-color="blue"] {
