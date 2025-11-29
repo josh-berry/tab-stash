@@ -105,7 +105,7 @@ details.menu {
 // The pop-up menu itself, showing a list of items
 nav.menu {
   padding: var(--menu-mh) 0;
-  background-color: var(--group-bg);
+  background-color: var(--menu-bg);
   box-shadow: var(--shadow);
   border: var(--group-border);
   border-radius: var(--ctrl-border-radius);
@@ -127,24 +127,28 @@ nav.menu {
   & button,
   & .menu-item {
     cursor: default;
-    // The 16px is for scroll bars, should they appear...
-    padding: 0 max(var(--menu-mw), 16px) 0 var(--menu-mw);
+    background: inherit;
+
+    box-sizing: border-box;
+
+    margin: 0 var(--ctrl-pw); // slightly narrower than --ctrl-mw
+    padding: var(--ctrl-ph) var(--ctrl-pw);
+    min-height: var(--item-h);
 
     display: flex;
-    align-items: center;
     gap: var(--ctrl-mw);
-    min-height: var(--item-h);
+    align-items: center;
+
     border: none;
-    border-radius: 0;
+    border-radius: var(--ctrl-border-radius);
     text-decoration: none;
-    background: inherit;
 
     & .menu-icon {
       flex: 0 0 auto;
       // Override padding from .item-icon
-      padding-left: 0;
-      padding-right: 0;
+      padding: 0;
       width: var(--icon-size);
+      height: var(--icon-size);
     }
 
     & span:not(.menu-icon) {
@@ -170,17 +174,17 @@ nav.menu {
       color: var(--page-fg);
       &:hover,
       &:focus-within {
-        background-color: var(--item-hover-bg);
+        background-color: var(--menu-item-hover-bg);
         box-shadow: none;
       }
       &:active {
-        background-color: var(--item-active-bg);
+        background-color: var(--menu-item-active-bg);
       }
     }
   }
 
   & > hr {
-    margin: var(--menu-mh) 0;
+    margin: var(--menu-mh) var(--ctrl-pw);
     padding: 0;
     border: none;
     border-top: var(--divider-border);

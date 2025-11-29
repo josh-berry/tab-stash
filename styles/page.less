@@ -17,8 +17,7 @@ header.page {
   z-index: 1;
   top: 0px;
 
-  padding: calc(var(--ctrl-mh) / 2) var(--page-pw) var(--ctrl-mh)
-    var(--collapse-btn-size);
+  padding: var(--ctrl-mh) var(--page-pw);
   margin-bottom: var(--page-ph);
 
   display: grid;
@@ -27,7 +26,6 @@ header.page {
   align-items: center;
 
   background-color: var(--page-bg);
-  border-bottom: var(--divider-border);
 
   & > .main-menu {
     grid-row: 1;
@@ -55,18 +53,14 @@ header.page {
 .search-input {
   padding: 0;
   border: none;
-  background: transparent;
+  background-color: var(--ctrl-bg);
+  border: var(--ctrl-border);
   border-radius: var(--ctrl-border-radius);
 
   display: grid;
   grid-template-columns: 1fr 0fr;
 
   &:not(.disabled) {
-    &:hover {
-      // Same as .ephemeral's shadow
-      box-shadow: var(--ephemeral-hover-shadow-metrics)
-        var(--ephemeral-hover-shadow-clr);
-    }
     &:focus,
     &:focus-within {
       background-color: var(--ctrl-bg);
