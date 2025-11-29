@@ -2,34 +2,41 @@
 there first. */
 
 & {
-  --modal-bg: hsla(240deg, 1%, 12%, 50%);
-
-  --page-bg: hsl(240deg, 1%, 12%);
+  --modal-bg: hsla(250deg, 0%, 0%, 50%);
+  --page-bg: hsl(250deg, 10%, 11.66%);
   --page-fg: hsl(0deg, 0%, 93%);
   --disabled-fg: hsl(0deg, 0%, 66%);
   --userlink-fg: hsl(188deg, 100%, 50%);
   --userlink-hover-fg: hsl(188deg, 100%, 70%);
   --userlink-active-fg: hsl(188deg, 100%, 90%);
-
   --selected-bg: hsl(188deg, 100%, 20%);
   --selected-hover-bg: hsl(188deg, 100%, 30%);
 
-  --ctrl-bg: hsl(240deg, 1%, 12%);
+  --ctrl-bg: hsl(250deg, 10%, 12%);
   --ctrl-border-clr: hsla(0deg, 0%, 93%, 34%);
-  --button-bg: hsl(240deg, 8%, 31%);
-  --button-hover-bg: hsl(240deg, 8%, 41%);
-  --button-active-bg: hsl(240deg, 8%, 51%);
+  --button-bg: hsl(250deg, 10%, 31%);
+  --button-hover-bg: hsl(250deg, 10%, 41%);
+  --button-active-bg: hsl(250deg, 10%, 51%);
 
   --ephemeral-hover-shadow-clr: hsla(0, 0%, 93%, 15%);
 
-  --group-bg: hsl(240deg, 1%, 20%);
-  --group-border-clr: hsl(240deg, 1%, 35%);
+  --group-bg: hsl(250deg, 10%, 18.25%);
+  --group-border-clr: hsl(250deg, 1%, 35%);
 
-  --indent-guide-border-clr: hsla(240deg, 1%, 35%, 60%);
+  --indent-guide-border-clr: hsla(250deg, 1%, 35%, 60%);
 
-  --active-tab-bg: hsl(240deg, 8%, 36%);
+  --active-tab-bg: hsl(250deg, 10%, 36%);
   --active-tab-shadow: var(--active-tab-shadow-metrics)
-    hsla(240deg, 0%, 0%, 30%);
+    hsla(250deg, 0%, 0%, 30%);
+}
+
+&[data-view="popup"] {
+  --page-bg: hsl(245deg, 8%, 28%);
+  --group-bg: hsl(245deg, 8%, 22%);
+
+  --button-bg: hsl(245deg, 5%, 38%);
+  --button-hover-bg: hsl(245deg, 5%, 48%);
+  --button-active-bg: hsl(245deg, 5%, 58%);
 }
 
 .icon-vars(@theme: dark, @inverse: light);
