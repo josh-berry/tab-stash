@@ -545,6 +545,21 @@ export class Model {
     await this.maybeCleanupEmptyFolder(position.parent);
   }
 
+  /** Sort bookmarks within a folder using one of the sortBy* comparators. */
+  async sort(
+    folder: Folder,
+    comparator: (a: Node, b: Node) => number,
+  ): Promise<void> {
+    const loadedFolder = await this.loaded(folder);
+
+    // Implementation for sorting bookmarks goes here
+    const sortedChildren = [...loadedFolder.children].sort(comparator);
+    for (let i = 0; i < sortedChildren.length; i++) {
+      const child = sortedChildren[i];
+      await this.move(child, folder, i);
+    }
+  }
+
   /** Find and return the stash root, or create one if it doesn't exist. */
   async ensureStashRoot(): Promise<Folder> {
     if (this.stash_root.value) return this.stash_root.value;
@@ -924,6 +939,67 @@ export function friendlyFolderName(name: string): string {
   const folderDate = getDefaultFolderNameISODate(name);
   if (folderDate) return `Saved ${new Date(folderDate).toLocaleString()}`;
   return name;
+}
+
+//
+// Public helper functions for sorting nodes
+//
+
+const sortTextCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "base",
+  numeric: true,
+});
+const sortURLCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "variant",
+  numeric: true,
+});
+
+export function sortByTitle(a: Node, b: Node): number {
+  return sortTextCollator.compare(a.title, b.title);
+}
+
+export function sortByDateAdded(a: Node, b: Node): number {
+  const dateA = a.dateAdded ?? 0;
+  const dateB = b.dateAdded ?? 0;
+  return dateA - dateB;
+}
+
+export function sortByDateAddedDescending(a: Node, b: Node): number {
+  return sortByDateAdded(b, a);
+}
+
+export function sortByURL(a: Node, b: Node): number {
+  const urlA = new URL((isBookmark(a) && a.url) || "about:blank");
+  const urlB = new URL((isBookmark(b) && b.url) || "about:blank");
+
+  const host_parts = (u: URL) => u.hostname.split(".").reverse();
+
+  const a_parts = host_parts(urlA);
+  const b_parts = host_parts(urlB);
+
+  for (let i = 0; i < Math.min(a_parts.length, b_parts.length); ++i) {
+    const cmp = sortURLCollator.compare(a_parts[i], b_parts[i]);
+    if (cmp !== 0) return cmp;
+  }
+
+  const port_cmp = sortURLCollator.compare(urlA.port || "0", urlB.port || "0");
+  if (port_cmp !== 0) return port_cmp;
+
+  const path_cmp = sortURLCollator.compare(urlA.pathname, urlB.pathname);
+  if (path_cmp !== 0) return path_cmp;
+
+  const query_cmp = sortURLCollator.compare(urlA.search, urlB.search);
+  if (query_cmp !== 0) return query_cmp;
+
+  const hash_cmp = sortURLCollator.compare(urlA.hash, urlB.hash);
+  if (hash_cmp !== 0) return hash_cmp;
+
+  const scheme_cmp = sortURLCollator.compare(urlA.protocol, urlB.protocol);
+  if (scheme_cmp !== 0) return scheme_cmp;
+
+  return 0;
 }
 
 //

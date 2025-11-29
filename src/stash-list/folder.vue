@@ -137,6 +137,29 @@
         </button>
 
         <hr />
+
+        <button @click.prevent="sort(sortByTitle)">
+          <span class="menu-icon icon icon-sort" />
+          <span>Sort by Title</span>
+        </button>
+
+        <button @click.prevent="sort(sortByURL)">
+          <span class="menu-icon icon icon-sort" />
+          <span>Sort by URL</span>
+        </button>
+
+        <button @click.prevent="sort(sortByDateAddedDescending)">
+          <span class="menu-icon icon icon-sort" />
+          <span>Sort by Date Added (Newest First)</span>
+        </button>
+
+        <button @click.prevent="sort(sortByDateAdded)">
+          <span class="menu-icon icon icon-sort" />
+          <span>Sort by Date Added (Oldest First)</span>
+        </button>
+
+        <hr />
+
         <button
           @click.prevent="closeStashedTabs"
           :title="`Close any open tabs that are stashed in this group`"
@@ -259,6 +282,10 @@ import {
   getDefaultFolderNameISODate,
   isBookmark,
   isFolder,
+  sortByDateAdded,
+  sortByDateAddedDescending,
+  sortByTitle,
+  sortByURL,
   type Bookmark,
   type Folder,
   type Node,
@@ -487,6 +514,11 @@ export default defineComponent({
   },
 
   methods: {
+    sortByTitle,
+    sortByURL,
+    sortByDateAdded,
+    sortByDateAddedDescending,
+
     attempt(fn: () => Promise<void>): Promise<void> {
       return the.model.attempt(fn);
     },
@@ -680,6 +712,12 @@ export default defineComponent({
           .flatMap(c => c.tabs)
           .filter(t => !t.hidden && !t.pinned);
         await the.model.hideOrCloseStashedTabs(openTabs);
+      });
+    },
+
+    sort(cmp: (a: Node, b: Node) => number) {
+      return this.attempt(async () => {
+        await the.model.bookmarks.sort(this.folder, cmp);
       });
     },
 

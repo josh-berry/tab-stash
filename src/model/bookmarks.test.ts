@@ -440,6 +440,174 @@ describe("model/bookmarks", () => {
     ]);
   });
 
+  it("sorts bookmarks within folders", async () => {
+    await model.loadedStash();
+    const folder = model.folder(bms.big_stash.id)!;
+
+    let p = model.sort(folder, M.sortByTitle);
+    await events.nextN(browser.bookmarks.onMoved, folder.children.length);
+    await p;
+
+    expect(folder.children.map(bm => bm?.id)).to.deep.equal([
+      bms.eight.id,
+      bms.five.id,
+      bms.four.id,
+      bms.one.id,
+      bms.seven.id,
+      bms.six.id,
+      bms.three.id,
+      bms.two.id,
+    ]);
+
+    p = model.sort(folder, M.sortByURL);
+    await events.nextN(browser.bookmarks.onMoved, folder.children.length);
+    await p;
+
+    expect(folder.children.map(bm => bm?.id)).to.deep.equal([
+      bms.one.id,
+      bms.two.id,
+      bms.three.id,
+      bms.four.id,
+      bms.five.id,
+      bms.six.id,
+      bms.seven.id,
+      bms.eight.id,
+    ]);
+  });
+
+  describe("sort comparators", () => {
+    function mknode(
+      id: string,
+      n: {title: string; url?: string; dateAdded?: number},
+    ): M.Node {
+      return n.url
+        ? ({
+            id: id as M.NodeID,
+            position: undefined,
+            title: n.title,
+            url: n.url,
+            dateAdded: n.dateAdded,
+          } as M.Bookmark)
+        : ({
+            id: id as M.NodeID,
+            position: undefined,
+            title: n.title,
+          } as M.Node);
+    }
+
+    function t(
+      comparator: (a: M.Node, b: M.Node) => number,
+      a: {title: string; url?: string; dateAdded?: number},
+      expected: "==" | "<" | ">",
+      b: {title: string; url?: string; dateAdded?: number},
+    ) {
+      it(`${comparator.name}: "${a.title}" (${a.url ?? ""}, ${a.dateAdded ?? "undefined"}) ${expected} "${b.title}" (${b.url ?? ""}, ${b.dateAdded ?? "undefined"})`, () => {
+        const na = mknode("a", a);
+        const nb = mknode("b", b);
+
+        const cmp = comparator(na, nb);
+        if (expected === "==") expect(cmp).to.equal(0);
+        else if (expected === "<") expect(cmp).to.be.lessThan(0);
+        else expect(cmp).to.be.greaterThan(0);
+      });
+    }
+
+    t(M.sortByTitle, {title: "A"}, "==", {title: "A"});
+    t(M.sortByTitle, {title: "B"}, ">", {title: "A"});
+    t(M.sortByTitle, {title: "A"}, "<", {title: "B"});
+    t(M.sortByTitle, {title: "A"}, "==", {title: "a"});
+    t(M.sortByTitle, {title: "e"}, "==", {title: "é"});
+    t(M.sortByTitle, {title: "[ticket-1234]"}, ">", {title: "[ticket-20]"});
+
+    t(M.sortByDateAdded, {title: "a", dateAdded: 10, url: "/a"}, "==", {
+      title: "b",
+      dateAdded: 10,
+      url: "/b",
+    });
+    t(M.sortByDateAdded, {title: "a", dateAdded: 11, url: "/a"}, ">", {
+      title: "b",
+      dateAdded: 10,
+      url: "/b",
+    });
+    t(M.sortByDateAdded, {title: "a", dateAdded: 11, url: "/a"}, "<", {
+      title: "b",
+      dateAdded: 12,
+      url: "/b",
+    });
+
+    t(
+      M.sortByDateAddedDescending,
+      {title: "a", dateAdded: 10, url: "/a"},
+      "==",
+      {
+        title: "b",
+        dateAdded: 10,
+        url: "/b",
+      },
+    );
+    t(
+      M.sortByDateAddedDescending,
+      {title: "a", dateAdded: 11, url: "/a"},
+      "<",
+      {
+        title: "b",
+        dateAdded: 10,
+        url: "/b",
+      },
+    );
+    t(
+      M.sortByDateAddedDescending,
+      {title: "a", dateAdded: 11, url: "/a"},
+      ">",
+      {
+        title: "b",
+        dateAdded: 12,
+        url: "/b",
+      },
+    );
+
+    t(M.sortByURL, {title: "b", url: "http://example.com/a"}, "<", {
+      title: "a",
+      url: "http://example.com/b",
+    });
+
+    t(M.sortByURL, {title: "b", url: "http://example.com/a"}, "==", {
+      title: "a",
+      url: "http://example.com/a",
+    });
+
+    t(M.sortByURL, {title: "a", url: "http://example.com/b"}, ">", {
+      title: "b",
+      url: "http://example.com/a",
+    });
+
+    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo"}, ">", {
+      title: "b",
+      url: "http://b.a.com/foo",
+    });
+
+    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#bar"}, "==", {
+      title: "b",
+      url: "http://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#baz"}, ">", {
+      title: "b",
+      url: "http://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#baz"}, ">", {
+      title: "b",
+      url: "https://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#bar"}, "<", {
+      title: "b",
+      url: "https://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {title: "a", url: "http://example.com/issues/10"}, ">", {
+      title: "b",
+      url: "http://example.com/issues/2",
+    });
+  });
+
   it("makes space for unloaded bookmarks that are moved into loaded folders", async () => {
     await model.loadedStash();
     expect(
