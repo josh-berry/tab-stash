@@ -272,12 +272,17 @@
 // The top level of the forest, which is shown as a set of different
 // sections/groups.
 .forest {
+  // Same width and height since this is a grid
+  margin: var(--page-pw) var(--page-pw);
+  row-gap: var(--page-pw);
+  column-gap: var(--page-pw);
+
   & > li {
     border-radius: var(--group-border-radius);
+    background-color: var(--group-bg);
+    border: var(--group-border);
 
     & > .forest-item {
-      border-top: var(--group-border);
-
       // Must match the enclosing <li> or the background-color that is set on
       // hover/selection will mess things up.
       border-top-left-radius: var(--group-border-radius);
@@ -306,6 +311,12 @@
           background-color: transparent;
         }
       }
+
+      // Required because the children are completely hidden, and when
+      // collapsed, the group looks weird.
+      &.collapsed {
+        border-radius: var(--group-border-radius);
+      }
     }
 
     & > :last-child {
@@ -318,12 +329,11 @@
 
     & > .forest-children:last-child {
       // This is here, instead of the enclosing <li>, so the bottom margin
-      // naturally disappears when the group is collapsed.  It should also be
-      // overridden in the tab view.
+      // naturally disappears when the group is collapsed.
       //
       // We use padding instead of margin here to give a bigger drop target for
       // drag-and-drop operations.
-      padding-bottom: calc(var(--group-ph) + var(--page-ph));
+      padding-bottom: var(--group-ph);
       flex: auto; // Fill all leftover space so we're a bigger drop target
     }
   }
