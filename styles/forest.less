@@ -116,26 +116,32 @@
   // The column layout.  This is tweaked in the top-level .forest-item overrides
   // above, so keep that in mind.
   //
+  // The .forest-collapse gets 0 space and a negative left margin which matches
+  // our own left margin. This is because it is technically part of the
+  // .forest-item, but visually it should appear outside of it to the left. This
+  // is relevant when the item is being hovered or selected, since we want some
+  // nice rounded corners around the selection fill.
+  //
   // 1:.forest-collapse, 2:.forest-icon, 3:.forest-title, 4:.forest-badge, 5:.forest-toolbar
   grid-template-columns:
-    var(--collapse-btn-size) var(--icon-btn-size)
+    0 var(--icon-btn-size)
     1fr 0fr 0fr;
 
   // No column-gap because we assign margins to individual items
   align-items: center;
 
-  // We pad to --collapse-btn-size so that the left and right margins appear
-  // symmetric, and because --collapse-btn-size is wide enough that the
-  // auto-hiding scrollbars on macOS don't intrude on the right-side toolbar
-  // buttons.  (Funny how macOS messed with their scrollbars and now we all just
-  // have to work around it...)
-  padding: 0 var(--page-pw) 0 0;
+  padding: 0;
+  margin-left: var(--collapse-btn-size); // As above, make room for collapse btn
+  margin-right: var(--page-pw);
   height: var(--item-h);
+
+  border-radius: var(--ctrl-border-radius);
 
   & > .forest-collapse {
     grid-row: 1;
     grid-column: 1;
     width: var(--collapse-btn-size);
+    margin-left: calc(var(--collapse-btn-size) * -1); // Matches margin above
   }
 
   & > .forest-icon {
@@ -283,21 +289,26 @@
     border: var(--group-border);
 
     & > .forest-item {
+      height: auto;
+
       // Must match the enclosing <li> or the background-color that is set on
       // hover/selection will mess things up.
       border-top-left-radius: var(--group-border-radius);
       border-top-right-radius: var(--group-border-radius);
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
 
-      // Since there's no icon for the top-level group, don't leave space for it
-      // (unlike what we do inside the group).  This should match the same
-      // layout as the regular .forest-item grid above, or the other columns
-      // won't line up properly.
+      // Undo the weird margin hack we do for sub-items for the collapse button.
+      // We want the entire top part of the group to be filled in when selected.
       grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr 0fr;
-
       margin: 0;
       padding-top: var(--group-ph);
       padding-bottom: var(--group-ph);
-      height: auto;
+      padding-left: 0;
+      padding-right: var(--page-pw);
+      & > .forest-collapse {
+        margin-left: 0;
+      }
 
       & > .forest-title {
         font-weight: var(--group-header-font-weight);
