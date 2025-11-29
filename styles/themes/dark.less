@@ -18,6 +18,10 @@ there first. */
   --button-hover-bg: hsl(250deg, 10%, 41%);
   --button-active-bg: hsl(250deg, 10%, 51%);
 
+  --menu-bg: hsl(245deg, 8%, 28%);
+  --menu-item-hover-bg: hsl(245deg, 5%, 38%);
+  --menu-item-active-bg: hsl(245deg, 5%, 48%);
+
   --ephemeral-hover-shadow-clr: hsla(0, 0%, 93%, 15%);
 
   --group-bg: hsl(250deg, 10%, 18.25%);
@@ -31,6 +35,7 @@ there first. */
 }
 
 &[data-view="popup"] {
+  // NOTE: These colors should align with the --menu-* colors above.
   --page-bg: hsl(245deg, 8%, 28%);
   --group-bg: hsl(245deg, 8%, 22%);
 
