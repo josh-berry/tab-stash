@@ -207,6 +207,11 @@
       font-weight: bold;
       background-color: var(--active-tab-bg);
       box-shadow: var(--active-tab-shadow);
+
+      &.selected {
+        box-shadow: none;
+        background-color: lch(from var(--selected-bg) calc(l + 5) c h / alpha);
+      }
     }
 
     &.discarded {
