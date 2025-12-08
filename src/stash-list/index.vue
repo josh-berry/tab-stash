@@ -18,8 +18,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} offers more convenient import/export of
-        stashed tabs. See what's new!
+        Tab Stash {{ my_version }} has new sorting options and a refreshed look
+        to match Firefox's new sidebar styling. See what else is new!
       </Notification>
       <Notification
         key="new-fixes"
@@ -27,8 +27,8 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} offers more convenient import/export of
-        stashed tabs. See what's new!
+        Tab Stash {{ my_version }} has new sorting options and a refreshed look
+        to match Firefox's new sidebar styling. See what else is new!
       </Notification>
       <Notification
         key="stash-root-warning"

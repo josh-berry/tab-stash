@@ -10,6 +10,52 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.4">
+        <L v="New:" :issue="194"
+          >Sort tabs within a group by title, URL, or date added. URL sorting
+          respects the domain name, so pages from different hosts in the same
+          domain are still sorted together.</L
+        >
+
+        <L
+          v="Improved:"
+          :issue="523"
+          :subtext="
+            `Sorry this took so long. I've had an extremely difficult and ` +
+            `calamitous year, so Tab Stash didn't get as much attention as ` +
+            `I'd hoped. Thanks for your patience!`
+          "
+          >Refreshed Tab Stash's look to match Firefox's latest styling, so Tab
+          Stash fits in with the new sidebar look. Includes updated theme
+          colors, highlight styling, and more.</L
+        >
+
+        <L v="Improved:"
+          >When opening the full tab view from the popup, your current search
+          term now carries over so you see the same results.</L
+        >
+
+        <L v="Fixed:" :issue="638"
+          >Tabs that redirect to privileged pages are now deduplicated correctly
+          when stashed in the same folder.</L
+        >
+
+        <L v="Fixed:" :issue="622"
+          >The search box now always gets the focus when the popup view first
+          opens, so it's easy to just start typing your search.
+        </L>
+
+        <L v="Fixed:"
+          >Drag-and-drop now works even if a folder is expanded but its children
+          are filtered out.</L
+        >
+
+        <L v="Fixed:"
+          >The "expand/collapse all" button stays where it is supposed to
+          instead of jumping to the left when everything is collapsed.</L
+        >
+      </Version>
+
       <Version v="3.3">
         <L v="New:" :issue="484"
           >Import into specific groups using the "Import..." option from the
