@@ -977,14 +977,6 @@ class MockTabs implements T.Static {
   async goBack(tabId?: number): Promise<void> {
     throw new Error("Method not implemented.");
   }
-
-  async group(options: T.GroupOptionsType): Promise<number> {
-    throw new Error("Method not implemented.");
-  }
-
-  async ungroup(tabIds: number | number[]): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
   /* c8 ignore stop */
 
   async group(options: {
@@ -1208,7 +1200,7 @@ class MockTabGroups implements G.Static {
   async move(
     groupId: number,
     moveProperties: G.MoveMovePropertiesType,
-  ): Promise<G.TabGroup | undefined> {
+  ): Promise<G.TabGroup> {
     throw new Error("Method not implemented.");
   }
 
@@ -1227,7 +1219,7 @@ class MockTabGroups implements G.Static {
   async update(
     groupId: number,
     updateProperties: G.UpdateUpdatePropertiesType,
-  ): Promise<G.TabGroup | undefined> {
+  ): Promise<G.TabGroup> {
     const group = this._state.group(groupId);
 
     let fireEvent = false;

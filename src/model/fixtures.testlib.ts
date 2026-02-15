@@ -79,7 +79,7 @@ const GROUPS = {
   ef: {
     id: "ef",
     title: "EF Group",
-    color: "red" satisfies TabGroups.ColorEnum,
+    color: "red" satisfies TabGroups.Color,
   },
 } as const;
 
@@ -355,12 +355,14 @@ export async function make_tabs(): Promise<TabFixture> {
             color: "grey",
             title: "",
           };
+          await events.next(browser.tabGroups.onCreated);
         } else {
           await browser.tabs.group({
             groupId: browser_gid,
             tabIds: [tab.id!],
           });
         }
+        await events.next(browser.tabs.onUpdated);
       }
 
       tab.windowId = win.id;

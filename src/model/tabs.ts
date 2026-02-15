@@ -39,6 +39,7 @@ export interface Tab {
 }
 
 export type WindowID = number & {readonly __window_id: unique symbol};
+export type TabGroupID = number & {readonly __tab_group_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
 
 export const WindowTree = new (class extends Tree<Window, Tab> {
