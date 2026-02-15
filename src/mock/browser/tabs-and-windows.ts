@@ -694,7 +694,7 @@ class MockTabs implements T.Static {
     throw new Error("Method not implemented.");
   }
 
-  warmup(tabId: number): void {
+  warmup(tabId: number): Promise<void> {
     throw new Error("Method not implemented.");
   }
   /* c8 ignore stop */
@@ -884,6 +884,14 @@ class MockTabs implements T.Static {
   }
 
   async goBack(tabId?: number): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+
+  async group(options: T.GroupOptionsType): Promise<number> {
+    throw new Error("Method not implemented.");
+  }
+
+  async ungroup(tabIds: number | number[]): Promise<void> {
     throw new Error("Method not implemented.");
   }
   /* c8 ignore stop */

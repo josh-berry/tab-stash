@@ -83,7 +83,7 @@ describe("util/nanoservice", function () {
     it("sends requests and receives responses", async function () {
       const messages = events.watch("browser.runtime.onMessage");
       const [client, svc] = await port_pair("test");
-      svc.onMessage.addListener(req =>
+      svc.onMessage.addListener((req: any) =>
         svc.postMessage({tag: req.tag, response: "meow!"}),
       );
 
@@ -167,7 +167,7 @@ describe("util/nanoservice", function () {
       await events.next("browser.runtime.onMessage");
       expect(received).to.equal(true);
 
-      const err_msg = (await events.next(svc.onMessage))[0];
+      const err_msg = (await events.next(svc.onMessage))[0] as any;
       expect(err_msg).to.be.an("object");
       expect(err_msg.tag).to.equal("what");
       expect(err_msg.error).to.be.an("object");
@@ -184,7 +184,8 @@ describe("util/nanoservice", function () {
         svc.postMessage({tag: "what", request: 0});
         await events.next("browser.runtime.onMessage");
 
-        const err_msg = (await events.next(svc.onMessage))[0];
+        const err_msg = (await events.next(svc.onMessage))[0] as any;
+        expect(err_msg).to.be.an("object");
         expect(err_msg.tag).to.equal("what");
         expect(err_msg.error).to.deep.include(returns);
       };

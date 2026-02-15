@@ -121,7 +121,7 @@ export class Port<S extends Send, R extends Send> implements NanoPort<S, R> {
           if (this.onRequest) this.onRequest(msg.notify as R);
         }
       }
-    }) as (msg: object) => void);
+    }) as (msg: unknown) => void);
 
     this._trace("create");
   }

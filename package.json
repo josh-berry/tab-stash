@@ -15,7 +15,7 @@
     "@types/chai": "^4.3",
     "@types/mocha": "^10.0",
     "@types/sinonjs__fake-timers": "^8.1",
-    "@types/webextension-polyfill": "^0.10",
+    "@types/webextension-polyfill": "^0.12.4",
     "@vitejs/plugin-vue": "^5.0",
     "@vue/tsconfig": "^0.5",
     "c8": "^10.1.2",
@@ -33,7 +33,7 @@
     "vue": "^3.4",
     "vue-tsc": "^2.0",
     "web-ext": "^8.2",
-    "webextension-polyfill": "^0.10"
+    "webextension-polyfill": "^0.12"
   },
   "scripts": {}
 }

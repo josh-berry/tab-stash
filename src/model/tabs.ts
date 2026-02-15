@@ -269,7 +269,8 @@ export class Model {
       tab.id,
       SK_HIDDEN_BY_TAB_STASH,
     );
-    return res ?? false;
+    if (typeof res !== "boolean") return false;
+    return res;
   }
 
   //
