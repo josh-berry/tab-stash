@@ -11,7 +11,7 @@
           <slot name="close" v-if="showCloseButton">
             <button
               class="dialog-close"
-              title="Close"
+              :title="t('closeDialogTitle')"
               @click.prevent.stop="close"
             />
           </slot>
@@ -33,6 +33,7 @@
 import {defineComponent, type PropType} from "vue";
 
 import ModalBackdrop from "./modal-backdrop.vue";
+import {t} from "../util/i18n.js";
 
 export default defineComponent({
   components: {ModalBackdrop},

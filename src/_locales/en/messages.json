@@ -18,5 +18,336 @@
   "sidebarActionTitle": {
     "message": "Tab Stash",
     "description": "Sidebar action title"
+  },
+  "notificationDismissTitle": {
+    "message": "Dismiss notification",
+    "description": "Notification dismiss button title"
+  },
+  "confirmDialogTooltip": {
+    "message": "If you change your mind, you can turn this confirmation on again in the options."
+  },
+  "askMeAgainNextTime": {
+    "message": "Ask me again next time"
+  },
+  "closeDialogTitle": {
+    "message": "Close"
+  },
+  "backToTabStashTitle": {
+    "message": "Back to Tab Stash"
+  },
+  "searchDeletedItemsLabel": {
+    "message": "Search Deleted Items"
+  },
+  "searchDeletedItemsPlaceholder": {
+    "message": "Search Deleted Items"
+  },
+  "deletedPrefix": {
+    "message": "Deleted"
+  },
+  "noMatchingItemsFound": {
+    "message": "No matching items were found. Your item may have been deleted on\n another computer, or outside of Tab Stash entirely."
+  },
+  "noDeletedItemsYet": {
+    "message": "It doesn't look like you've deleted anything on this computer yet."
+  },
+  "notFoundHelpText": {
+    "message": "Didn't find what you're looking for? It may have been deleted on\n another computer, or outside of Tab Stash entirely."
+  },
+  "showAdvancedSettings": {
+    "message": "Show advanced settings"
+  },
+  "stopHidingCrashReports": {
+    "message": "Stop Hiding Crash Reports"
+  },
+  "tabStashBehaviorTitle": {
+    "message": "Tab Stash Behavior (All Synced Browsers)"
+  },
+  "toolbarButtonClickLabel": {
+    "message": "When the toolbar button is clicked:"
+  },
+  "stashAllOption": {
+    "message": "Stash all (or selected) tabs"
+  },
+  "stashActiveTabOption": {
+    "message": "Stash the active tab"
+  },
+  "dontStashOption": {
+    "message": "Don't stash any tabs"
+  },
+  "andText": {
+    "message": "and"
+  },
+  "showStashInSidebarOption": {
+    "message": "show the stash in the sidebar"
+  },
+  "showStashInTabOption": {
+    "message": "show the stash in a tab"
+  },
+  "showStashInPopupOption": {
+    "message": "show the stash in a popup"
+  },
+  "dontShowStashOption": {
+    "message": "don't show the stash"
+  },
+  "contextMenuStashLabel": {
+    "message": "When stashing tabs from the context menu or address bar:"
+  },
+  "showStashInSidebarRadio": {
+    "message": "Show the stash in the sidebar"
+  },
+  "showStashInTabRadio": {
+    "message": "Show the stash in a tab"
+  },
+  "dontShowStashRadio": {
+    "message": "Don't show the stash"
+  },
+  "singleTabAppendLabel": {
+    "message": "When stashing a single tab:"
+  },
+  "appendTooltip": {
+    "message": "If the top-most group has a name, or is older than this, a new, unnamed group will be created instead."
+  },
+  "appendToTopGroupLabel": {
+    "message": "Append to the top-most group only if it was created in the last"
+  },
+  "minutesText": {
+    "message": "minutes"
+  },
+  "appearanceTitle": {
+    "message": "Appearance (All Synced Browsers)"
+  },
+  "spacingAndFontsLabel": {
+    "message": "Spacing and fonts:"
+  },
+  "normalOption": {
+    "message": "Normal"
+  },
+  "compactOption": {
+    "message": "Compact"
+  },
+  "themeLabel": {
+    "message": "Theme:"
+  },
+  "sameAsSystemOption": {
+    "message": "Same as operating system"
+  },
+  "lightOption": {
+    "message": "Light"
+  },
+  "darkOption": {
+    "message": "Dark"
+  },
+  "showOpenTabsLabel": {
+    "message": "Show which open tabs:"
+  },
+  "showOpenTabsTooltip": {
+    "message": "`Click on the &quot;Open Tabs&quot; or `\n + `&quot;Unstashed Tabs&quot; title to toggle between these `\n + `options. Note that pinned tabs are never shown.`"
+  },
+  "unstashedTabsOnlyOption": {
+    "message": "Unstashed tabs only"
+  },
+  "allTabsOption": {
+    "message": "Stashed and unstashed tabs"
+  },
+  "showNewGroupsLabel": {
+    "message": "Show new groups:"
+  },
+  "expandedOption": {
+    "message": "Expanded"
+  },
+  "collapsedOption": {
+    "message": "Collapsed"
+  },
+  "privacyTitle": {
+    "message": "Privacy (All Synced Browsers)"
+  },
+  "deletingItemsLabel": {
+    "message": "When deleting items from your stash:"
+  },
+  "rememberDeletedItemsLabel": {
+    "message": "Remember items that were deleted on this computer for"
+  },
+  "daysText": {
+    "message": "days"
+  },
+  "tabMemoryManagementTitle": {
+    "message": "Tab and Memory Management (This Browser)"
+  },
+  "onceStashedLabel": {
+    "message": "Once a tab has been stashed:"
+  },
+  "hideTooltip": {
+    "message": "Hidden tabs that are still loaded can be restored instantly. They also preserve anything you had entered into the tab and its history (e.g. Back button)."
+  },
+  "hideKeepLoadedOption": {
+    "message": "Hide the tab and keep it loaded in the background"
+  },
+  "autodiscardTooltip": {
+    "message": "Monitors the total number of tabs in your browser, and if you have a lot of tabs open, unloads hidden tabs that haven't been used recently. This option significantly reduces memory usage and is recommended for most users."
+  },
+  "autodiscardOption": {
+    "message": "Automatically unload hidden tabs that haven't been used in a\n while"
+  },
+  "checkIntervalLabel": {
+    "message": "Check for old hidden tabs every"
+  },
+  "keepTabsLabel": {
+    "message": "Keep at least"
+  },
+  "tabsText": {
+    "message": "hidden and visible tabs loaded at all times"
+  },
+  "keepOldestTabsLabel": {
+    "message": "hidden and visible tabs loaded at all times"
+  },
+  "butTxet": {
+    "message": "but..."
+  },
+  "unloadTabsLabel": {
+    "message": "...unload tabs more aggressively if there are more than"
+  },
+  "tabsTextLoaded": {
+    "message": "tabs loaded"
+  },
+  "hideUnloadTooltip": {
+    "message": "Hidden tabs that are unloaded can be restored very quickly, and usually without a network connection. They also preserve browsing history (e.g. Back button). However, depending on the website, you may lose anything you had entered into the tab that isn't already saved. Uses less memory."
+  },
+  "hideUnloadOption": {
+    "message": "Hide the tab and immediately unload it"
+  },
+  "closeTooltip": {
+    "message": "Uses the least amount of memory and takes the longest to restore, because tab contents may need to be fetched over the network. This option will cause the browser to forget anything you had entered into the tab, as well as the tab's browsing history (e.g. Back button)."
+  },
+  "closeOption": {
+    "message": "Close the tab immediately"
+  },
+  "openingTabsLabel": {
+    "message": "When opening tabs from the stash:"
+  },
+  "loadImmediatelyOption": {
+    "message": "Load all opened tabs immediately"
+  },
+  "loadLazilyOption": {
+    "message": "Wait for a tab to be selected before loading it"
+  },
+  "confirmationsTitle": {
+    "message": "Confirmations (This Browser)…"
+  },
+  "confirmCloseTabsOption": {
+    "message": "Confirm when closing a lot of open tabs"
+  },
+  "experimentalFeaturesTitle": {
+    "message": "Experimental Features"
+  },
+  "warningText": {
+    "message": "WARNING:"
+  },
+  "warningTooltip": {
+    "message": "Turning on experimental features may break Tab Stash\n or cause data loss! They are \"experimental\" because they are still in\n development and/or there may be known issues. Experimental features\n may change significantly or be removed entirely in future\n versions."
+  },
+  "feedbackText": {
+    "message": "To provide feedback or report a problem with a feature, leave a\n comment on the issue linked in [brackets] below."
+  },
+  "restoreClosedTabsOption": {
+    "message": "Restore Recently-Closed Tabs"
+  },
+  "restoreClosedTabsTooltip": {
+    "message": "When restoring tabs, if a hidden tab isn't available, search for and\n re-open recently-closed tabs with matching URLs. (NOTE: This is known to\n occasionally restore incorrect tabs on certain versions of Firefox,\n check the linked issue for more details.)"
+  },
+  "exportDialogTitle": {
+    "message": "Export"
+  },
+  "formatLabel": {
+    "message": "Format"
+  },
+  "clickableLinksOption": {
+    "message": "Clickable Links"
+  },
+  "urlListOption": {
+    "message": "List of URLs"
+  },
+  "markdownOption": {
+    "message": "Markdown"
+  },
+  "oneTabOption": {
+    "message": "OneTab"
+  },
+  "selectAllButton": {
+    "message": "Select All"
+  },
+  "copyButton": {
+    "message": "Copy"
+  },
+  "aboutFormatsLink": {
+    "message": "About Formats..."
+  },
+  "importDialogTitle": {
+    "message": "Import"
+  },
+  "importInstructions": {
+    "message": "Paste anything containing links or URLs here. Links and URLs will be\n extracted and converted into bookmarks in your stash."
+  },
+  "splitTabsLabel": {
+    "message": "Split tabs into different groups on:"
+  },
+  "paragraphsAndHeadersOption": {
+    "message": "Paragraphs and Headers"
+  },
+  "headersOption": {
+    "message": "Headers"
+  },
+  "nothingOption": {
+    "message": "Nothing [all in one group]"
+  },
+  "fetchIconsAndTitles": {
+    "message": "Fetch icons and titles from each site"
+  },
+  "importToFolderButton": {
+    "message": "importToFolderButton"
+  },
+  "importButton": {
+    "message": "Import"
+  },
+  "infoFetchFailed": {
+    "message": "`Info for the following URLs could not be fetched:\n ${failures.urls.join(\"\\n\")}\n Stashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!`"
+  },
+  "openStashedTabsTitle": {
+    "message": "Open stashed tabs"
+  },
+  "openButtonText": {
+    "message": "Open"
+  },
+  "openAndDeleteTitle": {
+    "message": "Open tabs and delete them from the stash"
+  },
+  "unstashButtonText": {
+    "message": "Unstash"
+  },
+  "exportSelectedTitle": {
+    "message": "Export selected links and URLs"
+  },
+  "exportButtonText": {
+    "message": "Export..."
+  },
+  "searchOrCreateGroup": {
+    "message": "Search or create group"
+  },
+  "moveToNamedGroupTooltip": {
+    "message": "Move to &quot;${friendlyFolderName(f.title,)}&quot; (hold ${altKey} to copy)"
+  },
+  "deleteOrCloseTitle": {
+    "message": "Delete stashed tabs and close unstashed tabs"
+  },
+  "deleteOrCloseText": {
+    "message": "Delete or Close"
+  },
+  "moveToNewGroup": {
+    "message": "Move to New Group"
+  },
+  "moveToNamedGroup": {
+    "message": "Move to "
+  },
+  "holdToCopy": {
+    "message": "`(hold ${this.altKey} to copy)`"
   }
 }

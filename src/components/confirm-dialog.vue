@@ -7,10 +7,10 @@
     <section>
       <label
         for="ask_next_time"
-        title="If you change your mind, you can turn this confirmation on again in the options."
+        :title="t('confirmDialogTooltip')"
       >
         <input type="checkbox" id="ask_next_time" v-model="confirmNextTime" />
-        Ask me again next time
+        {{ t('askMeAgainNextTime') }}
       </label>
     </section>
 

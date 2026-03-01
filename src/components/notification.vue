@@ -10,7 +10,7 @@
       <a
         class="action cancel"
         name="Dismiss"
-        title="Dismiss notification"
+        :title="t('notificationDismissTitle')"
         @click.prevent.stop="dismiss"
       />
     </ButtonBox>

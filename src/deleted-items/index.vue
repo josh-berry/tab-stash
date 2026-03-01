@@ -12,12 +12,12 @@
     <header class="page action-container">
       <a
         class="action back"
-        title="Back to Tab Stash"
+        :title="t('backToTabStashTitle')"
         :href="pageref('stash-list.html')"
       ></a>
       <search-input
-        aria-label="Search Deleted Items"
-        placeholder="Search Deleted Items"
+        :aria-label="t('searchDeletedItemsLabel')"
+        :placeholder="t('searchDeletedItemsPlaceholder')"
         v-model="search"
       />
     </header>
@@ -25,7 +25,7 @@
     <ul class="forest one-column">
       <li v-for="group of filter_results" :key="group.title" class="folder">
         <div class="forest-item">
-          <span class="forest-title disabled">Deleted {{ group.title }}</span>
+          <span class="forest-title disabled">{{ t('deletedPrefix') }}{{ group.title }}</span>
         </div>
         <ul class="forest-children">
           <li v-for="rec of group.records" :key="rec.key">
@@ -46,15 +46,13 @@
       </template>
       <template #fully-loaded>
         <span v-if="search && state.entries.length === 0">
-          No matching items were found. Your item may have been deleted on
-          another computer, or outside of Tab Stash entirely.
+          {{ t('noMatchingItemsFound') }}
         </span>
         <span v-else-if="state.entries.length === 0 && state.fullyLoaded">
-          It doesn't look like you've deleted anything on this computer yet.
+          {{ t('noDeletedItemsYet') }}
         </span>
         <span v-else>
-          Didn't find what you're looking for? It may have been deleted on
-          another computer, or outside of Tab Stash entirely.
+          {{ t('notFoundHelpText') }}
         </span>
       </template>
     </LoadMore>

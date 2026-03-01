@@ -18,5 +18,336 @@
   "sidebarActionTitle": {
     "message": "标签页收藏夹",
     "description": "侧边栏操作标题"
+  },
+  "notificationDismissTitle": {
+    "message": "关闭通知",
+    "description": "通知关闭按钮标题"
+  },
+  "confirmDialogTooltip": {
+    "message": "如果您改变主意，可以在选项中重新开启此确认功能。"
+  },
+  "askMeAgainNextTime": {
+    "message": "下次再问我"
+  },
+  "closeDialogTitle": {
+    "message": "关闭"
+  },
+  "backToTabStashTitle": {
+    "message": "返回标签页收藏夹"
+  },
+  "searchDeletedItemsLabel": {
+    "message": "搜索已删除项目"
+  },
+  "searchDeletedItemsPlaceholder": {
+    "message": "搜索已删除项目"
+  },
+  "deletedPrefix": {
+    "message": "已删除"
+  },
+  "noMatchingItemsFound": {
+    "message": "未找到匹配的项目。您的项目可能已在其他计算机上删除，或完全在标签页收藏夹之外被删除。"
+  },
+  "noDeletedItemsYet": {
+    "message": "看起来您在这台计算机上还没有删除任何东西。"
+  },
+  "notFoundHelpText": {
+    "message": "没有找到您要找的内容？它可能已在其他计算机上删除，或完全在标签页收藏夹之外被删除。"
+  },
+  "showAdvancedSettings": {
+    "message": "显示高级设置"
+  },
+  "stopHidingCrashReports": {
+    "message": "停止隐藏崩溃报告"
+  },
+  "tabStashBehaviorTitle": {
+    "message": "标签页收藏夹行为（所有同步浏览器）"
+  },
+  "toolbarButtonClickLabel": {
+    "message": "当点击工具栏按钮时："
+  },
+  "stashAllOption": {
+    "message": "收藏所有（或选定的）标签页"
+  },
+  "stashActiveTabOption": {
+    "message": "收藏当前活动标签页"
+  },
+  "dontStashOption": {
+    "message": "不收藏任何标签页"
+  },
+  "andText": {
+    "message": "并且"
+  },
+  "showStashInSidebarOption": {
+    "message": "在侧边栏中显示收藏夹"
+  },
+  "showStashInTabOption": {
+    "message": "在标签页中显示收藏夹"
+  },
+  "showStashInPopupOption": {
+    "message": "在弹窗中显示收藏夹"
+  },
+  "dontShowStashOption": {
+    "message": "不显示收藏夹"
+  },
+  "contextMenuStashLabel": {
+    "message": "从上下文菜单或地址栏收藏标签页时："
+  },
+  "showStashInSidebarRadio": {
+    "message": "在侧边栏中显示收藏夹"
+  },
+  "showStashInTabRadio": {
+    "message": "在标签页中显示收藏夹"
+  },
+  "dontShowStashRadio": {
+    "message": "不显示收藏夹"
+  },
+  "singleTabAppendLabel": {
+    "message": "收藏单个标签页时："
+  },
+  "appendTooltip": {
+    "message": "如果最顶层的组有名称，或比这个时间更早，则会创建一个新的未命名组。"
+  },
+  "appendToTopGroupLabel": {
+    "message": "仅当最顶层的组是在最近"
+  },
+  "minutesText": {
+    "message": "分钟内创建时才追加到该组"
+  },
+  "appearanceTitle": {
+    "message": "外观（所有同步浏览器）"
+  },
+  "spacingAndFontsLabel": {
+    "message": "间距和字体："
+  },
+  "normalOption": {
+    "message": "正常"
+  },
+  "compactOption": {
+    "message": "紧凑"
+  },
+  "themeLabel": {
+    "message": "主题："
+  },
+  "sameAsSystemOption": {
+    "message": "与操作系统相同"
+  },
+  "lightOption": {
+    "message": "浅色"
+  },
+  "darkOption": {
+    "message": "深色"
+  },
+  "showOpenTabsLabel": {
+    "message": "显示哪些打开的标签页："
+  },
+  "showOpenTabsTooltip": {
+    "message": "点击&quot;打开的标签页&quot;或&quot;未收藏的标签页&quot;标题来在这两个选项间切换。请注意，固定标签页永远不会显示。"
+  },
+  "unstashedTabsOnlyOption": {
+    "message": "仅显示未收藏的标签页"
+  },
+  "allTabsOption": {
+    "message": "已收藏和未收藏的标签页"
+  },
+  "showNewGroupsLabel": {
+    "message": "显示新组："
+  },
+  "expandedOption": {
+    "message": "展开"
+  },
+  "collapsedOption": {
+    "message": "折叠"
+  },
+  "privacyTitle": {
+    "message": "隐私（所有同步浏览器）"
+  },
+  "deletingItemsLabel": {
+    "message": "从收藏夹删除项目时："
+  },
+  "rememberDeletedItemsLabel": {
+    "message": "记住在此计算机上删除的项目"
+  },
+  "daysText": {
+    "message": "天"
+  },
+  "tabMemoryManagementTitle": {
+    "message": "标签页和内存管理（此浏览器）"
+  },
+  "onceStashedLabel": {
+    "message": "标签页被收藏后："
+  },
+  "hideTooltip": {
+    "message": "仍加载的隐藏标签页可以立即恢复。它们还会保留您在标签页中输入的所有内容及其历史记录（例如后退按钮）。"
+  },
+  "hideKeepLoadedOption": {
+    "message": "隐藏标签页并保持在后台加载"
+  },
+  "autodiscardTooltip": {
+    "message": "监控浏览器中的标签页总数，如果您打开了很多标签页，会卸载最近未使用的隐藏标签页。此选项显著减少内存使用，推荐大多数用户使用。"
+  },
+  "autodiscardOption": {
+    "message": "自动卸载一段时间未使用的隐藏标签页"
+  },
+  "checkIntervalLabel": {
+    "message": "每隔"
+  },
+  "keepTabsLabel": {
+    "message": "始终保持至少"
+  },
+  "tabsText": {
+    "message": "个隐藏和可见标签页处于加载状态"
+  },
+  "keepOldestTabsLabel": {
+    "message": "个隐藏和可见标签页处于加载状态"
+  },
+  "butTxet": {
+    "message": "但是..."
+  },
+  "unloadTabsLabel": {
+    "message": "...如果有超过"
+  },
+  "tabsTextLoaded": {
+    "message": "个标签页被加载"
+  },
+  "hideUnloadTooltip": {
+    "message": "已卸载的隐藏标签页可以非常快速地恢复，通常无需网络连接。它们还会保留浏览历史记录（例如后退按钮）。但是，根据网站不同，您可能会丢失尚未保存的标签页中输入的内容。使用较少内存。"
+  },
+  "hideUnloadOption": {
+    "message": "隐藏标签页并立即卸载"
+  },
+  "closeTooltip": {
+    "message": "使用最少的内存，但恢复时间最长，因为标签页内容可能需要通过网络获取。此选项会使浏览器忘记您在标签页中输入的所有内容，以及标签页的浏览历史记录（例如后退按钮）。"
+  },
+  "closeOption": {
+    "message": "立即关闭标签页"
+  },
+  "openingTabsLabel": {
+    "message": "从收藏夹打开标签页时："
+  },
+  "loadImmediatelyOption": {
+    "message": "立即加载所有打开的标签页"
+  },
+  "loadLazilyOption": {
+    "message": "等待标签页被选中后再加载"
+  },
+  "confirmationsTitle": {
+    "message": "确认（此浏览器）…"
+  },
+  "confirmCloseTabsOption": {
+    "message": "关闭大量打开标签页时进行确认"
+  },
+  "experimentalFeaturesTitle": {
+    "message": "实验性功能"
+  },
+  "warningText": {
+    "message": "警告："
+  },
+  "warningTooltip": {
+    "message": "开启实验性功能可能会破坏标签页收藏夹或导致数据丢失！它们被称为&quot;实验性&quot;是因为仍在开发中和/或可能存在已知问题。实验性功能在未来版本中可能会发生重大变化或被完全移除。"
+  },
+  "feedbackText": {
+    "message": "要提供反馈或报告功能问题，请在下面[括号]中链接的问题下留言评论。"
+  },
+  "restoreClosedTabsOption": {
+    "message": "恢复最近关闭的标签页"
+  },
+  "restoreClosedTabsTooltip": {
+    "message": "恢复标签页时，如果隐藏标签页不可用，则搜索并重新打开具有匹配URL的最近关闭标签页。（注意：已知在某些Firefox版本上偶尔会恢复错误的标签页，请查看链接问题了解更多详情。）"
+  },
+  "exportDialogTitle": {
+    "message": "导出"
+  },
+  "formatLabel": {
+    "message": "格式"
+  },
+  "clickableLinksOption": {
+    "message": "可点击链接"
+  },
+  "urlListOption": {
+    "message": "URL列表"
+  },
+  "markdownOption": {
+    "message": "Markdown"
+  },
+  "oneTabOption": {
+    "message": "OneTab"
+  },
+  "selectAllButton": {
+    "message": "全选"
+  },
+  "copyButton": {
+    "message": "复制"
+  },
+  "aboutFormatsLink": {
+    "message": "关于格式..."
+  },
+  "importDialogTitle": {
+    "message": "导入"
+  },
+  "importInstructions": {
+    "message": "在此粘贴包含链接或URL的任何内容。链接和URL将被提取并转换为您收藏夹中的书签。"
+  },
+  "splitTabsLabel": {
+    "message": "将标签页分割到不同组的依据："
+  },
+  "paragraphsAndHeadersOption": {
+    "message": "段落和标题"
+  },
+  "headersOption": {
+    "message": "标题"
+  },
+  "nothingOption": {
+    "message": "无[全部放在一个组中]"
+  },
+  "fetchIconsAndTitles": {
+    "message": "从每个网站获取图标和标题"
+  },
+  "importToFolderButton": {
+    "message": "导入到文件夹"
+  },
+  "importButton": {
+    "message": "导入"
+  },
+  "infoFetchFailed": {
+    "message": "无法获取以下URL的信息：\n${failures.urls.join(\"\\n\")}\n这些URL的收藏标签页已创建，但您可能需要手动设置它们的标题。抱歉！"
+  },
+  "openStashedTabsTitle": {
+    "message": "打开收藏的标签页"
+  },
+  "openButtonText": {
+    "message": "打开"
+  },
+  "openAndDeleteTitle": {
+    "message": "打开标签页并从收藏夹中删除它们"
+  },
+  "unstashButtonText": {
+    "message": "取消收藏"
+  },
+  "exportSelectedTitle": {
+    "message": "导出选定的链接和URL"
+  },
+  "exportButtonText": {
+    "message": "导出..."
+  },
+  "searchOrCreateGroup": {
+    "message": "搜索或创建组"
+  },
+  "moveToNamedGroupTooltip": {
+    "message": "移动到&quot;${friendlyFolderName(f.title,)}&quot;（按住${altKey}键复制）"
+  },
+  "deleteOrCloseTitle": {
+    "message": "删除收藏的标签页并关闭未收藏的标签页"
+  },
+  "deleteOrCloseText": {
+    "message": "删除或关闭"
+  },
+  "moveToNewGroup": {
+    "message": "移动到新组"
+  },
+  "moveToNamedGroup": {
+    "message": "移动到"
+  },
+  "holdToCopy": {
+    "message": "（按住${this.altKey}键复制）"
   }
 }
