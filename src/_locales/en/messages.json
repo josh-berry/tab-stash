@@ -1,3 +1,22 @@
 {
-
+  "extensionName": {
+    "message": "Tab Stash",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "A no-fuss way to save and restore batches of tabs as bookmarks.",
+    "description": "Extension description"
+  },
+  "browserActionTitle": {
+    "message": "Tab Stash",
+    "description": "Browser action button title"
+  },
+  "pageActionTitle": {
+    "message": "Stash this tab",
+    "description": "Page action button title"
+  },
+  "sidebarActionTitle": {
+    "message": "Tab Stash",
+    "description": "Sidebar action title"
+  }
 }

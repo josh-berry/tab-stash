@@ -1,3 +1,22 @@
 {
-
+  "extensionName": {
+    "message": "标签页收藏夹",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "一种简单的方式来保存和恢复成批的标签页作为书签。",
+    "description": "扩展描述"
+  },
+  "browserActionTitle": {
+    "message": "标签页收藏夹",
+    "description": "浏览器操作按钮标题"
+  },
+  "pageActionTitle": {
+    "message": "收藏此标签页",
+    "description": "页面操作按钮标题"
+  },
+  "sidebarActionTitle": {
+    "message": "标签页收藏夹",
+    "description": "侧边栏操作标题"
+  }
 }
