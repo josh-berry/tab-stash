@@ -46,6 +46,7 @@
 import {onMounted, ref} from "vue";
 
 import Dialog from "./dialog.vue";
+import {t} from "../util/i18n.js";
 
 // Users typically don't expect that toggling the "Confirm next time" option
 // will take effect if they cancel the whole dialog.  Thus we only report

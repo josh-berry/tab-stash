@@ -449,6 +449,7 @@ import {
 import * as Options from "../model/options.js";
 import {required} from "../util/index.js";
 import {logErrorsFrom} from "../util/oops.js";
+import {t} from "../util/i18n.js";
 
 import OopsNotification from "../components/oops-notification.vue";
 import FeatureFlag from "./feature-flag.vue";
@@ -539,6 +540,7 @@ export default defineComponent({
   },
 
   methods: {
+    t,
     local_def() {
       return Options.LOCAL_DEF;
     },

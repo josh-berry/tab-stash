@@ -47,6 +47,7 @@ export default defineComponent({
   inheritAttrs: false,
 
   methods: {
+    t,
     close() {
       this.$emit("close");
     },

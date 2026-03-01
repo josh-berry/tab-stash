@@ -21,6 +21,7 @@
 import {defineComponent} from "vue";
 
 import ButtonBox from "./button-box.vue";
+import {t} from "../util/i18n.js";
 
 export default defineComponent({
   components: {ButtonBox},
@@ -36,6 +37,7 @@ export default defineComponent({
   }),
 
   methods: {
+    t,
     activate(ev: MouseEvent) {
       this.$emit("activate");
     },
