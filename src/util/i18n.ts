@@ -5,7 +5,7 @@ export function t(key: string, substitutions?: string | string[]): string {
     return browser.i18n.getMessage(key, substitutions);
   } catch (error) {
     console.warn(`Failed to get message for key: ${key}`, error);
-    return key; // 返回键名作为后备
+    return key; // Return key name as fallback
   }
 }
 
