@@ -303,7 +303,7 @@
     "message": "Fetch icons and titles from each site"
   },
   "importToFolderButton": {
-    "message": "importToFolderButton"
+    "message": "Import to \"$1\""
   },
   "importButton": {
     "message": "Import"
