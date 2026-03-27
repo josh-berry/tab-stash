@@ -741,7 +741,12 @@ export class Model {
 
     while (to_fetch.size > 0) {
       trace("_findRoots fetching", to_fetch);
-      const bms = await browser.bookmarks.get(Array.from(to_fetch));
+      // ORION: .get() does not support batching
+      const bms = (
+        await Promise.all(
+          Array.from(to_fetch).map(id => browser.bookmarks.get(id)),
+        )
+      ).flat();
 
       to_fetch = new Set();
       for (const b of bms) {
@@ -1078,5 +1083,14 @@ function isBrowserBTNFolder(bm: Bookmarks.BookmarkTreeNode): boolean {
  * here so the rest of Tab Stash doesn't complain. See:
  * https://github.com/josh-berry/tab-stash/issues/542 */
 function fixupIndexes(nodes: Bookmarks.BookmarkTreeNode[]): void {
+  // ORION: We have to sort nodes by index first, because Orion doesn't return
+  // nodes in index order.
+  if ((<any>globalThis).KAGI) {
+    nodes.sort((a, b) => {
+      if (a.index === undefined) return -1;
+      if (b.index === undefined) return 1;
+      return a.index - b.index;
+    });
+  }
   for (let i = 0; i < nodes.length; ++i) nodes[i].index = i;
 }
