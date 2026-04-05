@@ -966,7 +966,7 @@ class MockTabs implements T.Static {
     tabIds: number[],
     tabId?: number,
     options?: T.MoveInSuccessionOptionsType,
-  ): void {
+  ): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
