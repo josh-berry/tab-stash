@@ -19,3 +19,7 @@ releases/tab-stash-src-*.tar.gz
 
 # Data related to issues on GitHub
 issues
+
+.idea
+
+.idea
