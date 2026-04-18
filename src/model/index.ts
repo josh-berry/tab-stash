@@ -98,15 +98,15 @@ export const isLeaf = (item: StashItem): item is StashLeaf =>
 
 export const isModelParent = (
   item: ModelItem | ModelParent,
-): item is ModelParent => "children" in item;
+): item is ModelParent => "children" in item || "flattenedChildren" in item;
 
 export const isModelItem = (item: StashItem): item is ModelItem => "id" in item;
 
 export const isWindow = (item: StashItem): item is Tabs.Window =>
-  "id" in item && typeof item.id === "number" && "children" in item;
+  "id" in item && typeof item.id === "number" && "flattenedChildren" in item;
 
 export const isTab = (item: StashItem): item is Tabs.Tab =>
-  "id" in item && typeof item.id === "number" && !("children" in item);
+  "id" in item && typeof item.id === "number" && !("flattenedChildren" in item);
 
 export const isNode = (item: StashItem): item is Bookmarks.Node =>
   "id" in item && typeof item.id === "string";
@@ -133,7 +133,7 @@ export const ModelTree = new (class extends Tree<
   isParent(
     node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
   ): node is Bookmarks.Folder | Tabs.Window {
-    return "children" in node;
+    return "children" in node || "flattenedChildren" in node;
   }
 
   isLoaded(parent: Tabs.Window | Bookmarks.Folder): boolean {
@@ -143,6 +143,7 @@ export const ModelTree = new (class extends Tree<
   positionOf(
     node: Bookmarks.Node | Tabs.Tab | Tabs.Window | Bookmarks.Folder,
   ): TreePosition<Tabs.Window | Bookmarks.Folder> | undefined {
+    if (isTab(node)) return node.flattenedPosition;
     return node.position;
   }
 
@@ -155,6 +156,7 @@ export const ModelTree = new (class extends Tree<
     | Bookmarks.Folder
     | undefined
   )[] {
+    if ("flattenedChildren" in parent) return parent.flattenedChildren;
     return parent.children;
   }
 
@@ -269,7 +271,7 @@ export class Model {
 
       if (this.filter.info(item).isMatching) return true;
 
-      const parent = item.position?.parent;
+      const parent = ModelTree.positionOf(item)?.parent;
       if (parent && this.showFilteredChildren.get(parent)?.value) return true;
 
       return false;
@@ -381,7 +383,7 @@ export class Model {
    * will be returned.
    */
   stashableTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
-    const tabs = window.children.filter(t => !t.hidden);
+    const tabs = window.flattenedChildren.filter(t => !t.hidden);
 
     let selected = tabs.filter(t => t.highlighted);
     if (selected.length <= 1) {
@@ -622,7 +624,7 @@ export class Model {
     // disturb the ordering of tabs in the browser window.)
     if (!options.background && items.length === 1 && items[0].url) {
       const t = Array.from(this.tabs.tabsWithURL(items[0].url)).find(
-        t => !t.hidden && t.position?.parent === toWindow,
+        t => !t.hidden && t.flattenedPosition?.parent === toWindow,
       );
       if (t) {
         await browser.tabs.update(t.id, {active: true});
@@ -632,7 +634,7 @@ export class Model {
 
     // We want to know what tabs are currently open in the window, so we can
     // avoid opening duplicates.
-    const win_tabs = toWindow.children;
+    const win_tabs = toWindow.flattenedChildren;
 
     // We want to know which tab the user is currently looking at so we can
     // close it if it's just the new-tab page.
@@ -802,9 +804,11 @@ export class Model {
                   index,
                 });
 
-          if ("children" in item) {
+          if ("children" in item || "flattenedChildren" in item) {
+            const children =
+              "children" in item ? item.children : item.flattenedChildren;
             let idx = 0;
-            for (const c of item.children) {
+            for (const c of children) {
               if (typeof c === "string") {
                 await this.bookmarks.move(c, node as Bookmarks.Folder, idx);
               } else {
@@ -896,7 +900,7 @@ export class Model {
     const delete_bm_ids: Bookmarks.Bookmark[] = [];
 
     for (
-      let i = 0, to_index = options.toIndex ?? win.children.length;
+      let i = 0, to_index = options.toIndex ?? win.flattenedChildren.length;
       i < items.length;
       ++i, ++to_index, options.task && ++options.task.value
     ) {
@@ -907,7 +911,7 @@ export class Model {
 
       // If the item we're moving is a tab, just move it into place.
       if (model_item && isTab(model_item)) {
-        const pos = model_item.position;
+        const pos = model_item.flattenedPosition;
         await this.tabs.move(model_item, win, to_index);
         moved_items.push(model_item);
         dont_steal_tabs.add(model_item.id);
@@ -951,12 +955,12 @@ export class Model {
           t =>
             !dont_steal_tabs.has(t.id) &&
             !t.pinned &&
-            (t.hidden || t.position?.parent === win),
+            (t.hidden || t.flattenedPosition?.parent === win),
         )
         .sort((a, b) => -a.hidden - -b.hidden); // prefer hidden tabs
       if (already_open.length > 0) {
         const t = already_open[0];
-        const pos = t.position;
+        const pos = t.flattenedPosition;
         // console.log('already-open tab: ', t, pos);
         // console.log('existing layout:', this.tabs.window(t.windowId)?.tabs);
 
@@ -988,7 +992,7 @@ export class Model {
         console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
         // Remember the active tab in this window (if any), because
         // restoring a recently-closed tab will disturb the focus.
-        const active_tab = win.children.find(t => t.active);
+        const active_tab = win.flattenedChildren.find(t => t.active);
 
         const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
         await browser.tabs.move(t.id!, {windowId: win.id, index: to_index});
@@ -1314,7 +1318,7 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
     if (isNewItem(item)) return item;
 
     if (isWindow(item)) {
-      return {title: "", children: copying(item.children)};
+      return {title: "", children: copying(item.flattenedChildren)};
     }
 
     if (isTab(item)) return {title: item.title, url: item.url};

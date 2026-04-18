@@ -98,9 +98,15 @@ export async function setupModelTestEnv(): Promise<ModelTestEnv> {
   await events
     .watch(["EventfulMap.onInsert", "EventfulMap.onUpdate"])
     .untilNextTick();
-  expect(tab_model.window(windows.left.id)!.children.length).to.equal(3);
-  expect(tab_model.window(windows.right.id)!.children.length).to.equal(3);
-  expect(tab_model.window(windows.real.id)!.children.length).to.equal(11);
+  expect(tab_model.window(windows.left.id)!.flattenedChildren.length).to.equal(
+    3,
+  );
+  expect(tab_model.window(windows.right.id)!.flattenedChildren.length).to.equal(
+    3,
+  );
+  expect(tab_model.window(windows.real.id)!.flattenedChildren.length).to.equal(
+    11,
+  );
   expect(bm_model.stash_root.value!.id).to.equal(bookmarks.stash_root.id);
 
   return {

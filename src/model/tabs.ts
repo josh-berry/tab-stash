@@ -20,7 +20,8 @@ import {Tree, type TreePosition} from "./tree.js";
 export interface Window {
   readonly id: WindowID;
   readonly position: undefined;
-  readonly children: Tab[];
+  readonly flattenedPosition: undefined;
+  readonly flattenedChildren: Tab[];
 }
 
 export interface TabGroup {
@@ -31,7 +32,7 @@ export interface TabGroup {
 }
 
 export interface Tab {
-  position: TreePosition<Window> | undefined;
+  flattenedPosition: TreePosition<Window> | undefined;
   id: TabID;
   status: Tabs.TabStatus;
   title: string;
@@ -50,24 +51,26 @@ export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabGroupID = number & {readonly __tab_group_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
 
-export const WindowTree = new (class extends Tree<Window, Tab> {
+export const FlattenedWindowTree = new (class extends Tree<Window, Tab> {
   isParent(node: Window | Tab): node is Window {
-    return node.position === undefined;
+    return node.flattenedPosition === undefined;
   }
   isLoaded(parent: Window): boolean {
-    return parent.children.every(child => child?.status === "complete");
+    return parent.flattenedChildren.every(
+      child => child?.status === "complete",
+    );
   }
   positionOf(node: Window | Tab): TreePosition<Window> | undefined {
-    return node.position;
+    return node.flattenedPosition;
   }
   childrenOf(parent: Window): (Tab | undefined)[] {
-    return parent.children;
+    return parent.flattenedChildren;
   }
   protected setPosition(
     node: Tab,
     position: TreePosition<Window> | undefined,
   ): void {
-    node.position = position;
+    node.flattenedPosition = position;
   }
 })();
 
@@ -180,7 +183,7 @@ export class Model {
   dumpState() {
     const windows = Array.from(this.windows.entries()).map(([id, w]) => ({
       id,
-      children: w.children.map(t => ({
+      children: w.flattenedChildren.map(t => ({
         id: t.id,
         status: t.status,
         title: t.title,
@@ -255,7 +258,7 @@ export class Model {
   }
 
   allTabs(): Tab[] {
-    return this.allWindows().flatMap(w => w.children);
+    return this.allWindows().flatMap(w => w.flattenedChildren);
   }
 
   window(id: number): Window | undefined {
@@ -274,7 +277,7 @@ export class Model {
     if (window === undefined) window = this.targetWindow.value;
     if (window === undefined) return undefined;
 
-    return window.children.filter(t => t.active)[0];
+    return window.flattenedChildren.filter(t => t.active)[0];
   }
 
   /** Returns a reactive set of tabs with the specified URL. */
@@ -365,13 +368,13 @@ export class Model {
     // This method mainly exists to provide consistent behavior between
     // bookmarks.move() and tabs.move(). Unlike browser.bookmarks.move(),
     // browser.tabs.move() behaves the same on both Firefox and Chrome.
-    const pos = tab.position;
+    const pos = tab.flattenedPosition;
     if (pos?.parent === toWindow && toIndex > pos.index) toIndex--;
 
     trace("moving tab", tab, {toWindow, toIndex});
     await browser.tabs.move(tab.id, {windowId: toWindow.id, index: toIndex});
     await shortPoll(() => {
-      const pos = tab.position;
+      const pos = tab.flattenedPosition;
       if (!pos) tryAgain();
       if (pos.parent !== toWindow || pos.index !== toIndex) tryAgain();
     });
@@ -439,13 +442,16 @@ export class Model {
     // NOTE: We expect there to be at most one active tab per window.
     for (const active_tab of active_tabs) {
       const pos = expect(
-        active_tab.position,
+        active_tab.flattenedPosition,
         () => `Couldn't find position of active tab ${active_tab.id}`,
       );
       const win = pos.parent;
-      const visible_tabs = win.children.filter(t => !t.hidden && !t.pinned);
+      const visible_tabs = win.flattenedChildren.filter(
+        t => !t.hidden && !t.pinned,
+      );
       const closing_tabs_in_window = tabs.filter(
-        t => t.position?.parent === active_tab.position?.parent,
+        t =>
+          t.flattenedPosition?.parent === active_tab.flattenedPosition?.parent,
       );
 
       if (closing_tabs_in_window.length >= visible_tabs.length) {
@@ -465,13 +471,13 @@ export class Model {
         // from, to mimic the browser's behavior when closing the front
         // tab.
 
-        let candidates = win.children.slice(pos.index + 1);
+        let candidates = win.flattenedChildren.slice(pos.index + 1);
         let focus_tab = candidates.find(
           c =>
             c.id !== undefined && !c.hidden && !c.pinned && !tabs.includes(c),
         );
         if (!focus_tab) {
-          candidates = win.children.slice(0, pos.index).reverse();
+          candidates = win.flattenedChildren.slice(0, pos.index).reverse();
           focus_tab = candidates.find(
             c =>
               c.id !== undefined && !c.hidden && !c.pinned && !tabs.includes(c),
@@ -505,7 +511,8 @@ export class Model {
       window = reactive({
         id: wid,
         position: undefined,
-        children: [],
+        flattenedPosition: undefined,
+        flattenedChildren: [],
         isLoaded: true,
       } as Window);
       this.windows.set(wid, window);
@@ -553,7 +560,8 @@ export class Model {
     }
 
     // We clone the array to avoid disturbances while iterating
-    for (const t of Array.from(win.children)) this.whenTabRemoved(t.id);
+    for (const t of Array.from(win.flattenedChildren))
+      this.whenTabRemoved(t.id);
     this.windows.delete(winId as WindowID);
   }
 
@@ -606,7 +614,7 @@ export class Model {
     if (!t) {
       // CAST: Tabs.Tab says the id should be optional, but it isn't...
       t = reactive({
-        position: undefined,
+        flattenedPosition: undefined,
         id: tab.id as TabID,
         status: (tab.status as Tabs.TabStatus) ?? "loading",
         title: tab.title ?? "",
@@ -658,10 +666,11 @@ export class Model {
     // win.children.length + 1`, resulting in a crash.  Avoid the crash by
     // clamping tab.index to the window length if the window is fully-loaded.
     // See #537.
-    tab.index = Math.min(tab.index, win.children.length);
+    tab.index = Math.min(tab.index, win.flattenedChildren.length);
 
-    if (t.position) WindowTree.removeNode(t.position);
-    WindowTree.insertNode(t, {parent: win, index: tab.index});
+    if (t.flattenedPosition)
+      FlattenedWindowTree.removeNode(t.flattenedPosition);
+    FlattenedWindowTree.insertNode(t, {parent: win, index: tab.index});
 
     // Insert the tab in its index
     this._add_url(t);
@@ -753,8 +762,9 @@ export class Model {
     }
     /* c8 ignore stop */
 
-    if (t.position) WindowTree.removeNode(t.position);
-    WindowTree.insertNode(t, {parent: newWindow, index: info.toIndex});
+    if (t.flattenedPosition)
+      FlattenedWindowTree.removeNode(t.flattenedPosition);
+    FlattenedWindowTree.insertNode(t, {parent: newWindow, index: info.toIndex});
   }
 
   whenTabReplaced(newId: number, oldId: number) {
@@ -783,7 +793,7 @@ export class Model {
     // Chrome doesn't tell us which tab was deactivated, so we have to
     // find it and mark it deactivated ourselves...
     const win = this.window(info.windowId as WindowID);
-    if (win) for (const t of win.children) t.active = false;
+    if (win) for (const t of win.flattenedChildren) t.active = false;
 
     tab.active = true;
   }
@@ -797,7 +807,7 @@ export class Model {
       return;
     }
 
-    for (const t of win.children) {
+    for (const t of win.flattenedChildren) {
       t.highlighted = info.tabIds.findIndex(id => id === t.id) !== -1;
     }
   }
@@ -807,8 +817,8 @@ export class Model {
     const t = this.tabs.get(tabId as TabID);
     if (!t) return; // tab is already removed
 
-    const pos = t.position;
-    if (pos) WindowTree.removeNode(pos);
+    const pos = t.flattenedPosition;
+    if (pos) FlattenedWindowTree.removeNode(pos);
 
     trace("event ...tabRemoved", tabId, pos);
 

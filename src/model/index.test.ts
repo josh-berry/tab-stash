@@ -398,7 +398,9 @@ describe("model", () => {
       ]);
 
       expect(
-        env.model.tabs.window(env.windows.left.id)!.children.map(bm => bm.id),
+        env.model.tabs
+          .window(env.windows.left.id)!
+          .flattenedChildren.map(bm => bm.id),
       ).to.deep.equal([
         env.tabs.left_alice.id,
         env.tabs.left_betty.id,
@@ -1138,11 +1140,11 @@ describe("model", () => {
       // console.log(win.tabs);
       // console.log(children.map(c => ({[c]: tabs[c].id})));
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(children.map(c => env.tabs[c].url));
       expect(
-        win.children.map(t => t.id),
+        win.flattenedChildren.map(t => t.id),
         "Model tab IDs",
       ).to.deep.equal(children.map(c => env.tabs[c].id));
     }
@@ -1478,7 +1480,7 @@ describe("model", () => {
 
       const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
     });
@@ -1486,7 +1488,7 @@ describe("model", () => {
     it("moves bookmarks into the window", async () => {
       await env.model.bookmarks.loadedStash();
       expect(env.model.tabs.tab(env.tabs.real_helen.id)).to.deep.include({
-        position: {
+        flattenedPosition: {
           parent: env.model.tabs.window(env.windows.real.id),
           index: 10,
         },
@@ -1541,11 +1543,11 @@ describe("model", () => {
 
       const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
       expect(
-        win.children.map(t => t.id),
+        win.flattenedChildren.map(t => t.id),
         "Model tab IDs",
       ).to.deep.equal(ids);
 
@@ -1556,7 +1558,7 @@ describe("model", () => {
       ).to.deep.equal([env.bookmarks.doug_2.id, env.bookmarks.patricia.id]);
 
       expect(env.model.tabs.tab(env.tabs.real_helen.id)).to.deep.include({
-        position: {
+        flattenedPosition: {
           parent: env.model.tabs.window(env.windows.right.id),
           index: 2,
         },
@@ -1602,7 +1604,7 @@ describe("model", () => {
 
       const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
 
@@ -1701,12 +1703,14 @@ describe("model", () => {
       const restored = env.model.tabs.tab(env.tabs.real_harry.id)!;
       expect(restored.hidden).to.be.false;
       expect(restored.active).to.be.true;
-      expect(restored.position?.parent.id).to.equal(env.windows.real.id);
+      expect(restored.flattenedPosition?.parent.id).to.equal(
+        env.windows.real.id,
+      );
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children[win.children.length - 1].id).to.equal(
-        env.tabs.real_harry.id,
-      );
+      expect(
+        win.flattenedChildren[win.flattenedChildren.length - 1].id,
+      ).to.equal(env.tabs.real_harry.id);
     });
 
     it("restores a single already-open tab by switching to it", async () => {
@@ -1717,11 +1721,13 @@ describe("model", () => {
       const restored = env.model.tabs.tab(env.tabs.real_estelle.id)!;
       expect(restored.hidden).to.be.false;
       expect(restored.active).to.be.true;
-      expect(restored.position?.parent.id).to.equal(env.windows.real.id);
+      expect(restored.flattenedPosition?.parent.id).to.equal(
+        env.windows.real.id,
+      );
 
       // Nothing should have moved
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children.map(t => t.id)).to.deep.equal(
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal(
         env.windows.real.tabs!.map(t => t.id),
       );
     });
@@ -1746,7 +1752,7 @@ describe("model", () => {
       expect(restored[1].active).to.be.true;
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children.map(t => t.id)).to.deep.equal([
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal([
         env.tabs.real_patricia.id,
         env.tabs.real_paul.id,
         env.tabs.real_bob.id,
@@ -1807,7 +1813,7 @@ describe("model", () => {
       ]);
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children.map(t => t.id)).to.deep.equal([
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal([
         env.tabs.real_patricia.id,
         env.tabs.real_paul.id,
         env.tabs.real_bob.id,

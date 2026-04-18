@@ -131,7 +131,7 @@ export default defineComponent({
       const tab_model = the.model.tabs;
       const target_window = tab_model.targetWindow.value;
       return Array.from(tab_model.tabsWithURL(this.bookmark.url)).filter(
-        t => t.position?.parent === target_window,
+        t => t.flattenedPosition?.parent === target_window,
       );
     },
 

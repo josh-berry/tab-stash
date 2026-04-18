@@ -28,7 +28,7 @@ describe("model/tabs", () => {
       /* c8 ignore next -- the ?? operators always short-circuit */
       expect(model.tab(tab.id)).to.deep.include({
         id: tab.id,
-        position: {
+        flattenedPosition: {
           parent: model.window(tab.windowId!),
           index: tab.index,
         },
@@ -62,9 +62,9 @@ describe("model/tabs", () => {
   it("tracks tabs by window", async () => {
     for (const w in windows) {
       const win = windows[w as keyof typeof windows];
-      expect(model.window(win.id)!.children.map(t => t.id)).to.deep.equal(
-        win.tabs!.map(t => t.id),
-      );
+      expect(
+        model.window(win.id)!.flattenedChildren.map(t => t.id),
+      ).to.deep.equal(win.tabs!.map(t => t.id));
     }
   });
 
@@ -90,7 +90,7 @@ describe("model/tabs", () => {
       discarded: false,
       cookieStoreId: undefined,
     });
-    expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
+    expect(model.tab(t.id! as M.TabID)!.flattenedPosition).to.deep.equal({
       parent: model.window(windows.left.id),
       index: 3,
     });
@@ -102,13 +102,13 @@ describe("model/tabs", () => {
       title: "",
       url: "about:blank#insert-new-tab",
     });
-    expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
+    expect(model.tab(t.id! as M.TabID)!.flattenedPosition).to.deep.equal({
       parent: model.window(windows.left.id),
       index: 3,
     });
 
     expect(
-      model.window(windows.left.id)!.children.map(t => t.id),
+      model.window(windows.left.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_betty.id,
@@ -116,7 +116,7 @@ describe("model/tabs", () => {
       t.id!,
     ]);
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
@@ -166,14 +166,14 @@ describe("model/tabs", () => {
 
     expect(model.tab(tid)).to.deep.include({
       id: tid,
-      position: {parent: model.window(win.id!)!, index: 0},
+      flattenedPosition: {parent: model.window(win.id!)!, index: 0},
       url: `${B}#hi`,
     });
     expect(model.tabsWithURL(`${B}#hi`)).to.deep.equal(
       new Set([model.tab(tid)]),
     );
     expect(
-      model.window(win.id as M.WindowID)!.children.map(t => t.id),
+      model.window(win.id as M.WindowID)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tid]);
 
     // Cleanup for running this test in a live environment - close the
@@ -207,7 +207,7 @@ describe("model/tabs", () => {
 
     expect(model.tab(16384 as M.TabID)).to.deep.equal({
       id: tab.id,
-      position: {
+      flattenedPosition: {
         parent: model.window(16590 as M.WindowID)!,
         index: 0,
       },
@@ -227,7 +227,7 @@ describe("model/tabs", () => {
       model.tab(16384 as M.TabID),
     ]);
     expect(
-      model.window(16590 as M.WindowID)!.children.map(t => t.id),
+      model.window(16590 as M.WindowID)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tab.id]);
   });
 
@@ -270,11 +270,11 @@ describe("model/tabs", () => {
       cookieStoreId: tab.cookieStoreId,
     });
     expect(model.tab(tid)).to.deep.include({
-      position: {parent: model.window(win.id!)!, index: 0},
+      flattenedPosition: {parent: model.window(win.id!)!, index: 0},
     });
     expect(model.tabsWithURL("cats")).to.deep.equal(new Set([model.tab(tid)]));
     expect(
-      model.window(win.id! as M.WindowID)!.children.map(t => t.id),
+      model.window(win.id! as M.WindowID)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tid]);
 
     // Cleanup when running in a live environment - close the window we just
@@ -295,7 +295,7 @@ describe("model/tabs", () => {
 
     expect(model.tab(tabs.right_adam.id)).to.be.undefined;
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tabs.right_blank.id, tabs.right_doug.id]);
   });
 
@@ -320,7 +320,7 @@ describe("model/tabs", () => {
 
     expect(model.tab(tabs.right_adam.id)).to.be.undefined;
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tabs.right_blank.id, tabs.right_doug.id]);
   });
 
@@ -347,35 +347,35 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onMoved);
 
     const left = model.window(windows.left.id)!;
-    expect(left.children.map(t => t.id)).to.deep.equal([
+    expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_betty.id,
       tabs.left_charlotte.id,
       tabs.left_alice.id,
     ]);
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      position: {parent: left, index: 0},
+      flattenedPosition: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      position: {parent: left, index: 1},
+      flattenedPosition: {parent: left, index: 1},
     });
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      position: {parent: left, index: 2},
+      flattenedPosition: {parent: left, index: 2},
     });
 
     const right = model.window(windows.right.id)!;
-    expect(right.children.map(t => t.id)).to.deep.equal([
+    expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      position: {parent: right, index: 0},
+      flattenedPosition: {parent: right, index: 0},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      position: {parent: right, index: 1},
+      flattenedPosition: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      position: {parent: right, index: 2},
+      flattenedPosition: {parent: right, index: 2},
     });
   });
 
@@ -387,35 +387,35 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onMoved);
 
     const left = model.window(windows.left.id)!;
-    expect(left.children.map(t => t.id)).to.deep.equal([
+    expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_charlotte.id,
       tabs.left_alice.id,
       tabs.left_betty.id,
     ]);
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      position: {parent: left, index: 0},
+      flattenedPosition: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      position: {parent: left, index: 1},
+      flattenedPosition: {parent: left, index: 1},
     });
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      position: {parent: left, index: 2},
+      flattenedPosition: {parent: left, index: 2},
     });
 
     const right = model.window(windows.right.id)!;
-    expect(right.children.map(t => t.id)).to.deep.equal([
+    expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      position: {parent: right, index: 0},
+      flattenedPosition: {parent: right, index: 0},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      position: {parent: right, index: 1},
+      flattenedPosition: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      position: {parent: right, index: 2},
+      flattenedPosition: {parent: right, index: 2},
     });
   });
 
@@ -427,35 +427,35 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onAttached);
 
     const left = model.window(windows.left.id)!;
-    expect(left.children.map(t => t.id)).to.deep.equal([
+    expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_charlotte.id,
     ]);
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      position: {parent: left, index: 0},
+      flattenedPosition: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      position: {parent: left, index: 1},
+      flattenedPosition: {parent: left, index: 1},
     });
 
     const right = model.window(windows.right.id)!;
-    expect(right.children.map(t => t.id)).to.deep.equal([
+    expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.left_betty.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      position: {parent: right, index: 0},
+      flattenedPosition: {parent: right, index: 0},
     });
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      position: {parent: right, index: 1},
+      flattenedPosition: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      position: {parent: right, index: 2},
+      flattenedPosition: {parent: right, index: 2},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      position: {parent: right, index: 3},
+      flattenedPosition: {parent: right, index: 3},
     });
   });
 
@@ -469,10 +469,10 @@ describe("model/tabs", () => {
     expect(model.tab(16384 as M.TabID)).to.equal(tab);
 
     expect(
-      model.window(windows.left.id)!.children.map(t => t.id),
+      model.window(windows.left.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tabs.left_alice.id, tabs.left_betty.id, 16384 as M.TabID]);
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
@@ -498,7 +498,7 @@ describe("model/tabs", () => {
 
     expect(model.tab(16384 as M.TabID)).to.deep.include({
       id: 16384,
-      position: {
+      flattenedPosition: {
         parent: model.window(16590 as M.WindowID),
         index: 0,
       },
@@ -625,7 +625,7 @@ describe("model/tabs", () => {
       expect(
         model
           .window(windows.left.id)!
-          .children.map(t => [t.url, t.id, t.groupId]),
+          .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
       ).to.deep.equal([
         [tabs.left_alice.url, tabs.left_alice.id, gid],
         [tabs.left_betty.url, tabs.left_betty.id, gid],
@@ -666,7 +666,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -703,7 +703,7 @@ describe("model/tabs", () => {
       expect(
         model
           .window(windows.real.id)!
-          .children.map(t => [t.url, t.id, t.groupId]),
+          .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
       ).to.deep.equal([
         [tabs.real_patricia.url, tabs.real_patricia.id, -1],
         [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -721,7 +721,7 @@ describe("model/tabs", () => {
       expect(model.tab(tabs.real_blank.id)).to.deep.include({
         groupId: groups.ef.id,
       });
-      expect(model.tab(tabs.real_blank.id)!.position).to.deep.include({
+      expect(model.tab(tabs.real_blank.id)!.flattenedPosition).to.deep.include({
         index: tabs.real_estelle.index,
       });
     });
@@ -745,7 +745,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .children.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -778,7 +778,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .children.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -820,7 +820,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .children.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -846,7 +846,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .children.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -878,7 +878,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .children.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -910,7 +910,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -941,7 +941,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -975,7 +975,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -999,7 +999,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1026,7 +1026,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1042,7 +1042,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.right.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.right_blank.url, tabs.right_blank.id, -1],
           [tabs.right_adam.url, tabs.right_adam.id, -1],
@@ -1064,7 +1064,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1110,7 +1110,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1148,7 +1148,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .children.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1183,7 +1183,7 @@ describe("model/tabs", () => {
       expect(
         model
           .window(windows.real.id)!
-          .children.map(t => [t.url, t.id, t.groupId]),
+          .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
       ).to.deep.equal([
         [tabs.real_patricia.url, tabs.real_patricia.id, -1],
         [tabs.real_paul.url, tabs.real_paul.id, -1],

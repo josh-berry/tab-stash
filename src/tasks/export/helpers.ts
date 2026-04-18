@@ -30,7 +30,9 @@ export function getParentInfo(folder: StashParent): {
 } {
   const title =
     "title" in folder ? friendlyFolderName(folder.title) : "Untitled";
-  const {leaves, parents} = splitItems(folder.children);
+  const children =
+    "children" in folder ? folder.children : folder.flattenedChildren;
+  const {leaves, parents} = splitItems(children);
   return {title, leaves, parents};
 }
 

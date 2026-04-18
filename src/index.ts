@@ -244,11 +244,11 @@ logErrorsFrom(async () => {
     copy?: boolean;
     tab?: Tab;
   }) {
-    if (!options.tab || options.tab.position === undefined) return;
+    if (!options.tab || options.tab.flattenedPosition === undefined) return;
 
     switch (options.what) {
       case "all":
-        await model.stashAllTabsInWindow(options.tab.position.parent, {
+        await model.stashAllTabsInWindow(options.tab.flattenedPosition.parent, {
           copy: !!options.copy,
         });
         break;

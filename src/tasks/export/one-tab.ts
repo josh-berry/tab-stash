@@ -11,7 +11,9 @@ function renderItems(items: (StashItem | undefined)[]): VNode {
     ...(parents.length > 0 && leaves.length > 0 ? [br()] : []),
     ...delimit(
       br,
-      parents.map(p => renderItems(p.children)),
+      parents.map(p =>
+        renderItems("children" in p ? p.children : p.flattenedChildren),
+      ),
     ),
   ]);
 }

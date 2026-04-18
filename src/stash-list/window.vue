@@ -136,7 +136,7 @@
     <dnd-list
       :class="{'forest-children': true, collapsed}"
       orientation="vertical"
-      v-model="targetWindow.children"
+      v-model="targetWindow.flattenedChildren"
       :item-key="(item: Tab) => item.id"
       :item-accepts="itemAccepts"
       :list-accepts="_ => false"
@@ -262,7 +262,7 @@ export default defineComponent({
     },
 
     tabs(): Tab[] {
-      return this.targetWindow.children;
+      return this.targetWindow.flattenedChildren;
     },
 
     showStashedTabs(): boolean {
@@ -290,7 +290,7 @@ export default defineComponent({
     // How many tabs are visible in the list, ignoring the filter?
     displayCount(): number {
       let count = 0;
-      for (const c of this.targetWindow.children) {
+      for (const c of this.targetWindow.flattenedChildren) {
         if (this.isValidChild(c)) ++count;
       }
       return count;
@@ -300,7 +300,7 @@ export default defineComponent({
     // like hidden tabs
     filteredCount(): number {
       let count = 0;
-      for (const c of this.targetWindow.children) {
+      for (const c of this.targetWindow.flattenedChildren) {
         const i = the.model.filter.info(c);
         if (this.isValidChild(c) && !i.isMatching) ++count;
       }
