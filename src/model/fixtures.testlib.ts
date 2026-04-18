@@ -80,6 +80,7 @@ const GROUPS = {
     id: "ef",
     title: "EF Group",
     color: "red" satisfies TabGroups.Color,
+    collapsed: false,
   },
 } as const;
 
@@ -343,11 +344,12 @@ export async function make_tabs(): Promise<TabFixture> {
       }
 
       if ("groupId" in tab_def) {
-        const browser_gid = groups[tab_def.groupId]?.id;
+        let browser_gid = groups[tab_def.groupId]?.id;
         if (browser_gid === undefined) {
           const gid = await browser.tabs.group({
             tabIds: [tab.id!],
           });
+          browser_gid = gid as TabGroupID;
           groups[tab_def.groupId] = {
             windowId: win.id!,
             id: gid as TabGroupID,
@@ -362,6 +364,7 @@ export async function make_tabs(): Promise<TabFixture> {
             tabIds: [tab.id!],
           });
         }
+        tab.groupId = browser_gid;
         await events.next(browser.tabs.onUpdated);
       }
 
@@ -386,7 +389,14 @@ export async function make_tabs(): Promise<TabFixture> {
       throw new Error(`${gid}: Group was not referenced by any tabs`);
     }
 
-    const info = await browser.tabGroups.get(groups[g]?.id);
+    await browser.tabGroups.update(groups[g].id, {
+      title: GROUPS[g].title,
+      color: GROUPS[g].color,
+      collapsed: GROUPS[g].collapsed,
+    });
+    await events.next(browser.tabGroups.onUpdated);
+
+    const info = await browser.tabGroups.get(groups[g].id);
     if (!info) throw new Error(`${g}: Group was not found`);
     groups[g] = info as TabGroups.TabGroup & {id: TabGroupID};
   }

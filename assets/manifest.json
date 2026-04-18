@@ -15,7 +15,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "tab-stash@condordes.net",
-      "strict_min_version": "78.0"
+      "strict_min_version": "115.0"
     }
   },
   "permissions": [

@@ -130,15 +130,22 @@ export class State {
       let last_group_id: number | undefined = undefined;
       for (const t of w.tabs) {
         // Make sure all tabs in a group are contiguous.
-        if (t.groupId !== undefined) {
+        if (t.groupId !== undefined && t.groupId !== -1) {
           if (t.groupId !== last_group_id) {
             if (seen_group_ids.has(t.groupId)) {
               throw new Error(
-                "Tab ${t.id} in window ${w.id} is not adjacent to its group ${t.groupId}",
+                `Tab ${t.id} in window ${w.id} is not adjacent to its group ${t.groupId}: ${this._describeWindow(w)}`,
               );
             }
             last_group_id = t.groupId;
             seen_group_ids.add(t.groupId);
+          }
+
+          const g = this.group(t.groupId);
+          if (g.windowId !== w.id) {
+            throw new Error(
+              `Tab ${t.id}'s group ${g.id} is not associated with its window ${w.id}. It claims to belong to window ${g.windowId} instead`,
+            );
           }
         } else {
           last_group_id = undefined;
@@ -147,19 +154,23 @@ export class State {
         if (t.active) {
           /* c8 ignore next 3 -- bug-checking */
           if (active_tab) {
-            throw new Error(`Multiple active tabs in window ${w.id}`);
+            throw new Error(
+              `Multiple active tabs in window ${w.id}: ${this._describeWindow(w)}`,
+            );
           }
           active_tab = t;
         }
         /* c8 ignore next 4 -- bug-checking */
         if (t.windowId !== w.id) {
           throw new Error(
-            `Inconsistent windowId for tab ${t.id} in window ${w.id}`,
+            `Inconsistent windowId for tab ${t.id} in window ${w.id}: ${this._describeWindow(w)}`,
           );
         }
         /* c8 ignore next 3 -- bug-checking */
         if (seen_tab_ids.has(t.id)) {
-          throw new Error(`Duplicate tab ID ${t.id} in window ${w.id}`);
+          throw new Error(
+            `Duplicate tab ID ${t.id} in window ${w.id}: ${this._describeWindow(w)}`,
+          );
         }
         seen_tab_ids.add(t.id);
       }
@@ -174,6 +185,12 @@ export class State {
         throw new Error(`Group ${g.id} is not associated with any tabs`);
       }
     }
+  }
+
+  _describeWindow(win: Window): string {
+    return win.tabs
+      .map(t => `${t.id}${t.groupId !== -1 ? `(g${t.groupId})` : ""}[${t.url}]`)
+      .join(", ");
   }
 
   fixup_tab_indices(win: Window) {
@@ -235,6 +252,30 @@ export class State {
       );
     }
     /* c8 ignore stop */
+  }
+
+  /** Move a tab from its old group (if any) to a new group (if any), firing
+   * onUpdated events and cleaning up empty groups. */
+  switch_groups(tab: Tab, toGroup?: G.TabGroup) {
+    const fromGroup = this.groups.get(tab.groupId!);
+    tab.groupId = toGroup?.id || -1;
+
+    if (fromGroup?.id !== toGroup?.id) {
+      this.onTabUpdated.send(
+        tab.id,
+        {groupId: toGroup?.id || -1} as T.OnUpdatedChangeInfoType,
+        JSON.parse(JSON.stringify(tab)),
+      );
+    }
+
+    if (fromGroup) {
+      const fromWindow = this.win(fromGroup.windowId);
+      if (!fromWindow.tabs.some(t => t.groupId === fromGroup.id)) {
+        // This was the last tab in the group; destroy it
+        this.groups.delete(fromGroup.id);
+        this.onTabGroupRemoved.send(JSON.parse(JSON.stringify(fromGroup)));
+      }
+    }
   }
 }
 
@@ -334,6 +375,7 @@ class MockWindows implements W.Static {
         pinned: false,
         incognito: false,
         status: "loading",
+        groupId: -1,
       };
       win.tabs.push(tab);
       this._state.onTabCreated.send(JSON.parse(JSON.stringify(tab)));
@@ -395,7 +437,7 @@ class MockWindows implements W.Static {
 
     const groups = new Set<number>();
     for (const t of win.tabs) {
-      if (t.groupId !== undefined) groups.add(t.groupId);
+      if (t.groupId !== undefined && t.groupId !== -1) groups.add(t.groupId);
       this._state.onTabRemoved.send(t.id, {
         windowId: win.id,
         isWindowClosing: true,
@@ -533,6 +575,7 @@ class MockTabs implements T.Static {
       pinned: options.pinned ?? false,
       incognito: false,
       status: "loading",
+      groupId: -1,
     };
     this._finish_loading(tab);
 
@@ -713,6 +756,11 @@ class MockTabs implements T.Static {
     let to_index = moveProperties.index;
     const windows_to_fixup = new Set<Window>([to_win]);
 
+    // console.log(
+    //   `Moving tabs ${tab_ids.join(",")} to window ${to_win_id} at index ${to_index}`,
+    // );
+    // console.log(new Error().stack);
+
     for (const tid of tab_ids) {
       const tab = this._state.tab(tid);
       ret.push(tab);
@@ -727,15 +775,49 @@ class MockTabs implements T.Static {
         );
       }
 
-      tab.groupId =
-        to_win.tabs[Math.min(to_index, to_win.tabs.length - 1)]?.groupId;
+      // console.log(`Moving tab ${tab.id}/${tab.url} to index ${to_index}`);
 
-      // console.log('from before', from_win.tabs);
-      // console.log('to before', to_win.tabs);
+      // console.log(
+      //   "from before",
+      //   from_win.tabs.map(({url, id, groupId}) => ({url, id, groupId})),
+      // );
+      // console.log(
+      //   "to before",
+      //   to_win.tabs.map(({url, id, groupId}) => ({url, id, groupId})),
+      // );
+
       from_win.tabs.splice(tab.index, 1);
-      // console.log('after remove', from_win.tabs);
+      // console.log(
+      //   "after remove",
+      //   from_win.tabs.map(({url, id, groupId}) => ({url, id, groupId})),
+      // );
+
       to_win.tabs.splice(to_index, 0, tab);
-      // console.log('after insert', to_win.tabs);
+      // console.log(
+      //   "after insert",
+      //   to_win.tabs.map(({url, id, groupId}) => ({url, id, groupId})),
+      // );
+
+      // If the tab is being inserted in the middle of a group, it should join
+      // that group.
+      const groupIdBeforeInsertPoint = to_win.tabs[to_index - 1]?.groupId;
+      const groupIdAfterInsertPoint = to_win.tabs[to_index + 1]?.groupId;
+      if (
+        groupIdBeforeInsertPoint !== undefined &&
+        groupIdBeforeInsertPoint !== -1 &&
+        groupIdBeforeInsertPoint === groupIdAfterInsertPoint &&
+        tab.groupId !== groupIdBeforeInsertPoint
+      ) {
+        // console.log(
+        //   `Group change for tab ${tab.id} from ${oldGroupId} to ${tab.groupId}`,
+        // );
+        tab.groupId = groupIdAfterInsertPoint;
+        this.onUpdated.send(
+          tab.id,
+          {groupId: tab.groupId},
+          JSON.parse(JSON.stringify(tab)),
+        );
+      }
 
       if (from_win !== to_win) {
         this.onAttached.send(tid, {
@@ -791,7 +873,7 @@ class MockTabs implements T.Static {
         );
       }
 
-      if (tab.groupId !== undefined) {
+      if (tab.groupId !== undefined && tab.groupId !== -1) {
         // If the tab is the only one in its group, remove the group
         if (
           (tab.index == 0 || win.tabs[tab.index - 1].groupId !== tab.groupId) &&
@@ -984,6 +1066,10 @@ class MockTabs implements T.Static {
     groupId?: number;
     createProperties?: {windowId?: number};
   }): Promise<number> {
+    // console.log("tabs.group", options);
+
+    // NOTE: These could be any random tab IDs in any random window, in any
+    // random group, including multiple windows and groups.
     const tabIds = Array.isArray(options.tabIds)
       ? options.tabIds
       : [options.tabIds];
@@ -994,167 +1080,168 @@ class MockTabs implements T.Static {
 
     const tabs = tabIds.map(id => this._state.tab(id));
 
-    const windowId = tabs[0].windowId;
-    if (!tabs.every(tab => tab.windowId === windowId)) {
-      throw new Error("All tabs must be in the same window");
-    }
+    let toGroup: G.TabGroup; // The group to create/insert into
+    let toWindow: Window; // The window to insert into
+    let toIndex: number; // The position of the newly-grouped tabs
 
-    const win = this._state.win(windowId);
-    let groupId = options.groupId;
-
-    // Create new group if no groupId provided
-    if (groupId === undefined) {
-      groupId = this._state.next_group_id;
-      this._state.next_group_id += 2;
-
-      const newGroup: G.TabGroup = {
-        id: groupId,
-        windowId: windowId,
-        title: "",
-        color: "blue",
-        collapsed: false,
-      };
-
-      this._state.groups.set(groupId, newGroup);
-      this._state.onTabGroupCreated.send(JSON.parse(JSON.stringify(newGroup)));
-    } else {
-      const group = this._state.groups.get(groupId);
-      if (!group) {
-        throw new Error(`Group ${groupId} does not exist`);
-      }
-      if (group.windowId !== windowId) {
-        throw new Error("Group must be in the same window as the tabs");
-      }
-    }
-
-    // Unpin any pinned tabs
-    for (const tab of tabs) {
-      if (tab.pinned) {
-        tab.pinned = false;
-        this.onUpdated.send(
-          tab.id,
-          {pinned: false},
-          JSON.parse(JSON.stringify(tab)),
+    if (options.groupId !== undefined) {
+      // Moving into an existing group; the insertion point should be after the
+      // last tab in the group.
+      toGroup = this._state.group(options.groupId);
+      toWindow = this._state.win(toGroup.windowId);
+      toIndex = toWindow.tabs.findLastIndex(t => t.groupId === toGroup.id) + 1;
+      if (toIndex === 0) {
+        throw new Error(
+          `Group ${toGroup.id} has no tabs in its window ${toWindow.id}: ${this._state._describeWindow(toWindow)}`,
         );
       }
+    } else {
+      // Create a new group in the first tab's window. The insertion point will
+      // be the first tab's index, unless it's pinned or part of an existing
+      // group.
+      toGroup = {
+        id: this._state.next_group_id,
+        windowId: tabs[0].windowId,
+        title: "",
+        color: "grey",
+        collapsed: false,
+      };
+      toWindow = this._state.win(toGroup.windowId);
+      toIndex = tabs[0].index;
+      this._state.next_group_id += 2;
+      this._state.groups.set(toGroup.id, toGroup);
+      this._state.onTabGroupCreated.send(JSON.parse(JSON.stringify(toGroup)));
+
+      // If the insertion point is in the middle of an existing group, move it
+      // backwards to the start of the group, so we're not breaking up the
+      // existing group.
+      while (
+        toIndex > 0 &&
+        toWindow.tabs[toIndex].groupId !== undefined &&
+        toWindow.tabs[toIndex].groupId !== -1 &&
+        toWindow.tabs[toIndex - 1].groupId === toWindow.tabs[toIndex].groupId
+      ) {
+        --toIndex;
+      }
     }
 
-    // Sort tabs by their current index so that we can position the group at the
-    // location of the first tab.
-    tabs.sort((a, b) => a.index - b.index);
-
-    // Pick the insertion point for the group--this is where the first tab in
-    // the group should land. If the first tab was previously a pinned tab, we
-    // will have to choose an insertion point just after the last pinned tab so
-    // that all the pinned tabs remain at the beginning of the window.
-    let toIndex = tabs[0].index;
-    if (tabs[0].pinned) {
-      const lastPinnedTab = win.tabs
-        .slice(0, tabs[0].index)
-        .reverse()
-        .find(t => t.pinned);
-      if (lastPinnedTab) toIndex = lastPinnedTab.index + 1;
+    // If we're grouping any pinned tabs, we need to unpin them. We may also
+    // need to adjust the insertion point such that the grouped tabs are placed
+    // after the pinned tabs.
+    for (const tab of tabs) {
+      if (!tab.pinned) continue;
+      tab.pinned = false;
+      this.onUpdated.send(
+        tab.id,
+        {pinned: false},
+        JSON.parse(JSON.stringify(tab)),
+      );
     }
+    toIndex = Math.max(toIndex, tabs.findLastIndex(t => t.pinned) + 1);
 
-    // Now move all of the tabs into position. We maintain `targetIndex` as the
+    // console.log({toWindow: toWindow.id, toGroupId: toGroup.id, toIndex});
+    // console.log(this._state._describeWindow(toWindow));
+
+    // Now move all of the tabs into position. We maintain `toIndex` as the
     // insertion point, update the tabs' indices and position in the window, and
     // fire onMoved events accordingly. Note that, because some tabs might be
     // pinned, they might presently be BEFORE the insertion point, so we have to
-    // adjust targetIndex accordingly.
+    // adjust toIndex accordingly.
+    const windowsToUpdate = new Set<Window>();
     for (const tab of tabs) {
+      const fromWindow = this._state.win(tab.windowId);
+      windowsToUpdate.add(fromWindow);
       const fromIndex = tab.index;
 
-      win.tabs.splice(tab.index, 1);
-      win.tabs.splice(toIndex, 0, tab);
+      if (fromWindow === toWindow && fromIndex < toIndex) {
+        // If the tab is moving within the same window from before the insertion
+        // point to after the insertion point, then we know that the tab will be
+        // removed from before toIndex and inserted after toIndex, so toIndex
+        // should be adjusted down by one to account for the removed tab.
+        --toIndex;
+      }
 
-      if (fromIndex !== toIndex) {
+      fromWindow.tabs.splice(fromIndex, 1);
+      toWindow.tabs.splice(toIndex, 0, tab);
+
+      if (fromWindow !== toWindow || fromIndex !== toIndex) {
         this.onMoved.send(tab.id, {windowId: tab.windowId, fromIndex, toIndex});
       }
 
-      if (tab.index >= toIndex) ++toIndex;
+      if (fromWindow === toWindow && tab.index >= toIndex) ++toIndex;
     }
-
-    this._state.fixup_tab_indices(win);
+    for (const w of windowsToUpdate) this._state.fixup_tab_indices(w);
 
     // Update group membership for all the tabs. If the tab is in a pre-existing
     // group and that group becomes empty, we must also destroy that group.
     for (const tab of tabs) {
-      const oldGroupId = tab.groupId;
-      tab.groupId = groupId;
-
-      if (oldGroupId !== groupId) {
-        this.onUpdated.send(
-          tab.id,
-          {groupId} as T.OnUpdatedChangeInfoType,
-          JSON.parse(JSON.stringify(tab)),
-        );
-      }
-
-      if (
-        oldGroupId !== undefined &&
-        !win.tabs.some(t => t.groupId === oldGroupId)
-      ) {
-        // This was the last tab in the group; destroy it
-        const oldGroup = this._state.group(oldGroupId);
-        this._state.groups.delete(oldGroupId);
-        this._state.onTabGroupRemoved.send(
-          JSON.parse(JSON.stringify(oldGroup)),
-        );
-      }
+      this._state.switch_groups(tab, toGroup);
     }
+    // console.log(this._state._describeWindow(toWindow));
 
     this._state.validate();
-    return groupId;
+    return toGroup.id;
   }
 
   async ungroup(tabIds: number | number[]): Promise<void> {
     tabIds = Array.isArray(tabIds) ? tabIds : [tabIds];
 
-    const tabs = tabIds.map(id => this._state.tab(id));
-    const windowsToFix = [];
+    const tabs = tabIds
+      .map(id => this._state.tab(id))
+      .filter(t => t.groupId !== undefined && t.groupId !== -1);
+    const windowsToFix = new Set<Window>();
 
-    // Sort tabs in reverse index order, so that it's easier to move them
-    // outside of the group as described below.
-    tabs.sort((a, b) => b.index - a.index);
+    // First remove tabs from their respective groups, leaving them in place.
+    // Also clean up any groups that become empty as a result of this.
+    for (const t of tabs) {
+      const win = this._state.win(t.windowId);
+      windowsToFix.add(win);
 
-    for (const tab of tabs) {
-      if (tab.groupId === undefined) continue;
+      this._state.switch_groups(t, undefined);
+    }
 
-      const win = this._state.win(tab.windowId);
-      const group = this._state.groups.get(tab.groupId);
-
-      if (!group) continue;
-
-      // If this tab is in the middle of a group, we have to move it so it is
-      // just after the group.  Because of the reverse sort above, we know that
-      // this is the last tab in the group that we will be processing, so we can
-      // just move it to the same index as the next tab after the group.
-      const toIndex =
-        win.tabs.reverse().find(t => t.groupId === tab.groupId)!.index + 1;
-      if (tab.index !== toIndex) {
-        const fromIndex = tab.index;
-
-        win.tabs.splice(tab.index, 1);
-        win.tabs.splice(toIndex, 0, tab);
-
-        this.onMoved.send(tab.id, {windowId: win.id, fromIndex, toIndex});
-        windowsToFix.push(win);
+    // Now we need to move any tabs that are in the middle of a group to be just
+    // after the group, since all tabs in a group must be contiguous.
+    for (const win of windowsToFix) {
+      // Find the first and last positions of each group in the window
+      let groups = new Map<number, {start: number; end: number}>();
+      for (let i = 0; i < win.tabs.length; ++i) {
+        const t = win.tabs[i];
+        if (t.groupId !== undefined && t.groupId !== -1) {
+          if (!groups.has(t.groupId)) {
+            groups.set(t.groupId, {start: i, end: i + 1});
+          } else {
+            groups.get(t.groupId)!.end = i + 1;
+          }
+        }
       }
 
-      // Then remove the tab from the group.  If the group becomes empty,
-      // destroy it.
-      tab.groupId = undefined;
-      this.onUpdated.send(
-        tab.id,
-        {groupId: -1} as T.OnUpdatedChangeInfoType,
-        JSON.parse(JSON.stringify(tab)),
-      );
-      if (
-        group.id !== undefined &&
-        !win.tabs.some(t => t.groupId === group.id)
-      ) {
-        this._state.groups.delete(group.id);
-        this._state.onTabGroupRemoved.send(JSON.parse(JSON.stringify(group)));
+      // Now find any tabs within each range that have been ungrouped, and move
+      // them to just after the end of the group.
+      for (let [_groupId, {start, end}] of groups) {
+        for (let i = start; i < end; ) {
+          const t = win.tabs[i];
+
+          if (t.groupId !== -1 && t.groupId !== undefined) {
+            ++i;
+            continue;
+          }
+
+          // This tab was just removed from the group and is in the middle of
+          // the group, so move it to just after the end of the group.
+          win.tabs.splice(i, 1);
+          win.tabs.splice(end, 0, t);
+          this.onMoved.send(t.id, {
+            windowId: win.id,
+            fromIndex: i,
+            toIndex: end,
+          });
+
+          // Because we moved a tab from before `end` to after `end`, we know
+          // that `end` has shifted one position earlier. (`i` stays the same
+          // since it now points to the next tab to check.)
+          --end;
+        }
       }
     }
 
@@ -1201,7 +1288,82 @@ class MockTabGroups implements G.Static {
     groupId: number,
     moveProperties: G.MoveMovePropertiesType,
   ): Promise<G.TabGroup> {
-    throw new Error("Method not implemented.");
+    const group = this._state.group(groupId);
+    const fromWindow = this._state.win(group.windowId);
+    const fromStartIndex = fromWindow.tabs.findIndex(
+      t => t.groupId === group.id,
+    );
+    const fromEndIndex =
+      fromWindow.tabs.findLastIndex(t => t.groupId === group.id) + 1;
+
+    const toWindow = this._state.win(moveProperties.windowId ?? group.windowId);
+    const toIndex = moveProperties.index;
+
+    if (
+      toWindow.tabs[toIndex - 1]?.groupId !== -1 &&
+      toWindow.tabs[toIndex]?.groupId !== -1
+    ) {
+      throw new Error(`Cannot move a group into another group`);
+    }
+
+    if (fromWindow !== toWindow) {
+      group.windowId = toWindow.id;
+    }
+
+    const movingTabs = fromWindow.tabs.splice(
+      fromStartIndex,
+      fromEndIndex - fromStartIndex,
+    );
+    toWindow.tabs.splice(toIndex, 0, ...movingTabs);
+
+    this._state.fixup_tab_indices(fromWindow);
+    this._state.fixup_tab_indices(toWindow);
+    this._state.validate();
+
+    if (fromWindow !== toWindow) {
+      for (const t of movingTabs) {
+        this._state.onTabAttached.send(t.id, {
+          newWindowId: toWindow.id,
+          newPosition: t.index,
+        });
+      }
+    } else {
+      let oldIndex = fromStartIndex;
+      let newIndex = toIndex;
+
+      // Adjust the indices to account for the fact that we're sending events as
+      // if we're moving tabs one by one, rather than in bulk.
+      if (fromStartIndex < toIndex) {
+        // If we're moving items forward, we increase the insertion point by the
+        // number of items still waiting to be moved, since those items haven't
+        // been removed yet.
+        newIndex += fromEndIndex - fromStartIndex - 1;
+      } else {
+        // If we're moving items backward, no adjustment is necessary, since the
+        // index of the insertion and removal points don't change relative to
+        // each other.
+      }
+
+      for (const t of movingTabs) {
+        this._state.onTabMoved.send(t.id, {
+          windowId: t.windowId,
+          fromIndex: oldIndex,
+          toIndex: newIndex,
+        });
+        if (fromStartIndex < toIndex) {
+          // We're moving forward, so both the removal and insertion points stay
+          // fixed.
+        } else {
+          // We're moving backward, so both insertion and removal points must
+          // advance.
+          ++oldIndex;
+          ++newIndex;
+        }
+      }
+    }
+
+    this._state.onTabGroupMoved.send(JSON.parse(JSON.stringify(group)));
+    return JSON.parse(JSON.stringify(group));
   }
 
   async query(queryInfo: G.QueryQueryInfoType): Promise<G.TabGroup[]> {

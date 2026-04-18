@@ -1,5 +1,5 @@
 import {computed, reactive, ref, watch, type Ref} from "vue";
-import type {Tabs, Windows} from "webextension-polyfill";
+import type {TabGroups, Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
 import {trace_fn} from "../util/debug.js";
@@ -23,6 +23,13 @@ export interface Window {
   readonly children: Tab[];
 }
 
+export interface TabGroup {
+  readonly id: TabGroupID;
+  title: string;
+  color: TabGroups.Color;
+  collapsed: boolean;
+}
+
 export interface Tab {
   position: TreePosition<Window> | undefined;
   id: TabID;
@@ -36,6 +43,7 @@ export interface Tab {
   active: boolean;
   highlighted: boolean;
   discarded: boolean;
+  groupId: TabGroupID | undefined;
 }
 
 export type WindowID = number & {readonly __window_id: unique symbol};
@@ -85,6 +93,7 @@ const MAX_LOADING_TABS = navigator.hardwareConcurrency ?? 4;
  */
 export class Model {
   private readonly windows = new Map<WindowID, Window>();
+  private readonly tab_groups = new Map<TabGroupID, TabGroup>();
   private readonly tabs = new Map<TabID, Tab>();
   private readonly tabs_by_url = new Map<OpenableURL, Set<Tab>>();
 
@@ -151,6 +160,12 @@ export class Model {
     wiring.listen(browser.windows.onCreated, this.whenWindowCreated);
     wiring.listen(browser.windows.onFocusChanged, this.whenWindowFocusChanged);
     wiring.listen(browser.windows.onRemoved, this.whenWindowRemoved);
+    if (browser.tabGroups) {
+      wiring.listen(browser.tabGroups.onCreated, this.whenTabGroupCreated);
+      wiring.listen(browser.tabGroups.onUpdated, this.whenTabGroupUpdated);
+      wiring.listen(browser.tabGroups.onMoved, this.whenTabGroupMoved);
+      wiring.listen(browser.tabGroups.onRemoved, this.whenTabGroupRemoved);
+    }
     wiring.listen(browser.tabs.onCreated, this.whenTabCreated);
     wiring.listen(browser.tabs.onUpdated, this.whenTabUpdated);
     wiring.listen(browser.tabs.onAttached, this.whenTabAttached);
@@ -210,6 +225,11 @@ export class Model {
       tabs = tabs.sort((a, b) => a.index - b.index);
       for (const t of tabs) this.whenTabCreated(t);
 
+      if (browser.tabGroups) {
+        const groups = await browser.tabGroups.query({});
+        for (const g of groups) this.whenTabGroupCreated(g);
+      }
+
       // Clean up any old tabs/windows that don't exist anymore.
       const old_tabs = new Set(this.tabs.keys());
       const old_windows = new Set(this.windows.keys());
@@ -240,6 +260,9 @@ export class Model {
 
   window(id: number): Window | undefined {
     return this.windows.get(id as WindowID);
+  }
+  group(id: number): TabGroup | undefined {
+    return this.tab_groups.get(id as TabGroupID);
   }
   tab(id: number): Tab | undefined {
     return this.tabs.get(id as TabID);
@@ -534,11 +557,46 @@ export class Model {
     this.windows.delete(winId as WindowID);
   }
 
+  whenTabGroupCreated(group: TabGroups.TabGroup): TabGroup {
+    trace("event tabGroupCreated", group.id, group);
+    return this.whenTabGroupUpdated(group);
+  }
+
+  whenTabGroupUpdated(group: TabGroups.TabGroup): TabGroup {
+    trace("event tabGroupUpdated", group.id, group);
+    let g = this.group(group.id);
+    if (!g) {
+      g = reactive({
+        id: group.id as TabGroupID,
+        title: group.title,
+        color: group.color,
+        collapsed: group.collapsed,
+      } as TabGroup);
+      this.tab_groups.set(g.id, g);
+    } else {
+      g.title = group.title ?? "";
+      g.color = group.color;
+      g.collapsed = group.collapsed;
+    }
+    return g;
+  }
+
+  whenTabGroupMoved(group: TabGroups.TabGroup) {
+    trace("event tabGroupMoved", group.id, group);
+    this.whenTabGroupUpdated(group);
+  }
+
+  whenTabGroupRemoved(group: TabGroups.TabGroup) {
+    trace("event tabGroupRemoved", group.id, group);
+    this.tab_groups.delete(group.id as TabGroupID);
+  }
+
   whenTabCreated(tab: Tabs.Tab) {
     trace(
       "event tabCreated",
       "window",
       tab.windowId,
+      tab.groupId,
       "tab",
       tab.id,
       tab.url,
@@ -560,6 +618,7 @@ export class Model {
         active: tab.active,
         highlighted: tab.highlighted,
         discarded: tab.discarded ?? false,
+        groupId: (tab.groupId as TabGroupID) ?? undefined,
       } satisfies Tab);
       this.tabs.set(tab.id as TabID, t);
     } else {
@@ -576,6 +635,7 @@ export class Model {
       t.active = tab.active;
       t.highlighted = tab.highlighted;
       t.discarded = tab.discarded ?? false;
+      t.groupId = (tab.groupId as TabGroupID) ?? undefined;
     }
 
     // Insert the tab in its new position in the window
@@ -653,6 +713,8 @@ export class Model {
       t.hidden = info.hidden;
     }
     if (info.discarded !== undefined) t.discarded = info.discarded;
+
+    if (info.groupId !== undefined) t.groupId = info.groupId as TabGroupID;
   }
 
   whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {
