@@ -127,13 +127,24 @@ export const isNewFolder = (item: StashItem): item is NewFolder =>
   !("id" in item) && "children" in item;
 
 export const ModelTree = new (class extends Tree<
-  Bookmarks.Folder | Tabs.Window,
-  Bookmarks.Node | Tabs.Tab
+  Tabs.Window,
+  Bookmarks.Folder,
+  Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab
 > {
-  isParent(
+  isRootType(
     node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
-  ): node is Bookmarks.Folder | Tabs.Window {
-    return "children" in node || "flattenedChildren" in node;
+  ): node is Tabs.Window {
+    return isWindow(node);
+  }
+
+  isLeafType(
+    node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
+  ): node is Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab {
+    return (
+      isTab(node) ||
+      isBookmark(node) ||
+      (isNode(node) && Bookmarks.isSeparator(node))
+    );
   }
 
   isLoaded(parent: Tabs.Window | Bookmarks.Folder): boolean {
@@ -141,7 +152,7 @@ export const ModelTree = new (class extends Tree<
   }
 
   positionOf(
-    node: Bookmarks.Node | Tabs.Tab | Tabs.Window | Bookmarks.Folder,
+    node: Bookmarks.Node | Tabs.Tab | Bookmarks.Folder,
   ): TreePosition<Tabs.Window | Bookmarks.Folder> | undefined {
     if (isTab(node)) return node.flattenedPosition;
     return node.position;
@@ -149,13 +160,7 @@ export const ModelTree = new (class extends Tree<
 
   childrenOf(
     parent: Tabs.Window | Bookmarks.Folder,
-  ): (
-    | Bookmarks.Node
-    | Tabs.Tab
-    | Tabs.Window
-    | Bookmarks.Folder
-    | undefined
-  )[] {
+  ): (Bookmarks.Node | Tabs.Tab | undefined)[] {
     if ("flattenedChildren" in parent) return parent.flattenedChildren;
     return parent.children;
   }
@@ -202,10 +207,22 @@ export class Model {
   readonly bookmark_metadata: BookmarkMetadata.Model;
 
   readonly searchText = ref("");
-  readonly filter: TreeFilter<
-    Tabs.Window | Bookmarks.Folder,
+  readonly filter = new TreeFilter<
+    Tabs.Window,
+    Bookmarks.Folder,
     Bookmarks.Node | Tabs.Tab
-  >;
+  >(
+    ModelTree,
+    computed(() => {
+      const searchText = this.searchText.value;
+      if (!searchText) return _ => true;
+
+      const matcher = textMatcher(searchText);
+      return node =>
+        ("title" in node && matcher(node.title)) ||
+        ("url" in node && matcher(node.url));
+    }),
+  );
 
   /** This is a bit of volatile metadata that tracks whether children that don't
    * match the filter should be shown in the UI or not.  We need it here because
@@ -213,10 +230,19 @@ export class Model {
    * visible when doing a multi-select. */
   readonly showFilteredChildren = new WeakMap<ModelItem, Ref<boolean>>();
 
-  readonly selection: TreeSelection<
-    Tabs.Window | Bookmarks.Folder,
+  readonly selection = new TreeSelection<
+    Tabs.Window,
+    Bookmarks.Folder,
     Bookmarks.Node | Tabs.Tab
-  >;
+  >(
+    ModelTree,
+    computed(() =>
+      filterMap(
+        [this.tabs.targetWindow.value, this.bookmarks.stash_root.value],
+        i => i,
+      ),
+    ),
+  );
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;
@@ -229,29 +255,6 @@ export class Model {
 
     this.favicons = src.favicons;
     this.bookmark_metadata = src.bookmark_metadata;
-
-    this.filter = new TreeFilter(
-      ModelTree,
-      computed(() => {
-        const searchText = this.searchText.value;
-        if (!searchText) return _ => true;
-
-        const matcher = textMatcher(searchText);
-        return node =>
-          ("title" in node && matcher(node.title)) ||
-          ("url" in node && matcher(node.url));
-      }),
-    );
-
-    this.selection = new TreeSelection(
-      ModelTree,
-      computed(() =>
-        filterMap(
-          [this.tabs.targetWindow.value, this.bookmarks.stash_root.value],
-          i => i,
-        ),
-      ),
-    );
 
     this.selection.rangeSelectPredicate = item => {
       // This is super ugly because it mimics logic that is spread around
@@ -271,8 +274,10 @@ export class Model {
 
       if (this.filter.info(item).isMatching) return true;
 
-      const parent = ModelTree.positionOf(item)?.parent;
-      if (parent && this.showFilteredChildren.get(parent)?.value) return true;
+      if (!isWindow(item)) {
+        const parent = ModelTree.positionOf(item)?.parent;
+        if (parent && this.showFilteredChildren.get(parent)?.value) return true;
+      }
 
       return false;
     };
@@ -809,6 +814,7 @@ export class Model {
               "children" in item ? item.children : item.flattenedChildren;
             let idx = 0;
             for (const c of children) {
+              if (c === undefined) continue;
               if (typeof c === "string") {
                 await this.bookmarks.move(c, node as Bookmarks.Folder, idx);
               } else {

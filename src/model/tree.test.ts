@@ -3,36 +3,50 @@ import {expect} from "chai";
 import {reactive} from "vue";
 import {Tree, type TreePosition} from "./tree.js";
 
-export interface TestNode {
+export interface TestRoot {
   name: string;
-  position: TreePosition<TestParent> | undefined;
-}
-
-export interface TestParent extends TestNode {
   isLoaded: boolean;
-  children: (TestNode | undefined)[];
+  children: (TestParent | TestLeaf | undefined)[];
 }
 
-export type TestPosition = TreePosition<TestParent>;
+export interface TestParent {
+  name: string;
+  position: TestPosition | undefined;
+  isLoaded: boolean;
+  children: (TestParent | TestLeaf | undefined)[];
+}
 
-export const TestTree = new (class extends Tree<TestParent, TestNode> {
-  isParent(node: TestNode | TestParent): node is TestParent {
-    return "children" in node;
+export interface TestLeaf {
+  name: string;
+  position: TestPosition | undefined;
+}
+
+export type TestNode = TestRoot | TestParent | TestLeaf;
+export type TestPosition = TreePosition<TestRoot | TestParent>;
+
+export const TestTree = new (class extends Tree<
+  TestRoot,
+  TestParent,
+  TestLeaf
+> {
+  isRootType(node: TestNode): node is TestRoot {
+    return "children" in node && !("position" in node);
   }
-  isLoaded(parent: TestParent): boolean {
+  isLeafType(node: TestNode): node is TestLeaf {
+    return "position" in node && !("children" in node);
+  }
+  isLoaded(parent: TestRoot | TestParent): boolean {
     return parent.isLoaded;
   }
-  positionOf(
-    node: TestNode | TestParent,
-  ): TreePosition<TestParent> | undefined {
+  positionOf(node: TestParent | TestLeaf): TestPosition | undefined {
     return node.position;
   }
-  childrenOf(parent: TestParent): (TestNode | TestParent | undefined)[] {
+  childrenOf(parent: TestParent): (TestParent | TestLeaf | undefined)[] {
     return parent.children;
   }
   protected setPosition(
-    node: TestNode | TestParent,
-    position: TreePosition<TestParent> | undefined,
+    node: TestParent | TestLeaf,
+    position: TestPosition | undefined,
   ): void {
     node.position = position;
   }
@@ -40,21 +54,29 @@ export const TestTree = new (class extends Tree<TestParent, TestNode> {
 
 export type TestNodeDef = string | TestParentDef;
 export type TestParentDef = {
-  name: string;
-  children: (TestNodeDef | undefined)[];
-  isLoaded?: boolean;
+  readonly name: string;
+  readonly children: readonly (TestNodeDef | undefined)[];
+  readonly isLoaded?: boolean;
 };
 
-export function makeTree(
-  def: TestParentDef,
-): [TestParent, Record<string, TestParent>, Record<string, TestNode>] {
-  const parents: Record<string, TestParent> = {};
-  const nodes: Record<string, TestNode> = {};
+type ParentNamesOf<D> = D extends TestParentDef
+  ? D["name"] | ParentNamesOf<D["children"][number]>
+  : never;
 
-  function inner(def: TestNodeDef): TestNode {
+type LeafNamesOf<D> = D extends TestParentDef
+  ? Extract<D["children"][number], string> | LeafNamesOf<D["children"][number]>
+  : never;
+
+export function makeTree(
+  rootDef: TestParentDef,
+): [TestRoot, Record<string, TestParent>, Record<string, TestLeaf>] {
+  const parents: Record<string, TestParent> = {};
+  const leaves: Record<string, TestLeaf> = {};
+
+  function inner(def: TestNodeDef): TestParent | TestLeaf {
     if (typeof def === "string") {
       const n = reactive({name: def, position: undefined});
-      nodes[def] = n;
+      leaves[def] = n;
       return n;
     }
 
@@ -77,17 +99,27 @@ export function makeTree(
       ++i;
     }
 
-    nodes[def.name] = n;
     parents[def.name] = n;
     return n;
   }
 
-  return [inner(def) as TestParent, parents, nodes];
+  const root = reactive({
+    name: rootDef.name,
+    isLoaded: rootDef.isLoaded ?? false,
+    children: rootDef.children.map(d => (d ? inner(d) : undefined)),
+  });
+
+  for (let i = 0; i < root.children.length; ++i) {
+    const c = root.children[i];
+    if (c) c.position = reactive({parent: root, index: i});
+  }
+
+  return [root, parents, leaves];
 }
 
-export function checkTree(root: TestParent) {
+export function checkTree(root: TestRoot) {
   function checkNode(n: TestNode) {
-    if (TestTree.isParent(n)) {
+    if (!TestTree.isLeafType(n)) {
       let idx = 0;
       for (const c of n.children) {
         if (c) {
@@ -106,7 +138,7 @@ export function checkTree(root: TestParent) {
       }
     }
 
-    if (!n.position) return;
+    if (!("position" in n) || !n.position) return;
 
     const parent = n.position.parent;
     const idx = n.position.index;
@@ -116,78 +148,82 @@ export function checkTree(root: TestParent) {
     ).to.equal(n);
   }
 
-  expect(root.position, "root position").to.be.undefined;
   checkNode(root);
 }
 
-export const makeDefaultTree = () =>
-  makeTree({
-    name: "root",
-    children: [
-      "a",
-      {name: "b", children: ["b1", "b2"], isLoaded: true},
-      {
-        name: "c",
-        children: [
-          {name: "c1", children: ["c1a", "c1b", "c1c"], isLoaded: false},
-          {
-            name: "c2",
-            children: [
-              "c2a",
-              {
-                name: "c2b",
-                children: [undefined, "c2b2", undefined, "c2b4"],
-                isLoaded: false,
-              },
-            ],
-          },
-        ],
-      },
-      "d",
-      {name: "e", children: ["e1", "e2"]},
-      "f",
-    ],
-    isLoaded: true,
-  });
+const DEFAULT_TREE = {
+  name: "root",
+  children: [
+    "a",
+    {name: "b", children: ["b1", "b2"], isLoaded: true},
+    {
+      name: "c",
+      children: [
+        {name: "c1", children: ["c1a", "c1b", "c1c"], isLoaded: false},
+        {
+          name: "c2",
+          children: [
+            "c2a",
+            {
+              name: "c2b",
+              children: [undefined, "c2b2", undefined, "c2b4"],
+              isLoaded: false,
+            },
+          ],
+        },
+      ],
+    },
+    "d",
+    {name: "e", children: ["e1", "e2"]},
+    "f",
+  ],
+  isLoaded: true,
+} as const;
+
+export const makeDefaultTree = (): [
+  TestRoot,
+  Record<ParentNamesOf<(typeof DEFAULT_TREE)["children"][number]>, TestParent>,
+  Record<LeafNamesOf<typeof DEFAULT_TREE>, TestLeaf>,
+] => makeTree(DEFAULT_TREE);
 
 describe("model/tree", () => {
-  let [tree, parents, nodes] = makeDefaultTree();
+  let [root, parents, leaves] = makeDefaultTree();
 
   beforeEach(() => {
-    [tree, parents, nodes] = makeDefaultTree();
-    checkTree(tree);
+    [root, parents, leaves] = makeDefaultTree();
+    checkTree(root);
   });
 
   describe("isChildInParent()", () => {
     it("nodes contain themselves", () =>
-      expect(TestTree.isChildInParent(nodes.root, parents.root)).to.be.true);
+      expect(TestTree.isChildInParent(root, root)).to.be.true);
     it("nodes contain their direct children", () =>
-      expect(TestTree.isChildInParent(nodes.a, parents.root)).to.be.true);
+      expect(TestTree.isChildInParent(leaves.a, root)).to.be.true);
     it("nodes contain their indirect children", () =>
-      expect(TestTree.isChildInParent(nodes.c2b2, parents.c)).to.be.true);
+      expect(TestTree.isChildInParent(leaves.c2b2, parents.c)).to.be.true);
     it("nodes do not contain their siblings", () =>
-      expect(TestTree.isChildInParent(nodes.e, parents.c)).to.be.false);
+      expect(TestTree.isChildInParent(parents.e, parents.c)).to.be.false);
     it("nodes do not contain their parent siblings", () =>
-      expect(TestTree.isChildInParent(nodes.c1, parents.e)).to.be.false);
+      expect(TestTree.isChildInParent(parents.c1, parents.e)).to.be.false);
     it("nodes do not contain children of their siblings", () =>
-      expect(TestTree.isChildInParent(nodes.e, parents.c1)).to.be.false);
+      expect(TestTree.isChildInParent(parents.e, parents.c1)).to.be.false);
     it("nodes do not contain their children", () =>
-      expect(TestTree.isChildInParent(nodes.c, parents.c2)).to.be.false);
+      expect(TestTree.isChildInParent(parents.c, parents.c2)).to.be.false);
     it("nodes do not contain their indirect children", () =>
-      expect(TestTree.isChildInParent(nodes.c, parents.c2b)).to.be.false);
+      expect(TestTree.isChildInParent(parents.c, parents.c2b)).to.be.false);
   });
 
   describe("pathTo()", () => {
     it("reports an empty path for the root", () =>
-      expect(TestTree.pathTo(nodes.root)).to.deep.equal([]));
+      expect(TestTree.pathTo(root)).to.deep.equal([]));
     it("reports the path to an immediate child of the root", () =>
-      expect(TestTree.pathTo(nodes.b)).to.deep.equal([nodes.b.position]));
+      expect(TestTree.pathTo(parents.b)).to.deep.equal([parents.b.position]));
     it("reports the path to an indirect descendant of the root", () =>
-      expect(TestTree.pathTo(nodes.c2b4)).to.deep.equal([
-        nodes.c.position,
-        nodes.c2.position,
-        nodes.c2b.position,
-        nodes.c2b4.position,
+      expect(TestTree.pathTo(leaves.c2b4)).to.deep.equal([
+        parents.c.position,
+        parents.c2.position,
+        parents.c2b.position,
+        leaves.c2b4.position,
       ]));
   });
 
@@ -196,11 +232,16 @@ describe("model/tree", () => {
       notes: string,
       name: keyof typeof parents,
       index: number,
-      expectedChildren: (keyof typeof nodes | undefined)[],
+      expectedChildren: (
+        | keyof typeof leaves
+        | keyof typeof parents
+        | "new"
+        | undefined
+      )[],
       options?: {fails?: boolean},
     ) {
       it(`${notes}: ${options?.fails ? "fails" : "succeeds"} at ${name}[${index}]`, () => {
-        const n: TestNode = reactive({name: "new", position: undefined});
+        const n: TestLeaf = reactive({name: "new", position: undefined});
         const p = reactive({parent: parents[name], index});
         if (!options?.fails) {
           TestTree.placeNode(n, p);
@@ -217,15 +258,15 @@ describe("model/tree", () => {
           p.parent.children.map(c => c?.name),
           `children are as expected`,
         ).to.deep.equal(expectedChildren);
-        checkTree(tree);
+        checkTree(root);
       });
     }
 
     it("crashes on node that's already in a tree", () => {
       expect(() =>
-        TestTree.placeNode(nodes.c2, {parent: parents.c, index: 0}),
+        TestTree.placeNode(parents.c2, {parent: parents.c, index: 0}),
       ).to.throw(Error);
-      checkTree(tree);
+      checkTree(root);
     });
 
     test("too-small index", "c1", -1, ["c1a", "c1b", "c1c"], {fails: true});
@@ -255,11 +296,16 @@ describe("model/tree", () => {
       notes: string,
       name: keyof typeof parents,
       index: number,
-      expectedChildren: (keyof typeof nodes | undefined)[],
+      expectedChildren: (
+        | keyof typeof leaves
+        | keyof typeof parents
+        | "new"
+        | undefined
+      )[],
       options?: {fails?: boolean},
     ) {
       it(`${notes}: ${options?.fails ? "fails" : "succeeds"} at ${name}[${index}]`, () => {
-        const n: TestNode = reactive({name: "new", position: undefined});
+        const n: TestLeaf = reactive({name: "new", position: undefined});
         const p = reactive({parent: parents[name], index});
         if (!options?.fails) {
           TestTree.insertNode(n, p);
@@ -272,15 +318,15 @@ describe("model/tree", () => {
         expect(p.parent.children.map(c => c?.name)).to.deep.equal(
           expectedChildren,
         );
-        checkTree(tree);
+        checkTree(root);
       });
     }
 
     it("crashes on node that's already in a tree", () => {
       expect(() =>
-        TestTree.insertNode(nodes.c2, {parent: parents.c, index: 0}),
+        TestTree.insertNode(parents.c2, {parent: parents.c, index: 0}),
       ).to.throw(Error);
-      checkTree(tree);
+      checkTree(root);
     });
 
     test("too-small index", "c1", -1, ["c1a", "c1b", "c1c"], {fails: true});
@@ -309,7 +355,11 @@ describe("model/tree", () => {
       notes: string,
       name: keyof typeof parents,
       index: number,
-      expectedChildren: (keyof typeof nodes | undefined)[],
+      expectedChildren: (
+        | keyof typeof leaves
+        | keyof typeof parents
+        | undefined
+      )[],
       options?: {fails?: boolean},
     ) {
       it(`${notes}: ${options?.fails ? "fails" : "succeeds"} at ${name}[${index}]`, () => {
@@ -326,7 +376,7 @@ describe("model/tree", () => {
         expect(p.parent.children.map(c => c?.name)).to.deep.equal(
           expectedChildren,
         );
-        checkTree(tree);
+        checkTree(root);
       });
     }
 

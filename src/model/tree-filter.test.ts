@@ -6,22 +6,24 @@ import {TreeFilter} from "./tree-filter.js";
 import {
   makeDefaultTree,
   TestTree,
-  type TestNode,
+  type TestLeaf,
   type TestParent,
+  type TestRoot,
 } from "./tree.test.js";
 
+type Root = TestRoot;
 type Parent = TestParent;
-type Child = TestNode;
+type Child = TestLeaf;
 
 describe("model/tree-filter", () => {
-  const [root, _parents, nodes] = makeDefaultTree();
+  const [root, parents, leaves] = makeDefaultTree();
 
-  let treeFilter: TreeFilter<Parent, Child>;
+  let treeFilter: TreeFilter<Root, Parent, Child>;
   /* c8 ignore next -- default impl is always overridden by tests */
-  const predicate: Ref<(n: Parent | Child) => boolean> = ref(_ => false);
+  const predicate: Ref<(n: Root | Parent | Child) => boolean> = ref(_ => false);
 
   function checkFilterInvariants() {
-    const visit = (n: Parent | Child) => {
+    const visit = (n: Root | Parent | Child) => {
       const i = treeFilter.info(n);
       expect(i.isMatching).to.equal(
         predicate.value(n),
@@ -53,15 +55,20 @@ describe("model/tree-filter", () => {
   beforeEach(() => {
     /* c8 ignore next -- default impl is always overridden by tests */
     predicate.value = _ => false;
-    treeFilter = new TreeFilter(TestTree, predicate);
+    treeFilter = new TreeFilter<Root, Parent, Child>(TestTree, predicate);
   });
 
   it("reports when nothing matches the filter", () => {
     predicate.value = _ => false;
-    for (const v in nodes) {
-      const f = treeFilter.info(nodes[v]);
+    for (const v in leaves) {
+      const f = treeFilter.info(leaves[v as keyof typeof leaves]);
       expect(f.isMatching).to.be.false;
     }
+    for (const v in parents) {
+      const f = treeFilter.info(parents[v as keyof typeof parents]);
+      expect(f.isMatching).to.be.false;
+    }
+    expect(treeFilter.info(root).isMatching).to.be.false;
     checkFilterInvariants();
   });
 
@@ -69,10 +76,15 @@ describe("model/tree-filter", () => {
     predicate.value = _ => true;
     await nextTick();
 
-    for (const v in nodes) {
-      const f = treeFilter.info(nodes[v]);
+    for (const v in leaves) {
+      const f = treeFilter.info(leaves[v as keyof typeof leaves]);
       expect(f.isMatching).to.be.true;
     }
+    for (const v in parents) {
+      const f = treeFilter.info(parents[v as keyof typeof parents]);
+      expect(f.isMatching).to.be.true;
+    }
+    expect(treeFilter.info(root).isMatching).to.be.true;
     checkFilterInvariants();
   });
 
@@ -89,7 +101,11 @@ describe("model/tree-filter", () => {
       ["e", false],
       ["e2", true],
     ] as const) {
-      expect(treeFilter.info(nodes[id]).isMatching).to.equal(val);
+      let node =
+        id in leaves
+          ? leaves[id as keyof typeof leaves]
+          : parents[id as keyof typeof parents];
+      expect(treeFilter.info(node).isMatching).to.equal(val);
     }
 
     checkFilterInvariants();

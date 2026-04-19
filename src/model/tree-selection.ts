@@ -24,15 +24,19 @@ export interface SelectionInfo {
   readonly hasSelectionInSubtree: boolean;
 }
 
-export class TreeSelection<P extends object, N extends object> {
-  readonly tree: Tree<P, N>;
+export class TreeSelection<
+  R extends object,
+  M extends object,
+  L extends object,
+> {
+  readonly tree: Tree<R, M, L>;
 
   /** The roots of the tree, mainly used to calculate the count of selected
    * nodes. */
-  readonly roots: Ref<P[]>;
+  readonly roots: Ref<(R | M)[]>;
 
   /** An optional predicate function used to filter items from range selections. */
-  rangeSelectPredicate?: (n: P | N) => boolean;
+  rangeSelectPredicate?: (n: R | M | L) => boolean;
 
   /** How many nodes are selected in `this.roots` and their subtrees? */
   readonly selectedCount: Ref<number>;
@@ -41,16 +45,16 @@ export class TreeSelection<P extends object, N extends object> {
   lastSelected?: {
     /** The last item that was clicked on, either as part of a single-item
      * selection or a range selection. */
-    node: P | N;
+    node: R | M | L;
 
     /** The last range selection that was done; stored so we can adjust the
      * range on subsequent range-select actions. */
-    range?: (P | N)[];
+    range?: (R | M | L)[];
   };
 
-  private readonly nodes = new WeakMap<P | N, SelectionInfo>();
+  private readonly nodes = new WeakMap<R | M | L, SelectionInfo>();
 
-  constructor(tree: Tree<P, N>, roots: Ref<P[]>) {
+  constructor(tree: Tree<R, M, L>, roots: Ref<(R | M)[]>) {
     this.tree = tree;
     this.roots = roots;
     this.selectedCount = computed(() =>
@@ -61,11 +65,11 @@ export class TreeSelection<P extends object, N extends object> {
     );
   }
 
-  info(node: P | N): SelectionInfo {
+  info(node: R | M | L): SelectionInfo {
     const n = this.nodes.get(node);
     if (n) return n;
 
-    const isParent = this.tree.isParent(node);
+    const isParent = !this.tree.isLeafType(node);
 
     const isSelected = ref(false);
 
@@ -95,13 +99,13 @@ export class TreeSelection<P extends object, N extends object> {
     return i;
   }
 
-  *selectedItems(): Generator<P | N> {
+  *selectedItems(): Generator<R | M | L> {
     for (const n of this.roots.value) yield* this.selectedItemsInSubtree(n);
   }
 
-  *selectedItemsInSubtree(node: P | N): Generator<P | N> {
+  *selectedItemsInSubtree(node: R | M | L): Generator<R | M | L> {
     if (this.info(node).isSelected) yield node;
-    if (!this.tree.isParent(node)) return;
+    if (this.tree.isLeafType(node)) return;
 
     // NOTE: We could optimize this by checking `hasSelectionInSubtree`,
     // however, that property is eventually-consistent and we want stronger
@@ -113,11 +117,10 @@ export class TreeSelection<P extends object, N extends object> {
 
   /** Check if the provided node or any of its parents is selected.  Useful for
    * precluding things like moving a node into a child of itself. */
-  isSelfOrParentSelected(node?: P | N): boolean {
-    while (node) {
-      const si = this.info(node);
+  isSelfOrParentSelected(node: R | M | L): boolean {
+    for (const n of this.tree.nodesOnPathToRoot(node)) {
+      const si = this.info(n);
       if (si.isSelected) return true;
-      node = this.tree.positionOf(node)?.parent;
     }
     return false;
   }
@@ -133,7 +136,7 @@ export class TreeSelection<P extends object, N extends object> {
   }
 
   /** Trigger a selection action based on a DOM event. */
-  toggleSelectFromEvent(ev: MouseEvent, node: P | N) {
+  toggleSelectFromEvent(ev: MouseEvent, node: R | M | L) {
     if (ev.shiftKey) return this.toggleSelectRange(node);
     if (ev.ctrlKey || ev.metaKey) return this.toggleSelectOne(node);
     return this.toggleSelectScattered(node);
@@ -142,7 +145,7 @@ export class TreeSelection<P extends object, N extends object> {
   /** Analogous to a regular click--select a single item.  If any other items
    * were selected before, de-select them.  If only `item` is selected,
    * de-select it. */
-  toggleSelectOne(node: P | N) {
+  toggleSelectOne(node: R | M | L) {
     const ni = this.info(node);
     const wasSelected = ni.isSelected;
     const selectCount = this.selectedCount.value;
@@ -156,7 +159,7 @@ export class TreeSelection<P extends object, N extends object> {
 
   /** Toggle selection on a single item, regardless of what else is selected.
    * Analogous to a Ctrl+Click or Cmd+Click. */
-  toggleSelectScattered(node: P | N) {
+  toggleSelectScattered(node: R | M | L) {
     const ni = this.info(node);
     ni.isSelected = !ni.isSelected;
     this.lastSelected = {node};
@@ -164,7 +167,7 @@ export class TreeSelection<P extends object, N extends object> {
 
   /** Select a range of items (if possible), analogous to Shift+Click.  All
    * items between lastSelected and the passed-in item will be toggled. */
-  toggleSelectRange(node: P | N) {
+  toggleSelectRange(node: R | M | L) {
     if (!this.lastSelected) {
       return this.toggleSelectScattered(node);
     }
@@ -197,7 +200,11 @@ export class TreeSelection<P extends object, N extends object> {
   }
 
   // TODO Move me into tree.ts and find common parents
-  itemsInRange(start: P | N, end: P | N): (P | N)[] | undefined {
+  itemsInRange(start: R | M | L, end: R | M | L): (R | M | L)[] | undefined {
+    if (this.tree.isRootType(start) || this.tree.isRootType(end)) {
+      return undefined;
+    }
+
     let startPos = this.tree.positionOf(start);
     let endPos = this.tree.positionOf(end);
 

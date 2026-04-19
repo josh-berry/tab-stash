@@ -19,8 +19,6 @@ import {Tree, type TreePosition} from "./tree.js";
 
 export interface Window {
   readonly id: WindowID;
-  readonly position: undefined;
-  readonly flattenedPosition: undefined;
   readonly flattenedChildren: Tab[];
 }
 
@@ -51,16 +49,20 @@ export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabGroupID = number & {readonly __tab_group_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
 
-export const FlattenedWindowTree = new (class extends Tree<Window, Tab> {
-  isParent(node: Window | Tab): node is Window {
-    return node.flattenedPosition === undefined;
+export const FlattenedWindowTree = new (class extends Tree<Window, never, Tab> {
+  isRootType(node: Window | Tab): node is Window {
+    return "flattenedChildren" in node;
   }
+  isLeafType(node: Window | Tab): node is Tab {
+    return "flattenedPosition" in node;
+  }
+
   isLoaded(parent: Window): boolean {
     return parent.flattenedChildren.every(
       child => child?.status === "complete",
     );
   }
-  positionOf(node: Window | Tab): TreePosition<Window> | undefined {
+  positionOf(node: Tab): TreePosition<Window> | undefined {
     return node.flattenedPosition;
   }
   childrenOf(parent: Window): (Tab | undefined)[] {

@@ -18,14 +18,14 @@ import {EventWiring} from "../util/wiring.js";
 import {Tree, type TreePosition} from "./tree.js";
 
 /** A node in the bookmark tree. */
-export interface Node {
+interface NodeBase {
   position: TreePosition<Folder> | undefined;
   id: NodeID;
   dateAdded?: number;
   title: string;
 }
 
-export interface Folder extends Node {
+export interface Folder extends NodeBase {
   isLoaded: boolean;
   readonly children: (Node | undefined)[];
   $stats: FolderStats;
@@ -37,13 +37,15 @@ export interface LoadedFolder extends Folder {
   readonly children: Node[];
 }
 
-export interface Bookmark extends Node {
+export interface Bookmark extends NodeBase {
   url: string;
 }
 
-export interface Separator extends Node {
+export interface Separator extends NodeBase {
   type: "separator";
 }
+
+export type Node = Folder | Bookmark | Separator;
 
 export type NodeID = string & {readonly __node_id: unique symbol};
 
@@ -65,9 +67,16 @@ export function isSeparator(node: Node): node is Separator {
   return "type" in node && node.type === "separator";
 }
 
-export const BookmarkTree = new (class extends Tree<Folder, Node> {
-  isParent(node: Node): node is Folder {
-    return isFolder(node);
+export const BookmarkTree = new (class extends Tree<
+  never,
+  Folder,
+  Bookmark | Separator
+> {
+  isRootType(node: Node): node is never {
+    return false;
+  }
+  isLeafType(node: Node): node is Bookmark | Separator {
+    return !isFolder(node);
   }
   isLoaded(parent: Folder): boolean {
     return parent.isLoaded;
@@ -422,7 +431,7 @@ export class Model {
       const parent = bm.position?.parent;
       /* c8 ignore next -- bookmarks should never be roots */
       if (!parent) continue;
-      if (!BookmarkTree.isChildInParent(parent as Node, stash_root)) continue;
+      if (!BookmarkTree.isChildInParent(parent, stash_root)) continue;
       ret.push(parent);
     }
     return ret;
@@ -633,7 +642,7 @@ export class Model {
     if (getDefaultFolderNameISODate(folder.title) === null) return;
     if (folder.children.length > 0) return;
     if (!this.stash_root.value) return;
-    if (!BookmarkTree.isChildInParent(folder as Node, this.stash_root.value)) {
+    if (!BookmarkTree.isChildInParent(folder, this.stash_root.value)) {
       return;
     }
 

@@ -6,47 +6,88 @@ export interface TreePosition<P extends object> {
 
 /** A bunch of methods for manipulating intrusive tree data structures.  Extend
  * this class to provide your own basic accessor/mutator methods, and you will
- * get various algorithms for working with your specific tree. */
-export abstract class Tree<P extends object, N extends object> {
-  /** Is this node a `P`; that is, can it contain other nodes? */
-  abstract isParent(node: P | N): node is P;
+ * get various algorithms for working with your specific tree.
+ *
+ * There are three type parameters you must provide:
+ *
+ * - `R` nodes can only be root nodes. They may have children but no parents.
+ * - `M` nodes can have both parents and children; they can be anywhere in the
+ *   tree (including roots and leaves).
+ * - `L` nodes can only be leaf nodes. They may have parents but no children.
+ *
+ * There is no need to overlap types; for example, if your tree only has one
+ * type of node, you can just use `<never, Node, never>`. Or if your tree does
+ * not have a special root type, you can use `<never, Parent, Leaf>`.
+ */
+export abstract class Tree<
+  R extends object,
+  M extends object,
+  L extends object,
+> {
+  /** Can this node contain other nodes? */
+  abstract isRootType(node: R | M | L): node is R;
+
+  /** Can this node be contained by another node? */
+  abstract isLeafType(node: R | M | L): node is L;
 
   /** Have all the children for this parent been loaded into memory? */
-  abstract isLoaded(parent: P): boolean;
+  abstract isLoaded(parent: R | M): boolean;
 
   /** What is the position of this node in its parent (if it has one)?  (Note
    * that the returned position object may be mutated directly by the caller if
    * the node is being moved.  Don't rely on setPosition() to inform you of
    * every move.) */
-  abstract positionOf(node: P | N): TreePosition<P> | undefined;
+  abstract positionOf(node: M | L): TreePosition<R | M> | undefined;
 
   /** Return a reference to the array of child nodes inside this parent.  (Note
    * that the array may be mutated directly by the caller if children within the
    * node are being inserted, removed, or moved.) */
-  abstract childrenOf(parent: P): (P | N | undefined)[];
+  abstract childrenOf(parent: R | M): (M | L | undefined)[];
 
   /** If the parent is fully-loaded, return all children. Otherwise, return
    * undefined. */
-  allChildrenOf(parent: P): readonly (P | N)[] | undefined {
+  allChildrenOf(parent: R | M): readonly (M | L)[] | undefined {
     if (!this.isLoaded(parent)) return undefined;
-    return this.childrenOf(parent) as readonly (P | N)[];
+    return this.childrenOf(parent) as readonly (M | L)[];
   }
 
   /** Cause positionOf() for this node to return the specified `position`
    * object.  Should NOT update the parent's children in any way; this is
    * handled by the caller. */
   protected abstract setPosition(
-    node: P | N,
-    position: TreePosition<P> | undefined,
+    node: M | L,
+    position: TreePosition<R | M> | undefined,
   ): void;
+
+  /** Walks all the nodes from `node` up to the root node, yielding each node in
+   * turn (including `node` itself). */
+  *nodesOnPathToRoot(node: R | M | L): Generator<R | M | L> {
+    let item: R | M | L | undefined = node;
+    while (item) {
+      yield item;
+      if (this.isRootType(item)) break;
+      item = this.positionOf(item)?.parent;
+    }
+  }
+
+  /** Walks all the nodes from `node` up to the root node, yielding each node's
+   * position in turn. */
+  *positionsOnPathToRoot(node: R | M | L): Generator<TreePosition<R | M>> {
+    let item: R | M | L | undefined = node;
+    while (true) {
+      if (this.isRootType(item)) break;
+      const pos = this.positionOf(item);
+      if (!pos) break;
+      yield pos;
+      item = pos.parent;
+    }
+  }
 
   /** Check if `node` is a child of `parent`. Children are considered to contain
    * themselves, so if `node === parent`, this returns true. */
-  isChildInParent(node: P | N, parent: P): boolean {
-    let item: P | N | undefined = node;
-    while (item) {
-      if (item === parent) return true;
-      item = this.positionOf(item)?.parent;
+  isChildInParent(node: R | M | L, parent: R | M): boolean {
+    for (const n of this.nodesOnPathToRoot(node)) {
+      if (n === parent) return true;
     }
     return false;
   }
@@ -56,14 +97,8 @@ export abstract class Tree<P extends object, N extends object> {
    *
    * This means that if the node itself is a root (i.e. it has no parents), the
    * returned path will be the empty array. */
-  pathTo(node: P | N): TreePosition<P>[] {
-    const path: TreePosition<P>[] = [];
-    while (true) {
-      const pos = this.positionOf(node);
-      if (!pos) break;
-      path.push(pos);
-      node = pos.parent;
-    }
+  pathTo(node: R | M | L): TreePosition<R | M>[] {
+    const path = Array.from(this.positionsOnPathToRoot(node));
     path.reverse();
     return path;
   }
@@ -81,7 +116,7 @@ export abstract class Tree<P extends object, N extends object> {
    * - Otherwise, we will extend the list by inserting `undefined`s, on the
    *   assumption the other nodes in the list will be filled in later.
    */
-  placeNode(node: N, newPosition: TreePosition<P>) {
+  placeNode(node: M | L, newPosition: TreePosition<R | M>) {
     const newChildren = this.childrenOf(newPosition.parent);
 
     if (this.positionOf(node)) {
@@ -125,7 +160,7 @@ export abstract class Tree<P extends object, N extends object> {
    * - Otherwise, we will extend the list by inserting `undefined`s, on the
    *   assumption the other nodes in the list will be filled in later.
    */
-  insertNode(node: N | undefined, newPosition: TreePosition<P>) {
+  insertNode(node: M | L | undefined, newPosition: TreePosition<R | M>) {
     const newChildren = this.childrenOf(newPosition.parent);
 
     if (node && this.positionOf(node)) {
@@ -165,7 +200,7 @@ export abstract class Tree<P extends object, N extends object> {
    *
    * This takes a position instead of a node, because it must be possible to
    * remove nodes from the tree that are not loaded. */
-  removeNode(position: TreePosition<P>) {
+  removeNode(position: TreePosition<R | M>) {
     const oldChildren = this.childrenOf(position.parent);
     const node = oldChildren[position.index];
 
@@ -182,9 +217,9 @@ export abstract class Tree<P extends object, N extends object> {
   /** Calls a function for each node in a subtree, starting from the root.
    * Traversal is done pre-order, depth-first. Nodes which are not loaded are
    * skipped, since we have no way to load them. */
-  forEachNodeInSubtree(subtree: P | N, f: (node: P | N) => void) {
+  forEachNodeInSubtree(subtree: R | M | L, f: (node: R | M | L) => void) {
     f(subtree);
-    if (!this.isParent(subtree)) return;
+    if (this.isLeafType(subtree)) return;
     for (const c of this.childrenOf(subtree)) {
       if (c) this.forEachNodeInSubtree(c, f);
     }

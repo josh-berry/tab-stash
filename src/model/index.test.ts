@@ -454,9 +454,10 @@ describe("model", () => {
       const si = env.model.selection.info(tab);
 
       si.isSelected = true;
-      expect(Array.from(env.model.selection.selectedItems())).to.deep.equal([
-        tab,
-      ]);
+      expect(
+        Array.from(env.model.selection.selectedItems()),
+        "precondition met",
+      ).to.deep.equal([tab]);
 
       const p1 = browser.tabs.update(tab.id, {highlighted: true});
       await events.next(browser.tabs.onHighlighted);
@@ -472,7 +473,10 @@ describe("model", () => {
       expect(tab.hidden).to.be.true;
       expect(tab.highlighted).to.be.false;
       expect(si.isSelected).to.be.false;
-      expect(Array.from(env.model.selection.selectedItems())).to.deep.equal([]);
+      expect(
+        Array.from(env.model.selection.selectedItems()),
+        "selection cleared",
+      ).to.deep.equal([]);
     });
   });
 

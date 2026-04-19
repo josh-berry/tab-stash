@@ -141,7 +141,7 @@ export default defineComponent({
     },
 
     nodeFilterFn() {
-      const tree = new TreeFilter<Folder, Node>(
+      const tree = new TreeFilter<never, Folder, Node>(
         BookmarkTree,
         computed(() => this.filter),
       );
