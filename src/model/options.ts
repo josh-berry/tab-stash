@@ -22,8 +22,15 @@ import {errorLog, UserError} from "../util/oops.js";
 
 export const SHOW_WHAT_OPT = anEnum("sidebar", "tab", "popup", "none");
 export const STASH_WHAT_OPT = anEnum("all", "single", "none");
+export const MULTI_TAB_STASH_SORT_OPT = anEnum(
+  "date_added",
+  "date_added_desc",
+  "title",
+  "url",
+);
 export type ShowWhatOpt = ReturnType<typeof SHOW_WHAT_OPT>;
 export type StashWhatOpt = ReturnType<typeof STASH_WHAT_OPT>;
+export type MultiTabStashSortOpt = ReturnType<typeof MULTI_TAB_STASH_SORT_OPT>;
 export type Capability = "available" | "disabled" | "not-supported";
 
 export type SyncModel = StoredObject<typeof SYNC_DEF>;
@@ -62,6 +69,13 @@ export const SYNC_DEF = {
   show_new_folders: {
     default: "expanded",
     is: anEnum("expanded", "collapsed"),
+  },
+
+  // When stashing multiple tabs, what order should the tabs have inside the
+  // destination group?
+  multi_tab_stash_sort: {
+    default: "date_added",
+    is: MULTI_TAB_STASH_SORT_OPT,
   },
 
   // How big should the spacing/fonts be?
