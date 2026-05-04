@@ -12,12 +12,7 @@ import {filterMap, later, redirUrl, urlToStash} from "../util/index.js";
 
 import {_StoredObjectFactory} from "../datastore/stored-object.js";
 import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
-import {
-  getDefaultFolderNameISODate,
-  isBookmark,
-  isFolder,
-  type Folder,
-} from "./bookmarks.js";
+import {getDefaultFolderNameISODate, type Folder} from "./bookmarks.js";
 import type {DeletedFolder} from "./deleted-items.js";
 import * as M from "./index.js";
 import type {TabID} from "./tabs.js";
@@ -883,7 +878,7 @@ describe("model", () => {
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => c && isBookmark(c) && c.url),
+        folder.children.map(c => c?.type === "bookmark" && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
     });
@@ -939,7 +934,7 @@ describe("model", () => {
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => c && isBookmark(c) && c.url),
+        folder.children.map(c => c?.type === "bookmark" && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
     });
@@ -1008,7 +1003,7 @@ describe("model", () => {
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => c && isBookmark(c) && c.url),
+        folder.children.map(c => c?.type === "bookmark" && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
 
@@ -1066,7 +1061,7 @@ describe("model", () => {
 
       expect(folder.children.map(bm => bm?.id)).to.deep.equal(expectedIds);
       expect(
-        folder.children.map(b => b && isBookmark(b) && b.url),
+        folder.children.map(b => b?.type === "bookmark" && b.url),
       ).to.deep.equal([
         `${B}#helen`,
         `${B}#gazebo`,
@@ -1110,7 +1105,7 @@ describe("model", () => {
       await p;
 
       const topChild = folder.children[0] as Folder;
-      expect(isFolder(topChild)).to.be.true;
+      expect(topChild.type).to.equal("folder");
       expect(topChild.title).to.equal("Folder");
       expect(topChild.children.map(c => c?.title)).to.deep.equal([
         "1",
@@ -1935,10 +1930,10 @@ describe("model", () => {
 
       const restored = env.model.bookmarks.stash_root.value!
         .children[0] as Folder;
-      expect(isFolder(restored)).to.be.true;
+      expect(restored.type).to.equal("folder");
       expect(restored.title).to.equal(env.bookmarks.names.title);
       expect(
-        restored.children.map(bm => bm && isBookmark(bm) && bm.url),
+        restored.children.map(bm => bm?.type === "bookmark" && bm.url),
       ).to.deep.equal(env.bookmarks.names.children!.map(bm => bm.url));
     });
 
@@ -1985,7 +1980,7 @@ describe("model", () => {
         const bms = env.model.bookmarks.folder(
           env.bookmarks.names.id,
         )!.children;
-        expect(bms.map(bm => bm && isBookmark(bm) && bm.url)).to.deep.equal([
+        expect(bms.map(bm => bm?.type === "bookmark" && bm.url)).to.deep.equal([
           `${B}#doug`,
           `${B}#patricia`,
           `${B}#nate`,
@@ -2026,7 +2021,7 @@ describe("model", () => {
           env.bookmarks.unnamed.id,
         )!;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#helen`]);
       });
 
@@ -2062,11 +2057,11 @@ describe("model", () => {
         );
         const restored_folder = env.model.bookmarks.stash_root.value!
           .children[0] as Folder;
-        expect(isFolder(restored_folder)).to.be.true;
+        expect(restored_folder.type).to.equal("folder");
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
           .null;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#helen`]);
       });
     });
@@ -2102,7 +2097,7 @@ describe("model", () => {
           env.bookmarks.unnamed.id,
         )!;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
 
         const item = env.model.deleted_items.state.entries[0]
@@ -2136,11 +2131,11 @@ describe("model", () => {
         );
         const restored_folder = env.model.bookmarks.stash_root.value!
           .children[0] as Folder;
-        expect(isFolder(restored_folder)).to.be.true;
+        expect(restored_folder.type).to.equal("folder");
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
           .null;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#patricia`]);
 
         const item = env.model.deleted_items.state.entries[0]

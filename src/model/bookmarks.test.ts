@@ -482,17 +482,31 @@ describe("model/bookmarks", () => {
     ): M.Node {
       return n.url
         ? ({
+            type: "bookmark",
             id: id as M.NodeID,
             position: undefined,
             title: n.title,
             url: n.url,
             dateAdded: n.dateAdded,
-          } as M.Bookmark)
+          } satisfies M.Bookmark)
         : ({
+            type: "folder",
             id: id as M.NodeID,
             position: undefined,
             title: n.title,
-          } as M.Node);
+            children: [],
+            isLoaded: true,
+            $stats: {
+              bookmarkCount: 0,
+              folderCount: 0,
+              isLoaded: true,
+            },
+            $recursiveStats: {
+              bookmarkCount: 0,
+              folderCount: 0,
+              isLoaded: true,
+            },
+          } satisfies M.Node);
     }
 
     function t(

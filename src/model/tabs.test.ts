@@ -206,6 +206,7 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onCreated);
 
     expect(model.tab(16384 as M.TabID)).to.deep.equal({
+      type: "tab",
       id: tab.id,
       flattenedPosition: {
         parent: model.window(16590 as M.WindowID)!,

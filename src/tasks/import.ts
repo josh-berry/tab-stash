@@ -251,7 +251,9 @@ export async function importURLs(options: {
     return {
       bookmarks: flat(
         bm_groups.map(g =>
-          filterMap(g.bookmarks, bm => (BM.isBookmark(bm) ? bm : undefined)),
+          filterMap(g.bookmarks, bm =>
+            bm.type === "bookmark" ? bm : undefined,
+          ),
         ),
       ),
       folderIds: <string[]>bm_groups.map(g => g.folder.id).filter(id => id),

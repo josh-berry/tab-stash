@@ -4,7 +4,7 @@ import browser from "webextension-polyfill";
 import type {NewTab} from "../model/index.js";
 import {extractURLs, importURLs} from "./import.js";
 import {TaskMonitor} from "../util/progress.js";
-import {isFolder, type Bookmark, type Folder} from "../model/bookmarks.js";
+import {type Bookmark, type Folder} from "../model/bookmarks.js";
 
 import * as events from "../mock/events.js";
 import tabWindowMock from "../mock/browser/tabs-and-windows.js";
@@ -156,7 +156,7 @@ http://example.com/\tasdf
       // Verify all URLs (valid and invalid) were imported
       const stashRoot = env.model.bookmarks.stash_root.value!;
       expect(stashRoot.children[0]!.title).to.equal("Mixed URLs");
-      expect(isFolder(stashRoot.children[0]!)).to.be.true;
+      expect(stashRoot.children[0]!.type).to.equal("folder");
 
       const bookmarks = (stashRoot.children[0]! as Folder).children;
       expect(bookmarks.map(bm => (bm! as Bookmark).url)).to.deep.equal([
@@ -220,7 +220,7 @@ http://example.com/\tasdf
 
       const stashRoot = env.model.bookmarks.stash_root.value!;
       expect(stashRoot.children[0]!.title).to.equal("Top-Level Group");
-      expect(isFolder(stashRoot.children[0]!)).to.be.true;
+      expect(stashRoot.children[0]!.type).to.equal("folder");
 
       const bookmarks = (stashRoot.children[0]! as Folder).children;
       expect(bookmarks.map(bm => (bm! as Bookmark).url)).to.deep.equal([
@@ -261,7 +261,7 @@ http://example.com/\tasdf
         "Group 1",
         "Group 2",
       ]);
-      expect(newChildren.every(c => isFolder(c!))).to.be.true;
+      expect(newChildren.every(c => c!.type === "folder")).to.be.true;
 
       const group1 = (stashRoot.children[0]! as Folder).children;
       const group2 = (stashRoot.children[1]! as Folder).children;
@@ -312,9 +312,9 @@ http://example.com/\tasdf
       expect(failures.urls).to.be.empty;
 
       expect(parentFolder.children[0]!.title).to.equal("First Child");
-      expect(isFolder(parentFolder.children[0]!)).to.be.false;
+      expect(parentFolder.children[0]!.type).to.not.equal("folder");
       expect(parentFolder.children[1]!.title).to.equal("Child Group");
-      expect(isFolder(parentFolder.children[1]!)).to.be.true;
+      expect(parentFolder.children[1]!.type).to.equal("folder");
 
       const bookmarks = (parentFolder.children[1]! as Folder).children;
       expect(bookmarks.map(bm => (bm! as Bookmark).url)).to.deep.equal([
@@ -367,9 +367,9 @@ http://example.com/\tasdf
         "Child 1",
         "Child 2",
       ]);
-      expect(isFolder(parentFolder.children[0]!)).to.be.false;
-      expect(parentFolder.children.slice(1, 3).every(c => isFolder(c!))).to.be
-        .true;
+      expect(parentFolder.children[0]!.type).to.not.equal("folder");
+      expect(parentFolder.children.slice(1, 3).every(c => c!.type === "folder"))
+        .to.be.true;
 
       const child1 = (parentFolder.children[1]! as Folder).children;
       const child2 = (parentFolder.children[2]! as Folder).children;

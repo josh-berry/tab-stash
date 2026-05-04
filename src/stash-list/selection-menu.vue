@@ -98,7 +98,6 @@ import the from "../globals-ui.js";
 import {
   BookmarkTree,
   friendlyFolderName,
-  isFolder,
   type Folder,
   type Node,
 } from "../model/bookmarks.js";
@@ -137,7 +136,8 @@ export default defineComponent({
 
     filter(): (node: Folder | Node) => boolean {
       const matcher = textMatcher(this.searchText);
-      return node => isFolder(node) && matcher(friendlyFolderName(node.title));
+      return node =>
+        node.type === "folder" && matcher(friendlyFolderName(node.title));
     },
 
     nodeFilterFn() {

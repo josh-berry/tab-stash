@@ -1,15 +1,7 @@
 import {filterMap} from "../util/index.js";
 
 import type * as BM from "../model/bookmarks.js";
-import {
-  copying,
-  isFolder,
-  isNode,
-  isTab,
-  isWindow,
-  type ModelItem,
-  type StashItem,
-} from "../model/index.js";
+import {copying, type ModelItem, type StashItem} from "../model/index.js";
 import type * as T from "../model/tabs.js";
 
 const MIXED_TYPE = "application/x-tab-stash-dnd-mixed";
@@ -25,10 +17,10 @@ type DNDBookmarkFolder = {folder: BM.NodeID};
 
 export function sendDragData(dt: DataTransfer, items: ModelItem[]) {
   const data: DNDItem[] = items.map(i => {
-    if (isFolder(i)) return {folder: i.id};
-    if (isNode(i)) return {node: i.id};
-    if (isTab(i)) return {tab: i.id};
-    if (isWindow(i)) return {window: i.id};
+    if (i.type === "folder") return {folder: i.id};
+    if (i.type === "bookmark" || i.type === "separator") return {node: i.id};
+    if (i.type === "tab") return {tab: i.id};
+    if (i.type === "window") return {window: i.id};
     throw new Error(`Trying to drag unrecognized model item: ${i}`);
   });
 

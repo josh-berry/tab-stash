@@ -18,11 +18,13 @@ import {EventWiring} from "../util/wiring.js";
 import {Tree, type TreePosition} from "./tree.js";
 
 export interface Window {
+  readonly type: "window";
   readonly id: WindowID;
   readonly flattenedChildren: Tab[];
 }
 
 export interface TabGroup {
+  // No type property since this isn't part of the model tree
   readonly id: TabGroupID;
   title: string;
   color: TabGroups.Color;
@@ -30,6 +32,7 @@ export interface TabGroup {
 }
 
 export interface Tab {
+  readonly type: "tab";
   flattenedPosition: TreePosition<Window> | undefined;
   id: TabID;
   status: Tabs.TabStatus;
@@ -51,10 +54,10 @@ export type TabID = number & {readonly __tab_id: unique symbol};
 
 export const FlattenedWindowTree = new (class extends Tree<Window, never, Tab> {
   isRootType(node: Window | Tab): node is Window {
-    return "flattenedChildren" in node;
+    return node.type === "window";
   }
   isLeafType(node: Window | Tab): node is Tab {
-    return "flattenedPosition" in node;
+    return node.type === "tab";
   }
 
   isLoaded(parent: Window): boolean {
@@ -511,6 +514,7 @@ export class Model {
     let window = this.windows.get(wid);
     if (!window) {
       window = reactive({
+        type: "window",
         id: wid,
         position: undefined,
         flattenedPosition: undefined,
@@ -616,6 +620,7 @@ export class Model {
     if (!t) {
       // CAST: Tabs.Tab says the id should be optional, but it isn't...
       t = reactive({
+        type: "tab",
         flattenedPosition: undefined,
         id: tab.id as TabID,
         status: (tab.status as Tabs.TabStatus) ?? "loading",

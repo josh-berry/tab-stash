@@ -90,6 +90,7 @@ export type ModelItem = Bookmarks.Node | Tabs.Tab | Tabs.Window;
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
 
+// TODO remove most of these in favor of explicit .type checks
 export const isParent = (item: StashItem): item is StashParent =>
   "children" in item;
 
@@ -100,31 +101,31 @@ export const isModelParent = (
   item: ModelItem | ModelParent,
 ): item is ModelParent => "children" in item || "flattenedChildren" in item;
 
-export const isModelItem = (item: StashItem): item is ModelItem => "id" in item;
+export const isModelItem = (item: StashItem): item is ModelItem =>
+  "type" in item;
 
 export const isWindow = (item: StashItem): item is Tabs.Window =>
   "id" in item && typeof item.id === "number" && "flattenedChildren" in item;
 
 export const isTab = (item: StashItem): item is Tabs.Tab =>
-  "id" in item && typeof item.id === "number" && !("flattenedChildren" in item);
+  isModelItem(item) && item.type === "tab";
 
 export const isNode = (item: StashItem): item is Bookmarks.Node =>
-  "id" in item && typeof item.id === "string";
+  isModelItem(item) &&
+  (item.type === "bookmark" ||
+    item.type === "folder" ||
+    item.type === "separator");
 
 export const isBookmark = (item: StashItem): item is Bookmarks.Bookmark =>
-  isNode(item) && Bookmarks.isBookmark(item);
+  isModelItem(item) && item.type === "bookmark";
 
 export const isFolder = (item: StashItem): item is Bookmarks.Folder =>
-  isNode(item) && Bookmarks.isFolder(item);
+  isModelItem(item) && item.type === "folder";
 
-export const isNewItem = (item: StashItem): item is NewTab | NewFolder =>
-  !("id" in item);
-
-export const isNewTab = (item: StashItem): item is NewTab =>
-  !("id" in item) && "url" in item;
-
-export const isNewFolder = (item: StashItem): item is NewFolder =>
-  !("id" in item) && "children" in item;
+// NOTE: There are no isNew*() functions because NewTab and NewFolder are strict
+// subsets of the model. What you're really asking is `!isModelItem()`, which is
+// different--TypeScript will assume that all Tabs are NewTabs, which is
+// probably not the behavior you want.
 
 export const ModelTree = new (class extends Tree<
   Tabs.Window,
@@ -134,16 +135,16 @@ export const ModelTree = new (class extends Tree<
   isRootType(
     node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
   ): node is Tabs.Window {
-    return isWindow(node);
+    return node.type === "window";
   }
 
   isLeafType(
     node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
   ): node is Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab {
     return (
-      isTab(node) ||
-      isBookmark(node) ||
-      (isNode(node) && Bookmarks.isSeparator(node))
+      node.type === "bookmark" ||
+      node.type === "separator" ||
+      node.type === "tab"
     );
   }
 
@@ -738,14 +739,13 @@ export class Model {
       ++i, ++to_index, options.task && ++options.task.value
     ) {
       const item = items[i];
-      const model_item = isModelItem(item) ? this.item(item.id) : undefined;
 
       // If it's a bookmark node, just move it directly.
-      if (model_item && isNode(model_item)) {
-        const pos = model_item.position;
-        await this.bookmarks.move(model_item, to_folder, to_index);
-        moved_items.push(model_item);
-        dont_steal_bms.add(model_item.id);
+      if (isNode(item)) {
+        const pos = item.position;
+        await this.bookmarks.move(item, to_folder, to_index);
+        moved_items.push(item);
+        dont_steal_bms.add(item.id);
 
         if (pos && pos.parent === to_folder && pos.index < to_index) {
           // Because we are moving items which appear in the list
@@ -911,30 +911,30 @@ export class Model {
       ++i, ++to_index, options.task && ++options.task.value
     ) {
       const item = items[i];
-      const model_item = "id" in item ? this.item(item.id) : undefined;
-
       // console.log('processing', item);
 
-      // If the item we're moving is a tab, just move it into place.
-      if (model_item && isTab(model_item)) {
-        const pos = model_item.flattenedPosition;
-        await this.tabs.move(model_item, win, to_index);
-        moved_items.push(model_item);
-        dont_steal_tabs.add(model_item.id);
+      if (isModelItem(item)) {
+        // If the item we're moving is a tab, just move it into place.
+        if (isTab(item)) {
+          const pos = item.flattenedPosition;
+          await this.tabs.move(item, win, to_index);
+          moved_items.push(item);
+          dont_steal_tabs.add(item.id);
 
-        if (pos && pos.parent === win && pos.index < to_index) {
-          // This is a rotation in the same window; since move() first
-          // removes and then adds the tab, we need to decrement
-          // toIndex so the moved tab ends up in the right place.
-          --to_index;
+          if (pos && pos.parent === win && pos.index < to_index) {
+            // This is a rotation in the same window; since move() first
+            // removes and then adds the tab, we need to decrement
+            // toIndex so the moved tab ends up in the right place.
+            --to_index;
+          }
+          // console.log('moved tab', model_item, 'to position', {to_win_id, to_index});
+          continue;
         }
-        // console.log('moved tab', model_item, 'to position', {to_win_id, to_index});
-        continue;
-      }
 
-      // If we're "moving" a bookmark into a window, mark the bookmark
-      // for deletion later.
-      if (model_item && isBookmark(model_item)) delete_bm_ids.push(model_item);
+        // If we're "moving" a bookmark into a window, mark the bookmark
+        // for deletion later.
+        if (isBookmark(item)) delete_bm_ids.push(item);
+      }
 
       // If the item we're moving is not a tab, we need to create a
       // new tab or restore an old one from somewhere else.
@@ -1321,7 +1321,7 @@ export function copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
  * original sources untouched. */
 export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
   return filterMap(items, item => {
-    if (isNewItem(item)) return item;
+    if (!isModelItem(item)) return item;
 
     if (isWindow(item)) {
       return {title: "", children: copying(item.flattenedChildren)};
@@ -1330,7 +1330,7 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
     if (isTab(item)) return {title: item.title, url: item.url};
 
     if (isNode(item)) {
-      if (Bookmarks.isBookmark(item)) {
+      if (item.type === "bookmark") {
         return {title: item.title, url: item.url};
       }
       if (isFolder(item)) {

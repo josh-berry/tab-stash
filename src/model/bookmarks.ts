@@ -26,6 +26,7 @@ interface NodeBase {
 }
 
 export interface Folder extends NodeBase {
+  readonly type: "folder";
   isLoaded: boolean;
   readonly children: (Node | undefined)[];
   $stats: FolderStats;
@@ -33,16 +34,18 @@ export interface Folder extends NodeBase {
 }
 
 export interface LoadedFolder extends Folder {
+  readonly type: "folder";
   isLoaded: true;
   readonly children: Node[];
 }
 
 export interface Bookmark extends NodeBase {
+  readonly type: "bookmark";
   url: string;
 }
 
 export interface Separator extends NodeBase {
-  type: "separator";
+  readonly type: "separator";
 }
 
 export type Node = Folder | Bookmark | Separator;
@@ -57,16 +60,6 @@ export type FolderStats = {
   isLoaded: boolean;
 };
 
-export function isBookmark(node: Node): node is Bookmark {
-  return "url" in node;
-}
-export function isFolder(node: Node): node is Folder {
-  return "children" in node;
-}
-export function isSeparator(node: Node): node is Separator {
-  return "type" in node && node.type === "separator";
-}
-
 export const BookmarkTree = new (class extends Tree<
   never,
   Folder,
@@ -76,7 +69,7 @@ export const BookmarkTree = new (class extends Tree<
     return false;
   }
   isLeafType(node: Node): node is Bookmark | Separator {
-    return !isFolder(node);
+    return node.type === "bookmark" || node.type === "separator";
   }
   isLoaded(parent: Folder): boolean {
     return parent.isLoaded;
@@ -210,8 +203,8 @@ export class Model {
         title: n.title,
         parentId: n.position?.parent?.id,
         index: n.position?.index,
-        ...(isBookmark(n) ? {url: n.url} : {}),
-        ...(isFolder(n) ? {children: n.children.map(state)} : {}),
+        ...(n.type === "bookmark" ? {url: n.url} : {}),
+        ...(n.type === "folder" ? {children: n.children.map(state)} : {}),
       };
     };
     return {
@@ -249,7 +242,7 @@ export class Model {
 
     // Reload hierarchy information for each folder (including the root).
     for (const node of this.by_id.values()) {
-      if (!isFolder(node)) continue;
+      if (node.type !== "folder") continue;
       node.isLoaded = false;
       await this.loaded(node);
     }
@@ -268,7 +261,7 @@ export class Model {
    * does not exist or is not a bookmark. */
   bookmark(id: string): Bookmark | undefined {
     const node = this.node(id);
-    if (node && isBookmark(node)) return node;
+    if (node && node.type === "bookmark") return node;
     return undefined;
   }
 
@@ -278,7 +271,7 @@ export class Model {
    * a LoadedFolder, combine this with `loaded()`. */
   folder(id: string): Folder | undefined {
     const node = this.node(id);
-    if (node && isFolder(node)) return node;
+    if (node?.type === "folder") return node;
     return undefined;
   }
 
@@ -310,7 +303,7 @@ export class Model {
       return (async () => {
         const lf = await this.loaded(folder);
         for (const f of lf.children) {
-          if (isFolder(f)) await this.loadedSubtree(f);
+          if (f.type === "folder") await this.loadedSubtree(f);
         }
         return lf;
       })();
@@ -447,8 +440,8 @@ export class Model {
         if (!c) {
           throw new Error(`BUG: Some children are missing from ${folder.id}`);
         }
-        if (isBookmark(c)) urls.add(c.url);
-        else if (isFolder(c)) urlsInChildren(c);
+        if (c.type === "bookmark") urls.add(c.url);
+        else if (c.type === "folder") urlsInChildren(c);
       }
     };
 
@@ -716,7 +709,7 @@ export class Model {
 
     // We must remove children before their parents, so that we never have a
     // child referencing a parent that doesn't exist.
-    if (isFolder(node)) {
+    if (node.type === "folder") {
       // Array.from() is needed here, because the removal process itself will
       // alter `node.children`.
       for (const c of Array.from(node.children)) {
@@ -727,7 +720,7 @@ export class Model {
     if (node.position) BookmarkTree.removeNode(node.position);
 
     this.by_id.delete(node.id);
-    if (isBookmark(node)) this._remove_url(node);
+    if (node.type === "bookmark") this._remove_url(node);
 
     if (this._stash_root_watch.has(node)) {
       // We must explicitly remove `node` here because its title is
@@ -905,7 +898,7 @@ export class Model {
   private _updateNode(node: Node, btn: Bookmarks.OnChangedChangeInfoType) {
     const titleChanged = btn.title !== undefined && node.title !== btn.title;
     const urlChanged =
-      btn.url !== undefined && isBookmark(node) && node.url !== btn.url;
+      btn.url !== undefined && node.type === "bookmark" && node.url !== btn.url;
 
     trace("_updateNode", node.id, btn.url, urlChanged, btn.title, titleChanged);
 
@@ -917,7 +910,7 @@ export class Model {
       this._add_url(node);
     }
 
-    if (isFolder(node)) {
+    if (node.type === "folder") {
       // Finally, see if this folder is a candidate for being a stash root.
       if (node.title === this.stash_root_name) this._stash_root_watch.add(node);
 
@@ -1002,8 +995,8 @@ export function sortByDateAddedDescending(a: Node, b: Node): number {
 }
 
 export function sortByURL(a: Node, b: Node): number {
-  const urlA = new URL((isBookmark(a) && a.url) || "about:blank");
-  const urlB = new URL((isBookmark(b) && b.url) || "about:blank");
+  const urlA = new URL(a.type === "bookmark" ? a.url : "about:blank");
+  const urlB = new URL(b.type === "bookmark" ? b.url : "about:blank");
 
   const host_parts = (u: URL) => u.hostname.split(".").reverse();
 
@@ -1039,6 +1032,7 @@ export function sortByURL(a: Node, b: Node): number {
 
 function makeFolder(nodeId: NodeID): Folder {
   const folder: Folder = reactive({
+    type: "folder",
     id: nodeId,
     position: undefined,
     dateAdded: 0,
@@ -1051,8 +1045,8 @@ function makeFolder(nodeId: NodeID): Folder {
       let folderCount = 0;
       for (const c of folder.children) {
         if (!c) continue;
-        if (isFolder(c)) ++folderCount;
-        if (isBookmark(c)) ++bookmarkCount;
+        if (c.type === "folder") ++folderCount;
+        if (c.type === "bookmark") ++bookmarkCount;
       }
       return {bookmarkCount, folderCount, isLoaded: folder.isLoaded};
     }),
@@ -1062,7 +1056,7 @@ function makeFolder(nodeId: NodeID): Folder {
       let folderCount = folder.$stats.folderCount;
       let isLoaded = folder.isLoaded;
       for (const c of folder.children) {
-        if (!c || !isFolder(c)) continue;
+        if (c?.type !== "folder") continue;
         const stats = c.$recursiveStats;
         bookmarkCount += stats.bookmarkCount;
         folderCount += stats.folderCount;
@@ -1077,16 +1071,17 @@ function makeFolder(nodeId: NodeID): Folder {
 
 function makeSeparator(nodeId: NodeID): Separator {
   return reactive({
+    type: "separator",
     id: nodeId,
     position: undefined,
     dateAdded: 0,
-    type: "separator" as "separator",
     title: "" as "",
   });
 }
 
 function makeBookmark(nodeId: NodeID): Bookmark {
   return reactive({
+    type: "bookmark",
     id: nodeId,
     position: undefined,
     dateAdded: 0,
