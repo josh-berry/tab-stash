@@ -24,7 +24,7 @@
     "fake-indexeddb": "^6.0",
     "idb": "^8.0",
     "less": "^4.1",
-    "mocha": "^10.0",
+    "mocha": "^11.7",
     "prettier": "^3.3",
     "prettier-plugin-organize-imports": "^4.0",
     "ts-node": "^10",
