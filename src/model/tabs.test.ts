@@ -22,6 +22,32 @@ describe("model/tabs", () => {
     expect(events.pendingCount()).to.equal(0);
   });
 
+  afterEach(async () => {
+    for (const w of model.allWindows()) {
+      for (const t of w.flattenedChildren) {
+        expect(t.flattenedPosition!.parent).to.equal(w);
+        expect(t.flattenedPosition!.index).to.equal(
+          w.flattenedChildren.indexOf(t),
+        );
+      }
+
+      for (const c of w.children) {
+        if (c.type === "tab") {
+          expect(c.position!.parent).to.equal(w);
+          expect(c.position!.index).to.equal(w.children.indexOf(c));
+        } else if (c.type === "tab-group") {
+          expect(c.position!.parent).to.equal(w);
+          expect(c.position!.index).to.equal(w.children.indexOf(c));
+
+          for (const t of c.children) {
+            expect(t.position!.parent).to.equal(c);
+            expect(t.position!.index).to.equal(c.children.indexOf(t));
+          }
+        }
+      }
+    }
+  });
+
   it("loads tabs correctly", async () => {
     for (const t in tabs) {
       const tab = tabs[t as keyof typeof tabs];
@@ -42,7 +68,6 @@ describe("model/tabs", () => {
         highlighted: !!tab.highlighted,
         discarded: !!tab.discarded,
         cookieStoreId: tab.cookieStoreId,
-        groupId: tab.groupId,
       });
     }
   });
@@ -207,22 +232,25 @@ describe("model/tabs", () => {
 
     expect(model.tab(16384 as M.TabID)).to.deep.equal({
       type: "tab",
-      id: tab.id,
+      position: {
+        parent: model.window(16590 as M.WindowID)!,
+        index: 0,
+      },
       flattenedPosition: {
         parent: model.window(16590 as M.WindowID)!,
         index: 0,
       },
+      id: tab.id,
       status: "loading",
       title: "",
       url: "hi",
       favIconUrl: "",
+      cookieStoreId: tab.cookieStoreId,
       pinned: false,
       hidden: false,
       active: false,
       highlighted: false,
       discarded: false,
-      cookieStoreId: tab.cookieStoreId,
-      groupId: undefined,
     });
     expect(Array.from(model.tabsWithURL("hi"))).to.deep.equal([
       model.tab(16384 as M.TabID),
@@ -615,6 +643,20 @@ describe("model/tabs", () => {
   });
 
   describe("tab groups", () => {
+    const groupIdOf = (tab: M.Tab) =>
+      tab.position && "group" in tab.position.parent
+        ? tab.position.parent.group.id
+        : -1;
+
+    const windowStructure = (windowId: M.WindowID) =>
+      model
+        .window(windowId)!
+        .children.map(c =>
+          c.type === "tab-group"
+            ? [c.group.id, c.children.map(t => [t.url, t.id])]
+            : [c.url, c.id],
+        );
+
     it("creates groups from multiple existing tabs at once", async () => {
       const gid = await browser.tabs.group({
         tabIds: [tabs.left_alice.id, tabs.left_betty.id],
@@ -626,11 +668,22 @@ describe("model/tabs", () => {
       expect(
         model
           .window(windows.left.id)!
-          .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
       ).to.deep.equal([
         [tabs.left_alice.url, tabs.left_alice.id, gid],
         [tabs.left_betty.url, tabs.left_betty.id, gid],
         [tabs.left_charlotte.url, tabs.left_charlotte.id, -1],
+      ]);
+
+      expect(windowStructure(windows.left.id)).to.deep.equal([
+        [
+          gid,
+          [
+            [tabs.left_alice.url, tabs.left_alice.id],
+            [tabs.left_betty.url, tabs.left_betty.id],
+          ],
+        ],
+        [tabs.left_charlotte.url, tabs.left_charlotte.id],
       ]);
 
       expect(model.group(gid as M.TabGroupID)).to.deep.include({
@@ -639,11 +692,11 @@ describe("model/tabs", () => {
         color: "grey",
         collapsed: false,
       });
-      expect(model.tab(tabs.left_alice.id)).to.deep.include({
-        groupId: gid,
+      expect(model.tab(tabs.left_alice.id)!.position!.parent).to.deep.include({
+        group: model.group(gid as M.TabGroupID),
       });
-      expect(model.tab(tabs.left_betty.id)).to.deep.include({
-        groupId: gid,
+      expect(model.tab(tabs.left_betty.id)!.position!.parent).to.deep.include({
+        group: model.group(gid as M.TabGroupID),
       });
     });
 
@@ -667,7 +720,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -683,11 +736,25 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
-        expect(model.tab(tab.id! as M.TabID)).to.deep.include({
-          id: tab.id,
-          url: tab.url,
-          groupId: groups.ef.id,
-        });
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [
+            groups.ef.id,
+            [
+              [tabs.real_estelle.url, tabs.real_estelle.id],
+              [`${B}#new-next-to-francis`, tab.id],
+              [tabs.real_francis.url, tabs.real_francis.id],
+            ],
+          ],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
       });
 
       // it("...at the end of the group"); // same problem as "beginning"
@@ -698,13 +765,50 @@ describe("model/tabs", () => {
         windowId: windows.real.id,
         index: tabs.real_estelle.index,
       });
-      await events.next(browser.tabs.onMoved);
-      await events.next(browser.tabs.onUpdated);
 
+      await events.next(browser.tabs.onMoved);
       expect(
         model
           .window(windows.real.id)!
-          .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        "after onMoved, the flattened children should be in the correct order",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+        [tabs.real_paul.url, tabs.real_paul.id, -1],
+        [tabs.real_bob.url, tabs.real_bob.id, -1],
+        [tabs.real_doug.url, tabs.real_doug.id, -1],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+        [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+        [tabs.real_blank.url, tabs.real_blank.id, -1],
+        [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+        [tabs.real_harry.url, tabs.real_harry.id, -1],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+        [tabs.real_helen.url, tabs.real_helen.id, -1],
+      ]);
+
+      expect(
+        windowStructure(windows.real.id),
+        "after onMoved, there should be multiple extents for the group",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [groups.ef.id, [[tabs.real_estelle.url, tabs.real_estelle.id]]],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+
+      await events.next(browser.tabs.onUpdated);
+      expect(
+        model
+          .window(windows.real.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        "after onUpdated, the flattened children should be in the correct order",
       ).to.deep.equal([
         [tabs.real_patricia.url, tabs.real_patricia.id, -1],
         [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -719,12 +823,27 @@ describe("model/tabs", () => {
         [tabs.real_helen.url, tabs.real_helen.id, -1],
       ]);
 
-      expect(model.tab(tabs.real_blank.id)).to.deep.include({
-        groupId: groups.ef.id,
-      });
-      expect(model.tab(tabs.real_blank.id)!.flattenedPosition).to.deep.include({
-        index: tabs.real_estelle.index,
-      });
+      expect(
+        windowStructure(windows.real.id),
+        "after onUpdated, the window structure should be correct",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [
+          groups.ef.id,
+          [
+            [tabs.real_estelle.url, tabs.real_estelle.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_francis.url, tabs.real_francis.id],
+          ],
+        ],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
     });
 
     describe("tab stays in position and...", () => {
@@ -746,7 +865,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -761,9 +880,24 @@ describe("model/tabs", () => {
             [tabs.real_helen.url, tabs.real_helen.id, -1],
           ]);
 
-          expect(model.tab(tabs.real_doug_2.id)).to.deep.include({
-            groupId: groups.ef.id,
-          });
+          expect(windowStructure(windows.real.id)).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
         });
 
         it("...at the end", async () => {
@@ -779,7 +913,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -794,9 +928,24 @@ describe("model/tabs", () => {
             [tabs.real_helen.url, tabs.real_helen.id, -1],
           ]);
 
-          expect(model.tab(tabs.real_harry.id)).to.deep.include({
-            groupId: groups.ef.id,
-          });
+          expect(windowStructure(windows.real.id)).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+                [tabs.real_harry.url, tabs.real_harry.id],
+              ],
+            ],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
         });
       });
 
@@ -806,7 +955,6 @@ describe("model/tabs", () => {
           await browser.tabs.show(tabs.real_doug_2.id);
           await events.next(browser.tabs.onUpdated);
           expect(model.tab(tabs.real_doug_2.id)).to.deep.include({
-            groupId: -1,
             hidden: false,
           });
 
@@ -821,7 +969,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -836,8 +984,29 @@ describe("model/tabs", () => {
             [tabs.real_helen.url, tabs.real_helen.id, -1],
           ]);
 
-          expect(model.tab(tabs.real_doug.id)).to.deep.include({groupId});
-          expect(model.tab(tabs.real_doug_2.id)).to.deep.include({groupId});
+          expect(windowStructure(windows.real.id)).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [
+              groupId,
+              [
+                [tabs.real_doug.url, tabs.real_doug.id],
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
+              ],
+            ],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
         });
 
         it("...from the beginning of the old group to the end of the new group", async () => {
@@ -847,7 +1016,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -861,8 +1030,6 @@ describe("model/tabs", () => {
             [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
             [tabs.real_helen.url, tabs.real_helen.id, -1],
           ]);
-
-          expect(model.tab(tabs.real_estelle.id)).to.deep.include({groupId});
         });
 
         it("...from the end of the old group to the [end] of the new group", async () => {
@@ -879,7 +1046,7 @@ describe("model/tabs", () => {
           expect(
             model
               .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -894,9 +1061,24 @@ describe("model/tabs", () => {
             [tabs.real_helen.url, tabs.real_helen.id, -1],
           ]);
 
-          expect(model.tab(tabs.real_doug_2.id)).to.deep.include({
-            groupId: groups.ef.id,
-          });
+          expect(windowStructure(windows.real.id)).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [groupId, [[tabs.real_doug.url, tabs.real_doug.id]]],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
         });
       });
 
@@ -911,7 +1093,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -926,9 +1108,19 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
-        expect(model.tab(tabs.real_doug.id)).to.deep.include({
-          groupId: -1,
-        });
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [tabs.real_estelle.url, tabs.real_estelle.id],
+          [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
       });
 
       it("...is removed from its group and the group is destroyed", async () => {
@@ -942,7 +1134,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -957,12 +1149,20 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
-        expect(model.tab(tabs.real_estelle.id)).to.deep.include({
-          groupId: -1,
-        });
-        expect(model.tab(tabs.real_francis.id)).to.deep.include({
-          groupId: -1,
-        });
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [tabs.real_estelle.url, tabs.real_estelle.id],
+          [tabs.real_francis.url, tabs.real_francis.id],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
+
         expect(model.group(groups.ef.id)).to.be.undefined;
       });
     }); // tab stays in position
@@ -976,7 +1176,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -990,6 +1190,25 @@ describe("model/tabs", () => {
           [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
+
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [
+            groups.ef.id,
+            [
+              [tabs.real_estelle.url, tabs.real_estelle.id],
+              [tabs.real_francis.url, tabs.real_francis.id],
+            ],
+          ],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
       });
 
       it("...forward in the window", async () => {
@@ -1000,7 +1219,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1013,6 +1232,25 @@ describe("model/tabs", () => {
           [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
           [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
           [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [
+            groups.ef.id,
+            [
+              [tabs.real_estelle.url, tabs.real_estelle.id],
+              [tabs.real_francis.url, tabs.real_francis.id],
+            ],
+          ],
+          [tabs.real_helen.url, tabs.real_helen.id],
         ]);
       });
 
@@ -1027,7 +1265,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1040,16 +1278,41 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
+
         expect(
           model
             .window(windows.right.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.right_blank.url, tabs.right_blank.id, -1],
           [tabs.right_adam.url, tabs.right_adam.id, -1],
           [tabs.right_doug.url, tabs.right_doug.id, -1],
           [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
           [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+        ]);
+
+        expect(windowStructure(windows.right.id)).to.deep.equal([
+          [tabs.right_blank.url, tabs.right_blank.id],
+          [tabs.right_adam.url, tabs.right_adam.id],
+          [tabs.right_doug.url, tabs.right_doug.id],
+          [
+            groups.ef.id,
+            [
+              [tabs.real_estelle.url, tabs.real_estelle.id],
+              [tabs.real_francis.url, tabs.real_francis.id],
+            ],
+          ],
         ]);
       });
     }); // an entire group is moved
@@ -1065,7 +1328,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1080,14 +1343,25 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [gid, [[tabs.real_estelle.url, tabs.real_estelle.id]]],
+          [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
+
         expect(model.group(gid)).to.deep.include({
           id: gid,
           title: "",
           color: "grey",
           collapsed: false,
-        });
-        expect(model.tab(tabs.real_estelle.id)).to.deep.include({
-          groupId: gid,
         });
       });
 
@@ -1111,7 +1385,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1126,14 +1400,30 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [gid, [[tabs.real_francis.url, tabs.real_francis.id]]],
+          [
+            groups.ef.id,
+            [
+              [tabs.real_estelle.url, tabs.real_estelle.id],
+              [tabs.real_harry.url, tabs.real_harry.id],
+            ],
+          ],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
+
         expect(model.group(gid)).to.deep.include({
           id: gid,
           title: "",
           color: "grey",
           collapsed: false,
-        });
-        expect(model.tab(tabs.real_francis.id)).to.deep.include({
-          groupId: gid,
         });
       });
 
@@ -1149,7 +1439,7 @@ describe("model/tabs", () => {
         expect(
           model
             .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1164,14 +1454,25 @@ describe("model/tabs", () => {
           [tabs.real_helen.url, tabs.real_helen.id, -1],
         ]);
 
+        expect(windowStructure(windows.real.id)).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id],
+          [tabs.real_paul.url, tabs.real_paul.id],
+          [tabs.real_blank.url, tabs.real_blank.id],
+          [tabs.real_bob.url, tabs.real_bob.id],
+          [tabs.real_doug.url, tabs.real_doug.id],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id],
+          [gid, [[tabs.real_francis.url, tabs.real_francis.id]]],
+          [groups.ef.id, [[tabs.real_estelle.url, tabs.real_estelle.id]]],
+          [tabs.real_harry.url, tabs.real_harry.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id],
+          [tabs.real_helen.url, tabs.real_helen.id],
+        ]);
+
         expect(model.group(gid)).to.deep.include({
           id: gid,
           title: "",
           color: "grey",
           collapsed: false,
-        });
-        expect(model.tab(tabs.real_francis.id)).to.deep.include({
-          groupId: gid,
         });
       });
     }); // a tab within an existing group is moved to a new group
@@ -1184,7 +1485,7 @@ describe("model/tabs", () => {
       expect(
         model
           .window(windows.real.id)!
-          .flattenedChildren.map(t => [t.url, t.id, t.groupId]),
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
       ).to.deep.equal([
         [tabs.real_patricia.url, tabs.real_patricia.id, -1],
         [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1199,12 +1500,20 @@ describe("model/tabs", () => {
         [tabs.real_helen.url, tabs.real_helen.id, -1],
       ]);
 
-      expect(model.tab(tabs.real_estelle.id)).to.deep.include({
-        groupId: -1,
-      });
-      expect(model.tab(tabs.real_francis.id)).to.deep.include({
-        groupId: -1,
-      });
+      expect(windowStructure(windows.real.id)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [tabs.real_estelle.url, tabs.real_estelle.id],
+        [tabs.real_francis.url, tabs.real_francis.id],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+
       expect(model.group(groups.ef.id)).to.be.undefined;
     });
   }); // tab groups

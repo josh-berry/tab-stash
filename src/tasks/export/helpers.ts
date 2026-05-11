@@ -28,11 +28,14 @@ export function getParentInfo(folder: StashParent): {
   leaves: StashLeaf[];
   parents: StashParent[];
 } {
-  const title =
-    "title" in folder ? friendlyFolderName(folder.title) : "Untitled";
-  const children =
-    "children" in folder ? folder.children : folder.flattenedChildren;
-  const {leaves, parents} = splitItems(children);
+  const title = friendlyFolderName(
+    "group" in folder
+      ? folder.group.title
+      : "title" in folder
+        ? folder.title
+        : "Untitled",
+  );
+  const {leaves, parents} = splitItems(folder.children);
   return {title, leaves, parents};
 }
 

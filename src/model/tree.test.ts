@@ -390,4 +390,70 @@ describe("model/tree", () => {
     test("remove undefined from middle", "c2b", 2, [undefined, "c2b2", "c2b4"]);
     test("remove node from end", "c1", 2, ["c1a", "c1b"]);
   });
+
+  describe("splitParentAtIndexIntoNode()", () => {
+    let newParent: TestParent;
+    beforeEach(() => {
+      newParent = reactive({
+        name: "new",
+        children: [],
+        position: undefined,
+        isLoaded: true,
+      });
+    });
+
+    it("splits at the beginning of a parent", () => {
+      TestTree.splitParentAtIndexIntoNode(parents.c1, 0, newParent);
+      expect(parents.c1.children.map(c => c?.name)).to.deep.equal([]);
+      expect(newParent.children.map(c => c?.name)).to.deep.equal([
+        "c1a",
+        "c1b",
+        "c1c",
+      ]);
+      expect(newParent.position!.parent.name).to.equal("c");
+      expect(newParent.position!.index).to.equal(1);
+      checkTree(root);
+    });
+
+    it("splits in the middle of a parent", () => {
+      TestTree.splitParentAtIndexIntoNode(parents.c1, 1, newParent);
+      expect(parents.c1.children.map(c => c?.name)).to.deep.equal(["c1a"]);
+      expect(newParent.children.map(c => c?.name)).to.deep.equal([
+        "c1b",
+        "c1c",
+      ]);
+      expect(newParent.position!.parent.name).to.equal("c");
+      expect(newParent.position!.index).to.equal(1);
+      checkTree(root);
+    });
+
+    it("splits at the end of a parent", () => {
+      TestTree.splitParentAtIndexIntoNode(parents.c1, 3, newParent);
+      expect(parents.c1.children.map(c => c?.name)).to.deep.equal([
+        "c1a",
+        "c1b",
+        "c1c",
+      ]);
+      expect(newParent.children.map(c => c?.name)).to.deep.equal([]);
+      expect(newParent.position!.parent.name).to.equal("c");
+      expect(newParent.position!.index).to.equal(1);
+      checkTree(root);
+    });
+  });
+
+  describe("mergeIntoLeftFromRight()", () => {
+    it("merges a node into another node", () => {
+      TestTree.mergeIntoLeftFromRight(parents.c1, parents.c2);
+      expect(parents.c1.children.map(c => c?.name)).to.deep.equal([
+        "c1a",
+        "c1b",
+        "c1c",
+        "c2a",
+        "c2b",
+      ]);
+      expect(parents.c2.children.map(c => c?.name)).to.deep.equal([]);
+      expect(parents.c2.position).to.be.undefined;
+      checkTree(root);
+    });
+  });
 });

@@ -224,4 +224,61 @@ export abstract class Tree<
       if (c) this.forEachNodeInSubtree(c, f);
     }
   }
+
+  /** Given `parent` and an `index`, move all the children of `parent` starting
+   * from `index` into `newEmptyParent`, and insert `newEmptyParent` into
+   * `parent`'s parent right after `parent`'s current index.
+   */
+  splitParentAtIndexIntoNode(parent: M, index: number, newEmptyParent: M) {
+    const parentPos = this.positionOf(parent);
+    if (!parentPos) {
+      throw new Error(`Can't split a parent that's not in the tree`);
+    }
+
+    if (this.positionOf(newEmptyParent)) {
+      throw new Error(`Can't add a new empty node that's already in a tree`);
+    }
+
+    const parentChildren = this.childrenOf(parent);
+    const newChildren = this.childrenOf(newEmptyParent);
+    if (newChildren.length > 0) {
+      throw new Error(`Can't split a parent into a non-empty node`);
+    }
+
+    for (
+      let removePoint = index, insertPoint = 0;
+      removePoint < parentChildren.length;
+      ++removePoint, ++insertPoint
+    ) {
+      const c = parentChildren[removePoint];
+      if (c) {
+        this.setPosition(c, {parent: newEmptyParent, index: insertPoint});
+      }
+      newChildren.push(c);
+    }
+    parentChildren.length = index;
+
+    this.insertNode(newEmptyParent, {
+      parent: parentPos.parent,
+      index: parentPos.index + 1,
+    });
+  }
+
+  /** Given two nodes, merge `right` into `left` and remove `right` from its
+   * position in its own parent. */
+  mergeIntoLeftFromRight(left: M, right: M) {
+    const leftChildren = this.childrenOf(left);
+    const rightChildren = this.childrenOf(right);
+    for (let i = 0; i < rightChildren.length; ++i) {
+      const c = rightChildren[i];
+      if (c) {
+        this.setPosition(c, {parent: left, index: leftChildren.length});
+      }
+      leftChildren.push(c);
+    }
+    rightChildren.length = 0;
+
+    const rightPos = this.positionOf(right);
+    if (rightPos) this.removeNode(rightPos);
+  }
 }

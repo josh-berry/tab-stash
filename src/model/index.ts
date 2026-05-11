@@ -78,14 +78,22 @@ const trace = trace_fn("model");
  * at all (no `id`).  It captures just the essential details of an item, like
  * its title, URL and identity (if it's part of the model). */
 export type StashItem = NewTab | NewFolder | ModelItem;
-export type StashParent = NewFolder | Bookmarks.Folder | Tabs.Window;
+export type StashParent =
+  | NewFolder
+  | Bookmarks.Folder
+  | Tabs.Window
+  | Tabs.TabGroupExtent;
 export type StashLeaf = NewTab | Bookmarks.Bookmark | Tabs.Tab;
 
 /** A container (bookmark folder or window) that is part of the model. */
-export type ModelParent = Bookmarks.Folder | Tabs.Window;
+export type ModelParent = Bookmarks.Folder | Tabs.Window | Tabs.TabGroupExtent;
 
 /** An actual bookmark/tab that is part of the model. */
-export type ModelItem = Bookmarks.Node | Tabs.Tab | Tabs.Window;
+export type ModelItem =
+  | Bookmarks.Node
+  | Tabs.Window
+  | Tabs.TabGroupExtent
+  | Tabs.Tab;
 
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
@@ -99,13 +107,17 @@ export const isLeaf = (item: StashItem): item is StashLeaf =>
 
 export const isModelParent = (
   item: ModelItem | ModelParent,
-): item is ModelParent => "children" in item || "flattenedChildren" in item;
+): item is ModelParent => "children" in item;
 
 export const isModelItem = (item: StashItem): item is ModelItem =>
   "type" in item;
 
 export const isWindow = (item: StashItem): item is Tabs.Window =>
-  "id" in item && typeof item.id === "number" && "flattenedChildren" in item;
+  isModelItem(item) && item.type === "window";
+
+export const isTabGroupExtent = (
+  item: StashItem,
+): item is Tabs.TabGroupExtent => isModelItem(item) && "group" in item;
 
 export const isTab = (item: StashItem): item is Tabs.Tab =>
   isModelItem(item) && item.type === "tab";
@@ -129,17 +141,17 @@ export const isFolder = (item: StashItem): item is Bookmarks.Folder =>
 
 export const ModelTree = new (class extends Tree<
   Tabs.Window,
-  Bookmarks.Folder,
+  Bookmarks.Folder | Tabs.TabGroupExtent,
   Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab
 > {
   isRootType(
-    node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
+    node: Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab,
   ): node is Tabs.Window {
     return node.type === "window";
   }
 
   isLeafType(
-    node: Bookmarks.Node | Tabs.Window | Tabs.Tab,
+    node: Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab,
   ): node is Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab {
     return (
       node.type === "bookmark" ||
@@ -148,29 +160,33 @@ export const ModelTree = new (class extends Tree<
     );
   }
 
-  isLoaded(parent: Tabs.Window | Bookmarks.Folder): boolean {
+  isLoaded(
+    parent: Tabs.Window | Tabs.TabGroupExtent | Bookmarks.Folder,
+  ): boolean {
     return isWindow(parent) || (isFolder(parent) && parent.isLoaded);
   }
 
   positionOf(
-    node: Bookmarks.Node | Tabs.Tab | Bookmarks.Folder,
+    node: Bookmarks.Node | Tabs.TabGroupExtent | Tabs.Tab,
   ): TreePosition<Tabs.Window | Bookmarks.Folder> | undefined {
     if (isTab(node)) return node.flattenedPosition;
     return node.position;
   }
 
   childrenOf(
-    parent: Tabs.Window | Bookmarks.Folder,
+    parent: Tabs.Window | Tabs.TabGroupExtent | Bookmarks.Folder,
   ): (Bookmarks.Node | Tabs.Tab | undefined)[] {
     if ("flattenedChildren" in parent) return parent.flattenedChildren;
     return parent.children;
   }
 
   protected setPosition(
-    node: Bookmarks.Node | Tabs.Tab | Tabs.Window | Bookmarks.Folder,
-    position: TreePosition<Tabs.Window | Bookmarks.Folder> | undefined,
+    _node: Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab,
+    _position: TreePosition<Tabs.Window | Bookmarks.Folder> | undefined,
   ): void {
-    throw new Error(`Cannot move a node using the ModelTree`);
+    throw new Error(
+      `Cannot move a node using the ModelTree; use Model.*() methods instead`,
+    );
   }
 })();
 
@@ -210,7 +226,7 @@ export class Model {
   readonly searchText = ref("");
   readonly filter = new TreeFilter<
     Tabs.Window,
-    Bookmarks.Folder,
+    Bookmarks.Folder | Tabs.TabGroupExtent,
     Bookmarks.Node | Tabs.Tab
   >(
     ModelTree,
@@ -233,7 +249,7 @@ export class Model {
 
   readonly selection = new TreeSelection<
     Tabs.Window,
-    Bookmarks.Folder,
+    Bookmarks.Folder | Tabs.TabGroupExtent,
     Bookmarks.Node | Tabs.Tab
   >(
     ModelTree,
@@ -809,11 +825,9 @@ export class Model {
                   index,
                 });
 
-          if ("children" in item || "flattenedChildren" in item) {
-            const children =
-              "children" in item ? item.children : item.flattenedChildren;
+          if ("children" in item) {
             let idx = 0;
-            for (const c of children) {
+            for (const c of item.children) {
               if (c === undefined) continue;
               if (typeof c === "string") {
                 await this.bookmarks.move(c, node as Bookmarks.Folder, idx);
@@ -1052,8 +1066,8 @@ export class Model {
    * bookmarks to the deleted-items model. */
   async deleteItems(items: Iterable<ModelItem>) {
     const now = new Date();
-    const tabs = [];
-    const windows = [];
+    const tabs: Tabs.Tab[] = [];
+    const windows: Tabs.Window[] = [];
 
     for (const i of items) {
       if (isNode(i)) {
@@ -1065,6 +1079,12 @@ export class Model {
           // separator
           await this.bookmarks.remove(i);
         }
+      } else if (isTabGroupExtent(i)) {
+        // We just push the children into `tabs`, because closing all the
+        // selected tabs will automatically destroy the group. And if we happen
+        // to be in a weird situation where there are multiple extents for the
+        // group, this is safer because it doesn't close unexpected tabs.
+        for (const c of i.children) tabs.push(c);
       } else if (isTab(i)) {
         tabs.push(i);
       } else {
@@ -1325,6 +1345,10 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
 
     if (isWindow(item)) {
       return {title: "", children: copying(item.flattenedChildren)};
+    }
+
+    if (isTabGroupExtent(item)) {
+      return {title: item.group.title, children: copying(item.children)};
     }
 
     if (isTab(item)) return {title: item.title, url: item.url};

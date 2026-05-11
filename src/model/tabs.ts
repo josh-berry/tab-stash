@@ -20,9 +20,14 @@ import {Tree, type TreePosition} from "./tree.js";
 export interface Window {
   readonly type: "window";
   readonly id: WindowID;
+  readonly children: (TabGroupExtent | Tab)[];
   readonly flattenedChildren: Tab[];
 }
 
+/** A TabGroup is a logical grouping of tabs. The TabGroup itself keeps track of
+ * only attributes that apply to the group itself. Tab membership and position
+ * within the group (and the group's parent window) is tracked by
+ * TabGroupExtent. */
 export interface TabGroup {
   // No type property since this isn't part of the model tree
   readonly id: TabGroupID;
@@ -31,8 +36,24 @@ export interface TabGroup {
   collapsed: boolean;
 }
 
+/** A TabGroupExtent is a run of contiguous tabs that belong to the same tab
+ * group.
+ *
+ * This is distinct from a TabGroup, because even though the browser itself
+ * doesn't support discontiguous tabs in a group, they can happen in the Tab
+ * Stash model transiently, while the browser is sending us events updating tab
+ * positions and group membership. Most of the time, there should only be one
+ * extent per group, but this is never a safe assumption. */
+export interface TabGroupExtent {
+  readonly type: "tab-group";
+  readonly group: TabGroup;
+  position: TreePosition<Window> | undefined;
+  readonly children: Tab[];
+}
+
 export interface Tab {
   readonly type: "tab";
+  position: TreePosition<Window | TabGroupExtent> | undefined;
   flattenedPosition: TreePosition<Window> | undefined;
   id: TabID;
   status: Tabs.TabStatus;
@@ -45,12 +66,40 @@ export interface Tab {
   active: boolean;
   highlighted: boolean;
   discarded: boolean;
-  groupId: TabGroupID | undefined;
 }
 
 export type WindowID = number & {readonly __window_id: unique symbol};
 export type TabGroupID = number & {readonly __tab_group_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
+
+export const WindowTree = new (class extends Tree<Window, TabGroupExtent, Tab> {
+  isRootType(node: Window | TabGroupExtent | Tab): node is Window {
+    return node.type === "window";
+  }
+  isLeafType(node: Window | TabGroupExtent | Tab): node is Tab {
+    return node.type === "tab";
+  }
+
+  isLoaded(parent: Window | TabGroupExtent): boolean {
+    return parent.children.every(child =>
+      "children" in child ? this.isLoaded(child) : child.status === "complete",
+    );
+  }
+  positionOf(
+    node: TabGroupExtent | Tab,
+  ): TreePosition<Window | TabGroupExtent> | undefined {
+    return node.position;
+  }
+  childrenOf(parent: Window): (TabGroupExtent | Tab | undefined)[] {
+    return parent.children;
+  }
+  protected setPosition(
+    node: TabGroupExtent | Tab,
+    position: TreePosition<Window | TabGroupExtent> | undefined,
+  ): void {
+    node.position = position;
+  }
+})();
 
 export const FlattenedWindowTree = new (class extends Tree<Window, never, Tab> {
   isRootType(node: Window | Tab): node is Window {
@@ -517,6 +566,7 @@ export class Model {
         type: "window",
         id: wid,
         position: undefined,
+        children: [],
         flattenedPosition: undefined,
         flattenedChildren: [],
         isLoaded: true,
@@ -621,6 +671,7 @@ export class Model {
       // CAST: Tabs.Tab says the id should be optional, but it isn't...
       t = reactive({
         type: "tab",
+        position: undefined,
         flattenedPosition: undefined,
         id: tab.id as TabID,
         status: (tab.status as Tabs.TabStatus) ?? "loading",
@@ -633,7 +684,6 @@ export class Model {
         active: tab.active,
         highlighted: tab.highlighted,
         discarded: tab.discarded ?? false,
-        groupId: (tab.groupId as TabGroupID) ?? undefined,
       } satisfies Tab);
       this.tabs.set(tab.id as TabID, t);
     } else {
@@ -650,7 +700,6 @@ export class Model {
       t.active = tab.active;
       t.highlighted = tab.highlighted;
       t.discarded = tab.discarded ?? false;
-      t.groupId = (tab.groupId as TabGroupID) ?? undefined;
     }
 
     // Insert the tab in its new position in the window
@@ -675,9 +724,7 @@ export class Model {
     // See #537.
     tab.index = Math.min(tab.index, win.flattenedChildren.length);
 
-    if (t.flattenedPosition)
-      FlattenedWindowTree.removeNode(t.flattenedPosition);
-    FlattenedWindowTree.insertNode(t, {parent: win, index: tab.index});
+    this._move_tab(t, {parent: win, index: tab.index}, tab.groupId);
 
     // Insert the tab in its index
     this._add_url(t);
@@ -730,7 +777,9 @@ export class Model {
     }
     if (info.discarded !== undefined) t.discarded = info.discarded;
 
-    if (info.groupId !== undefined) t.groupId = info.groupId as TabGroupID;
+    if (info.groupId !== undefined) {
+      this._move_tab(t, t.flattenedPosition, info.groupId);
+    }
   }
 
   whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {
@@ -769,9 +818,7 @@ export class Model {
     }
     /* c8 ignore stop */
 
-    if (t.flattenedPosition)
-      FlattenedWindowTree.removeNode(t.flattenedPosition);
-    FlattenedWindowTree.insertNode(t, {parent: newWindow, index: info.toIndex});
+    this._move_tab(t, {parent: newWindow, index: info.toIndex}, undefined);
   }
 
   whenTabReplaced(newId: number, oldId: number) {
@@ -824,10 +871,12 @@ export class Model {
     const t = this.tabs.get(tabId as TabID);
     if (!t) return; // tab is already removed
 
-    const pos = t.flattenedPosition;
-    if (pos) FlattenedWindowTree.removeNode(pos);
+    const flatPos = t.flattenedPosition;
+    if (flatPos) FlattenedWindowTree.removeNode(flatPos);
+    const pos = t.position;
+    if (pos) WindowTree.removeNode(pos);
 
-    trace("event ...tabRemoved", tabId, pos);
+    trace("event ...tabRemoved", tabId, flatPos);
 
     this.tabs.delete(t.id);
     this._remove_url(t);
@@ -843,6 +892,211 @@ export class Model {
     /* c8 ignore next -- internal consistency check */
     if (!index) return;
     index.delete(t);
+  }
+
+  private _move_tab(
+    t: Tab,
+    newFlattenedPosition: TreePosition<Window> | undefined,
+    newGroupId: number | undefined,
+  ) {
+    // Move the tab in the flattened tree first, then we'll figure out its
+    // position in the grouped tree based on the new group ID and its new
+    // flattened position.
+    if (
+      t.flattenedPosition?.parent !== newFlattenedPosition?.parent ||
+      t.flattenedPosition?.index !== newFlattenedPosition?.index
+    ) {
+      if (t.flattenedPosition) {
+        FlattenedWindowTree.removeNode(t.flattenedPosition);
+      }
+      if (newFlattenedPosition) {
+        FlattenedWindowTree.insertNode(t, newFlattenedPosition);
+      }
+    }
+
+    // Then figure out the position of the tab in the grouped tree. Our general
+    // approach is to find or create a TabGroupExtent in the right position,
+    // based on where the tab is in the flattened tree and what its group ID is.
+
+    // First, figure out the group the tab should belong to (which may be its
+    // current group).
+    let newGroup: TabGroup | undefined;
+    if (newGroupId !== undefined) {
+      // We know the new group of the tab. Find or create the group.
+      newGroup = this.group(newGroupId);
+      if (!newGroup && newGroupId !== -1) {
+        newGroup = reactive({
+          id: newGroupId as TabGroupID,
+          title: "",
+          color: "grey",
+          collapsed: false,
+        } as TabGroup);
+        this.tab_groups.set(newGroup.id, newGroup);
+      }
+    } else {
+      // newGroupId is not provided, meaning the group membership is not
+      // changing, at least not right now. Keep the tab in its existing group
+      // (if any).
+      const parent = t.position?.parent;
+      newGroup = parent && "group" in parent ? parent.group : undefined;
+    }
+
+    // Now that we know the current group (if any), we can safely remove the tab
+    // from its old position in the group tree, if any.
+    if (t.position) {
+      const oldPos = t.position;
+
+      WindowTree.removeNode(t.position);
+
+      if (
+        oldPos.parent &&
+        oldPos.parent.type === "tab-group" &&
+        oldPos.parent.position
+      ) {
+        const oldParentPos = oldPos.parent.position;
+        // If the tab previously belonged to a TabGroupExtent that becomes
+        // empty, we need to remove it too.
+        if (oldPos.parent.children.length === 0) {
+          WindowTree.removeNode(oldParentPos);
+        }
+
+        // If the removal created two adjacent TabGroupExtents with the same
+        // group, we should merge them.
+        const prevSibling =
+          oldParentPos.parent.children[oldParentPos.index - 1];
+        const nextSibling = oldParentPos.parent.children[oldParentPos.index];
+        if (
+          prevSibling &&
+          nextSibling &&
+          "group" in prevSibling &&
+          "group" in nextSibling &&
+          prevSibling.group === nextSibling.group
+        ) {
+          WindowTree.mergeIntoLeftFromRight(prevSibling, nextSibling);
+        }
+      }
+    }
+
+    // At this point, the tab has been moved to the correct position in the
+    // flattened tree, and is entirely absent from the grouped tree. Any
+    // inconsistencies from removing the tab (e.g. empty extents, adjacent
+    // extents with the same group) have been resolved.
+
+    // If it doesn't have a new position in the flattened tree, we're done;
+    // there's nowhere to insert in the grouped tree.
+    if (!t.flattenedPosition) return;
+    const newWindow = t.flattenedPosition.parent;
+
+    // We also know the parent it should have in the grouped tree--either the
+    // window itself or the tab's group. However, we still need to figure out:
+    //
+    // - If there's an existing TabGroupExtent for the group in the right
+    //   position, if we need to create a new one, or if we're directly
+    //   inserting into the parent (and possibly splitting an existing extent in
+    //   the process).
+    // - What index to insert in the grouped tree
+    //
+    // In both cases, we can look at the tab's neighbors in the flattened tree.
+    const prevSibling = newWindow.flattenedChildren[
+      t.flattenedPosition.index - 1
+    ] as Tab | undefined;
+    const nextSibling = newWindow.flattenedChildren[
+      t.flattenedPosition.index + 1
+    ] as Tab | undefined;
+    const prevGroupExt =
+      prevSibling?.position?.parent.type === "tab-group"
+        ? prevSibling.position.parent
+        : undefined;
+    let nextGroupExt =
+      nextSibling?.position?.parent.type === "tab-group"
+        ? nextSibling.position.parent
+        : undefined;
+
+    // Figure out if we need to split an extent, or if we can insert into an
+    // existing extent or directly into the window itself.
+    if (prevGroupExt && prevGroupExt === nextGroupExt) {
+      if (prevGroupExt.group === newGroup) {
+        // We're moving into the middle of an existing group. Just put the tab
+        // into its new position and we're done.
+        WindowTree.insertNode(t, {
+          parent: nextGroupExt,
+          index: nextSibling!.position!.index,
+        });
+        return;
+      }
+
+      // We need to split the extent for prevGroup/nextGroup into two. The split
+      // point is between prevSibling and nextSibling, so we can just move all
+      // the tabs after prevSibling into a new extent.
+      nextGroupExt = reactive({
+        type: "tab-group",
+        group: nextGroupExt.group,
+        children: [] as Tab[],
+        position: undefined,
+      } as TabGroupExtent);
+      WindowTree.splitParentAtIndexIntoNode(
+        prevGroupExt,
+        nextSibling!.position!.index,
+        nextGroupExt,
+      );
+    }
+
+    // We're either at a group boundary (prevGroupExt !== nextGroupExt) or we're
+    // inserting directly into the window. Let's see if either the prev or next
+    // group is the one we want.
+    if (prevGroupExt && prevGroupExt.group === newGroup) {
+      // The group before the insertion point matches the tab's group; insert as
+      // the last element of that group.
+      WindowTree.insertNode(t, {
+        parent: prevGroupExt,
+        index: prevSibling!.position!.index + 1,
+      });
+
+      // We need to do one more check for merging here, to handle the case where
+      // a tab is being reassigned to a group that has two extents on either
+      // side of it.
+      if (nextGroupExt && nextGroupExt.group === prevGroupExt.group) {
+        WindowTree.mergeIntoLeftFromRight(prevGroupExt, nextGroupExt);
+      }
+      return;
+    } else if (nextGroupExt && nextGroupExt.group === newGroup) {
+      // The group after the insertion point matches the tab's group; insert as
+      // the first element of that group.
+      WindowTree.insertNode(t, {
+        parent: nextGroupExt,
+        index: 0,
+      });
+      return;
+    }
+
+    // If we get here, we need to insert directly into the window.
+    const newIndex = nextGroupExt
+      ? nextGroupExt.position!.index
+      : nextSibling
+        ? nextSibling!.position!.index
+        : newWindow.children.length;
+
+    if (newGroup === undefined) {
+      WindowTree.insertNode(t, {
+        parent: newWindow,
+        index: newIndex,
+      });
+    } else {
+      const newGroupExt = reactive({
+        type: "tab-group",
+        group: newGroup,
+        children: [] as Tab[],
+        position: undefined,
+      } as TabGroupExtent);
+      WindowTree.insertNode(newGroupExt, {
+        parent: newWindow,
+        index: newIndex,
+      });
+      WindowTree.insertNode(t, {
+        parent: newGroupExt,
+        index: 0,
+      });
+    }
   }
 
   /** Wait until the number of tabs being loaded concurrently drops below a

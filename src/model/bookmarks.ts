@@ -65,7 +65,7 @@ export const BookmarkTree = new (class extends Tree<
   Folder,
   Bookmark | Separator
 > {
-  isRootType(node: Node): node is never {
+  isRootType(_node: Node): _node is never {
     return false;
   }
   isLeafType(node: Node): node is Bookmark | Separator {
