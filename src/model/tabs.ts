@@ -235,20 +235,32 @@ export class Model {
 
   /* c8 ignore start -- for manual debugging only */
   dumpState() {
+    const dump_tab = (t: Tab) => ({
+      id: t.id,
+      status: t.status,
+      title: t.title,
+      url: t.url,
+      cookieStoreId: t.cookieStoreId,
+      pinned: t.pinned,
+      hidden: t.hidden,
+      active: t.active,
+      highlighted: t.highlighted,
+      discarded: t.discarded,
+    });
+
+    const dump_group = (g: TabGroupExtent) => ({
+      id: g.group.id,
+      title: g.group.title,
+      color: g.group.color,
+      collapsed: g.group.collapsed,
+      children: g.children.map(dump_tab),
+    });
+
     const windows = Array.from(this.windows.entries()).map(([id, w]) => ({
       id,
-      children: w.flattenedChildren.map(t => ({
-        id: t.id,
-        status: t.status,
-        title: t.title,
-        url: t.url,
-        cookieStoreId: t.cookieStoreId,
-        pinned: t.pinned,
-        hidden: t.hidden,
-        active: t.active,
-        highlighted: t.highlighted,
-        discarded: t.discarded,
-      })),
+      children: w.children.map(c =>
+        c.type === "tab" ? dump_tab(c) : dump_group(c),
+      ),
     }));
 
     const tabs = windows.flatMap(w => w.children);
