@@ -1348,7 +1348,7 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
     if (!isModelItem(item)) return item;
 
     if (isWindow(item)) {
-      return {title: "", children: copying(item.flattenedChildren)};
+      return {title: "", children: copying(item.children)};
     }
 
     if (isTabGroupExtent(item)) {
