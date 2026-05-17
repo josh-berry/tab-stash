@@ -400,6 +400,7 @@
       </li>
     </section>
 
+    <!--
     <hr v-if="sync.meta_show_advanced" />
 
     <section class="advanced">
@@ -421,20 +422,8 @@
           comment on the issue linked in [brackets] below.</em
         >
       </p>
-
-      <FeatureFlag
-        name="ff_restore_closed_tabs"
-        v-model="local.ff_restore_closed_tabs"
-        :default_value="local_def().ff_restore_closed_tabs.default"
-        :issue="200"
-      >
-        <template v-slot:summary>Restore Recently-Closed Tabs</template>
-        When restoring tabs, if a hidden tab isn't available, search for and
-        re-open recently-closed tabs with matching URLs. (NOTE: This is known to
-        occasionally restore incorrect tabs on certain versions of Firefox,
-        check the linked issue for more details.)
-      </FeatureFlag>
     </section>
+    -->
   </main>
 </template>
 

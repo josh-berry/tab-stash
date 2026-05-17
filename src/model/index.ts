@@ -37,10 +37,8 @@ import {trace_fn} from "../util/debug.js";
 import {
   backingOff,
   filterMap,
-  shortPoll,
   TaskMonitor,
   textMatcher,
-  tryAgain,
   urlToOpen,
   urlToStash,
 } from "../util/index.js";
@@ -888,21 +886,6 @@ export class Model {
 
     const items = options.items;
 
-    // We want to know what tabs were recently closed, so we can
-    // restore/un-hide tabs as appropriate.
-    //
-    // TODO Unit tests don't support sessions yet
-    //
-    // TODO Known to be buggy on some Firefoxen, see #188.  If nobody
-    // complains, probably this whole path should just be removed.
-    //
-    /* c8 ignore next -- as above */
-    const closed_tabs =
-      !!browser.sessions?.getRecentlyClosed &&
-      this.options.local.state.ff_restore_closed_tabs
-        ? await browser.sessions.getRecentlyClosed()
-        : [];
-
     if (options.task) options.task.max = items.length + 1;
 
     // Keep track of which tabs we are moving/have already stolen.  A tab
@@ -1003,39 +986,6 @@ export class Model {
         this.selection.info(t).isSelected =
           isModelItem(item) && this.selection.info(item).isSelected;
         // console.log('moved already-open tab', t);
-        continue;
-      }
-
-      // If we don't have a tab to move, let's see if a tab was recently
-      // closed that we can restore.
-      const closed = filterMap(closed_tabs, s => s.tab).find(
-        tabLookingAtP(url),
-      );
-      /* c8 ignore next - per Firefox bug noted above, see #188 */
-      if (closed) {
-        console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
-        // Remember the active tab in this window (if any), because
-        // restoring a recently-closed tab will disturb the focus.
-        const active_tab = win.flattenedChildren.find(t => t.active);
-
-        const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
-        await browser.tabs.move(t.id!, {windowId: win.id, index: to_index});
-
-        // Reset the focus to the previously-active tab. (We do this
-        // immediately, inside the loop, so as to minimize any
-        // flickering the user might see.)
-        if (active_tab) {
-          await browser.tabs.update(active_tab.id, {active: true});
-        }
-
-        const tab = await shortPoll(
-          () => this.tabs.tab(t.id as Tabs.TabID) || tryAgain(),
-        );
-        moved_items.push(tab);
-        dont_steal_tabs.add(tab.id);
-        this.selection.info(tab).isSelected =
-          isModelItem(item) && this.selection.info(item).isSelected;
-        // console.log('restored recently-closed tab', tab);
         continue;
       }
 
@@ -1370,24 +1320,4 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
       // Separators are excluded
     }
   });
-}
-
-//
-// Private helper functions
-//
-
-/** Returns a function which returns true if a tab is looking at a particular
- * URL, taking into account any transformations done by urlToOpen(). */
-function tabLookingAtP(url: string): (t?: {url?: string}) => boolean {
-  const open_url = urlToOpen(url);
-  return (t?: {url?: string}) => {
-    if (!t || !t.url) return false;
-    const to_url = urlToOpen(t.url);
-    return (
-      t.url === url ||
-      t.url === open_url ||
-      to_url === url ||
-      to_url === open_url
-    );
-  };
 }

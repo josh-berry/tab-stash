@@ -135,9 +135,10 @@ export const LOCAL_DEF = {
 
   // Feature flags
 
-  /** Re-open a recently-closed tab if one can't be found.  Disabled by
-   * default because of bugs in Firefox.  See #188. */
-  ff_restore_closed_tabs: {default: false, is: aBoolean},
+  /** Re-open a recently-closed tab if one can't be found.  Removed due to bugs
+   * in Firefox and lots of complexity that I don't want to deal with in the
+   * tab-restoration code.  See #188 and #200. */
+  // ff_restore_closed_tabs: {default: false, is: aBoolean},
 
   /** Container color indicators. Related issue: #125 */
   // ff_container_indicators: {default: false, is: aBoolean},
