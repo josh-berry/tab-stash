@@ -163,20 +163,24 @@ export const ModelTree = new (class extends Tree<
   isLoaded(
     parent: Tabs.Window | Tabs.TabGroupExtent | Bookmarks.Folder,
   ): boolean {
-    return isWindow(parent) || (isFolder(parent) && parent.isLoaded);
+    return (
+      isWindow(parent) ||
+      isTabGroupExtent(parent) ||
+      (isFolder(parent) && parent.isLoaded)
+    );
   }
 
   positionOf(
     node: Bookmarks.Node | Tabs.TabGroupExtent | Tabs.Tab,
-  ): TreePosition<Tabs.Window | Bookmarks.Folder> | undefined {
-    if (isTab(node)) return node.flattenedPosition;
+  ):
+    | TreePosition<Tabs.Window | Bookmarks.Folder | Tabs.TabGroupExtent>
+    | undefined {
     return node.position;
   }
 
   childrenOf(
     parent: Tabs.Window | Tabs.TabGroupExtent | Bookmarks.Folder,
-  ): (Bookmarks.Node | Tabs.Tab | undefined)[] {
-    if ("flattenedChildren" in parent) return parent.flattenedChildren;
+  ): (Bookmarks.Node | Tabs.TabGroupExtent | Tabs.Tab | undefined)[] {
     return parent.children;
   }
 
