@@ -430,7 +430,11 @@ export class Model {
   /** Moves a tab such that it precedes the item with index `toIndex` in
    * the destination window.  (You can pass an index `>=` the length of the
    * windows's tab list to move the item to the end of the window.) */
-  async move(tab: Tab, toWindow: Window, toIndex: number): Promise<void> {
+  async flattenedMove(
+    tab: Tab,
+    toWindow: Window,
+    toIndex: number,
+  ): Promise<void> {
     // This method mainly exists to provide consistent behavior between
     // bookmarks.move() and tabs.move(). Unlike browser.bookmarks.move(),
     // browser.tabs.move() behaves the same on both Firefox and Chrome.

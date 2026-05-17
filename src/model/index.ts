@@ -918,7 +918,7 @@ export class Model {
         // If the item we're moving is a tab, just move it into place.
         if (isTab(item)) {
           const pos = item.flattenedPosition;
-          await this.tabs.move(item, win, to_index);
+          await this.tabs.flattenedMove(item, win, to_index);
           moved_items.push(item);
           dont_steal_tabs.add(item.id);
 
@@ -975,7 +975,7 @@ export class Model {
         // If we show and then move, it will briefly appear in a random
         // location before moving to the desired location, so doing the
         // move first reduces flickering in the UI.
-        await this.tabs.move(t, win, to_index);
+        await this.tabs.flattenedMove(t, win, to_index);
         if (t.hidden && !!browser.tabs.show) await this.tabs.show(t);
 
         // console.log('new layout:', this.tabs.window(t.windowId)?.tabs);
