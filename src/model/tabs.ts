@@ -451,6 +451,7 @@ export class Model {
       await this.refocusAwayFromTabs(tabs);
 
       await browser.tabs.hide(tids);
+      await browser.tabs.ungroup(tids);
       if (discard) await browser.tabs.discard(tids);
 
       for (const t of tabs) {

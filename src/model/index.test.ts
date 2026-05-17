@@ -893,7 +893,7 @@ describe("model", () => {
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
-      await events.nextN(browser.tabs.onUpdated, 2);
+      await events.nextN(browser.tabs.onUpdated, 3);
       await p;
 
       const titles = [
@@ -952,7 +952,7 @@ describe("model", () => {
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
       await events.nextN(browser.bookmarks.onMoved, 2);
-      await events.nextN(browser.tabs.onUpdated, 2);
+      await events.nextN(browser.tabs.onUpdated, 3);
       await p;
 
       const titles = [
