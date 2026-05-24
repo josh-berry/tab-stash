@@ -351,11 +351,16 @@ export class Model {
       trace("hiding tabs", tabs);
       await this.refocusAwayFromTabs(tabs);
 
-      await browser.tabs.hide(tids);
-      if (discard) await browser.tabs.discard(tids);
+      try {
+        await browser.tabs.hide(tids);
+        if (discard) await browser.tabs.discard(tids);
 
-      for (const t of tabs) {
-        await browser.sessions.setTabValue(t.id, SK_HIDDEN_BY_TAB_STASH, true);
+        for (const t of tabs) {
+          await browser.sessions.setTabValue(t.id, SK_HIDDEN_BY_TAB_STASH, true);
+        }
+      } catch (e) {
+        console.warn("browser.tabs.hide failed, falling back to remove", e);
+        await this.remove(tabs);
       }
     } else {
       await this.remove(tabs);
@@ -367,8 +372,15 @@ export class Model {
   async remove(tabs: Tab[]): Promise<void> {
     const tids = tabs.map(t => t.id);
     trace("removing tabs", tids);
-    await this.refocusAwayFromTabs(tabs);
-    await browser.tabs.remove(tids);
+    if (!!browser.tabs.hide) {
+      await this.refocusAwayFromTabs(tabs);
+    }
+    try {
+      await browser.tabs.remove(tids);
+    } catch (e) {
+      console.warn("browser.tabs.remove with array failed, trying individually", e);
+      await Promise.all(tids.map(tid => browser.tabs.remove(tid).catch(err => console.warn(err))));
+    }
     await shortPoll(() => {
       if (tids.find(tid => this.tabs.has(tid)) !== undefined) tryAgain();
     });

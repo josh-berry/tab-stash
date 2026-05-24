@@ -483,9 +483,11 @@ export class Model {
    * the browser window(s) open. */
   async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
     // Clear any highlights/selections on tabs we are stashing
-    await Promise.all(
-      tabs.map(t => browser.tabs.update(t.id, {highlighted: false}).catch(() => {})),
-    );
+    if (!!browser.tabs.hide) {
+      await Promise.all(
+        tabs.map(t => browser.tabs.update(t.id, {highlighted: false}).catch(() => {})),
+      );
+    }
     for (const t of tabs) this.selection.info(t).isSelected = false;
 
     switch (this.options.local.state.after_stashing_tab) {
