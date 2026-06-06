@@ -370,14 +370,79 @@ export class Model {
   // User-level operations on tabs
   //
 
+  /** Creates a new tab group at the specified position, and creates tabs within
+   * the group with the specified URLs and titles. Returns the TabGroupExtent
+   * for the new group once it appears in the model. */
+  async createGroup(options: {
+    atParent: Window;
+    atIndex: number;
+    title?: string;
+    tabs: {title?: string; url: string}[];
+    active?: boolean;
+  }): Promise<TabGroupExtent> {
+    let next_index = options.atIndex;
+    const tabs: Tab[] = [];
+    for (const t of options.tabs) {
+      tabs.push(
+        await this.create({
+          atParent: options.atParent,
+          atIndex: next_index,
+          url: t.url,
+          title: t.title,
+          active: options.active,
+        }),
+      );
+      ++next_index;
+    }
+
+    const gid = await browser.tabs.group({tabIds: tabs.map(t => t.id)});
+    if (options.title) {
+      await browser.tabGroups.update(gid, {title: options.title});
+    }
+
+    return await shortPoll(() => {
+      const extent = options.atParent.children[options.atIndex];
+      if (!extent) tryAgain();
+      if (extent.type !== "tab-group") tryAgain();
+      if (extent.group.id !== gid) tryAgain();
+      for (let i = 0; i < extent.children.length; ++i) {
+        if (extent.children[i] !== tabs[i]) tryAgain();
+      }
+      return extent;
+    });
+  }
+
   /** Creates a new tab and waits for the model to reflect its existence.
    *
    * Note that creation of non-discarded is rate-limited, to avoid
    * overwhelming the user's system with a lot of loading tabs. */
-  async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
-    const create_tab = Object.assign({}, tab);
+  async create(options: {
+    atParent: Window | TabGroupExtent;
+    atIndex: number;
+    url: string;
+    title?: string;
+    cookieStoreId?: string;
+    pinned?: boolean;
+    discarded?: boolean;
+    active?: boolean;
+  }): Promise<Tab> {
+    const flat_pos = _flatPositionFor(options.atParent, options.atIndex);
+    const create_tab = {
+      url: options.url,
+      title: options.title,
+      cookieStoreId: options.cookieStoreId,
+      pinned: options.pinned,
+      discarded: options.discarded,
+      active: options.active,
+      windowId: flat_pos.parent.id,
+      index: flat_pos.index,
+    };
 
-    if (!browser.tabs.hide || !tab.url || tab.url.startsWith("about:")) {
+    if (
+      !browser.tabs.hide ||
+      !options.url ||
+      options.url.startsWith("about:")
+    ) {
       // This is Chrome; it doesn't support discarded tabs, so we can only load
       // so many at once.  This is a little awkward because to the user, it will
       // look like there is a big delay in opening tabs.
@@ -390,6 +455,12 @@ export class Model {
         await this._safe_to_load_another_tab();
         trace("creating tab", create_tab);
         const t = await browser.tabs.create(create_tab);
+        if (options.atParent.type === "tab-group") {
+          await browser.tabs.group({
+            groupId: options.atParent.group.id,
+            tabIds: [t.id!],
+          });
+        }
         return await shortPoll(
           () => this.tabs.get(t.id as TabID) || tryAgain(),
         );
@@ -404,12 +475,18 @@ export class Model {
     // Create the tab and find its equivalent in the model
     trace("creating tab", create_tab);
     const t = await browser.tabs.create(create_tab);
+    if (options.atParent.type === "tab-group") {
+      await browser.tabs.group({
+        groupId: options.atParent.group.id,
+        tabIds: [t.id!],
+      });
+    }
     const m = await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
 
     // If the caller requested that we load the tab, do so as soon as we
     // can--but don't try to load too many at once so we don't overwhelm the
     // user's machine.
-    if (!tab.discarded) {
+    if (!options.discarded) {
       this._loading_queue.run(async () => {
         await this._safe_to_load_another_tab();
         if (this.tabs.get(m.id) !== m) return; // Tab was closed
@@ -427,8 +504,79 @@ export class Model {
     return m;
   }
 
-  /** Moves a tab such that it precedes the item with index `toIndex` in
-   * the destination window.  (You can pass an index `>=` the length of the
+  /** Moves a tab group from one window to another. Note that the index
+   * specified is relative to `toParent.children` (not `flattenedChildren`).
+   * Returns the new TabGroupExtent that was created. */
+  async moveGroup(
+    group: TabGroupExtent,
+    toParent: Window,
+    toIndex: number,
+  ): Promise<TabGroupExtent> {
+    const flat_pos = _flatPositionFor(toParent, toIndex);
+
+    // Save the children to check against shortPoll() later.
+    const children = Array.from(group.children);
+
+    await browser.tabGroups.move(group.group.id, {
+      windowId: flat_pos.parent.id,
+      index: flat_pos.index,
+    });
+
+    // Wait for a new TabGroupExtent to show up in the right place, and for all
+    // the tabs in the old extent to move to the new one.  Otherwise the
+    // caller's indexes might be off.
+    return await shortPoll(() => {
+      const extent = toParent.children[toIndex];
+      if (!extent) tryAgain();
+      if (extent.type !== "tab-group") tryAgain();
+      if (extent.group !== group.group) tryAgain();
+
+      // We wait on all the children in the extent, because we expect to see a
+      // bunch of individual tabMoved events for each tab.
+      for (let i = 0; i < children.length; ++i) {
+        if (extent.children[i] !== children[i]) tryAgain();
+      }
+      return extent;
+    });
+  }
+
+  /** Moves a tab and updates its group membership, if necessary, such that the
+   * tab precedes the item with index `toIndex` in the destination window or
+   * group. You can pass an index `>=` the length of the destination's children
+   * to move the item to the end of the destination. */
+  async move(
+    tab: Tab,
+    toParent: Window | TabGroupExtent,
+    toIndex: number,
+  ): Promise<void> {
+    const flat_pos = _flatPositionFor(toParent, toIndex);
+
+    // Move first, then update group membership. We do things in this order
+    // because updating group membership first might cause the tab to move,
+    // whereas if we put the tab in the correct position, its group membership
+    // may automatically update, but it won't move when we try to group or
+    // ungroup it.
+    await this.flattenedMove(tab, flat_pos.parent, flat_pos.index);
+
+    if (toParent.type === "window") {
+      await browser.tabs.ungroup(tab.id);
+    } else {
+      await browser.tabs.group({
+        groupId: toParent.group.id,
+        tabIds: [tab.id],
+      });
+    }
+
+    // We don't bother polling the model for position here, because
+    // flattenedMove() has already done it for us. We only care about seeing the
+    // group update.
+    await shortPoll(() => {
+      if (tab.position?.parent !== toParent) tryAgain();
+    });
+  }
+
+  /** Moves a tab such that it precedes the item with flattened index `toIndex`
+   * in the destination window.  (You can pass an index `>=` the length of the
    * windows's tab list to move the item to the end of the window.) */
   async flattenedMove(
     tab: Tab,
@@ -452,7 +600,7 @@ export class Model {
 
   /** Shows a tab that was previously hidden. */
   async show(tab: Tab): Promise<void> {
-    await browser.tabs.show(tab.id);
+    if (!!browser.tabs.show) await browser.tabs.show(tab.id);
     // We expect SK_HIDDEN_BY_TAB_STASH to be cleared automatically by
     // whenTabUpdated().  We do it there, instead of here, because some other
     // extension or the user could have un-hid the tab without going thru us.
@@ -461,6 +609,7 @@ export class Model {
   /** Hides the specified tabs, optionally discarding them (to free up memory).
    * If the browser does not support hiding tabs, closes them instead. */
   async hide(tabs: Tab[], discard?: "discard"): Promise<void> {
+    if (tabs.length === 0) return;
     if (!!browser.tabs.hide) {
       const tids = tabs.map(t => t.id);
       trace("hiding tabs", tabs);
@@ -1130,4 +1279,32 @@ export class Model {
       check();
     });
   }
+}
+
+/** Given a regular position in the window, compute and return the equivalent
+ * flattened position to use for insertion. This is useful for figuring out
+ * where to move a tab to or where to create a tab. */
+function _flatPositionFor(
+  parent: Window | TabGroupExtent,
+  index: number,
+): TreePosition<Window> {
+  const toWindow = parent.type === "window" ? parent : parent.position!.parent;
+
+  let displacingChild = parent.children[index];
+  let flatIndex;
+
+  if (!displacingChild && parent.type === "tab-group") {
+    displacingChild = toWindow.children[parent.position!.index + 1];
+  }
+
+  if (displacingChild) {
+    if (displacingChild.type === "tab-group") {
+      displacingChild = displacingChild.children[0];
+    }
+    flatIndex = displacingChild.flattenedPosition!.index;
+  } else {
+    flatIndex = toWindow.flattenedChildren.length;
+  }
+
+  return {parent: toWindow, index: flatIndex};
 }

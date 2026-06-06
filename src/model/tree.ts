@@ -83,6 +83,18 @@ export abstract class Tree<
     }
   }
 
+  /** Walks all nodes in the subtree rooted at `node`, yielding each node in
+   * turn. Nodes which are unloaded or partially-loaded are yielded; it's up to
+   * the caller to handle unloaded nodes appropriately. */
+  *nodesInSubtree(node: R | M | L): Generator<R | M | L> {
+    yield node;
+    if (!this.isLeafType(node)) {
+      for (const child of this.childrenOf(node)) {
+        if (child) yield* this.nodesInSubtree(child);
+      }
+    }
+  }
+
   /** Check if `node` is a child of `parent`. Children are considered to contain
    * themselves, so if `node === parent`, this returns true. */
   isChildInParent(node: R | M | L, parent: R | M): boolean {

@@ -1154,18 +1154,36 @@ describe("model", () => {
         toWindow: keyof typeof env.windows;
         toIndex: number;
         finalState: (keyof typeof env.tabs)[];
+        updates?: {
+          tab: keyof typeof env.tabs;
+          u: browser.Tabs.OnUpdatedChangeInfoType;
+        }[];
       }) =>
       async () => {
         const p = env.model.putItemsInWindow({
           items: options.items.map(i => env.model.tabs.tab(env.tabs[i].id)!),
-          toWindow: env.model.tabs.window(env.windows[options.toWindow].id)!,
+          toParent: env.model.tabs.window(env.windows[options.toWindow].id)!,
           toIndex: options.toIndex,
         });
-        await events.nextN<any>(
+        const i = events.ignore(
+          // We don't know how many move events to expect, because some tabs
+          // could never move and wind up in different places, and some tabs
+          // could move yet wind up in exactly the same place.
           [browser.tabs.onMoved, browser.tabs.onAttached],
-          options.items.length,
         );
+        if (options.updates) {
+          for (let i = 0; i < options.updates.length; ++i) {
+            const u = await events.next(browser.tabs.onUpdated);
+            expect(u[0], `updated tab id = ${options.updates[i].tab}`).to.equal(
+              env.tabs[options.updates[i].tab].id,
+            );
+            expect(u[1], `event for ${options.updates[i].tab}`).to.include(
+              options.updates[i].u,
+            );
+          }
+        }
         await p;
+        i.cancel();
         await check_window(options.toWindow, options.finalState);
       };
 
@@ -1205,6 +1223,7 @@ describe("model", () => {
             "real_unstashed",
             "real_helen",
           ],
+          updates: [{tab: "real_bob", u: {pinned: true}}],
         }),
       );
 
@@ -1213,7 +1232,7 @@ describe("model", () => {
         testMove({
           items: ["real_bob"],
           toWindow: "real",
-          toIndex: 10,
+          toIndex: 9,
           finalState: [
             "real_patricia",
             "real_paul",
@@ -1235,7 +1254,7 @@ describe("model", () => {
         testMove({
           items: ["real_bob"],
           toWindow: "real",
-          toIndex: 11,
+          toIndex: 10,
           finalState: [
             "real_patricia",
             "real_paul",
@@ -1257,7 +1276,7 @@ describe("model", () => {
         testMove({
           items: ["real_bob"],
           toWindow: "real",
-          toIndex: 9,
+          toIndex: 8,
           finalState: [
             "real_patricia",
             "real_paul",
@@ -1299,19 +1318,19 @@ describe("model", () => {
       it(
         "forward multiple",
         testMove({
-          items: ["real_bob", "real_doug_2"],
+          items: ["real_bob", "real_doug"],
           toWindow: "real",
-          toIndex: 9,
+          toIndex: 8,
           finalState: [
             "real_patricia",
             "real_paul",
             "real_blank",
-            "real_doug",
+            "real_doug_2",
             "real_estelle",
             "real_francis",
             "real_harry",
             "real_bob",
-            "real_doug_2",
+            "real_doug",
             "real_unstashed",
             "real_helen",
           ],
@@ -1321,20 +1340,20 @@ describe("model", () => {
       it(
         "backward multiple",
         testMove({
-          items: ["real_doug_2", "real_harry"],
+          items: ["real_doug", "real_unstashed"],
           toWindow: "real",
           toIndex: 2,
           finalState: [
             "real_patricia",
             "real_paul",
-            "real_doug_2",
-            "real_harry",
+            "real_doug",
+            "real_unstashed",
             "real_blank",
             "real_bob",
-            "real_doug",
+            "real_doug_2",
             "real_estelle",
             "real_francis",
-            "real_unstashed",
+            "real_harry",
             "real_helen",
           ],
         }),
@@ -1359,6 +1378,10 @@ describe("model", () => {
             "real_francis",
             "real_helen",
           ],
+          updates: [
+            {tab: "real_paul", u: {pinned: false}},
+            {tab: "real_harry", u: {hidden: false}},
+          ],
         }),
       );
 
@@ -1381,13 +1404,18 @@ describe("model", () => {
             "real_unstashed",
             "real_helen",
           ],
+          updates: [
+            {tab: "real_paul", u: {pinned: false}},
+            {tab: "real_doug_2", u: {hidden: false}},
+            {tab: "real_harry", u: {hidden: false}},
+          ],
         }),
       );
 
       it(
         "leaves everything where it is",
         testMove({
-          items: ["real_bob", "real_doug", "real_doug_2", "real_estelle"],
+          items: ["real_bob", "real_doug", "real_doug_2"],
           toWindow: "real",
           toIndex: 5,
           finalState: [
@@ -1403,6 +1431,7 @@ describe("model", () => {
             "real_unstashed",
             "real_helen",
           ],
+          updates: [{tab: "real_doug_2", u: {hidden: false}}],
         }),
       );
     });
@@ -1424,7 +1453,7 @@ describe("model", () => {
 
       const p = env.model.putItemsInWindow({
         items: [{url: "http://example.com/#1"}, {url: "http://example.com/#2"}],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1460,7 +1489,7 @@ describe("model", () => {
 
       const p = env.model.putItemsInWindow({
         items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1499,7 +1528,7 @@ describe("model", () => {
           env.model.bookmarks.bookmark(env.bookmarks.helen.id)!, // hidden tab
           env.model.bookmarks.bookmark(env.bookmarks.nate.id)!, // not open
         ],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN<any>(
@@ -1511,6 +1540,9 @@ describe("model", () => {
       await events.nextN(browser.tabs.onUpdated, 1); // nate loaded
       await events.nextN(browser.bookmarks.onRemoved, 2);
       const res = await p;
+
+      expect(res[0].type).to.equal("tab");
+      expect(res[1].type).to.equal("tab");
 
       const urls = [
         `${B}`,
@@ -1524,7 +1556,7 @@ describe("model", () => {
         env.tabs.right_blank.id,
         env.tabs.right_adam.id,
         env.tabs.real_helen.id,
-        res[1].id,
+        (res[1] as M.Tabs.Tab).id,
         env.tabs.right_doug.id,
       ];
 
@@ -1582,7 +1614,7 @@ describe("model", () => {
           env.model.tabs.tab(env.tabs.right_doug.id)!,
           env.model.bookmarks.bookmark(env.bookmarks.nate.id)!,
         ],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 1,
       });
       await events.nextN(browser.tabs.onMoved, 1);
@@ -1629,8 +1661,8 @@ describe("model", () => {
       await env.model.bookmarks.loadedStash();
       const p = env.model.putItemsInWindow({
         items: [env.model.bookmarks.bookmark(env.bookmarks.helen.id)!],
-        toWindow: env.model.tabs.window(env.windows.real.id)!,
-        toIndex: 9,
+        toParent: env.model.tabs.window(env.windows.real.id)!,
+        toIndex: 8,
       });
       await events.next(browser.tabs.onMoved);
       await events.next(browser.tabs.onUpdated);
@@ -1657,8 +1689,8 @@ describe("model", () => {
       await env.model.bookmarks.loadedStash();
       const p = env.model.putItemsInWindow({
         items: [env.model.bookmarks.bookmark(env.bookmarks.doug_2.id)!],
-        toWindow: env.model.tabs.window(env.windows.real.id)!,
-        toIndex: 9,
+        toParent: env.model.tabs.window(env.windows.real.id)!,
+        toIndex: 8,
       });
       await events.next(browser.tabs.onMoved);
       await events.next(browser.tabs.onUpdated);

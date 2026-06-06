@@ -507,6 +507,7 @@ export default defineComponent({
       the.model.attempt(() =>
         the.model.putItemsInWindow({
           items,
+          toParent: this.targetWindow,
           toIndex: ev.insertBeforeIndex,
         }),
       );

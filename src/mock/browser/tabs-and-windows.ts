@@ -128,7 +128,19 @@ export class State {
 
       let active_tab: Tab | undefined = undefined;
       let last_group_id: number | undefined = undefined;
+      let seen_unpinned = false;
       for (const t of w.tabs) {
+        // Make sure all pinned tabs appear at the beginning of the window.
+        if (t.pinned) {
+          if (seen_unpinned) {
+            throw new Error(
+              `Tab ${t.id} in window ${w.id} is pinned, but appears after an unpinned tab`,
+            );
+          }
+        } else {
+          seen_unpinned = true;
+        }
+
         // Make sure all tabs in a group are contiguous.
         if (t.groupId !== undefined && t.groupId !== -1) {
           if (t.groupId !== last_group_id) {
@@ -798,6 +810,23 @@ class MockTabs implements T.Static {
       //   to_win.tabs.map(({url, id, groupId}) => ({url, id, groupId})),
       // );
 
+      // If the tab is moved out of a pinned area, it needs to be unpinned.
+      if (tab.pinned && !to_win.tabs[to_index - 1]?.pinned) {
+        tab.pinned = false;
+        this.onUpdated.send(
+          tab.id,
+          {pinned: false},
+          JSON.parse(JSON.stringify(tab)),
+        );
+      } else if (!tab.pinned && to_win.tabs[to_index + 1]?.pinned) {
+        tab.pinned = true;
+        this.onUpdated.send(
+          tab.id,
+          {pinned: true},
+          JSON.parse(JSON.stringify(tab)),
+        );
+      }
+
       // If the tab is being inserted in the middle of a group, it should join
       // that group.
       const groupIdBeforeInsertPoint = to_win.tabs[to_index - 1]?.groupId;
@@ -825,11 +854,13 @@ class MockTabs implements T.Static {
           newPosition: to_index,
         });
       } else {
-        this.onMoved.send(tid, {
-          windowId: to_win.id,
-          fromIndex: tab.index,
-          toIndex: to_index,
-        });
+        if (tab.index !== to_index) {
+          this.onMoved.send(tid, {
+            windowId: to_win.id,
+            fromIndex: tab.index,
+            toIndex: to_index,
+          });
+        }
       }
       ++to_index;
     }
@@ -1331,19 +1362,6 @@ class MockTabGroups implements G.Static {
       let oldIndex = fromStartIndex;
       let newIndex = toIndex;
 
-      // Adjust the indices to account for the fact that we're sending events as
-      // if we're moving tabs one by one, rather than in bulk.
-      if (fromStartIndex < toIndex) {
-        // If we're moving items forward, we increase the insertion point by the
-        // number of items still waiting to be moved, since those items haven't
-        // been removed yet.
-        newIndex += fromEndIndex - fromStartIndex - 1;
-      } else {
-        // If we're moving items backward, no adjustment is necessary, since the
-        // index of the insertion and removal points don't change relative to
-        // each other.
-      }
-
       for (const t of movingTabs) {
         this._state.onTabMoved.send(t.id, {
           windowId: t.windowId,
@@ -1352,7 +1370,8 @@ class MockTabGroups implements G.Static {
         });
         if (fromStartIndex < toIndex) {
           // We're moving forward, so both the removal and insertion points stay
-          // fixed.
+          // fixed, because the removal from the earlier point in the window
+          // cancels out the insertion at the later point in the window.
         } else {
           // We're moving backward, so both insertion and removal points must
           // advance.

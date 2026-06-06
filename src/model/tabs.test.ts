@@ -369,13 +369,13 @@ describe("model/tabs", () => {
   });
 
   it("moves tabs within a window (forwards)", async () => {
-    await browser.tabs.move(tabs.left_alice.id, {
-      windowId: windows.left.id,
-      index: 2,
-    });
-    await events.next(browser.tabs.onMoved);
-
     const left = model.window(windows.left.id)!;
+    const alice = model.tab(tabs.left_alice.id)!;
+
+    const p = model.move(alice, left, 3);
+    await events.next(browser.tabs.onMoved);
+    await p;
+
     expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_betty.id,
       tabs.left_charlotte.id,
@@ -409,13 +409,13 @@ describe("model/tabs", () => {
   });
 
   it("moves tabs within a window (backwards)", async () => {
-    await browser.tabs.move(tabs.left_charlotte.id, {
-      windowId: windows.left.id,
-      index: 0,
-    });
-    await events.next(browser.tabs.onMoved);
-
     const left = model.window(windows.left.id)!;
+    const charlotte = model.tab(tabs.left_charlotte.id)!;
+
+    const p = model.move(charlotte, left, 0);
+    await events.next(browser.tabs.onMoved);
+    await p;
+
     expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_charlotte.id,
       tabs.left_alice.id,
@@ -449,13 +449,14 @@ describe("model/tabs", () => {
   });
 
   it("moves tabs between windows", async () => {
-    await browser.tabs.move(tabs.left_betty.id, {
-      windowId: windows.right.id,
-      index: 1,
-    });
-    await events.next(browser.tabs.onAttached);
-
     const left = model.window(windows.left.id)!;
+    const right = model.window(windows.right.id)!;
+    const betty = model.tab(tabs.left_betty.id)!;
+
+    const p = model.move(betty, right, 1);
+    await events.next(browser.tabs.onAttached);
+    await p;
+
     expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_charlotte.id,
@@ -467,7 +468,6 @@ describe("model/tabs", () => {
       flattenedPosition: {parent: left, index: 1},
     });
 
-    const right = model.window(windows.right.id)!;
     expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.left_betty.id,
@@ -849,23 +849,24 @@ describe("model/tabs", () => {
     describe("tab stays in position and...", () => {
       describe("...is not in a group and is added to an adjacent group", () => {
         it("...at the beginning", async () => {
-          await browser.tabs.show(tabs.real_doug_2.id);
+          const real = model.window(windows.real.id)!;
+          const ef = real.children[6] as M.TabGroupExtent;
+          expect(ef.type).to.equal("tab-group");
+          const doug_2 = model.tab(tabs.real_doug_2.id)!;
+
+          await model.show(doug_2);
           await events.next(browser.tabs.onUpdated);
 
-          await browser.tabs.group({
-            groupId: groups.ef.id,
-            tabIds: [tabs.real_doug_2.id],
-          });
+          const p = model.move(doug_2, ef, 0);
           await events.next(browser.tabs.onUpdated);
           // It moves to the end of the group. Sadly there's no way to simulate
           // in the API what the user can actually do--drag a tab into the
           // beginning of the group.
           await events.next(browser.tabs.onMoved);
+          await p;
 
           expect(
-            model
-              .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+            real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -901,19 +902,20 @@ describe("model/tabs", () => {
         });
 
         it("...at the end", async () => {
-          await browser.tabs.show(tabs.real_harry.id);
+          const real = model.window(windows.real.id)!;
+          const ef = real.children[6] as M.TabGroupExtent;
+          expect(ef.type).to.equal("tab-group");
+          const harry = model.tab(tabs.real_harry.id)!;
+
+          await model.show(harry);
           await events.next(browser.tabs.onUpdated);
 
-          await browser.tabs.group({
-            groupId: groups.ef.id,
-            tabIds: [tabs.real_harry.id],
-          });
+          const p = model.move(harry, ef, ef.children.length);
           await events.next(browser.tabs.onUpdated);
+          await p;
 
           expect(
-            model
-              .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+            real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1010,13 +1012,21 @@ describe("model/tabs", () => {
         });
 
         it("...from the beginning of the old group to the end of the new group", async () => {
-          await browser.tabs.group({groupId, tabIds: [tabs.real_estelle.id]});
+          const real = model.window(windows.real.id)!;
+          const ef = real.children[5] as M.TabGroupExtent;
+          expect(ef.type, "ef.type").to.equal("tab-group");
+          expect(ef.group.id).to.equal(groups.ef.id);
+          const newGroup = real.children[4] as M.TabGroupExtent;
+          expect(newGroup.type, "newGroup.type").to.equal("tab-group");
+          expect(newGroup.group.id).to.equal(groupId);
+          const estelle = model.tab(tabs.real_estelle.id)!;
+
+          const p = model.move(estelle, newGroup, newGroup.children.length);
           await events.next(browser.tabs.onUpdated);
+          await p;
 
           expect(
-            model
-              .window(windows.real.id)!
-              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+            real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
           ).to.deep.equal([
             [tabs.real_patricia.url, tabs.real_patricia.id, -1],
             [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1087,13 +1097,15 @@ describe("model/tabs", () => {
       });
 
       it("...is removed from its group", async () => {
-        await browser.tabs.ungroup(tabs.real_estelle.id);
+        const real = model.window(windows.real.id)!;
+        const estelle = model.tab(tabs.real_estelle.id)!;
+
+        const p = model.move(estelle, real, 6);
         await events.next(browser.tabs.onUpdated);
+        await p;
 
         expect(
-          model
-            .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1124,17 +1136,21 @@ describe("model/tabs", () => {
       });
 
       it("...is removed from its group and the group is destroyed", async () => {
-        await browser.tabs.ungroup([
-          tabs.real_estelle.id,
-          tabs.real_francis.id,
-        ]);
-        await events.nextN(browser.tabs.onUpdated, 2);
+        const real = model.window(windows.real.id)!;
+        const estelle = model.tab(tabs.real_estelle.id)!;
+        const francis = model.tab(tabs.real_francis.id)!;
+
+        let p = model.move(estelle, real, 6);
+        await events.next(browser.tabs.onUpdated);
+        await p;
+
+        p = model.move(francis, real, 7);
+        await events.next(browser.tabs.onUpdated);
         await events.next(browser.tabGroups.onRemoved);
+        await p;
 
         expect(
-          model
-            .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1169,14 +1185,18 @@ describe("model/tabs", () => {
 
     describe("an entire group is moved", () => {
       it("...backward in the window", async () => {
-        await browser.tabGroups.move(groups.ef.id, {index: 3});
+        const real = model.window(windows.real.id)!;
+        const ef = real.children[6] as M.TabGroupExtent;
+        expect(ef.type).to.equal("tab-group");
+        expect(ef.group.id).to.equal(groups.ef.id);
+
+        const p = model.moveGroup(ef, real, 3);
         await events.nextN(browser.tabs.onMoved, 2);
         await events.next(browser.tabGroups.onMoved);
+        await p;
 
         expect(
-          model
-            .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1212,14 +1232,18 @@ describe("model/tabs", () => {
       });
 
       it("...forward in the window", async () => {
-        await browser.tabGroups.move(groups.ef.id, {index: 8});
+        const real = model.window(windows.real.id)!;
+        const ef = real.children[6] as M.TabGroupExtent;
+        expect(ef.type).to.equal("tab-group");
+        expect(ef.group.id).to.equal(groups.ef.id);
+
+        const p = model.moveGroup(ef, real, 8);
         await events.nextN(browser.tabs.onMoved, 2);
         await events.next(browser.tabGroups.onMoved);
+        await p;
 
         expect(
-          model
-            .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1255,17 +1279,19 @@ describe("model/tabs", () => {
       });
 
       it("...from one window to another", async () => {
-        await browser.tabGroups.move(groups.ef.id, {
-          windowId: windows.right.id,
-          index: 3,
-        });
+        const real = model.window(windows.real.id)!;
+        const right = model.window(windows.right.id)!;
+        const ef = real.children[6] as M.TabGroupExtent;
+        expect(ef.type).to.equal("tab-group");
+        expect(ef.group.id).to.equal(groups.ef.id);
+
+        const p = model.moveGroup(ef, right, 3);
         await events.nextN(browser.tabs.onAttached, 2);
         await events.next(browser.tabGroups.onMoved);
+        await p;
 
         expect(
-          model
-            .window(windows.real.id)!
-            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.real_patricia.url, tabs.real_patricia.id, -1],
           [tabs.real_paul.url, tabs.real_paul.id, -1],
@@ -1291,9 +1317,7 @@ describe("model/tabs", () => {
         ]);
 
         expect(
-          model
-            .window(windows.right.id)!
-            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          right.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
         ).to.deep.equal([
           [tabs.right_blank.url, tabs.right_blank.id, -1],
           [tabs.right_adam.url, tabs.right_adam.id, -1],
