@@ -380,6 +380,14 @@ export class Model {
     tabs: {title?: string; url: string}[];
     active?: boolean;
   }): Promise<TabGroupExtent> {
+    if (options.atIndex > options.atParent.children.length) {
+      // Needed so the shortPoll() below looks for the right index
+      options.atIndex = options.atParent.children.length;
+    }
+
+    trace("creating tab group with tabs", options.title, options.tabs);
+    trace("parent window", options.atParent.id, "index", options.atIndex);
+
     let next_index = options.atIndex;
     const tabs: Tab[] = [];
     for (const t of options.tabs) {

@@ -55,7 +55,7 @@ import * as Options from "./options.js";
 import * as Tabs from "./tabs.js";
 import {TreeFilter} from "./tree-filter.js";
 import {TreeSelection} from "./tree-selection.js";
-import {BookmarkTree} from "./bookmarks.js";
+import {BookmarkTree, friendlyFolderName} from "./bookmarks.js";
 import {Tree, type TreePosition} from "./tree.js";
 
 export {
@@ -70,6 +70,10 @@ export {
 };
 
 const trace = trace_fn("model");
+
+/** The path separator used in group titles, whenever we need to flatten nested
+ * folders into tab groups. */
+export const GROUP_TITLE_PATH_SEP = " > ";
 
 /** The StashItem is anything that can be placed in the stash.  It could already
  * be present as a tab (`id: number`), a bookmark (`id: string`), or not present
@@ -975,6 +979,7 @@ export class Model {
       tree: StashParent,
       to_parent: Tabs.Window | Tabs.TabGroupExtent,
       to_index: number,
+      title: string,
       task?: TaskMonitor,
     ): Promise<void> => {
       const leaves = filterMap(tree.children, c =>
@@ -991,16 +996,28 @@ export class Model {
         to_parent = to_parent.position!.parent;
       }
 
+      if (leaves.length > 0) {
+        await this.tabs.createGroup({
+          title: friendlyFolderName(title),
+          atParent: to_parent,
+          atIndex: to_index,
+          tabs: leaves,
+        });
+      }
+
       const new_items: Tabs.TabGroupExtent[] = [];
-      await this.tabs.createGroup({
-        atParent: to_parent,
-        atIndex: to_index,
-        tabs: leaves,
-      });
       for (const g of subgroups) {
         ++to_index;
+        const subtitle =
+          "title" in g ? g.title : "group" in g ? g.group.title : "Untitled";
         const t = (tm?: TaskMonitor) =>
-          createTreeInWindow(g, to_parent, to_index, tm);
+          createTreeInWindow(
+            g,
+            to_parent,
+            to_index,
+            `${title}${GROUP_TITLE_PATH_SEP}${friendlyFolderName(subtitle)}`,
+            tm,
+          );
         await (task ? task.spawn(t) : t());
       }
 
@@ -1061,7 +1078,7 @@ export class Model {
           throw new Error(`Moving whole windows is not implemented`);
         } else {
           const t = (tm?: TaskMonitor) =>
-            createTreeInWindow(item, to_parent, to_index, tm);
+            createTreeInWindow(item, to_parent, to_index, item.title, tm);
           await (task ? task.spawn(t) : t());
         }
         return 0;

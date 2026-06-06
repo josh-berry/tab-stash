@@ -16,6 +16,7 @@ import {getDefaultFolderNameISODate, type Folder} from "./bookmarks.js";
 import type {DeletedFolder} from "./deleted-items.js";
 import * as M from "./index.js";
 import type {TabID} from "./tabs.js";
+import {copying} from "./index.js";
 
 describe("model", () => {
   let env: ModelTestEnv = undefined!;
@@ -1710,6 +1711,105 @@ describe("model", () => {
         "real_doug_2",
         "real_unstashed",
         "real_helen",
+      ]);
+    });
+
+    it("moves folders into the window as tab groups", async () => {
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
+        items: copying([env.model.bookmarks.folder(env.bookmarks.nested.id)!]),
+        toParent: env.model.tabs.window(env.windows.right.id)!,
+        toIndex: 3,
+      });
+      const ign = events.ignore([
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+      ]);
+      const tabs_or_tgs = await p;
+      ign.cancel();
+      expect(tabs_or_tgs.length).to.equal(0);
+
+      const win = env.model.tabs.window(env.windows.right.id)!;
+
+      expect(win.flattenedChildren.map(c => c.url)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        `${B}#nested_1`,
+        `${B}#nested_2`,
+        `${B}#nested_child_1`,
+        `${B}#2`,
+      ]);
+
+      expect(
+        win.children.map(c =>
+          c.type === "tab-group"
+            ? {title: c.group.title, children: c.children.map(c => c.url)}
+            : c.url,
+        ),
+      ).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {title: "Stash with Nested Folder > Extra", children: [`${B}#2`]},
+      ]);
+    });
+
+    // NOTE: This catches a regression and also checks unnamed folders
+    it("makes tab groups at the end of the window", async () => {
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
+        items: copying([env.model.bookmarks.folder(env.bookmarks.unnamed.id)!]),
+        toParent: env.model.tabs.window(env.windows.right.id)!,
+        toIndex: 100,
+      });
+      const ign = events.ignore([
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+      ]);
+      const tabs_or_tgs = await p;
+      ign.cancel();
+      expect(tabs_or_tgs.length).to.equal(0);
+
+      const win = env.model.tabs.window(env.windows.right.id)!;
+
+      expect(win.flattenedChildren.map(c => c.url)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        `${B}#undyne`,
+      ]);
+
+      expect(
+        win.children.map(c =>
+          c.type === "tab-group"
+            ? {title: c.group.title, children: c.children.map(c => c.url)}
+            : c.url,
+        ),
+      ).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        {
+          title: `Saved ${new Date("1970-01-01T00:00:00.000Z").toLocaleString()}`,
+          children: [`${B}#undyne`],
+        },
       ]);
     });
   });

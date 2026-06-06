@@ -264,7 +264,7 @@ export async function shortPoll<T>(fn: () => T, ms: number = 100): Promise<T> {
     }
     await nextTick();
   }
-  throw new TimedOutError();
+  throw new TimedOutError(`Timed out waiting for: ${fn.toString()}`);
 }
 
 /** The exception to throw to get {@link shortPoll()} to try again. */
@@ -278,8 +278,8 @@ export function tryAgain(): never {
 /** The exception thrown by {@link shortPoll()} if we give up polling and the
  * function never returned a value. */
 export class TimedOutError extends Error {
-  constructor() {
-    super("Timed out");
+  constructor(msg?: string) {
+    super(msg || "Timed out");
   }
 }
 
