@@ -1731,7 +1731,23 @@ describe("model", () => {
       ]);
       const tabs_or_tgs = await p;
       ign.cancel();
-      expect(tabs_or_tgs.length).to.equal(0);
+      expect(
+        tabs_or_tgs.map(i =>
+          i.type === "tab"
+            ? i.url
+            : {title: i.group.title, children: i.children.map(c => c.url)},
+        ),
+      ).to.deep.equal([
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {title: "Stash with Nested Folder > Extra", children: [`${B}#2`]},
+      ]);
 
       const win = env.model.tabs.window(env.windows.right.id)!;
 
@@ -1785,7 +1801,18 @@ describe("model", () => {
       ]);
       const tabs_or_tgs = await p;
       ign.cancel();
-      expect(tabs_or_tgs.length).to.equal(0);
+      expect(
+        tabs_or_tgs.map(i =>
+          i.type === "tab"
+            ? i.url
+            : {title: i.group.title, children: i.children.map(c => c.url)},
+        ),
+      ).to.deep.equal([
+        {
+          title: `Saved ${new Date("1970-01-01T00:00:00.000Z").toLocaleString()}`,
+          children: [`${B}#undyne`],
+        },
+      ]);
 
       const win = env.model.tabs.window(env.windows.right.id)!;
 

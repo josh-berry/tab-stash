@@ -880,9 +880,10 @@ export class Model {
   }
 
   /** Move or copy items (bookmarks, tabs, and/or external items) to a
-   * particular location in a particular window.  Tabs which are
-   * moved/created/restored will NOT be active (i.e. they will always be in
-   * the background).
+   * particular location in a particular window.  Returns the affected
+   * tabs/groups (either the moved original items, or the new items that were
+   * created).  Tabs which are moved/created/restored will NOT be active (i.e.
+   * they will always be in the background).
    *
    * If the source item contains an ID and is a tab, it will be moved directly
    * (so the ID remains the same).  If it contains an ID and is a bookmark, a
@@ -997,12 +998,13 @@ export class Model {
       }
 
       if (leaves.length > 0) {
-        await this.tabs.createGroup({
+        const g = await this.tabs.createGroup({
           title: friendlyFolderName(title),
           atParent: to_parent,
           atIndex: to_index,
           tabs: leaves,
         });
+        moved_items.push(g);
       }
 
       const new_items: Tabs.TabGroupExtent[] = [];
@@ -1051,7 +1053,7 @@ export class Model {
           ? -1
           : 0;
       const new_extent = await this.tabs.moveGroup(item, to_parent, to_index);
-      moved_items.push(item);
+      moved_items.push(new_extent); // the old extent will be removed
 
       // Inherit selection on the new extent
       this.selection.info(new_extent).isSelected = isSelected;
