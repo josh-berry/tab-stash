@@ -621,7 +621,12 @@ export class Model {
     // previously closed the import dialog, changed the selection, etc.).
     if (url.searchParams.size > 0) url.hash = makeRandomString(8);
 
-    return this.restoreTabs([{title: "Tab Stash", url: url.href}], {});
+    // CAST: We know we're only getting tabs back because we are restoring only
+    // a single tab.
+    return this.restoreTabs(
+      [{title: "Tab Stash", url: url.href}],
+      {},
+    ) as Promise<Tabs.Tab[]>;
   }
 
   /** Restores the specified URLs as new tabs in the current window.  Returns
@@ -636,7 +641,7 @@ export class Model {
    * Stash is the homepage or the new-tab page).  In that situation, this
    * function may not return (since the tab running it will be closed). */
   async restoreTabs(
-    items: StashLeaf[],
+    items: StashItem[],
     options: {
       /** Should tabs be opened in the background? */
       background?: boolean;
@@ -647,9 +652,11 @@ export class Model {
        *
        * Note that this function always runs exactly once (even if there is no
        * tab to close.) */
-      beforeClosing?: (restoredItems: Tabs.Tab[]) => Promise<void>;
+      beforeClosing?: (
+        restoredItems: (Tabs.TabGroupExtent | Tabs.Tab)[],
+      ) => Promise<void>;
     },
-  ): Promise<Tabs.Tab[]> {
+  ): Promise<(Tabs.TabGroupExtent | Tabs.Tab)[]> {
     const toWindow = this.tabs.targetWindow.value;
     if (toWindow === undefined) {
       throw new Error(`No target window; not sure where to restore tabs`);
@@ -658,7 +665,7 @@ export class Model {
     // As a special case, if we are restoring just a single tab, first check
     // if we already have the tab open and just switch to it.  (No need to
     // disturb the ordering of tabs in the browser window.)
-    if (!options.background && items.length === 1 && items[0].url) {
+    if (!options.background && items.length === 1 && "url" in items[0]) {
       const t = Array.from(this.tabs.tabsWithURL(items[0].url)).find(
         t => !t.hidden && t.flattenedPosition?.parent === toWindow,
       );
@@ -676,14 +683,11 @@ export class Model {
     // close it if it's just the new-tab page.
     const active_tab = win_tabs.filter(t => t.active)[0];
 
-    // CAST: We know that restored_items are only tabs, because we only accept
-    // leaves as items to restore. If we ever extend this to work with tab
-    // groups, we'll need to revisit this.
-    const restored_items = (await this.putItemsInWindow({
+    const restored_items = await this.putItemsInWindow({
       items: copying(items),
       toParent: toWindow,
       toIndex: toWindow.children.length,
-    })) as Tabs.Tab[];
+    });
 
     if (options.beforeClosing) await options.beforeClosing(restored_items);
 
@@ -693,7 +697,11 @@ export class Model {
       // bunch of tabs.
       if (restored_items.length > 0) {
         const last_item = restored_items[restored_items.length - 1];
-        await browser.tabs.update(last_item.id, {active: true});
+        const last_tab =
+          last_item.type === "tab"
+            ? last_item
+            : last_item.children[last_item.children.length - 1];
+        await browser.tabs.update(last_tab.id, {active: true});
       }
 
       // Finally, if we opened at least one tab, AND we were looking at

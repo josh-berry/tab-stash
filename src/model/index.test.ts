@@ -1731,13 +1731,7 @@ describe("model", () => {
       ]);
       const tabs_or_tgs = await p;
       ign.cancel();
-      expect(
-        tabs_or_tgs.map(i =>
-          i.type === "tab"
-            ? i.url
-            : {title: i.group.title, children: i.children.map(c => c.url)},
-        ),
-      ).to.deep.equal([
+      expect(tabStructureOf(tabs_or_tgs)).to.deep.equal([
         {
           title: "Stash with Nested Folder",
           children: [`${B}#nested_1`, `${B}#nested_2`],
@@ -1761,13 +1755,7 @@ describe("model", () => {
         `${B}#2`,
       ]);
 
-      expect(
-        win.children.map(c =>
-          c.type === "tab-group"
-            ? {title: c.group.title, children: c.children.map(c => c.url)}
-            : c.url,
-        ),
-      ).to.deep.equal([
+      expect(tabStructureOf(win.children)).to.deep.equal([
         `${B}`,
         `${B}#adam`,
         `${B}#doug`,
@@ -1801,13 +1789,7 @@ describe("model", () => {
       ]);
       const tabs_or_tgs = await p;
       ign.cancel();
-      expect(
-        tabs_or_tgs.map(i =>
-          i.type === "tab"
-            ? i.url
-            : {title: i.group.title, children: i.children.map(c => c.url)},
-        ),
-      ).to.deep.equal([
+      expect(tabStructureOf(tabs_or_tgs)).to.deep.equal([
         {
           title: `Saved ${new Date("1970-01-01T00:00:00.000Z").toLocaleString()}`,
           children: [`${B}#undyne`],
@@ -1823,13 +1805,7 @@ describe("model", () => {
         `${B}#undyne`,
       ]);
 
-      expect(
-        win.children.map(c =>
-          c.type === "tab-group"
-            ? {title: c.group.title, children: c.children.map(c => c.url)}
-            : c.url,
-        ),
-      ).to.deep.equal([
+      expect(tabStructureOf(win.children)).to.deep.equal([
         `${B}`,
         `${B}#adam`,
         `${B}#doug`,
@@ -1901,7 +1877,7 @@ describe("model", () => {
       await events.next(browser.tabs.onUpdated);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
-      const restored = await p;
+      const restored = (await p) as M.Tabs.Tab[];
       await events.next(browser.tabs.onRemoved); // closing new-tab page
 
       expect(restored[0].hidden).to.be.false;
@@ -1942,7 +1918,7 @@ describe("model", () => {
       await events.nextN(browser.tabs.onUpdated, 2);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
-      const restored = await p;
+      const restored = (await p) as M.Tabs.Tab[];
       await events.next(browser.tabs.onRemoved); // closing new-tab page
 
       expect(restored).to.deep.equal(
@@ -1984,6 +1960,53 @@ describe("model", () => {
         new_betty.id,
         env.tabs.real_doug.id,
         new_paul.id,
+      ]);
+    });
+
+    it("restores groups", async () => {
+      events.ignore([
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onRemoved, // for the active new tab
+        browser.tabs.onHighlighted,
+        browser.tabs.onActivated,
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+      ]);
+      const restored_items = await env.model.restoreTabs(
+        [
+          {
+            title: "Group",
+            children: [
+              {url: `${B}#meow`},
+              {title: "Subgroup", children: [{url: `${B}#hiss`}]},
+              {url: `${B}#mew`},
+            ],
+          },
+          {title: "Empty", children: []},
+        ],
+        {},
+      );
+
+      expect(tabStructureOf(restored_items)).to.deep.equal([
+        {title: "Group", children: [`${B}#meow`, `${B}#mew`]},
+        {title: "Group > Subgroup", children: [`${B}#hiss`]},
+      ]);
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}#patricia`,
+        `${B}#paul`,
+        `${B}`,
+        `${B}#bob`,
+        `${B}#doug`,
+        `${B}#doug`,
+        {title: "EF Group", children: [`${B}#estelle`, `${B}#francis`]},
+        `${B}#harry`,
+        `${B}#unstashed`,
+        `${B}#helen`,
+        {title: "Group", children: [`${B}#meow`, `${B}#mew`]},
+        {title: "Group > Subgroup", children: [`${B}#hiss`]},
       ]);
     });
   });
@@ -2312,3 +2335,13 @@ describe("model", () => {
     });
   });
 });
+
+function tabStructureOf(
+  tabsOrTabGroups: (M.Tabs.TabGroupExtent | M.Tabs.Tab)[],
+): (string | {title: string; children: string[]})[] {
+  return tabsOrTabGroups.map(i =>
+    i.type === "tab"
+      ? i.url
+      : {title: i.group.title, children: i.children.map(c => c.url)},
+  );
+}
