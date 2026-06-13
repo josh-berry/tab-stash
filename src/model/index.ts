@@ -483,8 +483,13 @@ export class Model {
    * the browser window(s) open. */
   async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
     // Clear any highlights/selections on tabs we are stashing
+    // Chromium rejects un-highlighting the active tab when it's the only
+    // highlighted tab in the window; ignore that failure so it doesn't abort
+    // the close step.
     await Promise.all(
-      tabs.map(t => browser.tabs.update(t.id, {highlighted: false})),
+      tabs.map(t =>
+        browser.tabs.update(t.id, {highlighted: false}).catch(() => {}),
+      ),
     );
     for (const t of tabs) this.selection.info(t).isSelected = false;
 
@@ -1164,6 +1169,7 @@ export class Model {
   /** Closes any hidden tabs that were originally hidden by Tab Stash, but are
    * no longer present as bookmarks in the stash. */
   async closeOrphanedHiddenTabs() {
+    if (!browser.tabs.hide) return;
     const now = Date.now();
     const tabs = await browser.tabs.query({hidden: true});
 

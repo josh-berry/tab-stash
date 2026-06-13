@@ -409,13 +409,23 @@ export class Model {
       if (closing_tabs_in_window.length >= visible_tabs.length) {
         // If we are about to close all visible tabs in the window, we
         // should open a new tab so the window doesn't close.
+        // For browsers without tab hiding, don't activate it yet; Chromium can
+        // close the extension popup before browser.tabs.remove() runs.
         trace("creating new empty tab in window", win.id);
-        await browser.tabs.create({active: true, windowId: win.id});
-      } else {
+        await browser.tabs.create({
+          active: !!browser.tabs.hide,
+          windowId: win.id,
+        });
+      } else if (!!browser.tabs.hide) {
         // Otherwise we should make sure the currently-active tab isn't
         // a tab we are about to hide/discard.  The browser won't let us
         // hide the active tab, so we'll have to activate a different
         // tab first.
+        //
+        // Browsers without tab hiding don't need this before removing tabs;
+        // they will pick the next active tab during removal.  In Chromium,
+        // activating a different tab from the popup can close the popup before
+        // browser.tabs.remove() runs, so skip the manual focus change there.
         //
         // We do this search a little strangely--first looking only at
         // tabs AFTER the tabs we're focusing away from, followed by
