@@ -412,7 +412,10 @@ export class Model {
         // For browsers without tab hiding, don't activate it yet; Chromium can
         // close the extension popup before browser.tabs.remove() runs.
         trace("creating new empty tab in window", win.id);
-        await browser.tabs.create({active: !!browser.tabs.hide, windowId: win.id});
+        await browser.tabs.create({
+          active: !!browser.tabs.hide,
+          windowId: win.id,
+        });
       } else if (!!browser.tabs.hide) {
         // Otherwise we should make sure the currently-active tab isn't
         // a tab we are about to hide/discard.  The browser won't let us

@@ -487,7 +487,9 @@ export class Model {
     // highlighted tab in the window; ignore that failure so it doesn't abort
     // the close step.
     await Promise.all(
-      tabs.map(t => browser.tabs.update(t.id, {highlighted: false}).catch(() => {})),
+      tabs.map(t =>
+        browser.tabs.update(t.id, {highlighted: false}).catch(() => {}),
+      ),
     );
     for (const t of tabs) this.selection.info(t).isSelected = false;
 
