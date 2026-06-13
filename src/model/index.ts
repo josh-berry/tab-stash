@@ -483,6 +483,9 @@ export class Model {
    * the browser window(s) open. */
   async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
     // Clear any highlights/selections on tabs we are stashing
+    // Chromium rejects un-highlighting the active tab when it's the only
+    // highlighted tab in the window; ignore that failure so it doesn't abort
+    // the close step.
     await Promise.all(
       tabs.map(t => browser.tabs.update(t.id, {highlighted: false}).catch(() => {})),
     );

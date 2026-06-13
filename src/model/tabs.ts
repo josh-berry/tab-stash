@@ -418,6 +418,7 @@ export class Model {
         // a tab we are about to hide/discard.  The browser won't let us
         // hide the active tab, so we'll have to activate a different
         // tab first.
+        //
         // Browsers without tab hiding don't need this before removing tabs;
         // they will pick the next active tab during removal.  In Chromium,
         // activating a different tab from the popup can close the popup before
