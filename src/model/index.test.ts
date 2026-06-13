@@ -15,7 +15,7 @@ import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
 import {getDefaultFolderNameISODate, type Folder} from "./bookmarks.js";
 import type {DeletedFolder} from "./deleted-items.js";
 import * as M from "./index.js";
-import type {TabID} from "./tabs.js";
+import type {TabGroupExtent, TabID} from "./tabs.js";
 import {copying} from "./index.js";
 
 describe("model", () => {
@@ -1768,6 +1768,60 @@ describe("model", () => {
           children: [`${B}#nested_child_1`],
         },
         {title: "Stash with Nested Folder > Extra", children: [`${B}#2`]},
+      ]);
+    });
+
+    it("moves folders inside tab groups by dropping them adjacent", async () => {
+      await env.model.bookmarks.loadedStash();
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      const extent = win.children.find(
+        c => c.type === "tab-group" && c.group.id === env.groups.ef.id,
+      ) as TabGroupExtent;
+      expect(extent).to.not.be.undefined;
+
+      const ign = events.ignore([
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+      ]);
+      const tabs_or_tgs = await env.model.putItemsInWindow({
+        items: [
+          {
+            title: "New Folder",
+            children: [
+              {url: `${B}#asdf`},
+              {title: "Sub", children: [{url: `${B}#sub1`}]},
+              {url: `${B}#qwer`},
+            ],
+          },
+        ],
+        toParent: extent,
+        toIndex: 1,
+      });
+      ign.cancel();
+
+      expect(tabStructureOf(tabs_or_tgs)).to.deep.equal([
+        {title: "New Folder", children: [`${B}#asdf`, `${B}#qwer`]},
+        {title: "New Folder > Sub", children: [`${B}#sub1`]},
+      ]);
+
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}#patricia`,
+        `${B}#paul`,
+        `${B}`,
+        `${B}#bob`,
+        `${B}#doug`,
+        `${B}#doug`,
+        {title: "EF Group", children: [`${B}#estelle`, `${B}#francis`]},
+        {title: "New Folder", children: [`${B}#asdf`, `${B}#qwer`]},
+        {title: "New Folder > Sub", children: [`${B}#sub1`]},
+        `${B}#harry`,
+        `${B}#unstashed`,
+        `${B}#helen`,
       ]);
     });
 

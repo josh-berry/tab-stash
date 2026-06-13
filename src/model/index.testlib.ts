@@ -21,6 +21,7 @@ import {LOCAL_DEF, SYNC_DEF} from "./options.js";
 
 export interface ModelTestEnv {
   tabs: TabFixture["tabs"];
+  groups: TabFixture["groups"];
   windows: TabFixture["windows"];
   bookmarks: BookmarkFixture;
 
@@ -34,6 +35,7 @@ export interface ModelTestEnv {
 
 export async function setupModelTestEnv(): Promise<ModelTestEnv> {
   let tabs: TabFixture["tabs"];
+  let groups: TabFixture["groups"];
   let windows: TabFixture["windows"];
   let bookmarks: BookmarkFixture;
 
@@ -51,6 +53,7 @@ export async function setupModelTestEnv(): Promise<ModelTestEnv> {
 
   const tw = await make_tabs();
   tabs = tw.tabs;
+  groups = tw.groups;
   windows = tw.windows;
   bookmarks = await make_bookmarks();
 
@@ -111,6 +114,7 @@ export async function setupModelTestEnv(): Promise<ModelTestEnv> {
 
   return {
     tabs,
+    groups,
     windows,
     bookmarks,
     bookmark_metadata,
