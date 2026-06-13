@@ -1,6 +1,6 @@
---- assets/manifest.json	2026-05-24 15:17:53
-+++ temp-manifest.json	2026-05-24 15:27:33
-@@ -21,25 +21,24 @@
+--- a/assets/manifest.json	2022-12-10 17:52:31
++++ b/assets/manifest-chrome.json	2022-12-10 17:54:08
+@@ -21,13 +21,10 @@
    "permissions": [
      "sessions",
      "tabs",
@@ -14,12 +14,7 @@
      "cookies"
    ],
    "content_security_policy": "script-src 'self'; object-src 'self';",
-   "background": {
--    "scripts": ["index.js"]
-+    "scripts": [
-+      "index.js"
-+    ]
-   },
+@@ -37,9 +34,9 @@
    "browser_action": {
      "default_title": "Tab Stash",
      "default_icon": {
@@ -32,7 +27,7 @@
      },
      "theme_icons": [
        {
-@@ -60,43 +59,6 @@
+@@ -60,43 +57,6 @@
      ],
      "browser_style": false
    },
@@ -76,7 +71,7 @@
    "options_ui": {
      "page": "options.html",
      "browser_style": true
-@@ -104,21 +66,9 @@
+@@ -104,21 +64,9 @@
    "commands": {
      "_execute_browser_action": {
        "suggested_key": {

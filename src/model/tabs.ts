@@ -351,16 +351,11 @@ export class Model {
       trace("hiding tabs", tabs);
       await this.refocusAwayFromTabs(tabs);
 
-      try {
-        await browser.tabs.hide(tids);
-        if (discard) await browser.tabs.discard(tids);
+      await browser.tabs.hide(tids);
+      if (discard) await browser.tabs.discard(tids);
 
-        for (const t of tabs) {
-          await browser.sessions.setTabValue(t.id, SK_HIDDEN_BY_TAB_STASH, true);
-        }
-      } catch (e) {
-        console.warn("browser.tabs.hide failed, falling back to remove", e);
-        await this.remove(tabs);
+      for (const t of tabs) {
+        await browser.sessions.setTabValue(t.id, SK_HIDDEN_BY_TAB_STASH, true);
       }
     } else {
       await this.remove(tabs);
@@ -372,15 +367,8 @@ export class Model {
   async remove(tabs: Tab[]): Promise<void> {
     const tids = tabs.map(t => t.id);
     trace("removing tabs", tids);
-    if (!!browser.tabs.hide) {
-      await this.refocusAwayFromTabs(tabs);
-    }
-    try {
-      await browser.tabs.remove(tids);
-    } catch (e) {
-      console.warn("browser.tabs.remove with array failed, trying individually", e);
-      await Promise.all(tids.map(tid => browser.tabs.remove(tid).catch(err => console.warn(err))));
-    }
+    await this.refocusAwayFromTabs(tabs);
+    await browser.tabs.remove(tids);
     await shortPoll(() => {
       if (tids.find(tid => this.tabs.has(tid)) !== undefined) tryAgain();
     });
@@ -421,13 +409,19 @@ export class Model {
       if (closing_tabs_in_window.length >= visible_tabs.length) {
         // If we are about to close all visible tabs in the window, we
         // should open a new tab so the window doesn't close.
+        // For browsers without tab hiding, don't activate it yet; Chromium can
+        // close the extension popup before browser.tabs.remove() runs.
         trace("creating new empty tab in window", win.id);
-        await browser.tabs.create({active: true, windowId: win.id});
-      } else {
+        await browser.tabs.create({active: !!browser.tabs.hide, windowId: win.id});
+      } else if (!!browser.tabs.hide) {
         // Otherwise we should make sure the currently-active tab isn't
         // a tab we are about to hide/discard.  The browser won't let us
         // hide the active tab, so we'll have to activate a different
         // tab first.
+        // Browsers without tab hiding don't need this before removing tabs;
+        // they will pick the next active tab during removal.  In Chromium,
+        // activating a different tab from the popup can close the popup before
+        // browser.tabs.remove() runs, so skip the manual focus change there.
         //
         // We do this search a little strangely--first looking only at
         // tabs AFTER the tabs we're focusing away from, followed by
