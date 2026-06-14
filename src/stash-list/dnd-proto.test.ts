@@ -76,11 +76,15 @@ const ALLOWED_TYPES = [
 describe("stash-list/dnd-proto", () => {
   let model: {bookmarks: BM.Model; tabs: T.Model};
   let tabs: TabFixture["tabs"];
+  let tab_groups: TabFixture["groups"];
+  let windows: TabFixture["windows"];
   let bookmarks: BookmarkFixture;
 
   beforeEach(async () => {
     const window_setup = await make_tabs();
     tabs = window_setup.tabs;
+    tab_groups = window_setup.groups;
+    windows = window_setup.windows;
 
     bookmarks = await make_bookmarks();
 
@@ -101,27 +105,51 @@ describe("stash-list/dnd-proto", () => {
     }
   }
 
-  function testValid(desc: string, items: () => (T.TabID | BM.NodeID)[]) {
+  function testValid(
+    desc: string,
+    items: () => (
+      | {window: T.WindowID}
+      | {group: T.TabGroupID}
+      | T.TabID
+      | BM.NodeID
+    )[],
+  ) {
     it(desc, () => {
+      function findTGExtent(id: T.TabGroupID): T.TabGroupExtent {
+        for (const w of model.tabs.allWindows()) {
+          for (const c of w.children) {
+            if (c.type === "tab-group" && c.group.id === id) return c;
+          }
+        }
+        throw new Error(`No TabGroupExtent found for ID ${id}`);
+      }
+
       const i = items();
-      const model_items = i.map(id =>
-        typeof id === "string" ? model.bookmarks.node(id) : model.tabs.tab(id),
-      );
+      const model_items = i.map(id => {
+        if (typeof id === "string") return model.bookmarks.node(id);
+        if (typeof id === "number") return model.tabs.tab(id);
+        if ("group" in id) return findTGExtent(id.group);
+        if ("window" in id) return model.tabs.window(id.window);
+        throw new Error(`Unrecognized model item`);
+      });
 
       const valid_model_items = filterMap(model_items, i => i);
       expect(
-        model_items.map(i => i?.id),
+        model_items.map(i => i && "type" in i),
         `the test references only valid model items`,
-      ).to.deep.equal(valid_model_items.map(i => i.id));
+      ).to.deep.equal(valid_model_items.map(_ => true));
 
       const dt = new TestDT({});
       sendDragData(dt, valid_model_items);
 
       const result = recvDragData(dt, model);
-      expect(result.map(i => "id" in i && i.id)).to.deep.equal(
-        valid_model_items.map(i => i.id),
-      );
-      expect(result).to.deep.equal(valid_model_items);
+      expect(
+        result.length,
+        "received the same number of items as was sent",
+      ).to.equal(valid_model_items.length);
+      for (let i = 0; i < result.length; ++i) {
+        expect(result[i], `item ${i}`).to.equal(valid_model_items[i]);
+      }
     });
   }
 
@@ -150,6 +178,17 @@ describe("stash-list/dnd-proto", () => {
     tabs.left_charlotte.id,
     bookmarks.eight.id,
     tabs.real_patricia.id,
+  ]);
+  testValid("finds a mix of tabs and tab groups", () => [
+    {group: tab_groups.ef.id},
+    tabs.left_alice.id,
+  ]);
+  testValid("finds a mix of everything", () => [
+    {window: windows.left.id},
+    {group: tab_groups.ef.id},
+    tabs.right_adam.id,
+    bookmarks.big_stash.id,
+    bookmarks.doug_1.id,
   ]);
 
   it("copies items when requested", () => {
