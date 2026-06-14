@@ -1013,9 +1013,20 @@ export class Model {
           tabs: leaves,
         });
         moved_items.push(g);
+        if (isModelItem(tree)) {
+          this.selection.info(g).isSelected =
+            this.selection.info(tree).isSelected;
+        }
+
+        for (let i = 0; i < leaves.length; ++i) {
+          const l = leaves[i];
+          const n = g.children[i];
+          if (!isModelItem(l)) continue;
+          if (!n) continue;
+          this.selection.info(n).isSelected = this.selection.info(l).isSelected;
+        }
       }
 
-      const new_items: Tabs.TabGroupExtent[] = [];
       for (const g of subgroups) {
         ++to_index;
         const subtitle =
@@ -1029,13 +1040,6 @@ export class Model {
             tm,
           );
         await (task ? task.spawn(t) : t());
-      }
-
-      if (isModelItem(tree)) {
-        for (const i of new_items) {
-          this.selection.info(i).isSelected =
-            this.selection.info(tree).isSelected;
-        }
       }
     };
 
