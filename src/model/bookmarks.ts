@@ -510,6 +510,15 @@ export class Model {
     // situation, soooo... *shrug*)
     toIndex = Math.min(toParent.children.length, Math.max(0, toIndex));
 
+    // Detect same-folder no-op moves before calling the browser API. When an
+    // item moves forward in its current folder, removing it from its old
+    // position will shift the final index back by one.
+    let finalIndex = toIndex;
+    if (position.parent === toParent && toIndex > position.index) {
+      finalIndex = toIndex - 1;
+    }
+    if (position.parent === toParent && finalIndex === position.index) return;
+
     /* c8 ignore next -- platform-specific check */
     if (!!browser.runtime.getBrowserInfo) {
       // We're using Firefox
