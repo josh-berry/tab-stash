@@ -101,6 +101,7 @@ import DndList, {
   type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
 import TabView from "./tab.vue";
+import ShowFilteredItem from "../components/show-filtered-item.vue";
 </script>
 
 <script setup lang="ts">
