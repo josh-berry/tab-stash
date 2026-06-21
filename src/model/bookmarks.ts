@@ -517,9 +517,12 @@ export class Model {
         if (toIndex > position.index) toIndex--;
       }
     } else {
-      // Detect Chromium no-op moves before calling the browser API. When an
-      // item moves forward in its current folder, removing it from its old
-      // position will shift the final index back by one.
+      // We're using Chromium. Same-folder forward moves can be no-ops when the
+      // bookmark is already at the effective destination. For example, moving
+      // the last child to `children.length` leaves it at `children.length - 1`.
+      // In that case, the model position stays at `oldIndex`, while the poll
+      // below would wait for `toIndex` and eventually time out. Skip the move
+      // entirely when we can tell it would not change the effective position.
       let finalIndex = toIndex;
       if (position.parent === toParent && toIndex > position.index) {
         finalIndex = toIndex - 1;
