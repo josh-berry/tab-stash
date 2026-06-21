@@ -522,6 +522,14 @@ export class Model {
   ): Promise<TabGroupExtent> {
     const flat_pos = _flatPositionFor(toParent, toIndex);
 
+    // If we are moving the group forward in the same window it was in before,
+    // we have to adjust flat_pos, because Firefox removes then inserts the
+    // group.
+    if (toParent === group.position?.parent && toIndex > group.position.index) {
+      flat_pos.index -= group.children.length;
+      toIndex--;
+    }
+
     // Save the children to check against shortPoll() later.
     const children = Array.from(group.children);
 
@@ -535,14 +543,14 @@ export class Model {
     // caller's indexes might be off.
     return await shortPoll(() => {
       const extent = toParent.children[toIndex];
-      if (!extent) tryAgain();
-      if (extent.type !== "tab-group") tryAgain();
-      if (extent.group !== group.group) tryAgain();
+      if (!extent) tryAgain("no child at position");
+      if (extent.type !== "tab-group") tryAgain("wrong type");
+      if (extent.group !== group.group) tryAgain("wrong group");
 
       // We wait on all the children in the extent, because we expect to see a
       // bunch of individual tabMoved events for each tab.
       for (let i = 0; i < children.length; ++i) {
-        if (extent.children[i] !== children[i]) tryAgain();
+        if (extent.children[i] !== children[i]) tryAgain(`wrong child ${i}`);
       }
       return extent;
     });

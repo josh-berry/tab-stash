@@ -1359,22 +1359,29 @@ class MockTabGroups implements G.Static {
         });
       }
     } else {
-      let oldIndex = fromStartIndex;
-      let newIndex = toIndex;
-
-      for (const t of movingTabs) {
-        this._state.onTabMoved.send(t.id, {
-          windowId: t.windowId,
-          fromIndex: oldIndex,
-          toIndex: newIndex,
-        });
-        if (fromStartIndex < toIndex) {
-          // We're moving forward, so both the removal and insertion points stay
-          // fixed, because the removal from the earlier point in the window
-          // cancels out the insertion at the later point in the window.
-        } else {
-          // We're moving backward, so both insertion and removal points must
-          // advance.
+      // idk why firefox does this, but it sends events backwards (last tab
+      // first) for tabs moving forward in the window
+      if (fromStartIndex < toIndex) {
+        let oldIndex = fromEndIndex - 1;
+        let newIndex = toIndex + movingTabs.length - 1;
+        for (const t of movingTabs.reverse()) {
+          this._state.onTabMoved.send(t.id, {
+            windowId: t.windowId,
+            fromIndex: oldIndex,
+            toIndex: newIndex,
+          });
+          --oldIndex;
+          --newIndex;
+        }
+      } else {
+        let oldIndex = fromStartIndex;
+        let newIndex = toIndex;
+        for (const t of movingTabs) {
+          this._state.onTabMoved.send(t.id, {
+            windowId: t.windowId,
+            fromIndex: oldIndex,
+            toIndex: newIndex,
+          });
           ++oldIndex;
           ++newIndex;
         }

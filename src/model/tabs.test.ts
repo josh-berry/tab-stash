@@ -1237,7 +1237,7 @@ describe("model/tabs", () => {
         expect(ef.type).to.equal("tab-group");
         expect(ef.group.id).to.equal(groups.ef.id);
 
-        const p = model.moveGroup(ef, real, 8);
+        const p = model.moveGroup(ef, real, 9);
         await events.nextN(browser.tabs.onMoved, 2);
         await events.next(browser.tabGroups.onMoved);
         await p;
