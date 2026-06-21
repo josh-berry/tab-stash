@@ -18,7 +18,7 @@
         action: true,
         select: true,
       }"
-      default-icon="folder"
+      default-icon="tab-group"
       selectable
       :selected="selectionInfo.isSelected"
       @click.prevent.stop="toggleSelected"
