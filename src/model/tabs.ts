@@ -1056,7 +1056,13 @@ export class Model {
     const flatPos = t.flattenedPosition;
     if (flatPos) FlattenedWindowTree.removeNode(flatPos);
     const pos = t.position;
-    if (pos) WindowTree.removeNode(pos);
+    if (pos) {
+      const parent = pos.parent;
+      WindowTree.removeNode(pos);
+      if (parent.type === "tab-group" && parent.children.length === 0) {
+        if (parent.position) WindowTree.removeNode(parent.position);
+      }
+    }
 
     trace("event ...tabRemoved", tabId, flatPos);
 

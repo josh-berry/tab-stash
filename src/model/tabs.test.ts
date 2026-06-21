@@ -1540,5 +1540,45 @@ describe("model/tabs", () => {
 
       expect(model.group(groups.ef.id)).to.be.undefined;
     });
+
+    it("an entire group is closed", async () => {
+      const p = browser.tabs.remove([
+        tabs.real_estelle.id,
+        tabs.real_francis.id,
+      ]);
+      await events.nextN(browser.tabs.onRemoved, 2);
+      await events.next(browser.tabGroups.onRemoved);
+      await p;
+
+      expect(
+        model
+          .window(windows.real.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+        [tabs.real_paul.url, tabs.real_paul.id, -1],
+        [tabs.real_blank.url, tabs.real_blank.id, -1],
+        [tabs.real_bob.url, tabs.real_bob.id, -1],
+        [tabs.real_doug.url, tabs.real_doug.id, -1],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+        [tabs.real_harry.url, tabs.real_harry.id, -1],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+        [tabs.real_helen.url, tabs.real_helen.id, -1],
+      ]);
+
+      expect(windowStructure(windows.real.id)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+
+      expect(model.group(groups.ef.id)).to.be.undefined;
+    });
   }); // tab groups
 });
