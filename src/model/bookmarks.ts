@@ -516,7 +516,20 @@ export class Model {
       if (position.parent === toParent) {
         if (toIndex > position.index) toIndex--;
       }
+    } else {
+      // We're using Chromium. Same-folder forward moves can be no-ops when the
+      // bookmark is already at the effective destination. For example, moving
+      // the last child to `children.length` leaves it at `children.length - 1`.
+      // In that case, the model position stays at `oldIndex`, while the poll
+      // below would wait for `toIndex` and eventually time out. Skip the move
+      // entirely when we can tell it would not change the effective position.
+      let finalIndex = toIndex;
+      if (position.parent === toParent && toIndex > position.index) {
+        finalIndex = toIndex - 1;
+      }
+      if (position.parent === toParent && finalIndex === position.index) return;
     }
+
     const oldParent = node.position?.parent;
     const oldIndex = node.position?.index;
     await browser.bookmarks.move(node.id, {

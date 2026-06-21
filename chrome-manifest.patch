@@ -27,7 +27,7 @@
      },
      "theme_icons": [
        {
-@@ -60,43 +57,6 @@
+@@ -60,44 +57,8 @@
      ],
      "browser_style": false
    },
@@ -70,8 +70,11 @@
 -  },
    "options_ui": {
      "page": "options.html",
-     "browser_style": true
-@@ -104,21 +64,9 @@
+-    "browser_style": true
++    "browser_style": true,
++    "open_in_tab": true
+   },
+@@ -104,21 +65,9 @@
    "commands": {
      "_execute_browser_action": {
        "suggested_key": {
