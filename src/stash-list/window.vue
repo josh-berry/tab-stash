@@ -136,15 +136,22 @@
     <dnd-list
       :class="{'forest-children': true, collapsed}"
       orientation="vertical"
-      v-model="targetWindow.flattenedChildren"
-      :item-key="(item: Tab) => item.id"
+      v-model="targetWindow.children"
+      :item-key="
+        (item: TabGroupExtent | Tab) =>
+          item.type === 'tab' ? item.id : `g-${item.group.id}`
+      "
       :item-accepts="itemAccepts"
       :list-accepts="_ => false"
       @drag="drag"
       @drop="drop"
+      @drop-inside="dropInside"
     >
-      <template #item="{item}: {item: Tab}">
-        <tab v-if="isVisible(item)" :tab="item" />
+      <template #item="{item}: {item: TabGroupExtent | Tab}">
+        <template v-if="isVisible(item)">
+          <tab v-if="item.type === 'tab'" :tab="item" />
+          <tab-group v-else :group="item" />
+        </template>
       </template>
     </dnd-list>
 
@@ -183,7 +190,7 @@ import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
 import {copyIf} from "../model/index.js";
 import type {SyncState} from "../model/options.js";
-import type {Tab, Window} from "../model/tabs.js";
+import type {Tab, TabGroupExtent, Window} from "../model/tabs.js";
 
 import ConfirmDialog, {
   type ConfirmDialogEvent,
@@ -191,10 +198,12 @@ import ConfirmDialog, {
 import DndList, {
   type ListDragEvent,
   type ListDropEvent,
+  type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Menu from "../components/menu.vue";
 import Bookmark from "./bookmark.vue";
+import TabGroup from "./tab-group.vue";
 import TabVue from "./tab.vue";
 
 import type {FilterInfo} from "../model/tree-filter.js";
@@ -209,8 +218,9 @@ import {vDroppable} from "../components/dnd-directives.js";
 export default defineComponent({
   components: {
     ConfirmDialog,
-    DndList: DndList<Tab>,
+    DndList: DndList<TabGroupExtent | Tab>,
     Menu,
+    TabGroup,
     Tab: TabVue,
     Bookmark,
     ShowFilteredItem,
@@ -261,10 +271,6 @@ export default defineComponent({
       },
     },
 
-    tabs(): Tab[] {
-      return this.targetWindow.flattenedChildren;
-    },
-
     showStashedTabs(): boolean {
       return the.model.options.sync.state.show_open_tabs === "all";
     },
@@ -300,7 +306,7 @@ export default defineComponent({
     // like hidden tabs
     filteredCount(): number {
       let count = 0;
-      for (const c of this.targetWindow.flattenedChildren) {
+      for (const c of this.targetWindow.children) {
         const i = the.model.filter.info(c);
         if (this.isValidChild(c) && !i.isMatching) ++count;
       }
@@ -336,16 +342,23 @@ export default defineComponent({
       });
     },
 
-    isVisible(t: Tab): boolean {
+    isVisible(t: TabGroupExtent | Tab): boolean {
+      if (!this.isValidChild(t)) return false;
+      if (this.showFiltered) return true;
+
       const f = the.model.filter.info(t);
+      if (f.isMatching) return true;
+      if (f.hasMatchInSubtree) return true;
+
       const s = the.model.selection.info(t);
-      return (
-        this.isValidChild(t) &&
-        (this.showFiltered || f.isMatching || s.isSelected)
-      );
+      if (s.isSelected) return true;
+      if (s.hasSelectionInSubtree) return true;
+
+      return false;
     },
 
-    isValidChild(t: Tab): boolean {
+    isValidChild(t: TabGroupExtent | Tab): boolean {
+      if (t.type === "tab-group") return true;
       if (t.hidden || t.pinned) return false;
       return (
         this.showStashedTabs ||
@@ -380,7 +393,7 @@ export default defineComponent({
 
     async removeUnstashed() {
       this.attempt(async () => {
-        const to_remove = this.tabs.filter(
+        const to_remove = this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
@@ -395,7 +408,7 @@ export default defineComponent({
 
     async removeStashed() {
       this.attempt(async () => {
-        const to_remove = this.tabs.filter(
+        const to_remove = this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
@@ -415,7 +428,7 @@ export default defineComponent({
         //
         // (Just as in remove(), we keep the active tab if it's a
         // new-tab page or the Tab Stash page.)
-        const tabs = this.tabs.filter(
+        const tabs = this.targetWindow.flattenedChildren.filter(
           t =>
             (!t.active || the.model.isURLStashable(t.url)) &&
             !t.hidden &&
@@ -439,7 +452,7 @@ export default defineComponent({
 
     removeHidden() {
       this.attempt(async () => {
-        const tabs = this.tabs.filter(
+        const tabs = this.targetWindow.flattenedChildren.filter(
           t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
         );
         await the.model.tabs.remove(tabs);
@@ -480,17 +493,26 @@ export default defineComponent({
 
     itemAccepts(
       data: DataTransfer,
-      item: Tab,
+      item: TabGroupExtent | Tab,
       index: number,
     ): DNDAcceptedDropPositions {
-      return this.listAccepts(data) ? "before-after" : null;
+      const type = dragDataType(data);
+      switch (type) {
+        case undefined:
+          return null;
+        case "items":
+          if (item.type === "tab-group") return "before-inside-after";
+          return "before-after";
+        default:
+          return "before-after";
+      }
     },
 
     listAccepts(data: DataTransfer): boolean {
-      return dragDataType(data) === "items";
+      return dragDataType(data) !== null;
     },
 
-    drag(ev: ListDragEvent<Tab>) {
+    drag(ev: ListDragEvent<TabGroupExtent | Tab>) {
       const items = the.model.selection.info(ev.item).isSelected
         ? Array.from(the.model.selection.selectedItems())
         : [ev.item];
@@ -498,7 +520,7 @@ export default defineComponent({
     },
 
     parentDrop({data}: DropEvent) {
-      this.drop({data, insertBeforeIndex: this.tabs.length});
+      this.drop({data, insertBeforeIndex: this.targetWindow.children.length});
     },
 
     drop(ev: ListDropEvent) {
@@ -509,6 +531,23 @@ export default defineComponent({
           items,
           toParent: this.targetWindow,
           toIndex: ev.insertBeforeIndex,
+        }),
+      );
+    },
+
+    dropInside(ev: ListDropInsideEvent<TabGroupExtent | Tab>) {
+      const parent = ev.insertInParent;
+      if (parent.type === "tab") {
+        console.warn(`Attempt to drop items inside a tab`, parent);
+        return;
+      }
+
+      const items = recvDragData(ev.data, the.model);
+      the.model.attempt(() =>
+        the.model.putItemsInWindow({
+          items,
+          toParent: parent,
+          toIndex: parent.children.length,
         }),
       );
     },
