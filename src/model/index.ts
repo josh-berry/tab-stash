@@ -804,8 +804,12 @@ export class Model {
         continue;
       }
 
-      // If it's a tab, mark the tab for closure.
+      // If it's a tab or group, mark it for closure.
       if (isTab(item)) close_tabs.push(item);
+      if (isTabGroupExtent(item)) {
+        // The group itself will be implicitly deleted once all its tabs close.
+        close_tabs.splice(close_tabs.length, 0, ...item.children);
+      }
 
       // Otherwise, if we're not allowing duplicates, check if there's a
       // duplicate in the current folder which we can steal.  If so, we
@@ -839,21 +843,26 @@ export class Model {
           parentId: Bookmarks.NodeID,
           index: number,
         ): Promise<Bookmarks.Node> => {
+          let title: string;
+          if ("title" in item && item.title) {
+            title = item.title;
+          } else if ("url" in item) {
+            title = item.url;
+          } else if ("group" in item && item.group.title) {
+            title = item.group.title;
+          } else {
+            title = Bookmarks.genDefaultFolderName(new Date());
+          }
+
           const node =
             "url" in item
               ? await this.bookmarks.create({
-                  title: item.title || item.url,
+                  title,
                   url: urlToStash(item.url),
                   parentId,
                   index,
                 })
-              : await this.bookmarks.create({
-                  title:
-                    ("title" in item && item.title) ||
-                    Bookmarks.genDefaultFolderName(new Date()),
-                  parentId,
-                  index,
-                });
+              : await this.bookmarks.create({title, parentId, index});
 
           if ("children" in item) {
             let idx = 0;
