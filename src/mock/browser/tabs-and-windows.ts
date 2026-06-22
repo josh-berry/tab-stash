@@ -846,6 +846,26 @@ class MockTabs implements T.Static {
           {groupId: tab.groupId},
           JSON.parse(JSON.stringify(tab)),
         );
+      } else if (from_win !== to_win) {
+        const oldGroupId = tab.groupId;
+
+        // As a special case, if we're moving between windows, we move the tab
+        // to the same group as the tab at the destination index. We assume the
+        // caller knows we're doing this, for some reason (so we don't send an
+        // onUpdated event).
+        const displacingTab = to_win.tabs[to_index + 1];
+        tab.groupId = displacingTab?.groupId ?? -1;
+
+        // We also remove the old group if we're removing the last tab from it
+        if (
+          oldGroupId !== undefined &&
+          oldGroupId !== -1 &&
+          !from_win.tabs.find(t => t.groupId === oldGroupId)
+        ) {
+          const g = this._state.group(oldGroupId);
+          this._state.groups.delete(oldGroupId);
+          this._state.onTabGroupRemoved.send(g);
+        }
       }
 
       if (from_win !== to_win) {
@@ -1113,15 +1133,29 @@ class MockTabs implements T.Static {
 
     let toGroup: G.TabGroup; // The group to create/insert into
     let toWindow: Window; // The window to insert into
-    let toIndex: number; // The position of the newly-grouped tabs
+
+    // The following will used as insertion points, depending on where the tab
+    // is coming from.
+    let groupStartIndex: number; // Index of the first tab in the group
+    let groupEndIndex: number; // The last tab of the group + 1
 
     if (options.groupId !== undefined) {
-      // Moving into an existing group; the insertion point should be after the
-      // last tab in the group.
+      // Moving into an existing group. Firefox has some rather unhinged (but
+      // intuitive for users) behavior:
+      //
+      // - Tabs in different windows -> end of group
+      // - Tabs in the same window, before the group -> beginning of group
+      // - Tabs in the same window, after the group -> end of group
+      //
+      // So we split the move into tabs that need to be inserted at the
+      // beginning, and tabs to be inserted at the end.
       toGroup = this._state.group(options.groupId);
       toWindow = this._state.win(toGroup.windowId);
-      toIndex = toWindow.tabs.findLastIndex(t => t.groupId === toGroup.id) + 1;
-      if (toIndex === 0) {
+      groupStartIndex = toWindow.tabs.findIndex(t => t.groupId === toGroup.id);
+      groupEndIndex =
+        toWindow.tabs.findLastIndex(t => t.groupId === toGroup.id) + 1;
+
+      if (groupStartIndex === -1) {
         throw new Error(
           `Group ${toGroup.id} has no tabs in its window ${toWindow.id}: ${this._state._describeWindow(toWindow)}`,
         );
@@ -1138,22 +1172,32 @@ class MockTabs implements T.Static {
         collapsed: false,
       };
       toWindow = this._state.win(toGroup.windowId);
-      toIndex = tabs[0].index;
+      groupStartIndex = tabs[0].index;
       this._state.next_group_id += 2;
       this._state.groups.set(toGroup.id, toGroup);
       this._state.onTabGroupCreated.send(JSON.parse(JSON.stringify(toGroup)));
+
+      // If the insertion point is in a set of pinned tabs, we need to advance
+      // it so we're not creating groups in the pinned zone.
+      groupStartIndex = Math.max(
+        groupStartIndex,
+        tabs.findLastIndex(t => t.pinned) + 1,
+      );
 
       // If the insertion point is in the middle of an existing group, move it
       // backwards to the start of the group, so we're not breaking up the
       // existing group.
       while (
-        toIndex > 0 &&
-        toWindow.tabs[toIndex].groupId !== undefined &&
-        toWindow.tabs[toIndex].groupId !== -1 &&
-        toWindow.tabs[toIndex - 1].groupId === toWindow.tabs[toIndex].groupId
+        groupStartIndex > 0 &&
+        toWindow.tabs[groupStartIndex].groupId !== undefined &&
+        toWindow.tabs[groupStartIndex].groupId !== -1 &&
+        toWindow.tabs[groupStartIndex - 1].groupId ===
+          toWindow.tabs[groupStartIndex].groupId
       ) {
-        --toIndex;
+        --groupStartIndex;
       }
+
+      groupEndIndex = groupStartIndex;
     }
 
     // If we're grouping any pinned tabs, we need to unpin them. We may also
@@ -1168,38 +1212,52 @@ class MockTabs implements T.Static {
         JSON.parse(JSON.stringify(tab)),
       );
     }
-    toIndex = Math.max(toIndex, tabs.findLastIndex(t => t.pinned) + 1);
 
-    // console.log({toWindow: toWindow.id, toGroupId: toGroup.id, toIndex});
-    // console.log(this._state._describeWindow(toWindow));
-
-    // Now move all of the tabs into position. We maintain `toIndex` as the
-    // insertion point, update the tabs' indices and position in the window, and
-    // fire onMoved events accordingly. Note that, because some tabs might be
-    // pinned, they might presently be BEFORE the insertion point, so we have to
-    // adjust toIndex accordingly.
+    // Now move all of the tabs into position. We maintain `groupStartIndex` and
+    // `groupEndIndex` as the insertion points, update the tabs' indices and
+    // position in the window, and fire onMoved events accordingly. As discussed
+    // above, tabs moving from BEFORE the group get inserted at
+    // `groupStartIndex`; all others get inserted at `groupEndIndex`.
     const windowsToUpdate = new Set<Window>();
     for (const tab of tabs) {
+      // If the tab's already in the group, do nothing.
+      if (tab.groupId === toGroup.id) continue;
+
       const fromWindow = this._state.win(tab.windowId);
       windowsToUpdate.add(fromWindow);
       const fromIndex = tab.index;
+      let toIndex: number;
 
-      if (fromWindow === toWindow && fromIndex < toIndex) {
+      if (fromWindow === toWindow && fromIndex < groupStartIndex) {
         // If the tab is moving within the same window from before the insertion
         // point to after the insertion point, then we know that the tab will be
-        // removed from before toIndex and inserted after toIndex, so toIndex
-        // should be adjusted down by one to account for the removed tab.
-        --toIndex;
+        // removed from before toIndex and inserted after toIndex, so
+        // groupStartIndex doesn't change.
+        toIndex = groupStartIndex - 1;
+      } else {
+        // However, groupEndIndex advances, because the tab is coming from
+        // elsewhere (either the same window or a different one).
+        toIndex = groupEndIndex;
+        ++groupEndIndex;
       }
 
       fromWindow.tabs.splice(fromIndex, 1);
       toWindow.tabs.splice(toIndex, 0, tab);
 
       if (fromWindow !== toWindow || fromIndex !== toIndex) {
-        this.onMoved.send(tab.id, {windowId: tab.windowId, fromIndex, toIndex});
+        if (fromWindow !== toWindow) {
+          this.onAttached.send(tab.id, {
+            newWindowId: toWindow.id,
+            newPosition: toIndex,
+          });
+        } else {
+          this.onMoved.send(tab.id, {
+            windowId: tab.windowId,
+            fromIndex,
+            toIndex,
+          });
+        }
       }
-
-      if (fromWindow === toWindow && tab.index >= toIndex) ++toIndex;
     }
     for (const w of windowsToUpdate) this._state.fixup_tab_indices(w);
 
@@ -1357,6 +1415,14 @@ class MockTabGroups implements G.Static {
           newWindowId: toWindow.id,
           newPosition: t.index,
         });
+      }
+      // We also send tabs.onUpdated events for the entire group for some reason
+      for (const t of movingTabs) {
+        this._state.onTabUpdated.send(
+          t.id,
+          {groupId},
+          JSON.parse(JSON.stringify(t)),
+        );
       }
     } else {
       // idk why firefox does this, but it sends events backwards (last tab

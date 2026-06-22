@@ -1087,6 +1087,8 @@ export class Model {
     newFlattenedPosition: TreePosition<Window> | undefined,
     newGroupId: number | undefined,
   ) {
+    const oldWindow = t.flattenedPosition?.parent;
+
     // Move the tab in the flattened tree first, then we'll figure out its
     // position in the grouped tree based on the new group ID and its new
     // flattened position.
@@ -1122,11 +1124,54 @@ export class Model {
         this.tab_groups.set(newGroup.id, newGroup);
       }
     } else {
-      // newGroupId is not provided, meaning the group membership is not
-      // changing, at least not right now. Keep the tab in its existing group
-      // (if any).
+      // newGroupId is not provided, meaning the group membership may or may not
+      // be changing. The heuristics for guessing at this are stupidly
+      // complicated, because Firefox isn't always consistent about sending us
+      // tabs.onUpdated events when the group changes--so there are a few
+      // corner-case situations where we just have to guess.
+
+      // Most of the time, we can just keep the tab's existing group:
       const parent = t.position?.parent;
       newGroup = parent && "group" in parent ? parent.group : undefined;
+
+      // However, if we're moving between windows, things get more complicated:
+      if (newFlattenedPosition?.parent !== oldWindow) {
+        console.log(
+          "cross-window move:",
+          oldWindow?.id,
+          "->",
+          newFlattenedPosition?.parent?.id,
+        );
+        // Firefox will not send a tabs.onUpdated event if the tab is being
+        // moved into a group; it assumes the extension already knows the group
+        // is there and so doesn't tell us the tab's groupId is changing.
+        // However, it WILL send one if a tab's being moved to just outside the
+        // beginning of the group, to explicitly tell us the tab is NOT in the
+        // adjacent group.
+        //
+        // In either situation, we have to guess at the destination group based
+        // on the group of the tab currently at the destination index (if any).
+        // If the destination group doesn't match, we should see a subsequent
+        // tabs.onUpdated event that corrects it.
+        const newChildren = newFlattenedPosition?.parent.flattenedChildren;
+        const displacingTab = newChildren
+          ? newChildren[newFlattenedPosition?.index + 1 /* b/c already moved */]
+          : undefined;
+        if (displacingTab) {
+          console.log(
+            "displaced tab at index",
+            displacingTab.flattenedPosition!.index,
+          );
+          console.log(displacingTab.position?.parent.type);
+          newGroup =
+            displacingTab.position?.parent.type === "tab-group"
+              ? displacingTab.position.parent.group
+              : undefined;
+          console.log("new group", newGroup?.id);
+        } else {
+          newGroup = undefined;
+        }
+      }
     }
 
     // Now that we know the current group (if any), we can safely remove the tab

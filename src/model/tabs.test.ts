@@ -859,10 +859,6 @@ describe("model/tabs", () => {
 
           const p = model.move(doug_2, ef, 0);
           await events.next(browser.tabs.onUpdated);
-          // It moves to the end of the group. Sadly there's no way to simulate
-          // in the API what the user can actually do--drag a tab into the
-          // beginning of the group.
-          await events.next(browser.tabs.onMoved);
           await p;
 
           expect(
@@ -873,9 +869,9 @@ describe("model/tabs", () => {
             [tabs.real_blank.url, tabs.real_blank.id, -1],
             [tabs.real_bob.url, tabs.real_bob.id, -1],
             [tabs.real_doug.url, tabs.real_doug.id, -1],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, groups.ef.id],
             [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
             [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
-            [tabs.real_doug_2.url, tabs.real_doug_2.id, groups.ef.id],
             [tabs.real_harry.url, tabs.real_harry.id, -1],
             [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
             [tabs.real_helen.url, tabs.real_helen.id, -1],
@@ -890,9 +886,9 @@ describe("model/tabs", () => {
             [
               groups.ef.id,
               [
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
                 [tabs.real_estelle.url, tabs.real_estelle.id],
                 [tabs.real_francis.url, tabs.real_francis.id],
-                [tabs.real_doug_2.url, tabs.real_doug_2.id],
               ],
             ],
             [tabs.real_harry.url, tabs.real_harry.id],
@@ -1042,16 +1038,12 @@ describe("model/tabs", () => {
           ]);
         });
 
-        it("...from the end of the old group to the [end] of the new group", async () => {
-          // Sadly there is no way to simulate moving to the beginning of the
-          // new group, which is what the user can do by dragging the tab to the
-          // beginning of the new group.
+        it("...from the end of the old group to the beginning of the new group", async () => {
           await browser.tabs.group({
             groupId: groups.ef.id,
             tabIds: [tabs.real_doug_2.id],
           });
           await events.next(browser.tabs.onUpdated);
-          await events.next(browser.tabs.onMoved);
 
           expect(
             model
@@ -1063,9 +1055,9 @@ describe("model/tabs", () => {
             [tabs.real_blank.url, tabs.real_blank.id, -1],
             [tabs.real_bob.url, tabs.real_bob.id, -1],
             [tabs.real_doug.url, tabs.real_doug.id, groupId],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, groups.ef.id],
             [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
             [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
-            [tabs.real_doug_2.url, tabs.real_doug_2.id, groups.ef.id],
             [tabs.real_harry.url, tabs.real_harry.id, -1],
             [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
             [tabs.real_helen.url, tabs.real_helen.id, -1],
@@ -1080,9 +1072,9 @@ describe("model/tabs", () => {
             [
               groups.ef.id,
               [
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
                 [tabs.real_estelle.url, tabs.real_estelle.id],
                 [tabs.real_francis.url, tabs.real_francis.id],
-                [tabs.real_doug_2.url, tabs.real_doug_2.id],
               ],
             ],
             [tabs.real_harry.url, tabs.real_harry.id],
@@ -1287,6 +1279,7 @@ describe("model/tabs", () => {
 
         const p = model.moveGroup(ef, right, 3);
         await events.nextN(browser.tabs.onAttached, 2);
+        await events.nextN(browser.tabs.onUpdated, 2);
         await events.next(browser.tabGroups.onMoved);
         await p;
 
@@ -1539,6 +1532,73 @@ describe("model/tabs", () => {
       ]);
 
       expect(model.group(groups.ef.id)).to.be.undefined;
+    });
+
+    it("moves a tab out of a group and into another window", async () => {
+      const left = model.window(windows.left.id)!;
+      const real = model.window(windows.real.id)!;
+      const tab = model.tab(tabs.real_estelle.id)!;
+
+      const p = model.move(tab, left, 1);
+      await events.next(browser.tabs.onAttached);
+      await p;
+
+      expect(windowStructure(left.id)).to.deep.equal([
+        [`${B}#alice`, tabs.left_alice.id],
+        [`${B}#estelle`, tabs.real_estelle.id],
+        [`${B}#betty`, tabs.left_betty.id],
+        [`${B}#charlotte`, tabs.left_charlotte.id],
+      ]);
+
+      expect(windowStructure(real.id)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+    });
+
+    it("moves a tab into a group from another window", async () => {
+      events.trace(true);
+      const left = model.window(windows.left.id)!;
+      const real = model.window(windows.real.id)!;
+      const ef = real.children[6] as M.TabGroupExtent;
+      const tab = model.tab(tabs.left_betty.id)!;
+
+      const p = model.move(tab, ef, 0);
+      await events.next(browser.tabs.onAttached);
+      await p;
+
+      expect(windowStructure(left.id)).to.deep.equal([
+        [`${B}#alice`, tabs.left_alice.id],
+        [`${B}#charlotte`, tabs.left_charlotte.id],
+      ]);
+
+      expect(windowStructure(real.id)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [
+          groups.ef.id,
+          [
+            [`${B}#betty`, tabs.left_betty.id],
+            [tabs.real_estelle.url, tabs.real_estelle.id],
+            [tabs.real_francis.url, tabs.real_francis.id],
+          ],
+        ],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
     });
 
     it("an entire group is closed", async () => {
