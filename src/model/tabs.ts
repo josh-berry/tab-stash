@@ -1136,12 +1136,6 @@ export class Model {
 
       // However, if we're moving between windows, things get more complicated:
       if (newFlattenedPosition?.parent !== oldWindow) {
-        console.log(
-          "cross-window move:",
-          oldWindow?.id,
-          "->",
-          newFlattenedPosition?.parent?.id,
-        );
         // Firefox will not send a tabs.onUpdated event if the tab is being
         // moved into a group; it assumes the extension already knows the group
         // is there and so doesn't tell us the tab's groupId is changing.
@@ -1158,16 +1152,10 @@ export class Model {
           ? newChildren[newFlattenedPosition?.index + 1 /* b/c already moved */]
           : undefined;
         if (displacingTab) {
-          console.log(
-            "displaced tab at index",
-            displacingTab.flattenedPosition!.index,
-          );
-          console.log(displacingTab.position?.parent.type);
           newGroup =
             displacingTab.position?.parent.type === "tab-group"
               ? displacingTab.position.parent.group
               : undefined;
-          console.log("new group", newGroup?.id);
         } else {
           newGroup = undefined;
         }

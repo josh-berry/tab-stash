@@ -1070,7 +1070,6 @@ export class Model {
       }
 
       if (leaves.length > 0) {
-        console.log(`Creating group with title "${title}" from`, tree);
         const g = await this.tabs.createGroup({
           title,
           atParent: to_parent,
