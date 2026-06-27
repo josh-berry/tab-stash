@@ -20,6 +20,7 @@
 import {defineComponent, type PropType} from "vue";
 
 import {required, type Progress} from "../util/index.js";
+import {t} from "../util/i18n.js";
 
 import Dialog from "./dialog.vue";
 import ProgressItem from "./progress-item.vue";
@@ -37,6 +38,7 @@ export default defineComponent({
     };
   },
   methods: {
+    t,
     doCancel() {
       if (!this.cancel) return;
       this.cancel();

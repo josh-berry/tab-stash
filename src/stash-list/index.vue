@@ -144,6 +144,7 @@ import browser from "webextension-polyfill";
 
 import the from "../globals-ui.js";
 import {pageref} from "../launch-vue.js";
+import {t} from "../util/i18n.js";
 import {
   CUR_WINDOW_MD_ID,
   type BookmarkMetadataEntry,
@@ -402,6 +403,7 @@ export default defineComponent({
   },
 
   methods: {
+    t,
     pageref,
 
     collapseAll() {

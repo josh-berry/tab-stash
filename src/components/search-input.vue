@@ -28,6 +28,7 @@
 <script lang="ts">
 import {ref, watch, watchEffect} from "vue";
 import {onceRefHasValue} from "../util/index.js";
+import {t} from "../util/i18n.js";
 </script>
 
 <script setup lang="ts">

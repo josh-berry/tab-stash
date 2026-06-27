@@ -12,35 +12,35 @@
 
     <button
       tabindex="0"
-      title="Open stashed tabs"
+      :title="t('openStashedTabsTitle')"
       @click.prevent="copyToWindow"
     >
       <span class="menu-icon icon icon-restore"></span>
-      <span>Open</span>
+      <span>{{ t('openButtonText') }}</span>
     </button>
     <button
       tabindex="0"
-      title="Open tabs and delete them from the stash"
+      :title="t('openAndDeleteTitle')"
       @click.prevent="moveToWindow"
     >
       <span class="menu-icon icon icon-restore-del"></span>
-      <span>Unstash</span>
+      <span>{{ t('unstashButtonText') }}</span>
     </button>
 
     <hr />
 
     <button
       @click.prevent="showExportDialog"
-      title="Export selected links and URLs"
+      :title="t('exportSelectedTitle')"
     >
       <span class="menu-icon icon icon-export" />
-      <span>Export...</span>
+      <span>{{ t('exportButtonText') }}</span>
     </button>
     <hr />
 
     <search-input
       ref="search"
-      placeholder="Search or create group"
+      :placeholder="t('searchOrCreateGroup')"
       v-model="searchText"
       @click.stop=""
       @keypress.enter.prevent.stop="
@@ -63,9 +63,10 @@
       :filter="nodeFilterFn"
       :tooltips="
         f =>
-          `Move to &quot;${friendlyFolderName(
-            f.title,
-          )}&quot; (hold ${altKey} to copy)`
+          t('moveToNamedGroupTooltip', [
+            friendlyFolderName(f.title),
+            altKey
+          ])
       "
       :button-classes="f => ({}) /* TODO selection */"
       @select="moveTo"
@@ -74,11 +75,11 @@
     <hr />
 
     <button
-      title="Delete stashed tabs and close unstashed tabs"
+      :title="t('deleteOrCloseTitle')"
       @click.prevent="remove"
     >
       <span class="menu-icon icon icon-delete"></span>
-      <span>Delete or Close</span>
+      <span>{{ t('deleteOrCloseText') }}</span>
     </button>
   </Menu>
 
@@ -93,6 +94,7 @@
 import {computed, defineComponent} from "vue";
 
 import {altKeyName, textMatcher} from "../util/index.js";
+import {t} from "../util/i18n.js";
 
 import the from "../globals-ui.js";
 import {
@@ -152,18 +154,22 @@ export default defineComponent({
     },
 
     createTitle(): string {
-      if (this.searchText === "") return "Move to New Group";
-      return `Move to "${this.searchText}"`;
+      if (this.searchText === "") return this.t('moveToNewGroup');
+      return this.t('moveToNamedGroup', [this.searchText]);
     },
 
     createTooltip(): string {
-      const copy = `(hold ${this.altKey} to copy)`;
-      if (this.searchText === "") return `Move to a new group ${copy}`;
-      return `Move to new group "${this.searchText}" ${copy}`;
+      // const copy = `(hold ${this.altKey} to copy)`;
+      // if (this.searchText === "") return `Move to a new group ${copy}`;
+      // return `Move to new group "${this.searchText}" ${copy}`;
+      const copy = t("holdToCopy");
+      if (this.searchText === "") return t("moveToNewGroup", [copy]);
+      return t("moveToNamedGroup", [this.searchText, copy]);
     },
   },
 
   methods: {
+    t,
     attempt(fn: () => Promise<void>) {
       the.model.attempt(fn);
     },
