@@ -1070,8 +1070,9 @@ export class Model {
       }
 
       if (leaves.length > 0) {
+        console.log(`Creating group with title "${title}" from`, tree);
         const g = await this.tabs.createGroup({
-          title: friendlyFolderName(title),
+          title,
           atParent: to_parent,
           atIndex: to_index,
           tabs: leaves,
@@ -1156,7 +1157,13 @@ export class Model {
           throw new Error(`Moving whole windows is not implemented`);
         } else {
           const t = (tm?: TaskMonitor) =>
-            createTreeInWindow(item, to_parent, to_index, item.title, tm);
+            createTreeInWindow(
+              item,
+              to_parent,
+              to_index,
+              friendlyFolderName(item.title),
+              tm,
+            );
           await (task ? task.spawn(t) : t());
         }
         return 0;
