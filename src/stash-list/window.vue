@@ -34,8 +34,13 @@
           @click.prevent.stop="stash"
         />
         <a
+          class="action stash newtabgroup"
+          title="Create a new empty tab group"
+          @click.prevent.stop="newTabGroup"
+        />
+        <a
           class="action stash newgroup"
-          title="Create a new empty group"
+          title="Create a new empty group in the stash"
           @click.prevent.stop="newGroup"
         />
 
@@ -118,6 +123,12 @@
         />
         <a
           v-if="selectedCount > 0"
+          class="action restore newtabgroup"
+          :title="`Restore ${selectedCount} tab(s) to a new group`"
+          @click.prevent.stop="copyToNewTabGroup"
+        />
+        <a
+          v-if="selectedCount > 0"
           class="action restore"
           :title="`Open ${selectedCount} tab(s)`"
           @click.prevent.stop="copyToWindow"
@@ -188,7 +199,7 @@ import {altKeyName, required} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
-import {copyIf} from "../model/index.js";
+import {copyIf, copying} from "../model/index.js";
 import type {SyncState} from "../model/options.js";
 import type {Tab, TabGroupExtent, Window} from "../model/tabs.js";
 
@@ -373,6 +384,16 @@ export default defineComponent({
       });
     },
 
+    newTabGroup() {
+      this.attempt(async () => {
+        const tab = await browser.tabs.create({active: true});
+        const gid = await browser.tabs.group({tabIds: [tab.id!]});
+        await browser.tabGroups.update(gid, {
+          title: the.model.searchText.value || "Untitled",
+        });
+      });
+    },
+
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         // NOTE: isValidChild() is slightly different from
@@ -477,8 +498,30 @@ export default defineComponent({
       this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
+    copyToNewTabGroup() {
+      this.attempt(async () => {
+        const items = copying(Array.from(the.model.selection.selectedItems()));
+        await the.model.putItemsInNewTabGroup({
+          items,
+          toWindow: this.targetWindow,
+          toIndex: this.targetWindow.children.length,
+        });
+      });
+    },
+
     moveToWindow() {
       this.attempt(() => the.model.putSelectedInWindow({copy: false}));
+    },
+
+    moveToNewTabGroup() {
+      this.attempt(async () => {
+        const items = Array.from(the.model.selection.selectedItems());
+        await the.model.putItemsInNewTabGroup({
+          items,
+          toWindow: this.targetWindow,
+          toIndex: this.targetWindow.children.length,
+        });
+      });
     },
 
     moveToNewGroup(ev: MouseEvent | KeyboardEvent) {

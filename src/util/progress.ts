@@ -324,6 +324,15 @@ export class TaskMonitor {
   private _parent: TaskMonitor | undefined;
   private _children: TaskMonitor[] = [];
 
+  /** Helper to spawn() a child task that takes an optional TaskMonitor,
+   * regardless of whether we ourselves have a TaskMonitor or not. */
+  static spawner(
+    parent?: TaskMonitor,
+  ): <R>(fn: (child?: TaskMonitor) => Promise<R>) => Promise<R> {
+    if (parent) return fn => parent.spawn(child => fn(child));
+    else return fn => fn();
+  }
+
   static run<R>(fn: (tm: TaskMonitor) => Promise<R>): Task<R> {
     return _spawn(undefined, 1, fn);
   }

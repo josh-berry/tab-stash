@@ -1912,6 +1912,72 @@ describe("model", () => {
         },
       ]);
     });
+
+    it("wraps loose items in a group when requested", async () => {
+      const win = env.model.tabs.window(env.windows.right.id)!;
+
+      const p = env.model.putItemsInNewTabGroup({
+        items: [
+          {url: `${B}#sylvia`},
+          {url: `${B}#matthew`},
+          {
+            title: "Subgroup",
+            children: [{url: `${B}#lenny`}, {url: `${B}#penny`}],
+          },
+          env.model.bookmarks.folder(env.bookmarks.nested.id)!,
+        ],
+        toWindow: win,
+        toIndex: 0,
+      });
+      const ignore = events.ignore([
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.bookmarks.onRemoved,
+        "KVS.Memory.onSet",
+      ]);
+      const groups = await p;
+      ignore.cancel();
+
+      expect(tabStructureOf(groups)).to.deep.equal([
+        {title: "Untitled", children: [`${B}#sylvia`, `${B}#matthew`]},
+        {title: "Subgroup", children: [`${B}#lenny`, `${B}#penny`]},
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {
+          title: "Stash with Nested Folder > Extra",
+          children: [`${B}#2`],
+        },
+      ]);
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        {title: "Untitled", children: [`${B}#sylvia`, `${B}#matthew`]},
+        {title: "Subgroup", children: [`${B}#lenny`, `${B}#penny`]},
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {
+          title: "Stash with Nested Folder > Extra",
+          children: [`${B}#2`],
+        },
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+      ]);
+    });
   });
 
   describe("restores tabs", () => {

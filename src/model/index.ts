@@ -37,8 +37,10 @@ import {trace_fn} from "../util/debug.js";
 import {
   backingOff,
   filterMap,
+  shortPoll,
   TaskMonitor,
   textMatcher,
+  tryAgain,
   urlToOpen,
   urlToStash,
 } from "../util/index.js";
@@ -894,6 +896,59 @@ export class Model {
     await this.hideOrCloseStashedTabs(close_tabs);
 
     return moved_items;
+  }
+
+  /** Move or copy items (bookmarks, tabs, external items) into a new tab
+   * group (or set of tab groups) at a particular location in a particular
+   * window.  Returns the newly-created tab groups. Otherwise works similarly
+   * to putItemsInWindow(). */
+  async putItemsInNewTabGroup(options: {
+    items: StashItem[];
+    toWindow: Tabs.Window;
+    toIndex: number;
+    task?: TaskMonitor;
+    title?: string;
+  }): Promise<Tabs.TabGroupExtent[]> {
+    const spawn = TaskMonitor.spawner(options.task);
+
+    const tabs = filterMap(options.items, i => (isLeaf(i) ? i : undefined));
+    const groups = filterMap(options.items, i => (!isLeaf(i) ? i : undefined));
+
+    const moved_tabs = (await spawn(tm =>
+      this.putItemsInWindow({
+        items: tabs,
+        toParent: options.toWindow,
+        toIndex: options.toIndex,
+        task: tm,
+      }),
+    )) as Tabs.Tab[];
+    const moved_groups = (await spawn(tm =>
+      this.putItemsInWindow({
+        items: groups,
+        toParent: options.toWindow,
+        toIndex: options.toIndex + moved_tabs.length,
+        task: tm,
+      }),
+    )) as Tabs.TabGroupExtent[];
+
+    if (moved_tabs.length > 0) {
+      const gid = await browser.tabs.group({
+        tabIds: moved_tabs.map(t => t.id),
+      });
+      await browser.tabGroups.update(gid, {
+        title: options.title ?? (this.searchText.value || "Untitled"),
+      });
+      const extent = await shortPoll(() => {
+        const extent = options.toWindow.children[options.toIndex];
+        if (!extent) tryAgain("no child at index");
+        if (extent.type !== "tab-group") tryAgain("child is not tab group");
+        if (extent.group.id !== gid) tryAgain("child is not our tab group");
+        return extent;
+      });
+      moved_groups.unshift(extent);
+    }
+
+    return moved_groups;
   }
 
   /** Move or copy items (bookmarks, tabs, and/or external items) to a
