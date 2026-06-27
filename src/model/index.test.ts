@@ -237,6 +237,52 @@ describe("model", () => {
       );
     });
 
+    it("sorts multi-tab stash insertion order by URL", async () => {
+      await env.model.options.sync.set({multi_tab_stash_sort: "url"});
+      await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
+      await events.next(env.model.options.sync.onChanged);
+
+      const tabs = [
+        {title: "Gamma", url: "https://example.net/gamma"},
+        {title: "Alpha", url: "https://example.com/alpha"},
+        {title: "Beta", url: "https://example.com/beta"},
+      ];
+
+      expect(
+        env.model.sortItemsForMultiTabStashInsertion(tabs).map(t => t.title),
+      ).to.deep.equal(["Alpha", "Beta", "Gamma"]);
+      expect(tabs.map(t => t.title)).to.deep.equal(["Gamma", "Alpha", "Beta"]);
+    });
+
+    it("sorts multi-tab stash insertion order by date added", async () => {
+      const tabs = [
+        {title: "Oldest", url: "https://example.com/oldest"},
+        {title: "Middle", url: "https://example.com/middle"},
+        {title: "Newest", url: "https://example.com/newest"},
+      ];
+
+      expect(
+        env.model.sortItemsForMultiTabStashInsertion(tabs).map(t => t.title),
+      ).to.deep.equal(["Oldest", "Middle", "Newest"]);
+
+      await env.model.options.sync.set({
+        multi_tab_stash_sort: "date_added_desc",
+      });
+      await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
+      await events.next(env.model.options.sync.onChanged);
+
+      expect(
+        env.model.sortItemsForMultiTabStashInsertion(tabs).map(t => t.title),
+      ).to.deep.equal(["Newest", "Middle", "Oldest"]);
+      expect(tabs.map(t => t.title)).to.deep.equal([
+        "Oldest",
+        "Middle",
+        "Newest",
+      ]);
+    });
+
     it("allows user selection to override the default choice", async () => {
       await browser.tabs.update(env.tabs.real_bob.id, {highlighted: true});
       await browser.tabs.update(env.tabs.real_doug.id, {highlighted: true});
@@ -880,6 +926,35 @@ describe("model", () => {
         folder.children.map(c => c && isBookmark(c) && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
+    });
+
+    it("can insert items in a different order than they are processed", async () => {
+      const items = [
+        {url: "c", title: "C"},
+        {url: "a", title: "A"},
+        {url: "b", title: "B"},
+      ];
+
+      const p = env.model.putItemsInFolder({
+        items,
+        insertionOrder: [items[1], items[2], items[0]],
+        toFolder: env.model.bookmarks.folder(env.bookmarks.names.id)!,
+        toIndex: 2,
+      });
+      await events.nextN(browser.bookmarks.onCreated, 3);
+      await events.nextN(browser.bookmarks.onMoved, 3);
+      await p;
+
+      const folder = env.model.bookmarks.folder(env.bookmarks.names.id)!;
+      expect(folder.children.map(c => c?.title)).to.deep.equal([
+        "Doug Duplicate",
+        "Helen Hidden",
+        "A",
+        "B",
+        "C",
+        "Patricia Pinned",
+        "Nate NotOpen",
+      ]);
     });
 
     it("moves tabs into the folder", async () => {

@@ -125,6 +125,12 @@ export const isNewTab = (item: StashItem): item is NewTab =>
 export const isNewFolder = (item: StashItem): item is NewFolder =>
   !("id" in item) && "children" in item;
 
+const tabStashSortCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "base",
+  numeric: true,
+});
+
 export type Source = {
   readonly browser_settings: BrowserSettings.Model;
   readonly options: Options.Model;
@@ -356,6 +362,40 @@ export class Model {
     return selected.filter(t => !t.pinned);
   }
 
+  /** Returns a copy of the items in the user's preferred order for insertion
+   * when stashing multiple tabs. */
+  sortItemsForMultiTabStashInsertion<T extends StashItem>(items: T[]): T[] {
+    const sorted = items.map((item, index) => ({item, index}));
+
+    const stableSort = (cmp: (a: T, b: T) => number): T[] =>
+      sorted
+        .sort((a, b) => cmp(a.item, b.item) || a.index - b.index)
+        .map(({item}) => item);
+
+    switch (this.options.sync.state.multi_tab_stash_sort) {
+      case "date_added_desc":
+        return items.slice().reverse();
+      case "date_added":
+        return items.slice();
+      case "title":
+        return stableSort((a, b) =>
+          tabStashSortCollator.compare(
+            ("title" in a && a.title) || "",
+            ("title" in b && b.title) || "",
+          ),
+        );
+      case "url":
+        return stableSort((a, b) =>
+          tabStashSortCollator.compare(
+            isLeaf(a) ? a.url : "",
+            isLeaf(b) ? b.url : "",
+          ),
+        );
+      default:
+        return items.slice();
+    }
+  }
+
   /** Create a new folder in the stash (creating the stash root itself if it
    * does not exist).  If the name is not specified, a default name will be
    * assigned based on the folder's creation time or the current search term. */
@@ -433,9 +473,11 @@ export class Model {
   ) {
     const tabs = this.stashableTabsInWindow(window);
     if (tabs.length === 0) return;
+    const items = copyIf(!!options.copy, tabs);
 
     await this.putItemsInFolder({
-      items: copyIf(!!options.copy, tabs),
+      items,
+      insertionOrder: this.sortItemsForMultiTabStashInsertion(items),
       toFolder: await this.createStashFolder(undefined, options.parent),
     });
   }
@@ -447,6 +489,12 @@ export class Model {
   async putSelectedIn(options?: {copy?: boolean; toFolder?: Bookmarks.Folder}) {
     const from_items = Array.from(this.selection.selectedItems());
     const items = copyIf(options?.copy === true, from_items);
+    const insertionOrder =
+      options?.toFolder !== undefined &&
+      from_items.length > 1 &&
+      from_items.every(isTab)
+        ? this.sortItemsForMultiTabStashInsertion(items)
+        : undefined;
 
     let affected_items: StashItem[];
     if (options?.toFolder === undefined) {
@@ -456,6 +504,7 @@ export class Model {
         items,
         toFolder: options.toFolder,
         allowDuplicates: options?.copy === true,
+        insertionOrder,
       });
     }
     if (!options?.copy) {
@@ -650,10 +699,12 @@ export class Model {
     toFolder: Bookmarks.Folder;
     toIndex?: number;
     allowDuplicates?: boolean;
+    insertionOrder?: StashItem[];
     task?: TaskMonitor;
   }): Promise<Bookmarks.Node[]> {
     const to_folder = await this.bookmarks.loaded(options.toFolder);
     const items = options.items;
+    const insertion_start = options.toIndex ?? to_folder.children.length;
 
     // Note: We explicitly DON'T check stashability here because the caller
     // has presumably done this for us--and has explicitly chosen what to
@@ -686,6 +737,7 @@ export class Model {
     // the insertion point (i.e. the next inserted item should have index
     // `to_index`).
     const moved_items: Bookmarks.Node[] = [];
+    const moved_pairs: {item: StashItem; node: Bookmarks.Node}[] = [];
     const close_tabs: Tabs.Tab[] = [];
 
     for (
@@ -701,6 +753,7 @@ export class Model {
         const pos = model_item.position;
         await this.bookmarks.move(model_item, to_folder, to_index);
         moved_items.push(model_item);
+        moved_pairs.push({item, node: model_item});
         dont_steal_bms.add(model_item.id);
 
         if (pos && pos.parent === to_folder && pos.index < to_index) {
@@ -781,12 +834,30 @@ export class Model {
         node = await createTree(item, to_folder.id, to_index);
       }
       moved_items.push(node);
+      moved_pairs.push({item, node});
       dont_steal_bms.add(node.id);
 
       // Update the selection state of the chosen bookmark to match the
       // original item's selection state.
       this.selection.info(node).isSelected =
         isModelItem(item) && this.selection.info(item).isSelected;
+    }
+
+    if (options.insertionOrder && options.insertionOrder.length > 1) {
+      const remaining = moved_pairs.slice();
+      const ordered_nodes = filterMap(options.insertionOrder, item => {
+        const idx = remaining.findIndex(pair => pair.item === item);
+        if (idx === -1) return undefined;
+        return remaining.splice(idx, 1)[0].node;
+      });
+
+      for (let i = 0; i < ordered_nodes.length; ++i) {
+        await this.bookmarks.move(
+          ordered_nodes[i],
+          to_folder,
+          insertion_start + i,
+        );
+      }
     }
 
     // Hide/close any tabs which were moved from, since they are now

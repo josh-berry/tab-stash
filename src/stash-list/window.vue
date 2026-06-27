@@ -371,8 +371,10 @@ export default defineComponent({
           .filter(t => this.isValidChild(t));
 
         if (stashable_children.length === 0) return;
+        const items = copyIf(ev.altKey, stashable_children);
         await the.model.putItemsInFolder({
-          items: copyIf(ev.altKey, stashable_children),
+          items,
+          insertionOrder: the.model.sortItemsForMultiTabStashInsertion(items),
           toFolder: await the.model.createStashFolder(),
         });
       });

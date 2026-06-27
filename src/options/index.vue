@@ -125,6 +125,16 @@
       </ul>
     </section>
 
+    <section class="two-col">
+      <label for="multi_tab_stash_sort">Sort newly-stashed tabs by:</label>
+      <select id="multi_tab_stash_sort" v-model="sync.multi_tab_stash_sort">
+        <option value="date_added">Date Added (Oldest First)</option>
+        <option value="date_added_desc">Date Added (Newest First)</option>
+        <option value="title">Title</option>
+        <option value="url">URL</option>
+      </select>
+    </section>
+
     <section class="advanced">
       <label>When stashing a single tab:</label>
       <ul>

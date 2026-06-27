@@ -602,13 +602,14 @@ export default defineComponent({
       const win = the.model.tabs.targetWindow.value;
       if (!win) return;
 
-      the.model.attempt(
-        async () =>
-          await the.model.putItemsInFolder({
-            items: copyIf(ev.altKey, the.model.stashableTabsInWindow(win)),
-            toFolder: this.folder,
-          }),
-      );
+      the.model.attempt(async () => {
+        const items = copyIf(ev.altKey, the.model.stashableTabsInWindow(win));
+        await the.model.putItemsInFolder({
+          items,
+          insertionOrder: the.model.sortItemsForMultiTabStashInsertion(items),
+          toFolder: this.folder,
+        });
+      });
     },
 
     stashOne(ev: MouseEvent | KeyboardEvent) {
