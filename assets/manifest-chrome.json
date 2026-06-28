@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Stash for Chrome",
+  "version": "0.1.0",
+  "description": "Save and restore groups of tabs as bookmark-backed folders.",
+  "homepage_url": "https://github.com/josh-berry/tab-stash/",
+  "minimum_chrome_version": "114",
+  "permissions": [
+    "sessions",
+    "tabs",
+    "bookmarks",
+    "contextMenus",
+    "storage",
+    "unlimitedStorage",
+    "sidePanel"
+  ],
+  "background": {
+    "service_worker": "index.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Tab Stash"
+  },
+  "side_panel": {
+    "default_path": "stash-list.html?view=sidebar"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+T",
+        "mac": "MacCtrl+Shift+T"
+      }
+    }
+  }
+}

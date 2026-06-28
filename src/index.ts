@@ -1,6 +1,6 @@
 /* c8 ignore start -- main entry point for the background page */
 
-import type {Menus} from "webextension-polyfill";
+import type {Menus, Tabs as BrowserTabs} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
 import {copyIf} from "./model/index.js";
@@ -15,6 +15,9 @@ import {
   urlToOpen,
 } from "./util/index.js";
 import {logErrorsFrom} from "./util/oops.js";
+
+const toolbar_action = (<any>browser).action ?? browser.browserAction;
+const chrome_side_panel = (<any>browser).sidePanel;
 
 logErrorsFrom(async () => {
   // BEGIN FILE-WIDE ASYNC BLOCK
@@ -63,6 +66,8 @@ logErrorsFrom(async () => {
   // correspond to field names in the commands object.
   //
 
+  if (chrome_side_panel) await browser.contextMenus.removeAll();
+
   function menu(
     idprefix: string,
     contexts: Menus.ContextType[],
@@ -84,13 +89,22 @@ logErrorsFrom(async () => {
           "selection",
         ],
     );
-    contexts = contexts.filter(x => allowed_ctxs.includes(x));
+    contexts = contexts
+      .map(x =>
+        chrome_side_panel && (x === "browser_action" || x === "page_action")
+          ? <any>"action"
+          : x,
+      )
+      .filter((x, i, all) => allowed_ctxs.includes(x) && all.indexOf(x) === i);
+    if (contexts.length === 0) return;
 
+    let separator = 0;
     for (let [id, title] of def) {
       if (id) {
         browser.contextMenus.create({contexts, title, id: idprefix + id});
       } else {
         browser.contextMenus.create({
+          id: `${idprefix}separator-${separator++}`,
           contexts,
           type: "separator",
           enabled: false,
@@ -99,16 +113,17 @@ logErrorsFrom(async () => {
     }
   }
 
-  const SHOW_TAB_NAME = browser.sidebarAction
-    ? "Show Stashed Tabs in a Tab"
-    : "Show Stashed Tabs";
+  const SHOW_TAB_NAME =
+    browser.sidebarAction || chrome_side_panel
+      ? "Show Stashed Tabs in a Tab"
+      : "Show Stashed Tabs";
 
   menu(
     "1:",
     ["tab", "page", "tools_menu"],
     [
       ["show_tab", SHOW_TAB_NAME],
-      ...(browser.sidebarAction
+      ...(browser.sidebarAction || chrome_side_panel
         ? [["show_sidebar_or_tab", "Show Stashed Tabs in Sidebar"]]
         : []),
       ["", ""],
@@ -129,7 +144,7 @@ logErrorsFrom(async () => {
     ["browser_action"],
     [
       ["show_tab", SHOW_TAB_NAME],
-      ...(browser.sidebarAction
+      ...(browser.sidebarAction || chrome_side_panel
         ? [["show_sidebar_or_tab", "Show Stashed Tabs in Sidebar"]]
         : []),
       ["", ""],
@@ -143,7 +158,7 @@ logErrorsFrom(async () => {
     ["page_action"],
     [
       ["show_tab", SHOW_TAB_NAME],
-      ...(browser.sidebarAction
+      ...(browser.sidebarAction || chrome_side_panel
         ? [["show_sidebar_or_tab", "Show Stashed Tabs in Sidebar"]]
         : []),
       ["", ""],
@@ -161,10 +176,17 @@ logErrorsFrom(async () => {
     // Also note that some browsers don't support the sidebar at all; in these
     // cases, we open the tab instead.
 
-    show_sidebar_or_tab: () =>
-      browser.sidebarAction
-        ? browser.sidebarAction.open().catch(console.log)
-        : commands.show_tab(),
+    show_sidebar_or_tab: async tab => {
+      if (browser.sidebarAction) {
+        await browser.sidebarAction.open().catch(console.log);
+      } else if (chrome_side_panel && tab?.position?.parent?.id !== undefined) {
+        await chrome_side_panel
+          .open({windowId: tab.position.parent.id})
+          .catch(console.log);
+      } else {
+        await commands.show_tab(tab);
+      }
+    },
 
     async show_popup() {
       // Ugh, this hack where we set and then clear the popup is necessary
@@ -173,25 +195,35 @@ logErrorsFrom(async () => {
       // rather than running the browserAction.onClicked callback (which might
       // do other things besides setting the popup).
       try {
-        await browser.browserAction.setPopup({
+        await toolbar_action.setPopup({
           popup: "stash-list.html?view=popup",
         });
-        await browser.browserAction.openPopup();
+        await toolbar_action.openPopup();
       } finally {
-        await browser.browserAction.setPopup({popup: ""});
+        await toolbar_action.setPopup({popup: ""});
       }
     },
 
-    async show_tab() {
-      await model.restoreTabs(
-        [
-          {
-            title: "Tab Stash",
-            url: browser.runtime.getURL("stash-list.html"),
-          },
-        ],
-        {},
-      );
+    async show_tab(tab?: Tab) {
+      if (chrome_side_panel) {
+        const window_id =
+          tab?.position?.parent?.id ??
+          (await browser.windows.getLastFocused()).id;
+        await browser.tabs.create({
+          windowId: window_id,
+          url: browser.runtime.getURL("stash-list.html"),
+        });
+      } else {
+        await model.restoreTabs(
+          [
+            {
+              title: "Tab Stash",
+              url: browser.runtime.getURL("stash-list.html"),
+            },
+          ],
+          {},
+        );
+      }
     },
 
     async stash_all(tab?: Tab) {
@@ -231,20 +263,20 @@ logErrorsFrom(async () => {
   // Shows the Tab Stash UI in the manner requested by /show_what/.  NOTE that to
   // be able to open the sidebar, this function must be invoked in a
   // user-initiated event handler context BEFORE any async operations are done.
-  function show_something(show_what?: ShowWhatOpt) {
+  function show_something(show_what?: ShowWhatOpt, tab?: Tab) {
     switch (show_what) {
       case "none":
         break;
 
       case "tab":
-        model.attempt(commands.show_tab);
+        model.attempt(() => commands.show_tab(tab));
         break;
 
       case "popup":
         model.attempt(commands.show_popup);
 
       case "sidebar":
-        model.attempt(commands.show_sidebar_or_tab);
+        model.attempt(() => commands.show_sidebar_or_tab(tab));
         break;
 
       default:
@@ -306,7 +338,7 @@ logErrorsFrom(async () => {
     commands[cmd](t).catch(console.log);
   });
 
-  if (browser.browserAction) {
+  if (toolbar_action) {
     // In order for show_something('popup') to work, we must preconfigure the
     // browser to know which popup to show.  This cannot be done at the time of
     // show_something() because doing so requires an async call, and Firefox
@@ -319,28 +351,28 @@ logErrorsFrom(async () => {
           // will no longer run (the popup will be shown instead).  This
           // unfortunately means that we can't stash and show the popup at
           // the same time.  Sigh.
-          await browser.browserAction.setPopup({
+          await toolbar_action.setPopup({
             popup: "stash-list.html?view=popup",
           });
         } else {
           // If the user turns off the popup, we must clear the popup in
           // the browser if we expect anything else to work.
-          await browser.browserAction.setPopup({popup: ""});
+          await toolbar_action.setPopup({popup: ""});
         }
       });
     }
     setupPopup();
     model.options.sync.onChanged.addListener(setupPopup);
 
-    browser.browserAction.onClicked.addListener(
-      asyncEvent(async tab => {
+    toolbar_action.onClicked.addListener(
+      asyncEvent(async (tab: BrowserTabs.Tab) => {
         const opts = model.options.sync.state;
         // Special case so the user doesn't think Tab Stash is broken
         if (!opts.browser_action_show || !opts.browser_action_stash) {
           show_setup_page();
           return;
         }
-        show_something(opts.browser_action_show);
+        show_something(opts.browser_action_show, model.tabs.tab(tab.id!)!);
         await stash_something({
           what: opts.browser_action_stash,
           tab: model.tabs.tab(tab.id!)!,
@@ -397,8 +429,8 @@ logErrorsFrom(async () => {
         }
       }
 
-      if (browser.browserAction) {
-        await browser.browserAction.setTitle({
+      if (toolbar_action) {
+        await toolbar_action.setTitle({
           title: getTitle(opts.state.browser_action_stash),
         });
       }

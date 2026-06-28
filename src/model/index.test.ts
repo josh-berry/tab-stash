@@ -224,6 +224,19 @@ describe("model", () => {
       );
     });
 
+    it("keeps local-file tabs stashable in Firefox", () => {
+      expect(env.model.isURLStashable("file:///tmp/example.txt")).to.be.true;
+    });
+
+    it("does not stash local-file tabs in Chromium", () => {
+      const get_browser_info = browser.runtime.getBrowserInfo;
+      (<any>browser.runtime).getBrowserInfo = undefined;
+      try {
+        expect(env.model.isURLStashable("file:///tmp/example.txt")).to.be.false;
+      } finally {
+        (<any>browser.runtime).getBrowserInfo = get_browser_info;
+      }
+    });
     it("chooses all non-hidden, non-pinned and non-privileged tabs", () => {
       const win = env.model.tabs.window(env.windows.real.id)!;
       expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(

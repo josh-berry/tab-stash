@@ -214,7 +214,7 @@
     <section>
       <label>Once a tab has been stashed:</label>
       <ul>
-        <li>
+        <li v-if="model.canHideTabs()">
           <label
             for="after_stashing_tab_hide"
             title="Hidden tabs that are still loaded can be restored instantly. They also preserve anything you had entered into the tab and its history (e.g. Back button)."
@@ -322,7 +322,7 @@
             </li>
           </ul>
         </li>
-        <li>
+        <li v-if="model.canHideTabs()">
           <label
             for="after_stashing_tab_hide_discard"
             title="Hidden tabs that are unloaded can be restored very quickly, and usually without a network connection. They also preserve browsing history (e.g. Back button). However, depending on the website, you may lose anything you had entered into the tab that isn't already saved. Uses less memory."
