@@ -283,9 +283,13 @@ export class Model {
     // New-tab URLs, homepages and the like are never stashable.
     if (this.browser_settings.isNewTabURL(url_str)) return false;
 
-    // Invalid URLs are not stashable.
+    // Invalid URLs are not stashable. Chromium also cannot reliably reopen
+    // local files without a separate per-extension permission toggle.
     try {
-      new URL(url_str);
+      const url = new URL(url_str);
+      if (!browser.runtime.getBrowserInfo && url.protocol === "file:") {
+        return false;
+      }
     } catch (e) {
       return false;
     }

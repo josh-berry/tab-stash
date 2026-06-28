@@ -1,5 +1,19 @@
 # Tab Stash
 
+## Chrome development build
+
+This fork includes an experimental Manifest V3 port for Chromium browsers.
+
+1. Install Node.js 20 or newer.
+2. Run `npm ci`.
+3. Run `npm run build:chrome`.
+4. Open `chrome://extensions`, enable **Developer mode**, choose
+   **Load unpacked**, and select `dist-chrome`.
+
+The Chrome port uses Chrome's side panel in place of Firefox's sidebar. Saved
+groups remain real bookmark folders. Firefox-only hidden tabs and container
+metadata are unavailable.
+
 [![ci](https://github.com/josh-berry/tab-stash/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/josh-berry/tab-stash/actions?query=branch%3Amaster+)
 [![codecov](https://codecov.io/gh/josh-berry/tab-stash/branch/master/graph/badge.svg)](https://codecov.io/gh/josh-berry/tab-stash)
 

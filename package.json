@@ -35,5 +35,7 @@
     "web-ext": "^8.2",
     "webextension-polyfill": "^0.10"
   },
-  "scripts": {}
+  "scripts": {
+    "build:chrome": "node scripts/build-chrome.mjs"
+  }
 }

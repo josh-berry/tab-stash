@@ -162,12 +162,23 @@ export class Model {
   readonly local: StoredObject<typeof LOCAL_DEF>;
 
   static async live(): Promise<Model> {
-    return new Model(
+    const model = new Model(
       await resolveNamed({
         sync: stored_object("sync", "options", SYNC_DEF),
         local: stored_object("local", "options", LOCAL_DEF),
       }),
     );
+
+    // Chromium has no tabs.hide() API. Migrate Firefox-only choices so the
+    // stored option matches what Chromium can actually do.
+    if (
+      !browser.tabs.hide &&
+      model.local.state.after_stashing_tab !== "close"
+    ) {
+      await model.local.set({after_stashing_tab: "close"});
+    }
+
+    return model;
   }
 
   constructor(src: Source) {
@@ -193,9 +204,14 @@ export class Model {
     );
   });
 
+  /** Can this browser keep stashed tabs alive while hiding them? */
+  canHideTabs(): boolean {
+    return typeof browser.tabs.hide === "function";
+  }
+
   /** Is the Firefox sidebar supported? */
   hasSidebar(): boolean {
-    return !!browser.sidebarAction;
+    return !!browser.sidebarAction || !!(<any>browser).sidePanel;
   }
 
   /** Based on the current settings, what can the toolbar stash? */
@@ -212,7 +228,7 @@ export class Model {
 
   /** Based on the current settings, what UIs can the browser show? */
   canBrowserActionShow(what: ShowWhatOpt): boolean {
-    if (what === "sidebar" && !browser.sidebarAction) return false;
+    if (what === "sidebar" && !this.hasSidebar()) return false;
 
     const browserActionStash = this.sync.state.browser_action_stash;
 

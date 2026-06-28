@@ -44,6 +44,26 @@ describe("model/tabs", () => {
     }
   });
 
+  it("creates lazy tabs as discarded in Chromium", async () => {
+    (<any>browser.tabs).hide = undefined;
+    try {
+      const creating = model.create({
+        windowId: windows.left.id,
+        url: `${B}#lazy-chromium-tab`,
+        active: false,
+        discarded: true,
+      });
+
+      await events.next(browser.tabs.onCreated);
+      await events.nextN(browser.tabs.onUpdated, 2);
+
+      const tab = await creating;
+      expect(tab.url).to.equal(`${B}#lazy-chromium-tab`);
+      expect(tab.discarded).to.be.true;
+    } finally {
+      delete (<any>browser.tabs).hide;
+    }
+  });
   it("tracks tabs by window", async () => {
     for (const w in windows) {
       const win = windows[w as keyof typeof windows];

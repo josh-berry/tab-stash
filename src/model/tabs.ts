@@ -266,10 +266,33 @@ export class Model {
   async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
     const create_tab = Object.assign({}, tab);
 
+    if (!browser.tabs.hide && tab.discarded && tab.url) {
+      // Chrome cannot create a tab in the discarded state. Create it inactive,
+      // then discard it immediately so page execution waits for selection.
+      delete create_tab.discarded;
+      delete create_tab.title;
+      create_tab.active = false;
+
+      trace("creating lazy Chrome tab", create_tab);
+      const created = await browser.tabs.create(create_tab);
+      const model_tab = await shortPoll(
+        () => this.tabs.get(created.id as TabID) || tryAgain(),
+      );
+      // tabs.create() can initially report about:blank while the requested URL
+      // is still pending. Discarding at that point loses the destination.
+      await shortPoll(
+        () => (model_tab.url && model_tab.url !== "about:blank") || tryAgain(),
+        1000,
+      );
+      await browser.tabs.discard(created.id!);
+      await shortPoll(() => model_tab.discarded || tryAgain());
+      return model_tab;
+    }
     if (!browser.tabs.hide || !tab.url || tab.url.startsWith("about:")) {
-      // This is Chrome; it doesn't support discarded tabs, so we can only load
-      // so many at once.  This is a little awkward because to the user, it will
-      // look like there is a big delay in opening tabs.
+      // Chrome cannot create already-discarded tabs. This rate-limited path
+      // handles immediate loading. Firefox about: pages also use it, so we can
+      // only load so many at once. This can look like a delay when opening
+      // several tabs.
       //
       // (It could also be Firefox, which doesn't support creating discarded
       // `about:` tabs.)
@@ -611,9 +634,13 @@ export class Model {
       // browser.tabs.query() still returns the closed tab.  We work around this
       // by simply ignoring onUpdated events for tabs we don't recognize.
       // https://github.com/josh-berry/tab-stash/issues/321
-      console.warn(
-        `Got onUpdated event for an unknown tab ${id}; ignoring it.`,
-      );
+      if (!browser.tabs.hide) {
+        trace("event tabUpdated ignored unknown tab", id, info);
+      } else {
+        console.warn(
+          `Got onUpdated event for an unknown tab ${id}; ignoring it.`,
+        );
+      }
       return;
     }
     /* c8 ignore stop */
