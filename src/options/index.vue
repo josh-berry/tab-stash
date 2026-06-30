@@ -125,6 +125,22 @@
       </ul>
     </section>
 
+    <section>
+      <label>When stashing tabs:</label>
+      <ul>
+        <li>
+          <label for="stash_include_pinned">
+            <input
+              type="checkbox"
+              id="stash_include_pinned"
+              v-model="sync.stash_include_pinned"
+            />
+            Include pinned tabs when using "Stash Tabs"
+          </label>
+        </li>
+      </ul>
+    </section>
+
     <section class="advanced">
       <label>When stashing a single tab:</label>
       <ul>

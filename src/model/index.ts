@@ -353,7 +353,15 @@ export class Model {
     // because otherwise the user might have a pinned tab focused, and highlight
     // a single specific tab they want stashed (in addition to the active
     // pinned tab), and then ALL tabs would unexpectedly get stashed. [#61]
-    return selected.filter(t => !t.pinned);
+    const includePinned = this.options.sync.state.stash_include_pinned;
+    return selected.filter(t => includePinned || !t.pinned);
+  }
+
+  /** Returns a list of pinned tabs in a given window that can be stashed. */
+  pinnedTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
+    return window.children.filter(
+      t => !t.hidden && t.pinned && this.isURLStashable(t.url),
+    );
   }
 
   /** Create a new folder in the stash (creating the stash root itself if it

@@ -113,6 +113,7 @@ logErrorsFrom(async () => {
         : []),
       ["", ""],
       ["stash_all", "Stash Tabs"],
+      ["stash_pinned", "Stash Pinned Tabs"],
       ["stash_one", "Stash This Tab"],
       ["stash_one_newgroup", "Stash This Tab to a New Group"],
       ["", ""],
@@ -134,6 +135,7 @@ logErrorsFrom(async () => {
         : []),
       ["", ""],
       ["stash_all", "Stash Tabs"],
+      ["stash_pinned", "Stash Pinned Tabs"],
       ["copy_all", "Copy Tabs to Stash"],
     ],
   );
@@ -197,6 +199,17 @@ logErrorsFrom(async () => {
     async stash_all(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
       await stash_something({what: "all", copy: false, tab});
+    },
+
+    async stash_pinned(tab?: Tab) {
+      show_something(model.options.sync.state.open_stash_in);
+      if (!tab || tab.position === undefined) return;
+      const pinnedTabs = model.pinnedTabsInWindow(tab.position.parent);
+      if (pinnedTabs.length === 0) return;
+      await model.putItemsInFolder({
+        items: pinnedTabs,
+        toFolder: await model.createStashFolder(),
+      });
     },
 
     async stash_one(tab?: Tab) {
