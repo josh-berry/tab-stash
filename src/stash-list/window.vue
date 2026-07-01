@@ -124,8 +124,8 @@
         <a
           v-if="selectedCount > 0"
           class="action restore newtabgroup"
-          :title="`Restore ${selectedCount} tab(s) to a new group`"
-          @click.prevent.stop="copyToNewTabGroup"
+          :title="`Restore ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+          @click.prevent.stop="putInNewTabGroup"
         />
         <a
           v-if="selectedCount > 0"
@@ -199,7 +199,7 @@ import {altKeyName, required} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
-import {copyIf, copying} from "../model/index.js";
+import {copyIf} from "../model/index.js";
 import type {SyncState} from "../model/options.js";
 import type {Tab, TabGroupExtent, Window} from "../model/tabs.js";
 
@@ -492,9 +492,13 @@ export default defineComponent({
       this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
-    copyToNewTabGroup() {
+    putInNewTabGroup(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const items = copying(Array.from(the.model.selection.selectedItems()));
+        const items = copyIf(
+          ev.altKey,
+          Array.from(the.model.selection.selectedItems()),
+        );
+        console.log(items);
         await the.model.putItemsInNewTabGroup({
           items,
           toWindow: this.targetWindow,
@@ -505,17 +509,6 @@ export default defineComponent({
 
     moveToWindow() {
       this.attempt(() => the.model.putSelectedInWindow({copy: false}));
-    },
-
-    moveToNewTabGroup() {
-      this.attempt(async () => {
-        const items = Array.from(the.model.selection.selectedItems());
-        await the.model.putItemsInNewTabGroup({
-          items,
-          toWindow: this.targetWindow,
-          toIndex: this.targetWindow.children.length,
-        });
-      });
     },
 
     moveToNewGroup(ev: MouseEvent | KeyboardEvent) {
