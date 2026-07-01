@@ -66,6 +66,14 @@
         h-position="right"
       >
         <button
+          @click.prevent="ungroup"
+          title="Move all the tabs out of the group"
+        >
+          <span class="menu-icon icon icon-restore" />
+          <span>Ungroup</span>
+        </button>
+        <hr />
+        <button
           @click.prevent="closeUnstashed"
           title="Close all unstashed tabs in the group"
         >
@@ -82,7 +90,7 @@
         <hr />
         <button @click.prevent="close" title="Close the entire tab group">
           <span class="menu-icon icon icon-delete" />
-          <span>Close Tab Group</span>
+          <span>Close Group</span>
         </button>
       </Menu>
     </nav>
@@ -224,6 +232,12 @@ function stash(ev: MouseEvent) {
       items,
       toFolder: await the.model.createStashFolder(props.group.group.title),
     });
+  });
+}
+
+function ungroup() {
+  the.model.attempt(async () => {
+    await browser.tabs.ungroup(props.group.children.map(t => t.id));
   });
 }
 
