@@ -51,6 +51,41 @@
       :save="rename"
       @done="isRenaming = false"
     />
+
+    <nav
+      v-if="!isRenaming && selectedCount === 0"
+      class="action-group forest-toolbar"
+    >
+      <a
+        class="action stash many"
+        :title="`Stash this tab group (hold ${altKeyName()} to keep tabs open)`"
+        @click.prevent.stop="stash"
+      />
+      <Menu
+        summary-class="action neutral icon-item-menu last-toolbar-button"
+        h-position="right"
+      >
+        <button
+          @click.prevent="closeUnstashed"
+          title="Close all unstashed tabs in the group"
+        >
+          <span class="menu-icon icon icon-delete-opened" />
+          <span>Close Unstashed Tabs</span>
+        </button>
+        <button
+          @click.prevent="closeStashed"
+          title="Close all stashed tabs in the group"
+        >
+          <span class="menu-icon icon icon-delete-stashed" />
+          <span>Close Stashed Tabs</span>
+        </button>
+        <hr />
+        <button @click.prevent="close" title="Close the entire tab group">
+          <span class="menu-icon icon icon-delete" />
+          <span>Close Tab Group</span>
+        </button>
+      </Menu>
+    </nav>
   </div>
 
   <dnd-list
@@ -92,6 +127,7 @@ import type {Tab, TabGroupExtent} from "../model/tabs.js";
 import the from "../globals-ui.js";
 import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
+import {altKeyName} from "../util/index.js";
 
 import ItemIcon from "../components/item-icon.vue";
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -100,14 +136,22 @@ import DndList, {
   type ListDropEvent,
   type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
+import Menu from "../components/menu.vue";
 import TabView from "./tab.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
+import {copyIf} from "../model/index.js";
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{
   group: TabGroupExtent;
 }>();
+
+const emit = defineEmits<{
+  (e: "close", tabs: Tab[]): void;
+}>();
+
+const selectedCount = computed(() => the.model.selection.selectedCount.value);
 
 const selectionInfo = computed(() => the.model.selection.info(props.group));
 const filterInfo = computed(() => the.model.filter.info(props.group));
@@ -173,6 +217,33 @@ function rename(title: string): Promise<void> {
   });
 }
 
+function stash(ev: MouseEvent) {
+  the.model.attempt(async () => {
+    const items = copyIf(ev.altKey, stashableTabsIn(props.group.children));
+    await the.model.putItemsInFolder({
+      items,
+      toFolder: await the.model.createStashFolder(props.group.group.title),
+    });
+  });
+}
+
+function closeUnstashed() {
+  // We push the close event up to the window, because only the window can show
+  // a confirmation dialog.
+  emit(
+    "close",
+    closableTabsIn(props.group.children).filter(t => !isInStash(t)),
+  );
+}
+
+function closeStashed() {
+  emit("close", closableTabsIn(props.group.children).filter(isInStash));
+}
+
+function close() {
+  emit("close", closableTabsIn(props.group.children));
+}
+
 //
 // Drag-and-Drop
 //
@@ -213,5 +284,29 @@ function drop(ev: ListDropEvent) {
 function dropInside(ev: ListDropInsideEvent<Tab>) {
   // No-op since we never accept inside drops; tab groups cannot have sub-groups
   console.warn(`Attempt to drop inside a tab`, ev);
+}
+
+//
+// Helpers
+//
+
+function stashableTabsIn(tabs: Tab[]): Tab[] {
+  // TODO: Matches code in window.vue
+  return tabs.filter(
+    t => !t.hidden && !t.pinned && the.model.isURLStashable(t.url),
+  );
+}
+
+function closableTabsIn(tabs: Tab[]): Tab[] {
+  return tabs.filter(
+    t =>
+      !t.hidden &&
+      !t.pinned &&
+      !t.url.startsWith(browser.runtime.getURL("stash-list.html")),
+  );
+}
+
+function isInStash(t: Tab): boolean {
+  return the.model.bookmarks.loadedFoldersInStashWithURL(t.url).length > 0;
 }
 </script>

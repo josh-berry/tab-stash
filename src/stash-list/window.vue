@@ -161,7 +161,7 @@
       <template #item="{item}: {item: TabGroupExtent | Tab}">
         <template v-if="isVisible(item)">
           <tab v-if="item.type === 'tab'" :tab="item" />
-          <tab-group v-else :group="item" />
+          <tab-group v-else :group="item" @close="closeTabs" />
         </template>
       </template>
     </dnd-list>
@@ -413,62 +413,38 @@ export default defineComponent({
     },
 
     async removeUnstashed() {
-      this.attempt(async () => {
-        const to_remove = this.targetWindow.flattenedChildren.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
             // Keep the active tab if it's the Tab Stash tab
             (!t.active || the.model.isURLStashable(t.url)) &&
             !the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.tabs.remove(to_remove);
-      });
+        ),
+      );
     },
 
     async removeStashed() {
-      this.attempt(async () => {
-        const to_remove = this.targetWindow.flattenedChildren.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
             the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.hideOrCloseStashedTabs(to_remove);
-      });
+        ),
+      );
     },
 
     removeOpen() {
-      this.attempt(async () => {
-        // Closes ALL open tabs (stashed and unstashed).
-        //
-        // For performance, we will try to identify stashed tabs the
-        // user might want to keep, and hide instead of close them.
-        //
-        // (Just as in remove(), we keep the active tab if it's a
-        // new-tab page or the Tab Stash page.)
-        const tabs = this.targetWindow.flattenedChildren.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             (!t.active || the.model.isURLStashable(t.url)) &&
             !t.hidden &&
             !t.pinned,
-        );
-        const hide_tabs = tabs.filter(t =>
-          the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        const close_tabs = tabs
-          .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
-          .map(t => t.id);
-
-        if (!(await this.confirmRemove(tabs.length))) return;
-
-        await the.model.tabs.refocusAwayFromTabs(tabs);
-
-        the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
-        browser.tabs.remove(close_tabs).catch(console.log);
-      });
+        ),
+      );
     },
 
     removeHidden() {
@@ -477,6 +453,24 @@ export default defineComponent({
           t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
         );
         await the.model.tabs.remove(tabs);
+      });
+    },
+
+    closeTabs(tabs: Tab[]) {
+      this.attempt(async () => {
+        if (!(await this.confirmRemove(tabs.length))) return;
+
+        const hide_tabs = tabs.filter(t =>
+          the.model.bookmarks.isURLLoadedInStash(t.url),
+        );
+        const close_tabs = tabs
+          .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
+          .map(t => t.id);
+
+        await the.model.tabs.refocusAwayFromTabs(tabs);
+
+        the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
+        browser.tabs.remove(close_tabs).catch(console.log);
       });
     },
 
