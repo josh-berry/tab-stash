@@ -939,10 +939,13 @@ export class Model {
         title: options.title ?? (this.searchText.value || "Untitled"),
       });
       const extent = await shortPoll(() => {
-        const extent = options.toWindow.children[options.toIndex];
-        if (!extent) tryAgain("no child at index");
-        if (extent.type !== "tab-group") tryAgain("child is not tab group");
-        if (extent.group.id !== gid) tryAgain("child is not our tab group");
+        // NOTE: We're more relaxed about the target index, because the index
+        // may have changed in unpredictable ways due to tabs in the current
+        // window being moved into the new group.
+        const extent = options.toWindow.children.find(
+          c => c.type === "tab-group" && c.group.id === gid,
+        ) as Tabs.TabGroupExtent | undefined;
+        if (!extent) tryAgain("group extent not found");
         return extent;
       });
       moved_groups.unshift(extent);
