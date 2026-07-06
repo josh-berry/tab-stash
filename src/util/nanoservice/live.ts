@@ -24,16 +24,102 @@ let listener_count = 0;
 /* c8 ignore next -- pathname is never set in tests */
 const trace = trace_fn("nano_port", globalThis?.location?.pathname);
 
+type ParkedPort = {
+  port: RTPort;
+  buffered: object[];
+  onMessage: (msg: object) => void;
+  onDisconnect: () => void;
+};
+
 export class SvcRegistry {
   private services = new Map<string, NanoService<Send, Send>>();
+  private parked = new Map<string, Set<ParkedPort>>();
+  private eager = false;
+  private listening = false;
+
   private listener = (port: RTPort) => {
     const svc = this.services.get(port.name);
     if (!svc) {
-      // Probably intended for another audience.
-      trace(`[listener] ignored connection for ${port.name}`);
+      if (this.eager) {
+        // The service may still be initializing (e.g. we are a service
+        // worker that was just woken up by this connection); hold on to the
+        // port until the service is registered.
+        trace(`[listener] parking connection for ${port.name}`);
+        this._park(port);
+      } else {
+        // Probably intended for another audience.
+        trace(`[listener] ignored connection for ${port.name}`);
+      }
       return;
     }
 
+    this._accept(port, svc);
+  };
+
+  reset_testonly() {
+    this.services.clear();
+    this.parked.clear();
+    this.eager = false;
+    this.listening = false;
+    browser.runtime.onConnect.removeListener(this.listener);
+  }
+
+  /** Start listening for connections immediately, even before any service is
+   * registered.  Connections for not-yet-registered services are parked, and
+   * their messages buffered, until register() is called with a matching name.
+   *
+   * This is required in a MV3 service worker: the worker may be started BY an
+   * incoming connection, which is delivered as soon as top-level code has
+   * run--if we waited for services to be registered (which happens only after
+   * several async operations), the connection would be dropped.
+   *
+   * We don't do this on Firefox because of bug 1465514--listening for ANY
+   * connections and then dropping a connection may result in other, unrelated
+   * connections getting spuriously dropped. */
+  listenEagerly() {
+    this.eager = true;
+    if (!this.listening) {
+      this.listening = true;
+      browser.runtime.onConnect.addListener(this.listener);
+    }
+  }
+
+  register(name: string, svc: NanoService<Send, Send>) {
+    /* c8 ignore next 3 -- not worth testing */
+    if (this.services.has(name)) {
+      throw new Error(`Service ${name} is already launched`);
+    }
+
+    trace("[listener] listening for service", name);
+    this.services.set(name, svc);
+
+    if (!this.listening) {
+      // We wait to start listening until the first service is actually
+      // registered, because of Firefox bug 1465514--listening for ANY
+      // connections and then dropping a connection may result in other,
+      // unrelated connections getting spuriously dropped.
+      this.listening = true;
+      browser.runtime.onConnect.addListener(this.listener);
+    }
+
+    // Hand over any connections that arrived before the service was
+    // registered, replaying any messages they sent in the meantime.
+    const parked = this.parked.get(name);
+    if (parked) {
+      this.parked.delete(name);
+      for (const p of parked) {
+        p.port.onMessage.removeListener(p.onMessage);
+        p.port.onDisconnect.removeListener(p.onDisconnect);
+        const nport = this._accept(p.port, svc);
+        for (const msg of p.buffered) nport.deliverMessage(msg);
+      }
+    }
+  }
+
+  private _accept(
+    port: RTPort,
+    svc: NanoService<Send, Send>,
+  ): Port<Send, Send> {
     ++listener_count;
     const nport = new Port<Send, Send>(`${port.name}<${listener_count}`, port);
     nport.onDisconnect = () => {
@@ -50,30 +136,29 @@ export class SvcRegistry {
 
     trace(`[listener] Accepted connection for ${port.name} as ${nport.name}`);
     if (svc.onConnect) svc.onConnect(nport);
-  };
-
-  reset_testonly() {
-    this.services.clear();
-    browser.runtime.onConnect.removeListener(this.listener);
+    return nport;
   }
 
-  register(name: string, svc: NanoService<Send, Send>) {
-    /* c8 ignore next 3 -- not worth testing */
-    if (this.services.has(name)) {
-      throw new Error(`Service ${name} is already launched`);
-    }
+  private _park(port: RTPort) {
+    const parked: ParkedPort = {
+      port,
+      buffered: [],
+      onMessage: msg => parked.buffered.push(msg),
+      onDisconnect: () => {
+        port.onMessage.removeListener(parked.onMessage);
+        port.onDisconnect.removeListener(parked.onDisconnect);
+        this.parked.get(port.name)?.delete(parked);
+      },
+    };
+    port.onMessage.addListener(parked.onMessage);
+    port.onDisconnect.addListener(parked.onDisconnect);
 
-    trace("[listener] listening for service", name);
-    this.services.set(name, svc);
-
-    /* c8 ignore next -- Firefox bug workaround */
-    if (this.services.size == 1) {
-      // We wait to start listening until the first service is actually
-      // registered, because of Firefox bug 1465514--listening for ANY
-      // connections and then dropping a connection may result in other,
-      // unrelated connections getting spuriously dropped.
-      browser.runtime.onConnect.addListener(this.listener);
+    let set = this.parked.get(port.name);
+    if (!set) {
+      set = new Set();
+      this.parked.set(port.name, set);
     }
+    set.add(parked);
   }
 }
 
@@ -105,25 +190,31 @@ export class Port<S extends Send, R extends Send> implements NanoPort<S, R> {
       if (this.onDisconnect) this.onDisconnect(this);
     });
 
-    this.port.onMessage.addListener(((msg: Envelope<R>) => {
-      this._trace("recv", msg);
-      if (typeof msg !== "object") return;
-
-      if ("tag" in msg) {
-        if ("request" in msg) {
-          logErrorsFrom(() => this._handleRequest(msg));
-        } else if ("response" in msg || "error" in msg) {
-          this._handleResponse(msg);
-        }
-      } else if ("notify" in msg) {
-        if (this.onNotify) this.onNotify(msg.notify as R);
-        else {
-          if (this.onRequest) this.onRequest(msg.notify as R);
-        }
-      }
-    }) as (msg: object) => void);
+    this.port.onMessage.addListener((msg: object) => this.deliverMessage(msg));
 
     this._trace("create");
+  }
+
+  /** Handles a message received on the port.  Also called by SvcRegistry to
+   * replay messages which arrived while the port was parked awaiting service
+   * registration. */
+  deliverMessage(rawMsg: object) {
+    const msg = rawMsg as Envelope<R>;
+    this._trace("recv", msg);
+    if (typeof msg !== "object") return;
+
+    if ("tag" in msg) {
+      if ("request" in msg) {
+        logErrorsFrom(() => this._handleRequest(msg));
+      } else if ("response" in msg || "error" in msg) {
+        this._handleResponse(msg);
+      }
+    } else if ("notify" in msg) {
+      if (this.onNotify) this.onNotify(msg.notify as R);
+      else {
+        if (this.onRequest) this.onRequest(msg.notify as R);
+      }
+    }
   }
 
   disconnect() {

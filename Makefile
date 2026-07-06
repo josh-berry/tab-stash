@@ -124,8 +124,8 @@ clean-working-tree:
 
 build-chrome-dbg: build-dbg
 	rsync -aHvx --delete --force dist/ dist-chrome/
-	cp assets/manifest.json dist-chrome/
-	patch --no-backup-if-mismatch dist-chrome/manifest.json chrome-manifest.patch
+	node scripts/gen-chrome-manifest.mjs assets/manifest.json \
+	    > dist-chrome/manifest.json
 .PHONY: build-chrome-dbg
 
 build-dbg: node_modules icons dist/tab-stash.css

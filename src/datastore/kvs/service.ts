@@ -20,8 +20,13 @@ export default class Service<K extends Proto.Key, V extends Proto.Value>
     store_name: string,
   ): Promise<Service<K, V>> {
     // Magical incantation to make sure the browser doesn't spontaneously
-    // delete our store.
-    if (!(await navigator.storage.persisted())) {
+    // delete our store.  (Chrome doesn't provide persist()/persisted() in
+    // extension service workers; there, the unlimitedStorage permission
+    // already prevents eviction.)
+    if (
+      !!navigator.storage?.persist &&
+      !(await navigator.storage.persisted())
+    ) {
       await navigator.storage.persist();
     }
 

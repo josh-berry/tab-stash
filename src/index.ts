@@ -1,29 +1,134 @@
 /* c8 ignore start -- main entry point for the background page */
 
-import type {Menus} from "webextension-polyfill";
+import type {Alarms, Menus, Tabs as BT} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
+import type {Model} from "./model/index.js";
 import {copyIf} from "./model/index.js";
 import type {ShowWhatOpt, StashWhatOpt} from "./model/options.js";
 import type {Tab} from "./model/tabs.js";
 import service_model from "./service-model.js";
-import {
-  asyncEvent,
-  backingOff,
-  filterMap,
-  nonReentrant,
-  urlToOpen,
-} from "./util/index.js";
+import {backingOff, filterMap, nonReentrant, urlToOpen} from "./util/index.js";
+import {registry} from "./util/nanoservice/index.js";
 import {logErrorsFrom} from "./util/oops.js";
 
-logErrorsFrom(async () => {
-  // BEGIN FILE-WIDE ASYNC BLOCK
+//
+// Synchronous top-level section.
+//
+// When running as a MV3 service worker (i.e. on Chrome), we may be started at
+// any time in response to an event--and that event is only delivered if its
+// listener was registered synchronously during the first turn of the event
+// loop.  So all browser event listeners are registered here, before any async
+// initialization is done; their handlers wait for initialization to complete
+// (see dispatch() below).
+//
+// On Firefox, the background page is persistent, so this distinction mostly
+// doesn't matter--but the same registration order is used on both browsers so
+// there is only one code path.
+//
 
-  //
-  // Start our various services and set global variables used throughout the rest
-  // of this file.
-  //
+const MV3 = browser.runtime.getManifest().manifest_version >= 3;
 
+// In an MV3 service worker, we may have been woken up BY an incoming
+// connection from a UI page; start accepting (and parking) connections
+// immediately, before the model and its services are ready.
+if (MV3) registry.listenEagerly();
+
+// MV3 has `action`; MV2 has `browserAction`.  The polyfill does not alias one
+// to the other, so we must look for both.
+const action = browser.action ?? browser.browserAction;
+
+/** Everything the top-level event handlers need, available once async
+ * initialization (init(), below) is complete. */
+type InitState = {
+  model: Model;
+  commands: {[key: string]: (t?: Tab) => Promise<void>};
+  onMenuClicked(info: Menus.OnClickData, tab?: BT.Tab): Promise<void>;
+  onActionClicked(tab: BT.Tab): Promise<void>;
+  onPageActionClicked(tab: BT.Tab): Promise<void>;
+  closeRemovedBookmarks(): Promise<void>;
+  gc(): Promise<void>;
+};
+
+let ready: InitState | undefined;
+
+const initP = logErrorsFrom(init).then(s => (ready = s));
+
+/** Runs an event handler with the init state, synchronously if initialization
+ * has already finished.
+ *
+ * The synchronous path matters on Firefox: opening the sidebar is only
+ * allowed while in the direct call stack of a user-input handler, so we
+ * cannot await anything first.  (The handlers themselves are careful to do
+ * anything gesture-sensitive before their first await.)
+ *
+ * On a cold service-worker start (MV3), we have no choice but to wait for
+ * initialization; Chrome has no sidebar, and show_popup() falls back to
+ * opening a tab if the popup can't be shown anymore. */
+function dispatch<A extends unknown[]>(
+  fn: (state: InitState, ...args: A) => void | Promise<void>,
+): (...args: A) => void {
+  return (...args) => {
+    if (ready) {
+      const s = ready;
+      logErrorsFrom(async () => fn(s, ...args)).catch(() => {});
+    } else {
+      initP
+        .then(s => logErrorsFrom(async () => fn(s, ...args)))
+        .catch(console.log);
+    }
+  };
+}
+
+//
+// Top-level/user facing event bindings, which mostly just call commands.
+//
+
+browser.contextMenus.onClicked.addListener(
+  dispatch((s, info: Menus.OnClickData, tab?: BT.Tab) =>
+    s.onMenuClicked(info, tab),
+  ),
+);
+
+if (action) {
+  action.onClicked.addListener(
+    dispatch((s, tab?: BT.Tab) => s.onActionClicked(tab!)),
+  );
+}
+
+if (browser.pageAction) {
+  browser.pageAction.onClicked.addListener(
+    dispatch((s, tab: BT.Tab) => s.onPageActionClicked(tab)),
+  );
+}
+
+// GC events to close hidden tabs which are removed from the stash; see
+// closeRemovedBookmarks() in init() below.
+browser.bookmarks.onChanged.addListener(
+  dispatch(s => s.closeRemovedBookmarks()),
+);
+browser.bookmarks.onMoved.addListener(dispatch(s => s.closeRemovedBookmarks()));
+browser.bookmarks.onRemoved.addListener(
+  dispatch(s => s.closeRemovedBookmarks()),
+);
+
+// On MV3, periodic jobs use alarms, since setTimeout() does not survive
+// service-worker suspension.  (browser.alarms is undefined on Firefox, where
+// the manifest does not request the "alarms" permission.)
+if (browser.alarms) {
+  browser.alarms.onAlarm.addListener(
+    dispatch((s, alarm: Alarms.Alarm) => {
+      if (alarm.name === "gc") return s.gc();
+    }),
+  );
+}
+
+//
+// Asynchronous initialization--sets up the model, menus, and all the actual
+// behavior behind the event handlers above.
+//
+
+async function init(): Promise<InitState> {
   const model = await service_model();
   (<any>globalThis).model = model;
 
@@ -86,14 +191,24 @@ logErrorsFrom(async () => {
     );
     contexts = contexts.filter(x => allowed_ctxs.includes(x));
 
+    // If this browser supports none of the requested contexts (e.g. Chrome
+    // has no page_action), there is no menu to create--and create() throws
+    // if given an empty contexts list.
+    if (contexts.length === 0) return;
+
+    let separators = 0;
     for (let [id, title] of def) {
       if (id) {
         browser.contextMenus.create({contexts, title, id: idprefix + id});
       } else {
+        // MV3 service workers require an explicit ID on every menu item,
+        // even separators.  (onMenuClicked never sees these--separators
+        // aren't clickable.)
         browser.contextMenus.create({
           contexts,
           type: "separator",
           enabled: false,
+          id: `${idprefix}separator#${++separators}`,
         });
       }
     }
@@ -102,6 +217,12 @@ logErrorsFrom(async () => {
   const SHOW_TAB_NAME = browser.sidebarAction
     ? "Show Stashed Tabs in a Tab"
     : "Show Stashed Tabs";
+
+  // On MV3, this whole file is re-run whenever the service worker is
+  // restarted, but the menus it created previously are still registered with
+  // the browser--so we must clear them before re-creating them, or creation
+  // fails with duplicate-ID errors.
+  await browser.contextMenus.removeAll();
 
   menu(
     "1:",
@@ -126,7 +247,8 @@ logErrorsFrom(async () => {
   // These should only have like 6 items each
   menu(
     "2:",
-    ["browser_action"],
+    // MV3 renamed the "browser_action" context to "action".
+    [MV3 ? "action" : "browser_action"],
     [
       ["show_tab", SHOW_TAB_NAME],
       ...(browser.sidebarAction
@@ -173,12 +295,17 @@ logErrorsFrom(async () => {
       // rather than running the browserAction.onClicked callback (which might
       // do other things besides setting the popup).
       try {
-        await browser.browserAction.setPopup({
+        await action!.setPopup({
           popup: "stash-list.html?view=popup",
         });
-        await browser.browserAction.openPopup();
+        await action!.openPopup();
+      } catch (e) {
+        // On a cold MV3 service-worker start, openPopup() can fail because
+        // the user gesture expired while we were initializing; show a tab
+        // instead so the user's click still does something.
+        await commands.show_tab();
       } finally {
-        await browser.browserAction.setPopup({popup: ""});
+        await action!.setPopup({popup: ""});
       }
     },
 
@@ -295,18 +422,41 @@ logErrorsFrom(async () => {
   }
 
   //
-  // Top-level/user facing event bindings, which mostly just call commands.
+  // Behavior behind the top-level event handlers.
   //
 
-  browser.contextMenus.onClicked.addListener((info, tab) => {
+  async function onMenuClicked(info: Menus.OnClickData, tab?: BT.Tab) {
     // #cast We only ever create menu items with string IDs
     const cmd = (<string>info.menuItemId).replace(/^[^:]*:/, "");
     console.assert(!!commands[cmd]);
-    const t = tab?.id ? model.tabs.tab(tab?.id) : undefined;
-    commands[cmd](t).catch(console.log);
-  });
+    const t = tab?.id ? model.tabs.tab(tab.id) : undefined;
+    await commands[cmd](t);
+  }
 
-  if (browser.browserAction) {
+  async function onActionClicked(tab: BT.Tab) {
+    const opts = model.options.sync.state;
+    // Special case so the user doesn't think Tab Stash is broken
+    if (!opts.browser_action_show || !opts.browser_action_stash) {
+      show_setup_page();
+      return;
+    }
+    show_something(opts.browser_action_show);
+    await stash_something({
+      what: opts.browser_action_stash,
+      tab: model.tabs.tab(tab.id!)!,
+    });
+  }
+
+  async function onPageActionClicked(tab: BT.Tab) {
+    if (!model.options.sync.state.open_stash_in) {
+      // User hasn't decided what this button should do yet
+      show_setup_page();
+      return;
+    }
+    await commands.stash_one(model.tabs.tab(tab.id!));
+  }
+
+  if (action) {
     // In order for show_something('popup') to work, we must preconfigure the
     // browser to know which popup to show.  This cannot be done at the time of
     // show_something() because doing so requires an async call, and Firefox
@@ -319,47 +469,18 @@ logErrorsFrom(async () => {
           // will no longer run (the popup will be shown instead).  This
           // unfortunately means that we can't stash and show the popup at
           // the same time.  Sigh.
-          await browser.browserAction.setPopup({
+          await action!.setPopup({
             popup: "stash-list.html?view=popup",
           });
         } else {
           // If the user turns off the popup, we must clear the popup in
           // the browser if we expect anything else to work.
-          await browser.browserAction.setPopup({popup: ""});
+          await action!.setPopup({popup: ""});
         }
       });
     }
     setupPopup();
     model.options.sync.onChanged.addListener(setupPopup);
-
-    browser.browserAction.onClicked.addListener(
-      asyncEvent(async tab => {
-        const opts = model.options.sync.state;
-        // Special case so the user doesn't think Tab Stash is broken
-        if (!opts.browser_action_show || !opts.browser_action_stash) {
-          show_setup_page();
-          return;
-        }
-        show_something(opts.browser_action_show);
-        await stash_something({
-          what: opts.browser_action_stash,
-          tab: model.tabs.tab(tab.id!)!,
-        });
-      }),
-    );
-  }
-
-  if (browser.pageAction) {
-    browser.pageAction.onClicked.addListener(
-      asyncEvent(async tab => {
-        if (!model.options.sync.state.open_stash_in) {
-          // User hasn't decided what this button should do yet
-          show_setup_page();
-          return;
-        }
-        commands.stash_one(model.tabs.tab(tab.id));
-      }),
-    );
   }
 
   //
@@ -397,8 +518,8 @@ logErrorsFrom(async () => {
         }
       }
 
-      if (browser.browserAction) {
-        await browser.browserAction.setTitle({
+      if (action) {
+        await action.setTitle({
           title: getTitle(opts.state.browser_action_stash),
         });
       }
@@ -424,36 +545,30 @@ logErrorsFrom(async () => {
   // pile up, which will cause browser slowdowns over time.
   //
 
-  logErrorsFrom(async () => {
-    let managed_urls = await model.bookmarks.urlsInStash();
+  let managed_urls = await model.bookmarks.urlsInStash();
 
-    const close_removed_bookmarks = backingOff(() =>
-      model.attempt(async () => {
-        // Garbage-collect hidden tabs by diffing the old and new sets of URLs
-        // in the tree.
-        const new_urls = await model.bookmarks.urlsInStash();
+  const closeRemovedBookmarks = backingOff(() =>
+    model.attempt(async () => {
+      // Garbage-collect hidden tabs by diffing the old and new sets of URLs
+      // in the tree.
+      const new_urls = await model.bookmarks.urlsInStash();
 
-        // Ugh, why am I open-coding a set-difference operation?  This
-        // should be built-in!
-        let removed_urls = new Set();
-        for (let url of managed_urls) {
-          if (!new_urls.has(url)) removed_urls.add(url);
-        }
+      // Ugh, why am I open-coding a set-difference operation?  This
+      // should be built-in!
+      let removed_urls = new Set();
+      for (let url of managed_urls) {
+        if (!new_urls.has(url)) removed_urls.add(url);
+      }
 
-        await model.tabs.remove(
-          model.tabs
-            .allTabs()
-            .filter(t => t.hidden && removed_urls.has(urlToOpen(t.url))),
-        );
+      await model.tabs.remove(
+        model.tabs
+          .allTabs()
+          .filter(t => t.hidden && removed_urls.has(urlToOpen(t.url))),
+      );
 
-        managed_urls = new_urls;
-      }),
-    );
-
-    browser.bookmarks.onChanged.addListener(close_removed_bookmarks);
-    browser.bookmarks.onMoved.addListener(close_removed_bookmarks);
-    browser.bookmarks.onRemoved.addListener(close_removed_bookmarks);
-  });
+      managed_urls = new_urls;
+    }),
+  );
 
   //
   // Setup a background job to discard (unload, but keep open) hidden tabs that
@@ -544,29 +659,60 @@ logErrorsFrom(async () => {
   // change at runtime if the corresponding option is changed.  This will
   // cause some drift but it's not a big deal--the interval doesn't need to be
   // exact.
-  setTimeout(
-    discard_old_hidden_tabs,
-    model.options.local.state.autodiscard_interval_min * 60 * 1000,
-  );
+  //
+  // This job only does anything on browsers with tab-hiding (i.e. Firefox),
+  // where the background page is persistent, so it's fine to use setTimeout()
+  // here--there is nothing to discard on other browsers.
+  if (!!browser.tabs.hide) {
+    setTimeout(
+      discard_old_hidden_tabs,
+      model.options.local.state.autodiscard_interval_min * 60 * 1000,
+    );
+  }
 
   //
   // Setup a periodic background job to cleanup various deleted items and caches.
   // Needed to prevent Tab Stash from consuming an unbounded amount of the user's
   // local storage.
   //
+  // Hard-coded to a day for now, for people who don't restart their browsers
+  // regularly.  If this ever needs to be changed, we can always add an option
+  // for it later.
+  //
 
   const gc = nonReentrant(() =>
     model.attempt(async () => {
-      // Hard-coded to a day for now, for people who don't restart their browsers
-      // regularly.  If this ever needs to be changed, we can always add an option
-      // for it later.
-      setTimeout(gc, 24 * 60 * 60 * 1000);
+      // On MV3, scheduling is done with an alarm (created below), which
+      // survives service-worker suspension; setTimeout() does not.
+      if (!MV3) setTimeout(gc, 24 * 60 * 60 * 1000);
 
       await model.gc();
     }),
   );
 
-  // Here we call gc() on browser restart to ensure it happens
-  // at least once.
-  gc();
-}); // END FILE-WIDE ASYNC BLOCK
+  if (browser.alarms) {
+    // Only create the alarm if it doesn't already exist, so that
+    // service-worker restarts don't keep pushing the next GC further out.
+    const gc_alarm = await browser.alarms.get("gc");
+    if (!gc_alarm) {
+      browser.alarms.create("gc", {
+        delayInMinutes: 1,
+        periodInMinutes: 24 * 60,
+      });
+    }
+  } else {
+    // Here we call gc() on browser restart to ensure it happens at least
+    // once.
+    gc();
+  }
+
+  return {
+    model,
+    commands,
+    onMenuClicked,
+    onActionClicked,
+    onPageActionClicked,
+    closeRemovedBookmarks,
+    gc,
+  };
+}

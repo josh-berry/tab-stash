@@ -505,6 +505,92 @@ describe("util/nanoservice", function () {
       expect(await p2).to.equal(12);
     });
 
+    describe("eager listening (MV3 service-worker mode)", function () {
+      it("parks connections until the service is registered", async () => {
+        M.registry.listenEagerly();
+
+        M.connect("test");
+        await events.next("browser.runtime.onConnect");
+
+        let count = 0;
+        M.listen("test", {
+          onConnect() {
+            ++count;
+          },
+        });
+        expect(count).to.equal(1);
+      });
+
+      it("replays notifications sent while parked", async () => {
+        M.registry.listenEagerly();
+
+        M.connect("test").notify(42);
+        await events.next("browser.runtime.onConnect");
+        await events.next("browser.runtime.onMessage");
+
+        let notified = false;
+        M.listen("test", {
+          onNotify(port, msg) {
+            expect(msg).to.equal(42);
+            notified = true;
+          },
+        });
+        expect(notified).to.be.true;
+      });
+
+      it("replays and responds to requests sent while parked", async () => {
+        M.registry.listenEagerly();
+
+        const port = M.connect("test");
+        const p = port.request(17);
+        await events.next("browser.runtime.onConnect");
+        await events.next("browser.runtime.onMessage");
+
+        M.listen("test", {
+          async onRequest(sender, msg: number) {
+            expect(msg).to.equal(17);
+            return msg + 2;
+          },
+        });
+
+        await events.next("browser.runtime.onMessage");
+        expect(await p).to.equal(19);
+      });
+
+      it("drops parked ports which disconnect before registration", async () => {
+        M.registry.listenEagerly();
+
+        M.connect("test").disconnect();
+        await events.next("browser.runtime.onConnect");
+        await events.next("browser.runtime.onDisconnect");
+
+        let count = 0;
+        M.listen("test", {
+          /* c8 ignore next 3 */
+          onConnect() {
+            ++count;
+          },
+        });
+        expect(count).to.equal(0);
+      });
+
+      it("still ignores connections for other services", async () => {
+        M.registry.listenEagerly();
+
+        let count = 0;
+        M.listen("test", {
+          /* c8 ignore next 3 */
+          onConnect() {
+            ++count;
+          },
+        });
+
+        M.connect("other");
+        await events.next("browser.runtime.onConnect");
+        expect(count).to.equal(0);
+      });
+    });
+
     it("treats notifications as requests if onNotify() is not defined", async () => {
       M.listen("test", {
         async onRequest(sender, msg: number) {
