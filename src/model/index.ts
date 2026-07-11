@@ -1072,7 +1072,7 @@ export class Model {
       task?: TaskMonitor,
     ): Promise<void> => {
       const leaves = filterMap(tree.children, c =>
-        c && isLeaf(c) ? c : undefined,
+        c && isLeaf(c) ? {...c, url: urlToOpen(c.url)} : undefined,
       );
       const subgroups = filterMap(tree.children, c =>
         c && isParent(c) ? c : undefined,
