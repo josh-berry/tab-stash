@@ -52,66 +52,73 @@
       @done="isRenaming = false"
     />
 
-    <nav
-      v-if="!isRenaming && selectedCount === 0"
-      class="action-group forest-toolbar"
-    >
-      <a
-        class="action stash many"
-        :title="`Stash this tab group (hold ${altKeyName()} to keep tabs open)`"
-        @click.prevent.stop="stash"
-      />
+    <template v-if="!isRenaming">
+      <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
+        <a
+          class="action stash many"
+          :title="`Stash this tab group (hold ${altKeyName()} to keep tabs open)`"
+          @click.prevent.stop="stash"
+        />
 
-      <Menu
-        summary-class="action neutral icon-item-menu last-toolbar-button"
-        h-position="right"
-      >
-        <button
-          @click.prevent="ungroup"
-          title="Move all the tabs out of the group"
+        <Menu
+          summary-class="action neutral icon-item-menu last-toolbar-button"
+          h-position="right"
         >
-          <span class="menu-icon icon icon-restore" />
-          <span>Ungroup</span>
-        </button>
+          <button
+            @click.prevent="ungroup"
+            title="Move all the tabs out of the group"
+          >
+            <span class="menu-icon icon icon-restore" />
+            <span>Ungroup</span>
+          </button>
 
-        <hr />
+          <hr />
 
-        <button @click.prevent="sort(sortByTitle)">
-          <span class="menu-icon icon icon-sort" />
-          <span>Sort by Title</span>
-        </button>
+          <button @click.prevent="sort(sortByTitle)">
+            <span class="menu-icon icon icon-sort" />
+            <span>Sort by Title</span>
+          </button>
 
-        <button @click.prevent="sort(sortByURL)">
-          <span class="menu-icon icon icon-sort" />
-          <span>Sort by URL</span>
-        </button>
+          <button @click.prevent="sort(sortByURL)">
+            <span class="menu-icon icon icon-sort" />
+            <span>Sort by URL</span>
+          </button>
 
-        <hr />
+          <hr />
 
-        <button
-          @click.prevent="closeUnstashed"
-          title="Close all unstashed tabs in the group"
-        >
-          <span class="menu-icon icon icon-delete-opened" />
-          <span>Close Unstashed Tabs</span>
-        </button>
+          <button
+            @click.prevent="closeUnstashed"
+            title="Close all unstashed tabs in the group"
+          >
+            <span class="menu-icon icon icon-delete-opened" />
+            <span>Close Unstashed Tabs</span>
+          </button>
 
-        <button
-          @click.prevent="closeStashed"
-          title="Close all stashed tabs in the group"
-        >
-          <span class="menu-icon icon icon-delete-stashed" />
-          <span>Close Stashed Tabs</span>
-        </button>
+          <button
+            @click.prevent="closeStashed"
+            title="Close all stashed tabs in the group"
+          >
+            <span class="menu-icon icon icon-delete-stashed" />
+            <span>Close Stashed Tabs</span>
+          </button>
 
-        <hr />
+          <hr />
 
-        <button @click.prevent="close" title="Close the entire tab group">
-          <span class="menu-icon icon icon-delete" />
-          <span>Close Group</span>
-        </button>
-      </Menu>
-    </nav>
+          <button @click.prevent="close" title="Close the entire tab group">
+            <span class="menu-icon icon icon-delete" />
+            <span>Close Group</span>
+          </button>
+        </Menu>
+      </nav>
+
+      <nav v-else class="action-group forest-toolbar">
+        <a
+          class="action stash here"
+          :title="`Move ${selectedCount} selected item(s) to this tab group (hold ${altKeyName()} to copy)`"
+          @click.prevent.stop="moveSelectedItemsHere"
+        />
+      </nav>
+    </template>
   </div>
 
   <dnd-list
@@ -287,6 +294,24 @@ function closeStashed() {
 
 function close() {
   emit("close", closableTabsIn(props.group.children));
+}
+
+//
+// Selection operations
+//
+
+function moveSelectedItemsHere(ev: KeyboardEvent | MouseEvent) {
+  the.model.attempt(async () => {
+    const items = copyIf(
+      ev.altKey,
+      Array.from(the.model.selection.selectedItems()),
+    );
+    await the.model.putItemsInWindow({
+      items,
+      toParent: props.group,
+      toIndex: props.group.children.length,
+    });
+  });
 }
 
 //
