@@ -15,7 +15,7 @@ import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
 import {getDefaultFolderNameISODate, type Folder} from "./bookmarks.js";
 import type {DeletedFolder} from "./deleted-items.js";
 import * as M from "./index.js";
-import type {TabGroupExtent, TabID} from "./tabs.js";
+import type {TabGroupExtent, TabGroupID, TabID, WindowID} from "./tabs.js";
 import {copying} from "./index.js";
 
 describe("model", () => {
@@ -2496,6 +2496,130 @@ describe("model", () => {
         ]);
       });
     });
+  });
+
+  describe("sort comparators", () => {
+    function t(
+      comparator: (a: M.StashItem, b: M.StashItem) => number,
+      a: M.StashItem,
+      expected: "==" | "<" | ">",
+      b: M.StashItem,
+    ) {
+      it(`${comparator.name}: ${JSON.stringify(a)} ${expected} "${JSON.stringify(b)}"`, () => {
+        const cmp = comparator(a, b);
+        if (expected === "==") expect(cmp).to.equal(0);
+        else if (expected === "<") expect(cmp).to.be.lessThan(0);
+        else expect(cmp).to.be.greaterThan(0);
+      });
+    }
+
+    t(M.sortByTitle, {title: "A", url: ""}, "==", {title: "A", children: []});
+    t(M.sortByTitle, {title: "B", url: ""}, ">", {title: "A", url: ""});
+    t(M.sortByTitle, {title: "A", url: ""}, "<", {title: "B", url: ""});
+    t(M.sortByTitle, {title: "A", url: ""}, "==", {title: "a", url: ""});
+    t(M.sortByTitle, {title: "e", url: ""}, "==", {title: "é", url: ""});
+    t(M.sortByTitle, {title: "[ticket-1234]", url: ""}, ">", {
+      title: "[ticket-20]",
+      url: "",
+    });
+
+    t(
+      M.sortByTitle,
+      {
+        type: "tab-group",
+        position: undefined,
+        children: [],
+        group: {
+          id: 0 as TabGroupID,
+          color: "blue",
+          collapsed: false,
+          title: "A",
+        },
+      },
+      "<",
+      {title: "B", url: ""},
+    );
+
+    t(
+      M.sortByTitle,
+      {
+        type: "tab-group",
+        position: undefined,
+        children: [],
+        group: {
+          id: 0 as TabGroupID,
+          color: "blue",
+          collapsed: false,
+          title: "A",
+        },
+      },
+      ">",
+      {url: "http://example.com/b"},
+    );
+
+    t(M.sortByTitle, {url: "http://example.com/a"}, "==", {
+      title: "",
+      children: [],
+    });
+
+    t(M.sortByURL, {url: "http://example.com/a"}, "<", {
+      url: "http://example.com/b",
+    });
+
+    t(M.sortByURL, {url: "http://example.com/a"}, "==", {
+      url: "http://example.com/a",
+    });
+
+    t(M.sortByURL, {url: "http://example.com/b"}, ">", {
+      url: "http://example.com/a",
+    });
+
+    t(M.sortByURL, {url: "http://a.b.com/foo"}, ">", {
+      url: "http://b.a.com/foo",
+    });
+
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#bar"}, "==", {
+      url: "http://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#baz"}, ">", {
+      url: "http://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#baz"}, ">", {
+      url: "https://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#bar"}, "<", {
+      url: "https://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://example.com/issues/10"}, ">", {
+      url: "http://example.com/issues/2",
+    });
+
+    t(
+      M.sortByURL,
+      {type: "window", id: 0 as WindowID, children: [], flattenedChildren: []},
+      "==",
+      {
+        title: "",
+        children: [],
+      },
+    );
+
+    t(
+      M.sortByURL,
+      {
+        type: "tab-group",
+        position: undefined,
+        children: [],
+        group: {
+          id: 0 as TabGroupID,
+          color: "blue",
+          collapsed: true,
+          title: "http://example.com/bbbb",
+        },
+      },
+      "<",
+      {title: "http://exaxmple.com/cccc", url: "http://example.com/"},
+    );
   });
 });
 

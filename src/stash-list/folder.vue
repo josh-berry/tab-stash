@@ -282,13 +282,11 @@ import {
   getDefaultFolderNameISODate,
   sortByDateAdded,
   sortByDateAddedDescending,
-  sortByTitle,
-  sortByURL,
   type Bookmark,
   type Folder,
   type Node,
 } from "../model/bookmarks.js";
-import {copyIf} from "../model/index.js";
+import {copyIf, sortByTitle, sortByURL} from "../model/index.js";
 import type {Tab, Window} from "../model/tabs.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";

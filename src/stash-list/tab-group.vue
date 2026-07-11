@@ -61,6 +61,7 @@
         :title="`Stash this tab group (hold ${altKeyName()} to keep tabs open)`"
         @click.prevent.stop="stash"
       />
+
       <Menu
         summary-class="action neutral icon-item-menu last-toolbar-button"
         h-position="right"
@@ -72,7 +73,21 @@
           <span class="menu-icon icon icon-restore" />
           <span>Ungroup</span>
         </button>
+
         <hr />
+
+        <button @click.prevent="sort(sortByTitle)">
+          <span class="menu-icon icon icon-sort" />
+          <span>Sort by Title</span>
+        </button>
+
+        <button @click.prevent="sort(sortByURL)">
+          <span class="menu-icon icon icon-sort" />
+          <span>Sort by URL</span>
+        </button>
+
+        <hr />
+
         <button
           @click.prevent="closeUnstashed"
           title="Close all unstashed tabs in the group"
@@ -80,6 +95,7 @@
           <span class="menu-icon icon icon-delete-opened" />
           <span>Close Unstashed Tabs</span>
         </button>
+
         <button
           @click.prevent="closeStashed"
           title="Close all stashed tabs in the group"
@@ -87,7 +103,9 @@
           <span class="menu-icon icon icon-delete-stashed" />
           <span>Close Stashed Tabs</span>
         </button>
+
         <hr />
+
         <button @click.prevent="close" title="Close the entire tab group">
           <span class="menu-icon icon icon-delete" />
           <span>Close Group</span>
@@ -136,6 +154,7 @@ import the from "../globals-ui.js";
 import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
 import {altKeyName} from "../util/index.js";
+import {copyIf, sortByTitle, sortByURL} from "../model/index.js";
 
 import ItemIcon from "../components/item-icon.vue";
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -147,7 +166,6 @@ import DndList, {
 import Menu from "../components/menu.vue";
 import TabView from "./tab.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
-import {copyIf} from "../model/index.js";
 </script>
 
 <script setup lang="ts">
@@ -222,6 +240,19 @@ function rename(title: string): Promise<void> {
     // If the user asks for the default name, don't rename at all.
     if (title === "") return;
     await browser.tabGroups.update(props.group.group.id, {title});
+  });
+}
+
+function sort(sorter: (a: Tab, b: Tab) => number) {
+  the.model.attempt(async () => {
+    // We deliberately pick up hidden children here as well, so that if they're
+    // ever un-hidden by another extension, they're still sorted correctly.
+    const sorted = [...props.group.children].sort(sorter);
+    await the.model.putItemsInWindow({
+      items: sorted,
+      toParent: props.group,
+      toIndex: 0,
+    });
   });
 }
 

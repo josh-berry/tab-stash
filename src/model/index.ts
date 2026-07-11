@@ -102,6 +102,10 @@ export type ModelItem =
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
 
+//
+// StashItem type predicates
+//
+
 // TODO remove most of these in favor of explicit .type checks
 export const isParent = (item: StashItem): item is StashParent =>
   "children" in item;
@@ -142,6 +146,18 @@ export const isFolder = (item: StashItem): item is Bookmarks.Folder =>
 // subsets of the model. What you're really asking is `!isModelItem()`, which is
 // different--TypeScript will assume that all Tabs are NewTabs, which is
 // probably not the behavior you want.
+
+//
+// StashItem accessors
+//
+
+function titleOf(item: StashItem): string | undefined {
+  if ("title" in item) return item.title;
+  if ("type" in item) {
+    if (item.type === "tab-group") return item.group.title;
+  }
+  return undefined;
+}
 
 export const ModelTree = new (class extends Tree<
   Tabs.Window,
@@ -244,8 +260,7 @@ export class Model {
 
       const matcher = textMatcher(searchText);
       return node =>
-        ("title" in node && matcher(node.title)) ||
-        ("url" in node && matcher(node.url));
+        matcher(titleOf(node) ?? "") || ("url" in node && matcher(node.url));
     }),
   );
 
@@ -845,15 +860,13 @@ export class Model {
           parentId: Bookmarks.NodeID,
           index: number,
         ): Promise<Bookmarks.Node> => {
-          let title: string;
-          if ("title" in item && item.title) {
-            title = item.title;
-          } else if ("url" in item) {
-            title = item.url;
-          } else if ("group" in item && item.group.title) {
-            title = item.group.title;
-          } else {
-            title = Bookmarks.genDefaultFolderName(new Date());
+          let title: string = titleOf(item) ?? "";
+          if (!title) {
+            if ("url" in item) {
+              title = item.url;
+            } else {
+              title = Bookmarks.genDefaultFolderName(new Date());
+            }
           }
 
           const node =
@@ -1096,8 +1109,7 @@ export class Model {
 
       for (const g of subgroups) {
         ++to_index;
-        const subtitle =
-          "title" in g ? g.title : "group" in g ? g.group.title : "Untitled";
+        const subtitle = titleOf(g) ?? "Untitled";
         const t = (tm?: TaskMonitor) =>
           createTreeInWindow(
             g,
@@ -1516,4 +1528,55 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
       // Separators are excluded
     }
   });
+}
+
+//
+// Public helper functions for sorting nodes
+//
+
+const sortTextCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "base",
+  numeric: true,
+});
+const sortURLCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "variant",
+  numeric: true,
+});
+
+export function sortByTitle(a: StashItem, b: StashItem): number {
+  return sortTextCollator.compare(titleOf(a) ?? "", titleOf(b) ?? "");
+}
+
+export function sortByURL(a: StashItem, b: StashItem): number {
+  const urlA = new URL("url" in a ? a.url : "about:blank");
+  const urlB = new URL("url" in b ? b.url : "about:blank");
+
+  const host_parts = (u: URL) => u.hostname.split(".").reverse();
+
+  const a_parts = host_parts(urlA);
+  const b_parts = host_parts(urlB);
+
+  for (let i = 0; i < Math.min(a_parts.length, b_parts.length); ++i) {
+    const cmp = sortURLCollator.compare(a_parts[i], b_parts[i]);
+    if (cmp !== 0) return cmp;
+  }
+
+  const port_cmp = sortURLCollator.compare(urlA.port || "0", urlB.port || "0");
+  if (port_cmp !== 0) return port_cmp;
+
+  const path_cmp = sortURLCollator.compare(urlA.pathname, urlB.pathname);
+  if (path_cmp !== 0) return path_cmp;
+
+  const query_cmp = sortURLCollator.compare(urlA.search, urlB.search);
+  if (query_cmp !== 0) return query_cmp;
+
+  const hash_cmp = sortURLCollator.compare(urlA.hash, urlB.hash);
+  if (hash_cmp !== 0) return hash_cmp;
+
+  const scheme_cmp = sortURLCollator.compare(urlA.protocol, urlB.protocol);
+  if (scheme_cmp !== 0) return scheme_cmp;
+
+  return 0;
 }
