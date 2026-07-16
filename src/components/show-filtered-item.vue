@@ -18,6 +18,8 @@
 </template>
 
 <script setup lang="ts">
+import {t} from "../util/i18n.js";
+
 const props = defineProps<{
   visible: boolean;
   count: number;

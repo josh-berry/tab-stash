@@ -72,6 +72,7 @@ import {computed, ref} from "vue";
 import the from "../globals-ui.js";
 import {friendlyFolderName} from "../model/bookmarks.js";
 import {findChildItem} from "../model/deleted-items.js";
+import {t} from "../util/i18n.js";
 
 import type {FilteredDeletedItem, FilteredDeletion} from "./schema.js";
 

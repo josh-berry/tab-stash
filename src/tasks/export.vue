@@ -4,25 +4,25 @@
     @close="$emit('close')"
     show-close-button
   >
-    <template #title>Export</template>
+    <template #title>{{ t('exportDialogTitle') }}</template>
 
     <form :id="$style.dlg" @submit.prevent.stop="">
-      <label :for="$style.format" :class="$style.format">Format:</label>
+      <label :for="$style.format" :class="$style.format">{{ t('formatLabel') }}</label>
       <select :id="$style.format" v-model="format">
-        <option value="html-links">Clickable Links</option>
-        <option value="url-list">List of URLs</option>
-        <option value="markdown">Markdown</option>
-        <option value="one-tab">OneTab</option>
+        <option value="html-links">{{ t('clickableLinksOption') }}</option>
+        <option value="url-list">{{ t('urlListOption') }}</option>
+        <option value="markdown">{{ t('markdownOption') }}</option>
+        <option value="one-tab">{{ t('oneTabOption') }}</option>
       </select>
       <nav>
-        <button @click.prevent.stop="select_all">Select All</button>
-        <button class="clickme" @click.prevent.stop="copy">Copy</button>
+        <button @click.prevent.stop="select_all">{{ t('selectAllButton') }}</button>
+        <button class="clickme" @click.prevent.stop="copy">{{ t('copyButton') }}</button>
       </nav>
       <label :class="$style.help">
         <a
           href="https://github.com/josh-berry/tab-stash/wiki/Exporting-Tabs-from-Tab-Stash"
           target="_blank"
-          >About Formats...</a
+          >{{ t('aboutFormatsLink') }}</a
         >
       </label>
     </form>
@@ -45,6 +45,7 @@
 import {defineComponent, nextTick, type PropType} from "vue";
 
 import type {StashItem} from "../model/index.js";
+import {t} from "../util/i18n.js";
 
 import Dialog from "../components/dialog.vue";
 
@@ -85,6 +86,7 @@ export default defineComponent({
   },
 
   methods: {
+    t,
     copy() {
       document.execCommand("copy");
     },

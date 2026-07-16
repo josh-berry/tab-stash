@@ -16,7 +16,7 @@
           id="meta_show_advanced"
           v-model="sync.meta_show_advanced"
         />
-        Show advanced settings
+        {{ t("showAdvancedSettings") }}
       </label>
     </section>
 
@@ -25,58 +25,58 @@
         v-if="local.hide_crash_reports_until ?? 0 > Date.now()"
         @click.stop="showCrashReports"
       >
-        Stop Hiding Crash Reports
+        {{ t("stopHidingCrashReports") }}
       </button>
     </section>
 
     <hr />
 
-    <h4>Tab Stash Behavior (All Synced Browsers)</h4>
+    <h4>{{ t("tabStashBehaviorTitle") }}</h4>
 
     <section>
-      <label>When the toolbar button is clicked:</label>
+      <label>{{ t("toolbarButtonClickLabel") }}</label>
       <ul>
         <li>
           <select id="browser_action_stash" v-model="sync.browser_action_stash">
             <option :disabled="!model.canBrowserActionStash('all')" value="all">
-              Stash all (or selected) tabs
+              {{ t("stashAllOption") }}
             </option>
             <option
               :disabled="!model.canBrowserActionStash('single')"
               value="single"
             >
-              Stash the active tab
+              {{ t("stashActiveTabOption") }}
             </option>
             <option
               :disabled="!model.canBrowserActionStash('none')"
               value="none"
             >
-              Don't stash any tabs
+              {{ t("dontStashOption") }}
             </option>
           </select>
-          and
+          {{ t("andText") }}
           <select id="browser_action_show" v-model="sync.browser_action_show">
             <option
               v-if="model.hasSidebar()"
               :disabled="!model.canBrowserActionShow('sidebar')"
               value="sidebar"
             >
-              show the stash in the sidebar
+              {{ t("showStashInSidebarOption") }}
             </option>
             <option :disabled="!model.canBrowserActionShow('tab')" value="tab">
-              show the stash in a tab
+              {{ t("showStashInTabOption") }}
             </option>
             <option
               :disabled="!model.canBrowserActionShow('popup')"
               value="popup"
             >
-              show the stash in a popup
+              {{ t("showStashInPopupOption") }}
             </option>
             <option
               :disabled="!model.canBrowserActionShow('none')"
               value="none"
             >
-              don't show the stash
+              {{ t("dontShowStashOption") }}
             </option>
           </select>
         </li>
@@ -84,7 +84,7 @@
     </section>
 
     <section>
-      <label>When stashing tabs from the context menu or address bar:</label>
+      <label>{{ t("contextMenuStashLabel") }}</label>
       <ul>
         <li v-if="model.hasSidebar()">
           <label for="open_stash_in_sidebar">
@@ -95,7 +95,7 @@
               v-model="sync.open_stash_in"
               value="sidebar"
             />
-            Show the stash in the sidebar
+            {{ t("showStashInSidebarRadio") }}
           </label>
         </li>
         <li>
@@ -107,7 +107,7 @@
               v-model="sync.open_stash_in"
               value="tab"
             />
-            Show the stash in a tab
+            {{ t("showStashInTabRadio") }}
           </label>
         </li>
         <li>
@@ -119,28 +119,25 @@
               v-model="sync.open_stash_in"
               value="none"
             />
-            Don't show the stash
+            {{ t("dontShowStashRadio") }}
           </label>
         </li>
       </ul>
     </section>
 
     <section class="advanced">
-      <label>When stashing a single tab:</label>
+      <label>{{ t("singleTabAppendLabel") }}</label>
       <ul>
         <li>
-          <label
-            for="new_folder_timeout_min"
-            title="If the top-most group has a name, or is older than this, a new, unnamed group will be created instead."
-          >
-            Append to the top-most group only if it was created in the last
+          <label for="new_folder_timeout_min" :title="t('appendTooltip')">
+            {{ t("appendToTopGroupLabel") }}
             <input
               type="number"
               id="new_folder_timeout_min"
               v-model="sync.new_folder_timeout_min"
               min="0"
             />
-            minutes
+            {{ t("minutesText") }}
           </label>
         </li>
       </ul>
@@ -148,60 +145,56 @@
 
     <hr />
 
-    <h4>Appearance (All Synced Browsers)</h4>
+    <h4>{{ t("appearanceTitle") }}</h4>
 
     <section class="two-col">
-      <label for="ui_metrics">Spacing and fonts:</label>
+      <label for="ui_metrics">{{ t("spacingAndFontsLabel") }}</label>
       <select id="ui_metrics" v-model="sync.ui_metrics">
-        <option value="normal">Normal</option>
-        <option value="compact">Compact</option>
+        <option value="normal">{{ t("normalOption") }}</option>
+        <option value="compact">{{ t("compactOption") }}</option>
       </select>
 
-      <label for="ui_theme">Theme:</label>
+      <label for="ui_theme">{{ t("themeLabel") }}</label>
       <select id="ui_theme" v-model="sync.ui_theme">
-        <option value="system">Same as operating system</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
+        <option value="system">{{ t("sameAsSystemOption") }}</option>
+        <option value="light">{{ t("lightOption") }}</option>
+        <option value="dark">{{ t("darkOption") }}</option>
       </select>
 
-      <label for="show_open_tabs">Show which open tabs:</label>
+      <label for="show_open_tabs">{{ t("showOpenTabsLabel") }}</label>
       <select
         id="show_open_tabs"
         v-model="sync.show_open_tabs"
-        :title="
-          `Click on the &quot;Open Tabs&quot; or ` +
-          `&quot;Unstashed Tabs&quot; title to toggle between these ` +
-          `options. Note that pinned tabs are never shown.`
-        "
+        :title="t('showOpenTabsTooltip')"
       >
-        <option value="unstashed">Unstashed tabs only</option>
-        <option value="all">Stashed and unstashed tabs</option>
+        <option value="unstashed">{{ t("unstashedTabsOnlyOption") }}</option>
+        <option value="all">{{ t("allTabsOption") }}</option>
       </select>
 
-      <label for="show_new_folders">Show new groups:</label>
+      <label for="show_new_folders">{{ t("showNewGroupsLabel") }}</label>
       <select id="show_new_folders" v-model="sync.show_new_folders">
-        <option value="expanded">Expanded</option>
-        <option value="collapsed">Collapsed</option>
+        <option value="expanded">{{ t("expandedOption") }}</option>
+        <option value="collapsed">{{ t("collapsedOption") }}</option>
       </select>
     </section>
 
     <hr />
 
-    <h4>Privacy (All Synced Browsers)</h4>
+    <h4>{{ t("privacyTitle") }}</h4>
 
     <section>
-      <label>When deleting items from your stash:</label>
+      <label>{{ t("deletingItemsLabel") }}</label>
       <ul>
         <li>
           <label for="deleted_items_expiration_days">
-            Remember items that were deleted on this computer for
+            {{ t("rememberDeletedItemsLabel") }}
             <input
               type="number"
               id="deleted_items_expiration_days"
               v-model="sync.deleted_items_expiration_days"
               min="1"
             />
-            days
+            {{ t("daysText") }}
           </label>
         </li>
       </ul>
@@ -209,16 +202,13 @@
 
     <hr />
 
-    <h4>Tab and Memory Management (This Browser)</h4>
+    <h4>{{ t("tabMemoryManagementTitle") }}</h4>
 
     <section>
-      <label>Once a tab has been stashed:</label>
+      <label>{{ t("onceStashedLabel") }}</label>
       <ul>
         <li>
-          <label
-            for="after_stashing_tab_hide"
-            title="Hidden tabs that are still loaded can be restored instantly. They also preserve anything you had entered into the tab and its history (e.g. Back button)."
-          >
+          <label for="after_stashing_tab_hide" :title="t('hideTooltip')">
             <input
               type="radio"
               name="after_stashing_tab"
@@ -226,13 +216,13 @@
               v-model="local.after_stashing_tab"
               value="hide"
             />
-            Hide the tab and keep it loaded in the background
+            {{ t("hideKeepLoadedOption") }}
           </label>
           <ul :class="{disabled: local.after_stashing_tab !== 'hide'}">
             <li>
               <label
                 for="autodiscard_hidden_tabs"
-                title="Monitors the total number of tabs in your browser, and if you have a lot of tabs open, unloads hidden tabs that haven't been used recently. This option significantly reduces memory usage and is recommended for most users."
+                :title="t('autodiscardTooltip')"
               >
                 <input
                   type="checkbox"
@@ -241,8 +231,7 @@
                   :disabled="local.after_stashing_tab !== 'hide'"
                   v-model="local.autodiscard_hidden_tabs"
                 />
-                Automatically unload hidden tabs that haven't been used in a
-                while
+                {{ t("autodiscardOption") }}
               </label>
             </li>
             <li>
@@ -256,7 +245,7 @@
               >
                 <li>
                   <label for="autodiscard_interval_min">
-                    Check for old hidden tabs every
+                    {{ t("checkIntervalLabel") }}
                     <input
                       type="number"
                       id="autodiscard_interval_min"
@@ -267,12 +256,12 @@
                       v-model="local.autodiscard_interval_min"
                       min="1"
                     />
-                    minutes
+                    {{ t("minutesText") }}
                   </label>
                 </li>
                 <li>
                   <label for="autodiscard_min_keep_tabs">
-                    Keep at least
+                    {{ t("keepTabsLabel") }}
                     <input
                       type="number"
                       id="autodiscard_min_keep_tabs"
@@ -283,12 +272,12 @@
                       v-model="local.autodiscard_min_keep_tabs"
                       min="0"
                     />
-                    hidden and visible tabs loaded at all times
+                    {{ t("tabsText") }}
                   </label>
                 </li>
                 <li>
                   <label for="autodiscard_target_age_min">
-                    Keep the oldest tabs loaded for at least
+                    {{ t("keepOldestTabsLabel") }}
                     <input
                       type="number"
                       id="autodiscard_target_age_min"
@@ -299,12 +288,12 @@
                       v-model="local.autodiscard_target_age_min"
                       min="1"
                     />
-                    minutes, but...
+                    {{ t("minutesText") }}, {{t("butTxet")}}
                   </label>
                 </li>
                 <li>
                   <label for="autodiscard_target_tab_count">
-                    ...unload tabs more aggressively if there are more than
+                    {{ t("unloadTabsLabel") }}
                     <input
                       type="number"
                       id="autodiscard_target_tab_count"
@@ -315,7 +304,7 @@
                       v-model="local.autodiscard_target_tab_count"
                       :min="local.autodiscard_min_keep_tabs"
                     />
-                    tabs loaded
+                    {{ t("tabsTextLoaded") }}
                   </label>
                 </li>
               </ul>
@@ -325,7 +314,7 @@
         <li>
           <label
             for="after_stashing_tab_hide_discard"
-            title="Hidden tabs that are unloaded can be restored very quickly, and usually without a network connection. They also preserve browsing history (e.g. Back button). However, depending on the website, you may lose anything you had entered into the tab that isn't already saved. Uses less memory."
+            :title="t('hideUnloadTooltip')"
           >
             <input
               type="radio"
@@ -334,13 +323,13 @@
               v-model="local.after_stashing_tab"
               value="hide_discard"
             />
-            Hide the tab and immediately unload it
+            {{ t('hideUnloadOption') }}
           </label>
         </li>
         <li>
           <label
             for="after_stashing_tab_close"
-            title="Uses the least amount of memory and takes the longest to restore, because tab contents may need to be fetched over the network. This option will cause the browser to forget anything you had entered into the tab, as well as the tab's browsing history (e.g. Back button)."
+            :title="t('closeTooltip')"
           >
             <input
               type="radio"
@@ -349,14 +338,14 @@
               v-model="local.after_stashing_tab"
               value="close"
             />
-            Close the tab immediately
+            {{ t('closeOption') }}
           </label>
         </li>
       </ul>
     </section>
 
     <section>
-      <label>When opening tabs from the stash:</label>
+      <label>{{ t('openingTabsLabel') }}</label>
       <ul>
         <li>
           <label for="load_tabs_on_restore_immediately">
@@ -366,7 +355,7 @@
               v-model="local.load_tabs_on_restore"
               value="immediately"
             />
-            Load all opened tabs immediately
+            {{ t('loadImmediatelyOption') }}
           </label>
         </li>
         <li>
@@ -377,7 +366,7 @@
               v-model="local.load_tabs_on_restore"
               value="lazily"
             />
-            Wait for a tab to be selected before loading it
+            {{ t('loadLazilyOption') }}
           </label>
         </li>
       </ul>
@@ -385,7 +374,7 @@
 
     <hr />
 
-    <h4>Confirmations (This Browser)</h4>
+    <h4>{{ t('confirmationsTitle') }}</h4>
 
     <section>
       <li>
@@ -395,7 +384,7 @@
             id="confirm_close_open_tabs"
             v-model="local.confirm_close_open_tabs"
           />
-          Confirm when closing a lot of open tabs
+          {{ t('confirmCloseTabsOption') }}
         </label>
       </li>
     </section>
@@ -403,22 +392,17 @@
     <hr v-if="sync.meta_show_advanced" />
 
     <section class="advanced">
-      <h4>Experimental Features</h4>
+      <h4>{{ t('experimentalFeaturesTitle') }}</h4>
 
       <p>
         <em
-          ><b>WARNING:</b> Turning on experimental features may break Tab Stash
-          or cause data loss! They are "experimental" because they are still in
-          development and/or there may be known issues. Experimental features
-          may change significantly or be removed entirely in future
-          versions.</em
+          ><b>{{ t('warningText') }}</b> {{ t('warningTooltip') }}</em
         >
       </p>
 
       <p>
         <em
-          >To provide feedback or report a problem with a feature, leave a
-          comment on the issue linked in [brackets] below.</em
+          >{{ t('feedbackText') }}</em
         >
       </p>
 
@@ -428,11 +412,8 @@
         :default_value="local_def().ff_restore_closed_tabs.default"
         :issue="200"
       >
-        <template v-slot:summary>Restore Recently-Closed Tabs</template>
-        When restoring tabs, if a hidden tab isn't available, search for and
-        re-open recently-closed tabs with matching URLs. (NOTE: This is known to
-        occasionally restore incorrect tabs on certain versions of Firefox,
-        check the linked issue for more details.)
+        <template v-slot:summary>{{ t('restoreClosedTabsOption') }}</template>
+        {{ t('restoreClosedTabsTooltip') }}
       </FeatureFlag>
     </section>
   </main>
@@ -449,6 +430,7 @@ import {
 import * as Options from "../model/options.js";
 import {required} from "../util/index.js";
 import {logErrorsFrom} from "../util/oops.js";
+import {t} from "../util/i18n.js";
 
 import OopsNotification from "../components/oops-notification.vue";
 import FeatureFlag from "./feature-flag.vue";
@@ -539,6 +521,7 @@ export default defineComponent({
   },
 
   methods: {
+    t,
     local_def() {
       return Options.LOCAL_DEF;
     },

@@ -1,8 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "Tab Stash",
+  "name": "__MSG_extensionName__",
   "version": "3.4",
-  "description": "A no-fuss way to save and restore batches of tabs as bookmarks.",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "homepage_url": "https://josh-berry.github.io/tab-stash/",
   "icons": {
     "16": "icons/logo-16.png",
@@ -35,7 +36,7 @@
     "scripts": ["index.js"]
   },
   "browser_action": {
-    "default_title": "Tab Stash",
+    "default_title": "__MSG_browserActionTitle__",
     "default_icon": {
       "16": "icons/light/logo-16.png",
       "32": "icons/light/logo-32.png",
@@ -61,7 +62,7 @@
     "browser_style": false
   },
   "page_action": {
-    "default_title": "Stash this tab",
+    "default_title": "__MSG_pageActionTitle__",
     "default_icon": {
       "16": "icons/light/stash-one.svg",
       "32": "icons/light/stash-one.svg",
@@ -88,7 +89,7 @@
     "show_matches": ["<all_urls>"]
   },
   "sidebar_action": {
-    "default_title": "Tab Stash",
+    "default_title": "__MSG_sidebarActionTitle__",
     "default_icon": {
       "16": "icons/logo.svg",
       "32": "icons/logo.svg",
