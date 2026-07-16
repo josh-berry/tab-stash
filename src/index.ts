@@ -69,7 +69,21 @@ logErrorsFrom(async () => {
     def: string[][],
   ) {
     // Only create menus in contexts this browser understands.
-    const allowed_ctxs = Object.values((<any>browser.contextMenus).ContextType);
+    const allowed_ctxs = Object.values(
+      (<any>browser.contextMenus).ContextType ||
+        // ORION: contextMenus.ContextType is not provided so we have to guess
+        // which menus are supported. This is a subset of all known types that
+        // Tab Stash might use.
+        [
+          "browser_action",
+          "page",
+          "link",
+          "image",
+          "editable",
+          "frame",
+          "selection",
+        ],
+    );
     contexts = contexts.filter(x => allowed_ctxs.includes(x));
 
     for (let [id, title] of def) {

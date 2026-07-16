@@ -152,11 +152,11 @@ function onToggle() {
   }
 }
 
-function onFocusOut() {
+function onFocusOut(e: FocusEvent) {
   if ((<any>globalThis).menu_close_on_blur === false) return;
   if (!$menu.value) return;
-  if ($menu.value!.closest("details.menu:focus-within") !== $details.value!) {
-    trace("lost focus");
+  if (!$menu.value.contains(e.relatedTarget as Node)) {
+    trace("lost focus", e);
     close();
   }
 }
