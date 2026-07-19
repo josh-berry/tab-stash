@@ -60,6 +60,12 @@
           @click.prevent.stop="stash"
         />
 
+        <a
+          class="action stash newtab"
+          :title="`Open a new tab in this group`"
+          @click.prevent.stop="newTab"
+        />
+
         <Menu
           summary-class="action neutral icon-item-menu last-toolbar-button"
           h-position="right"
@@ -295,6 +301,16 @@ function stash(ev: MouseEvent) {
       items: copyIf(ev.altKey, stashableTabsIn(props.group.children)),
       toFolder: await the.model.createStashFolder(props.group.group.title),
     });
+  });
+}
+
+function newTab() {
+  the.model.attempt(async () => {
+    const t = await browser.tabs.create({
+      windowId: the.model.tabs.targetWindow.value!.id,
+      active: true,
+    });
+    await browser.tabs.group({groupId: props.group.group.id, tabIds: [t.id!]});
   });
 }
 

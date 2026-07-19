@@ -34,6 +34,11 @@
           @click.prevent.stop="stash"
         />
         <a
+          class="action stash newtab"
+          :title="`Open a new tab`"
+          @click.prevent.stop="newTab"
+        />
+        <a
           class="action stash newtabgroup"
           title="Create a new empty tab group"
           @click.prevent.stop="newTabGroup"
@@ -381,6 +386,15 @@ export default defineComponent({
     async newGroup() {
       this.attempt(async () => {
         await the.model.createStashFolder();
+      });
+    },
+
+    newTab() {
+      this.attempt(async () => {
+        await browser.tabs.create({
+          windowId: the.model.tabs.targetWindow.value!.id,
+          active: true,
+        });
       });
     },
 
