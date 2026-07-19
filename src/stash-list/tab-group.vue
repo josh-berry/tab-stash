@@ -74,6 +74,16 @@
 
           <hr />
 
+          <button
+            @click.prevent="isShowingExportDialog = true"
+            title="Export links and URLs from this group"
+          >
+            <span class="menu-icon icon icon-export" />
+            <span>Export...</span>
+          </button>
+
+          <hr />
+
           <button @click.prevent="sort(sortByTitle)">
             <span class="menu-icon icon icon-sort" />
             <span>Sort by Title</span>
@@ -150,6 +160,12 @@
       />
     </li>
   </ul>
+
+  <export-dialog
+    v-if="isShowingExportDialog"
+    :items="[props.group]"
+    @close="isShowingExportDialog = false"
+  />
 </template>
 
 <script lang="ts">
@@ -170,6 +186,7 @@ import DndList, {
   type ListDropEvent,
   type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
+import ExportDialog from "../tasks/export.vue";
 import Menu from "../components/menu.vue";
 import TabView from "./tab.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
@@ -211,6 +228,7 @@ const tooltip = computed(
 );
 
 const isRenaming = ref(false);
+const isShowingExportDialog = ref(false);
 
 //
 // Accessors for various UI things
