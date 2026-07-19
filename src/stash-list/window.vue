@@ -118,25 +118,25 @@
       <nav v-else class="action-group forest-toolbar">
         <a
           class="action stash newgroup"
-          :title="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+          :title="`Move ${selectedCount} item(s) to a new group (hold ${altKey} to copy)`"
           @click.prevent.stop="moveToNewGroup"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore newtabgroup"
-          :title="`Restore ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+          :title="`Restore ${selectedCount} item(s) to a new group (hold ${altKey} to copy)`"
           @click.prevent.stop="putInNewTabGroup"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore"
-          :title="`Open ${selectedCount} tab(s)`"
+          :title="`Open ${selectedCount} item(s)`"
           @click.prevent.stop="copyToWindow"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore-remove"
-          :title="`Unstash ${selectedCount} tab(s)`"
+          :title="`Unstash ${selectedCount} item(s)`"
           @click.prevent.stop="moveToWindow"
         />
       </nav>
