@@ -52,8 +52,9 @@
       <a
         class="action restore"
         :title="
-          `Open all tabs in this group ` +
-          `(hold ${bgKey} to open in background)`
+          `Open all tabs in this group\n` +
+          `Hold ${bgKey} to open in background\n` +
+          `Hold Shift to open directly in the window`
         "
         @click.prevent.stop="restoreAll"
       />
@@ -61,9 +62,10 @@
         class="action restore-remove"
         :title="
           (folder.$stats.folderCount === 0
-            ? `Open all tabs and delete this group`
-            : `Open all tabs and remove them from this group`) +
-          ` (hold ${bgKey} to open in background)`
+            ? `Open all tabs and delete this group\n`
+            : `Open all tabs and remove them from this group\n`) +
+          `Hold ${bgKey} to open in background\n` +
+          `Hold Shift to open directly in the window\n`
         "
         @click.prevent.stop="restoreAndRemove"
       />
@@ -643,6 +645,7 @@ export default defineComponent({
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         await the.model.restoreTabs(this.leafChildren, {
+          groupTitle: !ev.shiftKey ? this.title : undefined,
           background: bgKeyPressed(ev),
         });
       });
@@ -659,6 +662,7 @@ export default defineComponent({
         const bg = bgKeyPressed(ev);
 
         await the.model.restoreTabs(this.leafChildren, {
+          groupTitle: !ev.shiftKey ? this.title : undefined,
           background: bg,
           beforeClosing: () =>
             this.leafChildren.length === this.folder.children.length

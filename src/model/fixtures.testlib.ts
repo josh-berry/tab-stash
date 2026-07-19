@@ -19,7 +19,7 @@ import type {NodeID} from "./bookmarks.js";
 import type * as DeletedItems from "./deleted-items.js";
 import type * as Favicons from "./favicons.js";
 import {Options} from "./index.js";
-import type {Tab, TabGroupID, TabID, WindowID} from "./tabs.js";
+import type {Window, Tab, TabGroupID, TabID, WindowID} from "./tabs.js";
 
 //
 // The test data.
@@ -459,4 +459,12 @@ export async function make_deleted_items(
     }),
   );
   await events.next(kvs.onSet);
+}
+
+export function windowStructureOf(window: Window) {
+  return window.children.map(c =>
+    c.type === "tab-group"
+      ? [c.group.id, c.children.map(t => [t.url, t.id])]
+      : [c.url, c.id],
+  );
 }

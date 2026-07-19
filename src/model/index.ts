@@ -660,6 +660,10 @@ export class Model {
   async restoreTabs(
     items: StashItem[],
     options: {
+      /** Should the tabs be placed into a new tab group, and if so, what should
+       * the group be called? */
+      groupTitle?: string;
+
       /** Should tabs be opened in the background? */
       background?: boolean;
 
@@ -700,11 +704,19 @@ export class Model {
     // close it if it's just the new-tab page.
     const active_tab = win_tabs.filter(t => t.active)[0];
 
-    const restored_items = await this.putItemsInWindow({
-      items: copying(items),
-      toParent: toWindow,
-      toIndex: toWindow.children.length,
-    });
+    const restored_items =
+      options.groupTitle !== undefined
+        ? await this.putItemsInNewTabGroup({
+            title: options.groupTitle,
+            items: copying(items),
+            toWindow,
+            toIndex: toWindow.children.length,
+          })
+        : await this.putItemsInWindow({
+            items: copying(items),
+            toParent: toWindow,
+            toIndex: toWindow.children.length,
+          });
 
     if (options.beforeClosing) await options.beforeClosing(restored_items);
 
@@ -959,6 +971,20 @@ export class Model {
           c => c.type === "tab-group" && c.group.id === gid,
         ) as Tabs.TabGroupExtent | undefined;
         if (!extent) tryAgain("group extent not found");
+
+        // We also need to wait for all of the tabs to appear in the same extent
+        if (extent.children.length !== moved_tabs.length) {
+          tryAgain(`group extent doesn't have enough children`);
+        }
+
+        // And we need to make sure they're the right tabs
+        for (let i = 0; i < moved_tabs.length; ++i) {
+          if (moved_tabs[i].position?.parent !== extent) {
+            tryAgain(
+              `tab ${moved_tabs[i].id} not in group extent ${extent.group.id}`,
+            );
+          }
+        }
         return extent;
       });
       moved_groups.unshift(extent);

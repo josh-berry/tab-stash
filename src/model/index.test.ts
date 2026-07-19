@@ -5,7 +5,7 @@ import {expect} from "chai";
 import browser from "webextension-polyfill";
 
 import * as events from "../mock/events.js";
-import {B} from "./fixtures.testlib.js";
+import {B, windowStructureOf} from "./fixtures.testlib.js";
 import {setupModelTestEnv, type ModelTestEnv} from "./index.testlib.js";
 
 import {filterMap, later, redirUrl, urlToStash} from "../util/index.js";
@@ -2170,6 +2170,78 @@ describe("model", () => {
         `${B}#helen`,
         {title: "Group", children: [`${B}#meow`, `${B}#mew`]},
         {title: "Group > Subgroup", children: [`${B}#hiss`]},
+      ]);
+    });
+
+    it("restores tabs to new tab groups", async () => {
+      const p = env.model.restoreTabs(
+        [{url: `${B}#harry`}, {url: `${B}#new-restored`}],
+        {groupTitle: "New Group"},
+      );
+      await events.next(browser.tabs.onMoved);
+      await events.next(browser.tabs.onUpdated);
+      await events.next(browser.tabs.onCreated);
+      await events.next(browser.tabs.onUpdated);
+      await events.next(browser.tabGroups.onCreated);
+      await events.next(browser.tabGroups.onUpdated);
+      await events.nextN(browser.tabs.onUpdated, 2); // group membership
+      await events.next(browser.tabs.onActivated);
+      await events.next(browser.tabs.onHighlighted);
+      const restored = (await p) as M.Tabs.TabGroupExtent[];
+      await events.next(browser.tabs.onRemoved); // closing new-tab page
+
+      expect(restored[0].type).to.equal("tab-group");
+
+      const restored_tg = restored[0] as TabGroupExtent;
+      const restored_tabs = restored_tg.children;
+
+      expect(restored_tg.group.title).to.equal("New Group");
+      expect(restored_tg.children.length).to.equal(2);
+
+      expect(restored_tabs[0].hidden, "0 hidden").to.be.false;
+      expect(restored_tabs[0].active, "0 active").to.be.false;
+      expect(restored_tabs[1].hidden, "1 hidden").to.be.false;
+      expect(restored_tabs[1].active, "1 active").to.be.true;
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal([
+        env.tabs.real_patricia.id,
+        env.tabs.real_paul.id,
+        env.tabs.real_bob.id,
+        env.tabs.real_doug.id,
+        env.tabs.real_doug_2.id,
+        env.tabs.real_estelle.id,
+        env.tabs.real_francis.id,
+        env.tabs.real_unstashed.id,
+        env.tabs.real_helen.id,
+        env.tabs.real_harry.id,
+        restored_tabs[1].id,
+      ]);
+
+      expect(
+        windowStructureOf(env.model.tabs.window(env.windows.real.id)!),
+      ).to.deep.equal([
+        [env.tabs.real_patricia.url, env.tabs.real_patricia.id],
+        [env.tabs.real_paul.url, env.tabs.real_paul.id],
+        [env.tabs.real_bob.url, env.tabs.real_bob.id],
+        [env.tabs.real_doug.url, env.tabs.real_doug.id],
+        [env.tabs.real_doug_2.url, env.tabs.real_doug_2.id],
+        [
+          env.groups.ef.id,
+          [
+            [env.tabs.real_estelle.url, env.tabs.real_estelle.id],
+            [env.tabs.real_francis.url, env.tabs.real_francis.id],
+          ],
+        ],
+        [env.tabs.real_unstashed.url, env.tabs.real_unstashed.id],
+        [env.tabs.real_helen.url, env.tabs.real_helen.id],
+        [
+          restored_tg.group.id,
+          [
+            [env.tabs.real_harry.url, env.tabs.real_harry.id],
+            [restored_tabs[1].url, restored_tabs[1].id],
+          ],
+        ],
       ]);
     });
   });
