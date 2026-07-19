@@ -121,10 +121,18 @@
         </Menu>
       </nav>
 
-      <nav v-else class="action-group forest-toolbar">
+      <nav
+        v-else-if="!selectionInfo.isSelected"
+        class="action-group forest-toolbar"
+      >
         <a
-          class="action stash here"
-          :title="`Move ${selectedCount} selected item(s) to this tab group (hold ${altKeyName()} to copy)`"
+          class="action restore"
+          :title="`Open ${selectedCount} selected item(s) into this tab group`"
+          @click.prevent.stop="copySelectedItemsHere"
+        />
+        <a
+          class="action restore-remove"
+          :title="`Unstash ${selectedCount} selected item(s) into this tab group`"
           @click.prevent.stop="moveSelectedItemsHere"
         />
       </nav>
@@ -177,7 +185,7 @@ import the from "../globals-ui.js";
 import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
 import {altKeyName} from "../util/index.js";
-import {copyIf, sortByTitle, sortByURL} from "../model/index.js";
+import {copyIf, copying, sortByTitle, sortByURL} from "../model/index.js";
 
 import ItemIcon from "../components/item-icon.vue";
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -283,9 +291,8 @@ function sort(sorter: (a: Tab, b: Tab) => number) {
 
 function stash(ev: MouseEvent) {
   the.model.attempt(async () => {
-    const items = copyIf(ev.altKey, stashableTabsIn(props.group.children));
     await the.model.putItemsInFolder({
-      items,
+      items: copyIf(ev.altKey, stashableTabsIn(props.group.children)),
       toFolder: await the.model.createStashFolder(props.group.group.title),
     });
   });
@@ -318,14 +325,20 @@ function close() {
 // Selection operations
 //
 
-function moveSelectedItemsHere(ev: KeyboardEvent | MouseEvent) {
+function copySelectedItemsHere() {
   the.model.attempt(async () => {
-    const items = copyIf(
-      ev.altKey,
-      Array.from(the.model.selection.selectedItems()),
-    );
     await the.model.putItemsInWindow({
-      items,
+      items: copying(Array.from(the.model.selection.selectedItems())),
+      toParent: props.group,
+      toIndex: props.group.children.length,
+    });
+  });
+}
+
+function moveSelectedItemsHere() {
+  the.model.attempt(async () => {
+    await the.model.putItemsInWindow({
+      items: Array.from(the.model.selection.selectedItems()),
       toParent: props.group,
       toIndex: props.group.children.length,
     });
