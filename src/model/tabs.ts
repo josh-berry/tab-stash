@@ -362,7 +362,11 @@ export class Model {
         if (discard) await browser.tabs.discard(tids);
 
         for (const t of hidable) {
-          await browser.sessions.setTabValue(t.id, SK_HIDDEN_BY_TAB_STASH, true);
+          await browser.sessions.setTabValue(
+            t.id,
+            SK_HIDDEN_BY_TAB_STASH,
+            true,
+          );
         }
       }
 
