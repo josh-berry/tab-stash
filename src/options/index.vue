@@ -135,7 +135,7 @@
               id="stash_include_pinned"
               v-model="sync.stash_include_pinned"
             />
-            Include pinned tabs when using "Stash Tabs"
+            Include pinned tabs
           </label>
         </li>
       </ul>
