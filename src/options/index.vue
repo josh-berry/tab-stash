@@ -126,7 +126,7 @@
     </section>
 
     <section>
-      <label>When stashing tabs:</label>
+      <label>When stashing all tabs in a window:</label>
       <ul>
         <li>
           <label for="stash_include_pinned">
