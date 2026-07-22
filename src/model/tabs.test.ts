@@ -656,6 +656,7 @@ describe("model/tabs", () => {
     it("creates groups from multiple existing tabs at once", async () => {
       const gid = await browser.tabs.group({
         tabIds: [tabs.left_alice.id, tabs.left_betty.id],
+        createProperties: {windowId: windows.left.id},
       });
       expect(gid).to.not.equal(groups.ef.id);
       await events.next(browser.tabGroups.onCreated);

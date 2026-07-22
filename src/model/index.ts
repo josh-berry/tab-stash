@@ -959,6 +959,7 @@ export class Model {
     if (moved_tabs.length > 0) {
       const gid = await browser.tabs.group({
         tabIds: moved_tabs.map(t => t.id),
+        createProperties: {windowId: options.toWindow.id},
       });
       await browser.tabGroups.update(gid, {
         title: options.title ?? (this.searchText.value || "Untitled"),

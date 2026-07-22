@@ -400,10 +400,14 @@ export default defineComponent({
 
     newTabGroup() {
       this.attempt(async () => {
-        const tab = await browser.tabs.create({active: true});
-        const gid = await browser.tabs.group({tabIds: [tab.id!]});
-        await browser.tabGroups.update(gid, {
+        const win = the.model.tabs.targetWindow.value;
+        if (!win) return;
+
+        await the.model.putItemsInNewTabGroup({
           title: the.model.searchText.value || "Untitled",
+          items: [{url: ""}],
+          toWindow: win,
+          toIndex: win.children.length - 1,
         });
       });
     },

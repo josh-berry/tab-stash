@@ -403,7 +403,10 @@ export class Model {
       ++next_index;
     }
 
-    const gid = await browser.tabs.group({tabIds: tabs.map(t => t.id)});
+    const gid = await browser.tabs.group({
+      tabIds: tabs.map(t => t.id),
+      createProperties: {windowId: options.atParent.id},
+    });
     if (options.title) {
       await browser.tabGroups.update(gid, {title: options.title});
     }

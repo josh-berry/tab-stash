@@ -1771,6 +1771,7 @@ describe("model", () => {
         browser.tabs.onUpdated,
         browser.tabs.onActivated,
         browser.tabs.onHighlighted,
+        browser.tabs.onAttached,
       ]);
       const tabs_or_tgs = await p;
       ign.cancel();
@@ -1883,6 +1884,7 @@ describe("model", () => {
         browser.tabs.onUpdated,
         browser.tabs.onActivated,
         browser.tabs.onHighlighted,
+        browser.tabs.onAttached,
       ]);
       const tabs_or_tgs = await p;
       ign.cancel();
@@ -1934,6 +1936,7 @@ describe("model", () => {
         browser.tabs.onUpdated,
         browser.tabs.onActivated,
         browser.tabs.onHighlighted,
+        browser.tabs.onAttached,
         browser.tabGroups.onCreated,
         browser.tabGroups.onUpdated,
         browser.bookmarks.onRemoved,

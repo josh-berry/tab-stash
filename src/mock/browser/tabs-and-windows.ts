@@ -201,8 +201,41 @@ export class State {
 
   _describeWindow(win: Window): string {
     return win.tabs
-      .map(t => `${t.id}${t.groupId !== -1 ? `(g${t.groupId})` : ""}[${t.url}]`)
+      .map(
+        t =>
+          `${t.id}${t.groupId !== -1 ? `(g${t.groupId})` : ""}[${t.url}]${t.active ? "!" : ""}`,
+      )
       .join(", ");
+  }
+
+  close_window(win: Window) {
+    this.windows[win.id] = undefined;
+
+    const groups = new Set<number>();
+    for (const t of win.tabs) {
+      if (t.groupId !== undefined && t.groupId !== -1) groups.add(t.groupId);
+      this.onTabRemoved.send(t.id, {
+        windowId: win.id,
+        isWindowClosing: true,
+      });
+    }
+
+    this.onWindowRemoved.send(win.id);
+
+    for (const g of groups) {
+      const group = this.group(g);
+      this.groups.delete(g);
+      this.onTabGroupRemoved.send(JSON.parse(JSON.stringify(group)));
+    }
+
+    if (win.focused) {
+      // This is an oversimplification, but it works
+      const w = this.windows.find(w => w);
+      /* c8 ignore next -- tests never close the focused window currently */
+      if (w) this.focus_window(w);
+    }
+
+    this.validate();
   }
 
   fixup_tab_indices(win: Window) {
@@ -445,33 +478,7 @@ class MockWindows implements W.Static {
 
   async remove(windowId: number): Promise<void> {
     const win = this._state.win(windowId);
-    this._state.windows[windowId] = undefined;
-
-    const groups = new Set<number>();
-    for (const t of win.tabs) {
-      if (t.groupId !== undefined && t.groupId !== -1) groups.add(t.groupId);
-      this._state.onTabRemoved.send(t.id, {
-        windowId: win.id,
-        isWindowClosing: true,
-      });
-    }
-
-    this.onRemoved.send(windowId);
-
-    for (const g of groups) {
-      const group = this._state.group(g);
-      this._state.groups.delete(g);
-      this._state.onTabGroupRemoved.send(JSON.parse(JSON.stringify(group)));
-    }
-
-    if (win.focused) {
-      // This is an oversimplification, but it works
-      const w = this._state.windows.find(w => w);
-      /* c8 ignore next -- tests never close the focused window currently */
-      if (w) this._state.focus_window(w);
-    }
-
-    this._state.validate();
+    this._state.close_window(win);
   }
 }
 
@@ -1140,6 +1147,10 @@ class MockTabs implements T.Static {
     let groupEndIndex: number; // The last tab of the group + 1
 
     if (options.groupId !== undefined) {
+      if (options.createProperties) {
+        throw new Error(`createProperties cannot be set when groupId is set`);
+      }
+
       // Moving into an existing group. Firefox has some rather unhinged (but
       // intuitive for users) behavior:
       //
@@ -1164,14 +1175,21 @@ class MockTabs implements T.Static {
       // Create a new group in the first tab's window. The insertion point will
       // be the first tab's index, unless it's pinned or part of an existing
       // group.
+      toWindow =
+        options.createProperties?.windowId !== undefined
+          ? this._state.win(options.createProperties?.windowId)
+          : (this._state.windows.find(w => w?.focused) ??
+            (() => {
+              throw new Error(`No focused window found`);
+            })());
+
       toGroup = {
         id: this._state.next_group_id,
-        windowId: tabs[0].windowId,
+        windowId: toWindow.id,
         title: "",
         color: "grey",
         collapsed: false,
       };
-      toWindow = this._state.win(toGroup.windowId);
       groupStartIndex = tabs[0].index;
       this._state.next_group_id += 2;
       this._state.groups.set(toGroup.id, toGroup);
@@ -1181,7 +1199,7 @@ class MockTabs implements T.Static {
       // it so we're not creating groups in the pinned zone.
       groupStartIndex = Math.max(
         groupStartIndex,
-        tabs.findLastIndex(t => t.pinned) + 1,
+        toWindow.tabs.findLastIndex(t => t.pinned) + 1,
       );
 
       // If the insertion point is in the middle of an existing group, move it
@@ -1199,6 +1217,10 @@ class MockTabs implements T.Static {
 
       groupEndIndex = groupStartIndex;
     }
+
+    // console.log(`toWindow`, toWindow.id);
+    // console.log(`toGroup`, toGroup.id);
+    // console.log(`tabIds`, tabIds);
 
     // If we're grouping any pinned tabs, we need to unpin them. We may also
     // need to adjust the insertion point such that the grouped tabs are placed
@@ -1219,13 +1241,22 @@ class MockTabs implements T.Static {
     // above, tabs moving from BEFORE the group get inserted at
     // `groupStartIndex`; all others get inserted at `groupEndIndex`.
     const windowsToUpdate = new Set<Window>();
+    windowsToUpdate.add(toWindow);
     for (const tab of tabs) {
+      // console.log("processing tab", tab.id);
+      // console.log(
+      //   Array.from(windowsToUpdate).map(w => ({
+      //     id: w.id,
+      //     children: w.tabs.map(c => c.id),
+      //   })),
+      // );
+
       // If the tab's already in the group, do nothing.
       if (tab.groupId === toGroup.id) continue;
 
       const fromWindow = this._state.win(tab.windowId);
       windowsToUpdate.add(fromWindow);
-      const fromIndex = tab.index;
+      const fromIndex = fromWindow.tabs.indexOf(tab);
       let toIndex: number;
 
       if (fromWindow === toWindow && fromIndex < groupStartIndex) {
@@ -1241,11 +1272,28 @@ class MockTabs implements T.Static {
         ++groupEndIndex;
       }
 
-      fromWindow.tabs.splice(fromIndex, 1);
+      const removed = fromWindow.tabs.splice(fromIndex, 1);
+      if (removed.length !== 1 || removed[0] !== tab) {
+        throw new Error(`Removed wrong tab: ${JSON.stringify(removed[0])}`);
+      }
+      // console.log("removed from old window", removed[0].id);
       toWindow.tabs.splice(toIndex, 0, tab);
 
       if (fromWindow !== toWindow || fromIndex !== toIndex) {
         if (fromWindow !== toWindow) {
+          if (tab.active) {
+            tab.active = false;
+            // Deactivate the tab coming from the other window so as not to
+            // disturb focus. This also means picking another tab to activate in
+            // the other window.
+            const candidate = fromWindow.tabs.find(t => !tabs.includes(t));
+            if (candidate) {
+              this._state.activate_tab(candidate);
+            } else {
+              // All tabs are being moved out of the other window; we'll handle
+              // closing it later.
+            }
+          }
           this.onAttached.send(tab.id, {
             newWindowId: toWindow.id,
             newPosition: toIndex,
@@ -1257,8 +1305,21 @@ class MockTabs implements T.Static {
             toIndex,
           });
         }
+
+        if (fromWindow.tabs.length === 0) {
+          // Window with no tabs; close it.
+          this._state.close_window(fromWindow);
+        }
       }
     }
+
+    // console.log(
+    //   Array.from(windowsToUpdate).map(w => ({
+    //     id: w.id,
+    //     children: w.tabs.map(c => c.id),
+    //   })),
+    // );
+
     for (const w of windowsToUpdate) this._state.fixup_tab_indices(w);
 
     // Update group membership for all the tabs. If the tab is in a pre-existing
