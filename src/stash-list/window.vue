@@ -407,7 +407,7 @@ export default defineComponent({
           title: the.model.searchText.value || "Untitled",
           items: [{url: ""}],
           toWindow: win,
-          toIndex: win.children.length - 1,
+          toIndex: win.children.length,
         });
       });
     },

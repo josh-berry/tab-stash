@@ -1929,7 +1929,7 @@ describe("model", () => {
           env.model.bookmarks.folder(env.bookmarks.nested.id)!,
         ],
         toWindow: win,
-        toIndex: 0,
+        toIndex: win.children.length,
       });
       const ignore = events.ignore([
         browser.tabs.onCreated,
@@ -1962,6 +1962,9 @@ describe("model", () => {
         },
       ]);
       expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
         {title: "Untitled", children: [`${B}#sylvia`, `${B}#matthew`]},
         {title: "Subgroup", children: [`${B}#lenny`, `${B}#penny`]},
         {
@@ -1976,9 +1979,6 @@ describe("model", () => {
           title: "Stash with Nested Folder > Extra",
           children: [`${B}#2`],
         },
-        `${B}`,
-        `${B}#adam`,
-        `${B}#doug`,
       ]);
     });
   });
