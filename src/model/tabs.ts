@@ -377,7 +377,7 @@ export class Model {
     atParent: Window;
     atIndex: number;
     title?: string;
-    tabs: {title?: string; url: string}[];
+    tabs: {title?: string; url: OpenableURL}[];
     active?: boolean;
   }): Promise<TabGroupExtent> {
     if (options.atIndex > options.atParent.children.length) {
@@ -430,7 +430,7 @@ export class Model {
   async create(options: {
     atParent: Window | TabGroupExtent;
     atIndex: number;
-    url: string;
+    url: OpenableURL;
     title?: string;
     cookieStoreId?: string;
     pinned?: boolean;
@@ -439,7 +439,7 @@ export class Model {
   }): Promise<Tab> {
     const flat_pos = _flatPositionFor(options.atParent, options.atIndex);
     const create_tab = {
-      url: options.url,
+      url: options.url !== "" ? options.url : undefined,
       title: options.title,
       cookieStoreId: options.cookieStoreId,
       pinned: options.pinned,
