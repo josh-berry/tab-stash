@@ -4,25 +4,31 @@
     @close="$emit('close')"
     show-close-button
   >
-    <template #title>Export</template>
+    <template #title>{{ $t("exportTitle") }}</template>
 
     <form :id="$style.dlg" @submit.prevent.stop="">
-      <label :for="$style.format" :class="$style.format">Format:</label>
+      <label :for="$style.format" :class="$style.format">{{
+        $t("exportFormatLabel")
+      }}</label>
       <select :id="$style.format" v-model="format">
-        <option value="html-links">Clickable Links</option>
-        <option value="url-list">List of URLs</option>
-        <option value="markdown">Markdown</option>
-        <option value="one-tab">OneTab</option>
+        <option value="html-links">{{ $t("formatHtmlLinks") }}</option>
+        <option value="url-list">{{ $t("formatUrlList") }}</option>
+        <option value="markdown">{{ $t("formatMarkdown") }}</option>
+        <option value="one-tab">{{ $t("formatOneTab") }}</option>
       </select>
       <nav>
-        <button @click.prevent.stop="select_all">Select All</button>
-        <button class="clickme" @click.prevent.stop="copy">Copy</button>
+        <button @click.prevent.stop="select_all">
+          {{ $t("selectAllButton") }}
+        </button>
+        <button class="clickme" @click.prevent.stop="copy">
+          {{ $t("copyButton") }}
+        </button>
       </nav>
       <label :class="$style.help">
         <a
           href="https://github.com/josh-berry/tab-stash/wiki/Exporting-Tabs-from-Tab-Stash"
           target="_blank"
-          >About Formats...</a
+          >{{ $t("aboutFormatsLink") }}</a
         >
       </label>
     </form>
@@ -52,7 +58,7 @@ import HtmlLinks from "./export/html-links.js";
 import Markdown from "./export/markdown.js";
 import OneTab from "./export/one-tab.js";
 import UrlList from "./export/url-list.js";
-import {required} from "../util/index.js";
+import {required, $t} from "../util/index.js";
 import type {ExportFormat} from "../model/options.js";
 import the from "../globals-ui.js";
 import {logErrorsFrom} from "../util/oops.js";
@@ -85,6 +91,7 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
     copy() {
       document.execCommand("copy");
     },

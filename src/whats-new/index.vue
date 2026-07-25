@@ -3,10 +3,10 @@
     <header class="page action-container">
       <a
         class="action back"
-        title="Back to Tab Stash"
+        :title="$t('backToTabStashTooltip')"
         :href="pageref('stash-list.html')"
       ></a>
-      <h1>What's New in Tab Stash</h1>
+      <h1>{{ $t("whatsNewTitle") }}</h1>
     </header>
 
     <ul class="forest one-column">
@@ -993,13 +993,14 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 import {pageref} from "../launch-vue.js";
+import {$t} from "../util/index.js";
 
 import L from "./item.vue";
 import Version from "./version.vue";
 
 export default defineComponent({
   components: {Version, L},
-  methods: {pageref},
+  methods: {pageref, $t},
 });
 </script>
 

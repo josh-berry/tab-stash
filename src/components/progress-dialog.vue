@@ -10,7 +10,7 @@
         :class="{disabled: cancelled}"
         @click.prevent.stop="doCancel"
       >
-        Cancel
+        {{ $t("cancelButton") }}
       </button>
     </template>
   </Dialog>
@@ -19,7 +19,7 @@
 <script lang="ts">
 import {defineComponent, type PropType} from "vue";
 
-import {required, type Progress} from "../util/index.js";
+import {required, type Progress, $t} from "../util/index.js";
 
 import Dialog from "./dialog.vue";
 import ProgressItem from "./progress-item.vue";
@@ -37,6 +37,7 @@ export default defineComponent({
     };
   },
   methods: {
+    $t,
     doCancel() {
       if (!this.cancel) return;
       this.cancel();
