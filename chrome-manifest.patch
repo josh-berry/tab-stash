@@ -16,7 +16,7 @@
    "content_security_policy": "script-src 'self'; object-src 'self';",
 @@ -37,9 +34,9 @@
    "browser_action": {
-     "default_title": "Tab Stash",
+     "default_title": "__MSG_extensionName__",
      "default_icon": {
 -      "16": "icons/light/logo-16.png",
 -      "32": "icons/light/logo-32.png",
@@ -32,7 +32,7 @@
      "browser_style": false
    },
 -  "page_action": {
--    "default_title": "Stash this tab",
+-    "default_title": "__MSG_stashThisTab__",
 -    "default_icon": {
 -      "16": "icons/light/stash-one.svg",
 -      "32": "icons/light/stash-one.svg",
@@ -59,7 +59,7 @@
 -    "show_matches": ["<all_urls>"]
 -  },
 -  "sidebar_action": {
--    "default_title": "Tab Stash",
+-    "default_title": "__MSG_extensionName__",
 -    "default_icon": {
 -      "16": "icons/logo.svg",
 -      "32": "icons/logo.svg",

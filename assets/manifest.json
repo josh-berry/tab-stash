@@ -38,24 +38,24 @@
   "browser_action": {
     "default_title": "__MSG_extensionName__",
     "default_icon": {
-      "16": "icons/light/logo.svg",
-      "32": "icons/light/logo.svg",
-      "64": "icons/light/logo.svg"
+      "16": "icons/light/logo-16.png",
+      "32": "icons/light/logo-32.png",
+      "64": "icons/light/logo-64.png"
     },
     "theme_icons": [
       {
-        "light": "icons/dark/logo.svg",
-        "dark": "icons/light/logo.svg",
+        "light": "icons/dark/logo-16.png",
+        "dark": "icons/light/logo-16.png",
         "size": 16
       },
       {
-        "light": "icons/dark/logo.svg",
-        "dark": "icons/light/logo.svg",
+        "light": "icons/dark/logo-32.png",
+        "dark": "icons/light/logo-32.png",
         "size": 32
       },
       {
-        "light": "icons/dark/logo.svg",
-        "dark": "icons/light/logo.svg",
+        "light": "icons/dark/logo-64.png",
+        "dark": "icons/light/logo-64.png",
         "size": 64
       }
     ],
