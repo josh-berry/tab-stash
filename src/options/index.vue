@@ -16,7 +16,7 @@
           id="meta_show_advanced"
           v-model="sync.meta_show_advanced"
         />
-        {{ $t('showAdvancedSettings') }}
+        {{ $t("showAdvancedSettings") }}
       </label>
     </section>
 
@@ -25,58 +25,58 @@
         v-if="local.hide_crash_reports_until ?? 0 > Date.now()"
         @click.stop="showCrashReports"
       >
-        {{ $t('stopHidingCrashReports') }}
+        {{ $t("stopHidingCrashReports") }}
       </button>
     </section>
 
     <hr />
 
-    <h4>{{ $t('behaviorTitle') }}</h4>
+    <h4>{{ $t("behaviorTitle") }}</h4>
 
     <section>
-      <label>{{ $t('whenToolbarClicked') }}</label>
+      <label>{{ $t("whenToolbarClicked") }}</label>
       <ul>
         <li>
           <select id="browser_action_stash" v-model="sync.browser_action_stash">
             <option :disabled="!model.canBrowserActionStash('all')" value="all">
-              {{ $t('stashAllTabs') }}
+              {{ $t("stashAllTabs") }}
             </option>
             <option
               :disabled="!model.canBrowserActionStash('single')"
               value="single"
             >
-              {{ $t('stashActiveTab') }}
+              {{ $t("stashActiveTab") }}
             </option>
             <option
               :disabled="!model.canBrowserActionStash('none')"
               value="none"
             >
-              {{ $t('dontStashTabs') }}
+              {{ $t("dontStashTabs") }}
             </option>
           </select>
-          {{ $t('and') }}
+          {{ $t("and") }}
           <select id="browser_action_show" v-model="sync.browser_action_show">
             <option
               v-if="model.hasSidebar()"
               :disabled="!model.canBrowserActionShow('sidebar')"
               value="sidebar"
             >
-              {{ $t('showInSidebar') }}
+              {{ $t("showInSidebar") }}
             </option>
             <option :disabled="!model.canBrowserActionShow('tab')" value="tab">
-              {{ $t('showInTab') }}
+              {{ $t("showInTab") }}
             </option>
             <option
               :disabled="!model.canBrowserActionShow('popup')"
               value="popup"
             >
-              {{ $t('showInPopup') }}
+              {{ $t("showInPopup") }}
             </option>
             <option
               :disabled="!model.canBrowserActionShow('none')"
               value="none"
             >
-              {{ $t('dontShowStash') }}
+              {{ $t("dontShowStash") }}
             </option>
           </select>
         </li>
@@ -84,7 +84,7 @@
     </section>
 
     <section>
-      <label>{{ $t('whenStashingFromMenu') }}</label>
+      <label>{{ $t("whenStashingFromMenu") }}</label>
       <ul>
         <li v-if="model.hasSidebar()">
           <label for="open_stash_in_sidebar">
@@ -95,7 +95,7 @@
               v-model="sync.open_stash_in"
               value="sidebar"
             />
-            {{ $t('showStashInSidebar') }}
+            {{ $t("showStashInSidebar") }}
           </label>
         </li>
         <li>
@@ -107,7 +107,7 @@
               v-model="sync.open_stash_in"
               value="tab"
             />
-            {{ $t('showStashInTab') }}
+            {{ $t("showStashInTab") }}
           </label>
         </li>
         <li>
@@ -119,28 +119,28 @@
               v-model="sync.open_stash_in"
               value="none"
             />
-            {{ $t('dontShowStashOption') }}
+            {{ $t("dontShowStashOption") }}
           </label>
         </li>
       </ul>
     </section>
 
     <section class="advanced">
-      <label>{{ $t('whenStashingSingleTab') }}</label>
+      <label>{{ $t("whenStashingSingleTab") }}</label>
       <ul>
         <li>
           <label
             for="new_folder_timeout_min"
             :title="$t('newFolderTimeoutTitle')"
           >
-            {{ $t('appendToTopGroupPrefix') }}
+            {{ $t("appendToTopGroupPrefix") }}
             <input
               type="number"
               id="new_folder_timeout_min"
               v-model="sync.new_folder_timeout_min"
               min="0"
             />
-            {{ $t('minutes') }}
+            {{ $t("minutes") }}
           </label>
         </li>
       </ul>
@@ -148,56 +148,56 @@
 
     <hr />
 
-    <h4>{{ $t('appearanceTitle') }}</h4>
+    <h4>{{ $t("appearanceTitle") }}</h4>
 
     <section class="two-col">
-      <label for="ui_metrics">{{ $t('spacingAndFonts') }}</label>
+      <label for="ui_metrics">{{ $t("spacingAndFonts") }}</label>
       <select id="ui_metrics" v-model="sync.ui_metrics">
-        <option value="normal">{{ $t('themeNormal') }}</option>
-        <option value="compact">{{ $t('themeCompact') }}</option>
+        <option value="normal">{{ $t("themeNormal") }}</option>
+        <option value="compact">{{ $t("themeCompact") }}</option>
       </select>
 
-      <label for="ui_theme">{{ $t('themeLabel') }}</label>
+      <label for="ui_theme">{{ $t("themeLabel") }}</label>
       <select id="ui_theme" v-model="sync.ui_theme">
-        <option value="system">{{ $t('themeSystem') }}</option>
-        <option value="light">{{ $t('themeLight') }}</option>
-        <option value="dark">{{ $t('themeDark') }}</option>
+        <option value="system">{{ $t("themeSystem") }}</option>
+        <option value="light">{{ $t("themeLight") }}</option>
+        <option value="dark">{{ $t("themeDark") }}</option>
       </select>
 
-      <label for="show_open_tabs">{{ $t('showWhichOpenTabs') }}</label>
+      <label for="show_open_tabs">{{ $t("showWhichOpenTabs") }}</label>
       <select
         id="show_open_tabs"
         v-model="sync.show_open_tabs"
         :title="$t('showOpenTabsTitle')"
       >
-        <option value="unstashed">{{ $t('unstashedTabsOnly') }}</option>
-        <option value="all">{{ $t('stashedAndUnstashedTabs') }}</option>
+        <option value="unstashed">{{ $t("unstashedTabsOnly") }}</option>
+        <option value="all">{{ $t("stashedAndUnstashedTabs") }}</option>
       </select>
 
-      <label for="show_new_folders">{{ $t('showNewGroups') }}</label>
+      <label for="show_new_folders">{{ $t("showNewGroups") }}</label>
       <select id="show_new_folders" v-model="sync.show_new_folders">
-        <option value="expanded">{{ $t('expanded') }}</option>
-        <option value="collapsed">{{ $t('collapsed') }}</option>
+        <option value="expanded">{{ $t("expanded") }}</option>
+        <option value="collapsed">{{ $t("collapsed") }}</option>
       </select>
     </section>
 
     <hr />
 
-    <h4>{{ $t('privacyTitle') }}</h4>
+    <h4>{{ $t("privacyTitle") }}</h4>
 
     <section>
-      <label>{{ $t('whenDeletingItems') }}</label>
+      <label>{{ $t("whenDeletingItems") }}</label>
       <ul>
         <li>
           <label for="deleted_items_expiration_days">
-            {{ $t('rememberDeletedItemsPrefix') }}
+            {{ $t("rememberDeletedItemsPrefix") }}
             <input
               type="number"
               id="deleted_items_expiration_days"
               v-model="sync.deleted_items_expiration_days"
               min="1"
             />
-            {{ $t('days') }}
+            {{ $t("days") }}
           </label>
         </li>
       </ul>
@@ -205,10 +205,10 @@
 
     <hr />
 
-    <h4>{{ $t('tabMemoryTitle') }}</h4>
+    <h4>{{ $t("tabMemoryTitle") }}</h4>
 
     <section>
-      <label>{{ $t('onceTabStashed') }}</label>
+      <label>{{ $t("onceTabStashed") }}</label>
       <ul>
         <li>
           <label
@@ -222,7 +222,7 @@
               v-model="local.after_stashing_tab"
               value="hide"
             />
-            {{ $t('hideKeepLoaded') }}
+            {{ $t("hideKeepLoaded") }}
           </label>
           <ul :class="{disabled: local.after_stashing_tab !== 'hide'}">
             <li>
@@ -237,7 +237,7 @@
                   :disabled="local.after_stashing_tab !== 'hide'"
                   v-model="local.autodiscard_hidden_tabs"
                 />
-                {{ $t('autoUnloadHidden') }}
+                {{ $t("autoUnloadHidden") }}
               </label>
             </li>
             <li>
@@ -251,7 +251,7 @@
               >
                 <li>
                   <label for="autodiscard_interval_min">
-                    {{ $t('checkHiddenEvery') }}
+                    {{ $t("checkHiddenEvery") }}
                     <input
                       type="number"
                       id="autodiscard_interval_min"
@@ -262,12 +262,12 @@
                       v-model="local.autodiscard_interval_min"
                       min="1"
                     />
-                    {{ $t('minutes') }}
+                    {{ $t("minutes") }}
                   </label>
                 </li>
                 <li>
                   <label for="autodiscard_min_keep_tabs">
-                    {{ $t('keepAtLeast') }}
+                    {{ $t("keepAtLeast") }}
                     <input
                       type="number"
                       id="autodiscard_min_keep_tabs"
@@ -278,12 +278,12 @@
                       v-model="local.autodiscard_min_keep_tabs"
                       min="0"
                     />
-                    {{ $t('hiddenVisibleLoaded') }}
+                    {{ $t("hiddenVisibleLoaded") }}
                   </label>
                 </li>
                 <li>
                   <label for="autodiscard_target_age_min">
-                    {{ $t('keepOldestLoaded') }}
+                    {{ $t("keepOldestLoaded") }}
                     <input
                       type="number"
                       id="autodiscard_target_age_min"
@@ -294,12 +294,12 @@
                       v-model="local.autodiscard_target_age_min"
                       min="1"
                     />
-                    {{ $t('minutesBut') }}
+                    {{ $t("minutesBut") }}
                   </label>
                 </li>
                 <li>
                   <label for="autodiscard_target_tab_count">
-                    {{ $t('unloadMoreAggressively') }}
+                    {{ $t("unloadMoreAggressively") }}
                     <input
                       type="number"
                       id="autodiscard_target_tab_count"
@@ -310,7 +310,7 @@
                       v-model="local.autodiscard_target_tab_count"
                       :min="local.autodiscard_min_keep_tabs"
                     />
-                    {{ $t('tabsLoaded') }}
+                    {{ $t("tabsLoaded") }}
                   </label>
                 </li>
               </ul>
@@ -329,7 +329,7 @@
               v-model="local.after_stashing_tab"
               value="hide_discard"
             />
-            {{ $t('hideImmediatelyUnload') }}
+            {{ $t("hideImmediatelyUnload") }}
           </label>
         </li>
         <li>
@@ -344,14 +344,14 @@
               v-model="local.after_stashing_tab"
               value="close"
             />
-            {{ $t('closeTabImmediately') }}
+            {{ $t("closeTabImmediately") }}
           </label>
         </li>
       </ul>
     </section>
 
     <section>
-      <label>{{ $t('whenOpeningFromStash') }}</label>
+      <label>{{ $t("whenOpeningFromStash") }}</label>
       <ul>
         <li>
           <label for="load_tabs_on_restore_immediately">
@@ -361,7 +361,7 @@
               v-model="local.load_tabs_on_restore"
               value="immediately"
             />
-            {{ $t('loadImmediately') }}
+            {{ $t("loadImmediately") }}
           </label>
         </li>
         <li>
@@ -372,7 +372,7 @@
               v-model="local.load_tabs_on_restore"
               value="lazily"
             />
-            {{ $t('loadLazily') }}
+            {{ $t("loadLazily") }}
           </label>
         </li>
       </ul>
@@ -380,7 +380,7 @@
 
     <hr />
 
-    <h4>{{ $t('confirmationsTitle') }}</h4>
+    <h4>{{ $t("confirmationsTitle") }}</h4>
 
     <section>
       <li>
@@ -390,7 +390,7 @@
             id="confirm_close_open_tabs"
             v-model="local.confirm_close_open_tabs"
           />
-          {{ $t('confirmCloseTabs') }}
+          {{ $t("confirmCloseTabs") }}
         </label>
       </li>
     </section>
@@ -398,18 +398,17 @@
     <hr v-if="sync.meta_show_advanced" />
 
     <section class="advanced">
-      <h4>{{ $t('experimentalFeaturesTitle') }}</h4>
+      <h4>{{ $t("experimentalFeaturesTitle") }}</h4>
 
       <p>
         <em
-          ><b>{{ $t('warningLabel') }}</b> {{ $t('experimentalFeaturesWarning') }}</em
+          ><b>{{ $t("warningLabel") }}</b>
+          {{ $t("experimentalFeaturesWarning") }}</em
         >
       </p>
 
       <p>
-        <em
-          >{{ $t('experimentalFeaturesFeedback') }}</em
-        >
+        <em>{{ $t("experimentalFeaturesFeedback") }}</em>
       </p>
 
       <FeatureFlag
@@ -418,8 +417,10 @@
         :default_value="local_def().ff_restore_closed_tabs.default"
         :issue="200"
       >
-        <template v-slot:summary>{{ $t('restoreRecentlyClosedTabs') }}</template>
-        {{ $t('restoreRecentlyClosedTabsDesc') }}
+        <template v-slot:summary>{{
+          $t("restoreRecentlyClosedTabs")
+        }}</template>
+        {{ $t("restoreRecentlyClosedTabsDesc") }}
       </FeatureFlag>
     </section>
   </main>

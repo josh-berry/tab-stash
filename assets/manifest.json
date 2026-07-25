@@ -12,7 +12,8 @@
     "64": "icons/logo-64.png",
     "96": "icons/logo-96.png",
     "128": "icons/logo-128.png"
-  },  "browser_specific_settings": {
+  },
+  "browser_specific_settings": {
     "gecko": {
       "id": "tab-stash@condordes.net",
       "strict_min_version": "78.0"
