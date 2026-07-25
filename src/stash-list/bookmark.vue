@@ -62,20 +62,17 @@
     >
       <a
         class="action rename"
-        title="Rename"
+        :title="$t('renameTooltip')"
         @click.prevent.stop="isRenaming = true"
       />
       <a
         class="action restore-remove"
-        :title="
-          `Open this tab and delete it from the group ` +
-          `(hold ${bgKey} to open in background)`
-        "
+        :title="$t('openBookmarkAndDeleteTooltip', [bgKey])"
         @click.prevent.stop="openRemove"
       />
       <a
         class="action remove"
-        title="Delete this tab from the group"
+        :title="$t('deleteBookmarkTooltip')"
         @click.prevent.stop="remove"
       />
     </nav>
@@ -91,6 +88,7 @@ import {
   bgKeyPressed,
   required,
   urlToOpen,
+  $t,
 } from "../util/index.js";
 
 import the from "../globals-ui.js";
@@ -201,6 +199,7 @@ export default defineComponent({
   }),
 
   methods: {
+    $t,
     select(ev: MouseEvent) {
       the.model.attempt(async () => {
         the.model.selection.toggleSelectFromEvent(ev, this.bookmark);

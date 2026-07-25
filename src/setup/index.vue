@@ -2,19 +2,17 @@
   <main>
     <!-- <div class="flat-heading-icon icon-logo" /> -->
 
-    <h1>Welcome to Tab Stash!</h1>
+    <h1>{{ $t("welcomeTitle") }}</h1>
 
     <p>
-      Hi! Let's go through a couple quick questions to get you started. Don't
-      worry—you can change your answers later in Tab Stash's options.
+      {{ $t("welcomeIntro") }}
     </p>
 
     <section>
       <hr />
       <p>
         <span class="icon icon-logo" />
-        What would you like to <strong>save</strong> when you click the toolbar
-        button?
+        {{ $t("setupWhatToSave") }}
       </p>
 
       <p>
@@ -26,7 +24,7 @@
             v-model="browser_action_stash"
             :disabled="!options.canBrowserActionStash('all')"
           />
-          Save all open tabs to the stash</label
+          {{ $t("setupSaveAllOpen") }}</label
         >
       </p>
       <p>
@@ -38,7 +36,7 @@
             v-model="browser_action_stash"
             :disabled="!options.canBrowserActionStash('single')"
           />
-          Save the active tab to the stash</label
+          {{ $t("setupSaveActive") }}</label
         >
       </p>
       <p
@@ -48,7 +46,7 @@
         "
         class="status-text note"
       >
-        You can't show the popup and save tabs at the same time.
+        {{ $t("setupCantShowPopupNote") }}
       </p>
       <p>
         <label :class="{disabled: !options.canBrowserActionStash('none')}"
@@ -59,11 +57,11 @@
             v-model="browser_action_stash"
             :disabled="!options.canBrowserActionStash('none')"
           />
-          Don't save anything to the stash</label
+          {{ $t("setupDontSaveAnything") }}</label
         >
       </p>
       <p v-if="!options.canBrowserActionStash('none')" class="status-text note">
-        Choose a different "Show..." option to enable this
+        {{ $t("setupChooseShowOptionNote") }}
       </p>
     </section>
 
@@ -71,8 +69,7 @@
       <hr />
       <p>
         <span class="icon icon-logo" />
-        What would you like to <strong>see</strong> when you click the toolbar
-        button?
+        {{ $t("setupWhatToSee") }}
       </p>
 
       <p>
@@ -86,7 +83,7 @@
             v-model="browser_action_show"
             :disabled="!options.canBrowserActionShow('sidebar')"
           />
-          Show my stashed tabs in the sidebar</label
+          {{ $t("setupShowSidebar") }}</label
         >
       </p>
       <p>
@@ -98,7 +95,7 @@
             v-model="browser_action_show"
             :disabled="!options.canBrowserActionShow('tab')"
           />
-          Show my stashed tabs in a tab</label
+          {{ $t("setupShowTab") }}</label
         >
       </p>
       <p>
@@ -110,11 +107,11 @@
             v-model="browser_action_show"
             :disabled="!options.canBrowserActionShow('popup')"
           />
-          Show my stashed tabs in a popup</label
+          {{ $t("setupShowPopup") }}</label
         >
       </p>
       <p v-if="!options.canBrowserActionShow('popup')" class="status-text note">
-        To use the popup, choose "Don't save anything to the stash"
+        {{ $t("setupPopupNote") }}
       </p>
       <p>
         <label :class="{disabled: !options.canBrowserActionShow('none')}"
@@ -125,11 +122,11 @@
             v-model="browser_action_show"
             :disabled="!options.canBrowserActionShow('none')"
           />
-          Don't show me anything</label
+          {{ $t("setupDontShowAnything") }}</label
         >
       </p>
       <p v-if="!options.canBrowserActionShow('none')" class="status-text note">
-        Choose a different "Save..." option to enable this
+        {{ $t("setupChooseSaveOptionNote") }}
       </p>
     </section>
 
@@ -137,9 +134,7 @@
       <hr />
       <p>
         <span class="icon icon-stash-one" />
-
-        If you stash a tab using the address bar or context menu, what do you
-        want to see?
+        {{ $t("setupAddressBarContextStash") }}
       </p>
 
       <p v-if="options.hasSidebar()">
@@ -149,7 +144,7 @@
             name="open_stash_in"
             value="sidebar"
             v-model="open_stash_in"
-          />Show my stashed tabs in the sidebar</label
+          />{{ $t("setupShowSidebar") }}</label
         >
       </p>
       <p>
@@ -159,7 +154,7 @@
             name="open_stash_in"
             value="tab"
             v-model="open_stash_in"
-          />Show my stashed tabs in a tab</label
+          />{{ $t("setupShowTab") }}</label
         >
       </p>
       <p>
@@ -169,7 +164,7 @@
             name="open_stash_in"
             value="none"
             v-model="open_stash_in"
-          />Don't show me anything</label
+          />{{ $t("setupDontShowAnything") }}</label
         >
       </p>
     </section>
@@ -177,8 +172,8 @@
     <section v-if="show_done" ref="$done">
       <hr />
 
-      <p>You're all set! You can close this tab.</p>
-      <p>Thanks for trying out Tab Stash. I hope you enjoy it! —Josh</p>
+      <p>{{ $t("setupAllSetNote") }}</p>
+      <p>{{ $t("setupThanksFooter") }}</p>
     </section>
   </main>
 </template>
@@ -204,6 +199,8 @@ function computedOption<K extends keyof Options.SyncState>(
 </script>
 
 <script setup lang="ts">
+import {$t} from "../util/index.js";
+
 defineProps<{}>();
 
 const options = the.model.options;

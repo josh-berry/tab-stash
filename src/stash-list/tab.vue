@@ -42,19 +42,19 @@
     <span
       v-if="stashedIn.length > 0"
       class="forest-badge icon icon-stashed"
-      :title="`This tab is stashed in:\n${stashedIn.join('\n')}`"
+      :title="$t('tabStashedInTooltip', [stashedIn.join('\n')])"
     />
 
     <nav class="action-group forest-toolbar">
       <a
         v-if="isStashable"
         class="action stash one"
-        :title="`Stash this tab (hold ${altKey} to keep tab open)`"
+        :title="$t('stashTabTooltip', [altKey])"
         @click.prevent.stop="stash"
       />
       <a
         class="action remove"
-        title="Close this tab"
+        :title="$t('closeTabTooltip')"
         @click.prevent.stop="remove"
       />
     </nav>
@@ -65,7 +65,7 @@
 import {defineComponent, type PropType} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, bgKeyName, required} from "../util/index.js";
+import {altKeyName, bgKeyName, required, $t} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import {friendlyFolderName} from "../model/bookmarks.js";
@@ -131,6 +131,7 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
     attempt(fn: () => Promise<void>) {
       the.model.attempt(fn);
     },
