@@ -32,40 +32,31 @@
         collapse: !collapsed,
         expand: collapsed,
       }"
-      :title="`Hide the tabs for this group (hold ${altKey} to hide tabs for child groups)`"
+      :title="$t('toggleCollapsedGroupTooltip', [altKey])"
       @click.prevent.stop="toggleCollapsed"
     />
     <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
       <a
         class="action stash here"
-        :title="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
+        :title="$t('stashAllOpenTabsToGroupTooltip', [altKey])"
         @click.prevent.stop="stash"
       />
       <a
         class="action stash one here"
-        :title="
-          `Stash the active tab to this group ` +
-          `(hold ${altKey} to keep tabs open)`
-        "
+        :title="$t('stashActiveTabToGroupTooltip', [altKey])"
         @click.prevent.stop="stashOne"
       />
       <a
         class="action restore"
-        :title="
-          `Open all tabs in this group\n` +
-          `Hold ${bgKey} to open in background\n` +
-          `Hold Shift to open directly in the window`
-        "
+        :title="$t('openAllTabsInGroupTooltip', [bgKey])"
         @click.prevent.stop="restoreAll"
       />
       <a
         class="action restore-remove"
         :title="
-          (folder.$stats.folderCount === 0
-            ? `Open all tabs and delete this group\n`
-            : `Open all tabs and remove them from this group\n`) +
-          `Hold ${bgKey} to open in background\n` +
-          `Hold Shift to open directly in the window\n`
+          folder.$stats.folderCount === 0
+            ? $t('openAllTabsAndDeleteGroupTooltip', [bgKey])
+            : $t('openAllTabsAndRemoveFromGroupTooltip', [bgKey])
         "
         @click.prevent.stop="restoreAndRemove"
       />
@@ -75,31 +66,31 @@
       >
         <button
           @click.prevent="newChildFolder"
-          :title="`Create a new sub-group within this group`"
+          :title="$t('createNewSubGroupTooltip')"
         >
           <span class="menu-icon icon icon-new-empty-group"></span>
-          <span>New Child Group</span>
+          <span>{{ $t("newChildGroupMenu") }}</span>
         </button>
 
         <button
           @click.prevent="stashToNewChildFolder"
-          title="Stash all open tabs to a new child group"
+          :title="$t('stashTabsToNewChildGroupTooltip')"
         >
           <span class="menu-icon icon icon-stash" />
-          <span>Stash Tabs to New Child Group</span>
+          <span>{{ $t("stashTabsToNewChildGroupMenu") }}</span>
         </button>
 
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <details @click.stop="">
             <summary class="menu-item">
-              <span>Stash to "{{ title }}"...</span>
+              <span>{{ $t("stashToGroupMenu", [title]) }}</span>
             </summary>
             <ul>
               <li v-for="t of unstashedOrOpenTabs" :key="t.tab.id">
                 <a
                   :href="t.tab.url"
-                  :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
+                  :title="$t('stashTabToGroupTooltip', [altKey])"
                   @click.prevent.stop="stashSpecificTab($event, t.tab)"
                 >
                   <item-icon
@@ -112,7 +103,7 @@
                     v-if="t.stashedIn.length > 0"
                     class="menu-icon icon icon-stashed status-text"
                     :title="
-                      ['This tab is stashed in:', ...t.stashedIn].join('\n')
+                      [$t('tabStashedInTooltip'), ...t.stashedIn].join('\n')
                     "
                   />
                 </a>
@@ -124,58 +115,55 @@
         <hr />
         <button
           @click.prevent="showImportDialog"
-          title="Import links and URLs into this group"
+          :title="$t('importIntoGroupTooltip')"
         >
           <span class="menu-icon icon icon-import" />
-          <span>Import...</span>
+          <span>{{ $t("importMenu") }}</span>
         </button>
 
         <button
           @click.prevent="isShowingExportDialog = true"
-          title="Export links and URLs from this group"
+          :title="$t('exportFromGroupTooltip')"
         >
           <span class="menu-icon icon icon-export" />
-          <span>Export...</span>
+          <span>{{ $t("exportMenu") }}</span>
         </button>
 
         <hr />
 
         <button @click.prevent="sort(sortByTitle)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by Title</span>
+          <span>{{ $t("sortByTitleMenu") }}</span>
         </button>
 
         <button @click.prevent="sort(sortByURL)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by URL</span>
+          <span>{{ $t("sortByUrlMenu") }}</span>
         </button>
 
         <button @click.prevent="sort(sortByDateAddedDescending)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by Date Added (Newest First)</span>
+          <span>{{ $t("sortByDateAddedDescMenu") }}</span>
         </button>
 
         <button @click.prevent="sort(sortByDateAdded)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by Date Added (Oldest First)</span>
+          <span>{{ $t("sortByDateAddedAscMenu") }}</span>
         </button>
 
         <hr />
 
         <button
           @click.prevent="closeStashedTabs"
-          :title="`Close any open tabs that are stashed in this group`"
+          :title="$t('closeStashedTabsInGroupTooltip')"
         >
           <span class="menu-icon icon icon-delete-stashed" />
-          <span>Close Stashed Tabs</span>
+          <span>{{ $t("closeStashedTabsMenu") }}</span>
         </button>
         <hr />
-        <button
-          title="Delete the whole group and all its tabs and child groups"
-          @click.prevent="remove"
-        >
+        <button :title="$t('deleteGroupTooltip')" @click.prevent="remove">
           <span class="menu-icon icon icon-delete"></span>
-          <span>Delete Group</span>
+          <span>{{ $t("deleteGroupMenu") }}</span>
         </button>
       </Menu>
     </ButtonBox>
@@ -274,6 +262,8 @@ import {
   bgKeyPressed,
   filterMap,
   required,
+  $t,
+  $ts,
 } from "../util/index.js";
 
 import the from "../globals-ui.js";
@@ -471,7 +461,9 @@ export default defineComponent({
       if (getDefaultFolderNameISODate(unfiltered.title) !== null) {
         return friendlyFolderName(unfiltered.title);
       } else {
-        return `Saved ${new Date(unfiltered.dateAdded || 0).toLocaleString()}`;
+        return this.$t("savedAt", [
+          new Date(unfiltered.dateAdded || 0).toLocaleString(),
+        ]);
       }
     },
     nonDefaultTitle(): string {
@@ -485,12 +477,17 @@ export default defineComponent({
     tooltip(): string {
       const bm_stats = this.folder.$stats;
       const st = this.childTabStats;
-      const statstip = `${bm_stats.folderCount} child group${
-        bm_stats.folderCount !== 1 ? "s" : ""
-      }, ${bm_stats.bookmarkCount} stashed tab${
-        bm_stats.bookmarkCount != 1 ? "s" : ""
-      } (${st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
-      return `${this.title}\n${statstip}`;
+      const childGroupsStr = this.$ts(bm_stats.folderCount, "child_group");
+      const stashedTabsStr = this.$ts(bm_stats.bookmarkCount, "stashed_tab");
+
+      return this.$t("folder_tooltip_fmt", [
+        this.title,
+        childGroupsStr,
+        stashedTabsStr,
+        st.open.toString(),
+        st.discarded.toString(),
+        st.hidden.toString(),
+      ]);
     },
 
     children(): Node[] {
@@ -514,6 +511,8 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
+    $ts,
     sortByTitle,
     sortByURL,
     sortByDateAdded,

@@ -22,15 +22,17 @@
           collapse: !collapsed,
           expand: collapsed,
         }"
-        title="Hide the tabs for this group"
+        :title="$t('hideTabsForGroup')"
         @click.prevent.stop="collapsed = !collapsed"
       />
       <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
         <a
           class="action stash"
-          :title="`Stash all ${
-            showStashedTabs ? 'open tabs' : 'unstashed tabs'
-          } to a new group (hold ${altKey} to keep tabs open)`"
+          :title="
+            showStashedTabs
+              ? $t('stashAllOpenTabsTooltip', [altKey])
+              : $t('stashAllUnstashedTabsTooltip', [altKey])
+          "
           @click.prevent.stop="stash"
         />
         <a
@@ -45,7 +47,7 @@
         />
         <a
           class="action stash newgroup"
-          title="Create a new empty group in the stash"
+          :title="$t('createNewEmptyGroupTooltip')"
           @click.prevent.stop="newGroup"
         />
 
@@ -54,7 +56,7 @@
           h-position="right"
         >
           <button
-            title="Show only unstashed tabs"
+            :title="$t('showOnlyUnstashedTabsTooltip')"
             @click.prevent="setMode('unstashed')"
             :disabled="!showStashedTabs"
           >
@@ -66,10 +68,10 @@
                 'icon-select-selected': !showStashedTabs,
               }"
             />
-            <span>Show Unstashed Tabs Only</span>
+            <span>{{ $t("showUnstashedTabsOnlyMenu") }}</span>
           </button>
           <button
-            title="Show all open tabs in the window (excluding pinned tabs)"
+            :title="$t('showAllOpenTabsTooltip')"
             @click.prevent="setMode('all')"
             :disabled="showStashedTabs"
           >
@@ -81,41 +83,41 @@
                 'icon-select-selected': showStashedTabs,
               }"
             />
-            <span>Show All Open Tabs</span>
+            <span>{{ $t("showAllOpenTabsMenu") }}</span>
           </button>
 
           <hr />
 
           <button
-            :title="`Close all unstashed tabs (except pinned and hidden)`"
+            :title="$t('closeUnstashedTabsTooltip')"
             @click.prevent="removeUnstashed"
           >
             <span class="menu-icon icon icon-delete" />
-            <span>Close Unstashed Tabs</span>
+            <span>{{ $t("closeUnstashedTabsMenu") }}</span>
           </button>
           <button
-            :title="`Close all stashed tabs (except pinned and hidden)`"
+            :title="$t('closeStashedTabsTooltip')"
             @click.prevent="removeStashed"
           >
             <span class="menu-icon icon icon-delete-stashed" />
-            <span>Close Stashed Tabs</span>
+            <span>{{ $t("closeStashedTabsMenu") }}</span>
           </button>
           <button
-            :title="`Close all open tabs (except pinned and hidden)`"
+            :title="$t('closeAllOpenTabsTooltip')"
             @click.prevent="removeOpen"
           >
             <span class="menu-icon icon icon-delete-opened" />
-            <span>Close All Open Tabs</span>
+            <span>{{ $t("closeAllOpenTabsMenu") }}</span>
           </button>
 
           <hr />
 
           <button
-            :title="`Close any stashed tabs that are hidden (may reclaim memory)`"
+            :title="$t('closeHiddenTabsTooltip')"
             @click.prevent="removeHidden"
           >
             <span class="menu-icon icon icon-delete-opened" />
-            <span>Close Hidden Tabs</span>
+            <span>{{ $t("closeHiddenTabsMenu") }}</span>
           </button>
         </Menu>
       </nav>
@@ -123,7 +125,7 @@
       <nav v-else class="action-group forest-toolbar">
         <a
           class="action stash newgroup"
-          :title="`Move ${selectedCount} item(s) to a new group (hold ${altKey} to copy)`"
+          :title="$ts(selectedCount, 'moveItemsToNewGroup', [altKey])"
           @click.prevent.stop="moveToNewGroup"
         />
         <a
@@ -135,13 +137,13 @@
         <a
           v-if="selectedCount > 0"
           class="action restore"
-          :title="`Open ${selectedCount} item(s)`"
+          :title="$ts(selectedCount, 'openSelectedItems')"
           @click.prevent.stop="copyToWindow"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore-remove"
-          :title="`Unstash ${selectedCount} item(s)`"
+          :title="$ts(selectedCount, 'unstashSelectedItems')"
           @click.prevent.stop="moveToWindow"
         />
       </nav>
@@ -182,15 +184,14 @@
 
     <confirm-dialog
       v-if="confirmCloseTabs > 0"
-      :confirm="`Close ${confirmCloseTabs} tabs`"
-      cancel="Cancel"
+      :confirm="$ts(confirmCloseTabs, 'closeTabsConfirm')"
+      :cancel="$t('cancelButton')"
       @answer="confirmCloseTabsThen($event)"
     >
-      <p>You're about to close {{ confirmCloseTabs }} tabs at once.</p>
+      <p>{{ $ts(confirmCloseTabs, "closeTabsWarn") }}</p>
 
       <p>
-        Your browser may not keep this many tabs in its recent history, so THIS
-        IS IRREVERSIBLE. Are you sure?
+        {{ $t("closeTabsIrreversible") }}
       </p>
     </confirm-dialog>
   </li>
@@ -200,7 +201,7 @@
 import {defineComponent, ref, type PropType, type Directive} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, required} from "../util/index.js";
+import {altKeyName, required, $t, $ts} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
@@ -292,12 +293,15 @@ export default defineComponent({
     },
 
     title(): string {
-      if (this.showStashedTabs) return "Open Tabs";
-      return "Unstashed Tabs";
+      if (this.showStashedTabs) return this.$t("openTabsTitle");
+      return this.$t("unstashedTabsTitle");
     },
 
     tooltip(): string {
-      return `${this.displayCount} ${this.title}`;
+      return this.$ts(
+        this.displayCount,
+        this.showStashedTabs ? "open_tabs" : "unstashed_tabs",
+      );
     },
 
     collapsed: {
@@ -347,6 +351,8 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
+    $ts,
     attempt(fn: () => Promise<void>) {
       the.model.attempt(fn);
     },

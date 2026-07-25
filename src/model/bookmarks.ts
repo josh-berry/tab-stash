@@ -536,7 +536,20 @@ export class Model {
       if (position.parent === toParent) {
         if (toIndex > position.index) toIndex--;
       }
+    } else {
+      // We're using Chromium. Same-folder forward moves can be no-ops when the
+      // bookmark is already at the effective destination. For example, moving
+      // the last child to `children.length` leaves it at `children.length - 1`.
+      // In that case, the model position stays at `oldIndex`, while the poll
+      // below would wait for `toIndex` and eventually time out. Skip the move
+      // entirely when we can tell it would not change the effective position.
+      let finalIndex = toIndex;
+      if (position.parent === toParent && toIndex > position.index) {
+        finalIndex = toIndex - 1;
+      }
+      if (position.parent === toParent && finalIndex === position.index) return;
     }
+
     const oldParent = node.position?.parent;
     const oldIndex = node.position?.index;
     await browser.bookmarks.move(node.id, {
@@ -763,7 +776,12 @@ export class Model {
 
     while (to_fetch.size > 0) {
       trace("_findRoots fetching", to_fetch);
-      const bms = await browser.bookmarks.get(Array.from(to_fetch));
+      // ORION: .get() does not support batching
+      const bms = (
+        await Promise.all(
+          Array.from(to_fetch).map(id => browser.bookmarks.get(id)),
+        )
+      ).flat();
 
       to_fetch = new Set();
       for (const b of bms) {
@@ -1053,5 +1071,14 @@ function isBrowserBTNFolder(bm: Bookmarks.BookmarkTreeNode): boolean {
  * here so the rest of Tab Stash doesn't complain. See:
  * https://github.com/josh-berry/tab-stash/issues/542 */
 function fixupIndexes(nodes: Bookmarks.BookmarkTreeNode[]): void {
+  // ORION: We have to sort nodes by index first, because Orion doesn't return
+  // nodes in index order.
+  if ((<any>globalThis).KAGI) {
+    nodes.sort((a, b) => {
+      if (a.index === undefined) return -1;
+      if (b.index === undefined) return 1;
+      return a.index - b.index;
+    });
+  }
   for (let i = 0; i < nodes.length; ++i) nodes[i].index = i;
 }

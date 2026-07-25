@@ -48,13 +48,13 @@ export class RemoteNanoError extends Error {
   constructor(remote: Proto.ErrorResponse) {
     super(remote.message);
     this.remote = remote;
+    // Actual property assignment is required here so it goes into the correct
+    // slot in the Error base class.
+    this.stack = `${this.stack}\n\nRemote Stack:\n${this.remote.stack}`;
   }
 
   get name(): string {
     return this.remote.name;
-  }
-  get stack(): string | undefined {
-    return `[remote stack] ${this.remote.stack}`;
   }
   get data(): Send | undefined {
     return this.remote.data;

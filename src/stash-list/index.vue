@@ -18,8 +18,7 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} has new sorting options and a refreshed look
-        to match Firefox's new sidebar styling. See what else is new!
+        {{ $t("whatsNewNotification", [my_version]) }}
       </Notification>
       <Notification
         key="new-fixes"
@@ -27,8 +26,7 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        Tab Stash {{ my_version }} has new sorting options and a refreshed look
-        to match Firefox's new sidebar styling. See what else is new!
+        {{ $t("whatsNewNotification", [my_version]) }}
       </Notification>
       <Notification
         key="stash-root-warning"
@@ -43,10 +41,10 @@
         @activate="onDeleteNotifActivated"
       >
         <span v-if="typeof recently_deleted === 'object'">
-          Deleted "{{ recentlyDeletedTitle }}". Undo?
+          {{ $t("deletedItemUndo", [recentlyDeletedTitle || ""]) }}
         </span>
         <span v-else>
-          Deleted {{ recently_deleted }} items. Show what was deleted?
+          {{ $t("deletedItemsShow", [recently_deleted.toString()]) }}
         </span>
       </Notification>
     </transition-group>
@@ -57,46 +55,48 @@
         class="main-menu"
         summaryClass="action mainmenu"
       >
-        <button @click.prevent="showOptions"><span>Options...</span></button>
+        <button @click.prevent="showOptions">
+          <span>{{ $t("optionsMenu") }}</span>
+        </button>
         <hr />
         <button @click.prevent="dialog = {class: 'ImportDialog'}">
-          <span>Import...</span>
+          <span>{{ $t("importMenu") }}</span>
         </button>
         <button @click.prevent="showExportDialog">
-          <span>Export...</span>
+          <span>{{ $t("exportMenu") }}</span>
         </button>
         <hr />
         <a tabindex="0" :href="pageref('deleted-items.html')"
-          ><span>Deleted Items...</span></a
+          ><span>{{ $t("deletedItemsMenu") }}</span></a
         >
         <button @click.prevent="fetchMissingFavicons">
-          <span>Fetch Missing Icons</span>
+          <span>{{ $t("fetchMissingIconsMenu") }}</span>
         </button>
         <hr />
         <a tabindex="0" href="https://josh-berry.github.io/tab-stash/tips.html"
-          ><span>Tips and Tricks</span></a
+          ><span>{{ $t("tipsAndTricksMenu") }}</span></a
         >
         <a tabindex="0" href="https://github.com/josh-berry/tab-stash/wiki"
-          ><span>Wiki</span></a
+          ><span>{{ $t("wikiMenu") }}</span></a
         >
         <a
           tabindex="0"
           href="https://josh-berry.github.io/tab-stash/support.html"
-          ><span>Help and Support</span></a
+          ><span>{{ $t("helpAndSupportMenu") }}</span></a
         >
         <hr />
         <a tabindex="0" :href="pageref('whats-new.html')"
-          ><span>What's New?</span></a
+          ><span>{{ $t("whatsNewMenu") }}</span></a
         >
         <a tabindex="0" href="https://github.com/sponsors/josh-berry"
-          ><span>Sponsor</span></a
+          ><span>{{ $t("sponsorMenu") }}</span></a
         >
       </Menu>
 
       <a
         v-else
         class="action icon icon-pop-out"
-        title="Show stashed tabs in a tab"
+        :title="$t('showStashedTabsInTabTitle')"
         @click.prevent="showTabUI"
       />
 
@@ -111,7 +111,7 @@
       />
       <a
         :class="{action: true, collapse: !collapsed, expand: collapsed}"
-        title="Hide all tabs so only group names are showing"
+        :title="$t('hideAllTabsTitle')"
         @click.prevent.stop="collapseAll"
       />
     </header>
@@ -124,7 +124,7 @@
 
     <footer class="page status-text">
       Tab Stash {{ my_version }} &mdash;
-      <a :href="pageref('whats-new.html')">What's New</a>
+      <a :href="pageref('whats-new.html')">{{ $t("whatsNewFooter") }}</a>
     </footer>
   </main>
 
@@ -161,6 +161,8 @@ import {
   parseVersion,
   urlToOpen,
   type TaskIterator,
+  $t,
+  $ts,
 } from "../util/index.js";
 
 import Menu from "../components/menu.vue";
@@ -265,10 +267,13 @@ export default defineComponent({
 
     search_placeholder(): string {
       const counts = this.counts;
-      const groups = counts.folderCount == 1 ? "group" : "groups";
-      const tabs = counts.bookmarkCount == 1 ? "tab" : "tabs";
       const loading = counts.isLoaded ? "" : "+";
-      return `Search ${counts.folderCount}${loading} ${groups}, ${counts.bookmarkCount}${loading} ${tabs}`;
+      const groupsStr = this.$ts(counts.folderCount, "group_dative");
+      const tabsStr = this.$ts(counts.bookmarkCount, "tab_dative");
+      return this.$t("search_placeholder_fmt", [
+        `${counts.folderCount}${loading} ${groupsStr.replace(/^\d+\s*/, "")}`,
+        `${counts.bookmarkCount}${loading} ${tabsStr.replace(/^\d+\s*/, "")}`,
+      ]);
     },
 
     tabStats(): {open: number; discarded: number; hidden: number} {
@@ -291,13 +296,18 @@ export default defineComponent({
     searchTooltip(): string {
       const st = this.tabStats;
       const tabs_sum = st.open + st.discarded + st.hidden;
-      return `${this.counts.folderCount} group${this.plural(
-        this.counts.folderCount,
-      )}, ${this.counts.bookmarkCount} stashed tab${this.plural(
-        this.counts.bookmarkCount,
-      )}\n${tabs_sum} tab${this.plural(tabs_sum)} in this window (${
-        st.open
-      } open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
+      const groupsStr = this.$ts(this.counts.folderCount, "group");
+      const stashedTabsStr = this.$ts(this.counts.bookmarkCount, "stashed_tab");
+      const tabsInWindowStr = this.$ts(tabs_sum, "tab");
+
+      return this.$t("search_tooltip_fmt", [
+        groupsStr,
+        stashedTabsStr,
+        tabsInWindowStr,
+        st.open.toString(),
+        st.discarded.toString(),
+        st.hidden.toString(),
+      ]);
     },
 
     curWindowMetadata(): BookmarkMetadataEntry {
@@ -402,6 +412,8 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
+    $ts,
     pageref,
 
     collapseAll() {

@@ -1,7 +1,7 @@
 <template>
   <div v-if="loading" class="forest-item deleted loading">
     <span class="forest-icon icon spinner size-icon" />
-    <span class="forest-title status-text">{{ loading }}...</span>
+    <span class="forest-title status-text">{{ $t(loading as any) }}...</span>
   </div>
 
   <div
@@ -37,15 +37,15 @@
     <ButtonBox class="forest-toolbar">
       <a
         class="action stash one"
-        title="Restore"
+        :title="$t('restoreTooltip')"
         @click.prevent.stop="restore"
       />
       <Menu
         summaryClass="action remove last-toolbar-button"
-        title="Delete Forever"
+        :title="$t('deleteForeverTooltip')"
       >
         <button @click.prevent.stop="remove">
-          <span>Delete Forever</span>
+          <span>{{ $t("deleteForeverButton") }}</span>
         </button>
       </Menu>
     </ButtonBox>
@@ -59,7 +59,7 @@
       <div class="forest-item disabled">
         <span class="forest-icon icon" />
         <span class="forest-title status-text hidden-count">
-          + {{ item.filtered_count }} filtered
+          {{ $t("filteredCountBadge", [item.filtered_count.toString()]) }}
         </span>
       </div>
     </li>
@@ -78,6 +78,7 @@ import type {FilteredDeletedItem, FilteredDeletion} from "./schema.js";
 import ButtonBox from "../components/button-box.vue";
 import ItemIcon from "../components/item-icon.vue";
 import Menu from "../components/menu.vue";
+import {$t} from "../util/index.js";
 </script>
 
 <script setup lang="ts">
@@ -105,9 +106,9 @@ const deletedAt = computed(() => props.deletion.deleted_at.toLocaleString());
 const tooltip = computed(() => {
   const t = `${item.value.title}\n`;
   if (props.deletion.deleted_from) {
-    return `${t}Deleted at ${deletedAt.value} from "${props.deletion.deleted_from.title}"`;
+    return `${t}${$t("deletedAtFromTooltip", [deletedAt.value, props.deletion.deleted_from.title])}`;
   } else {
-    return `${t}Deleted at ${deletedAt.value}`;
+    return `${t}${$t("deletedAtTooltip", [deletedAt.value])}`;
   }
 });
 
@@ -122,10 +123,10 @@ async function run(what: string, f: () => Promise<void>) {
 }
 
 const restore = () =>
-  run("Restoring", () => the.model.undelete(props.deletion, props.path));
+  run("restoringLoading", () => the.model.undelete(props.deletion, props.path));
 
 const remove = () =>
-  run("Deleting Forever", () =>
+  run("deletingForeverLoading", () =>
     the.model.deleted_items.drop(props.deletion.key, props.path),
   );
 </script>
