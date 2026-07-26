@@ -16,7 +16,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "tab-stash@condordes.net",
-      "strict_min_version": "115.0"
+      "strict_min_version": "139.0"
     }
   },
   "permissions": [
@@ -34,7 +34,9 @@
   ],
   "content_security_policy": "script-src 'self'; object-src 'self';",
   "background": {
-    "scripts": ["index.js"]
+    "scripts": [
+      "index.js"
+    ]
   },
   "browser_action": {
     "default_title": "__MSG_extensionName__",
@@ -87,7 +89,9 @@
       }
     ],
     "browser_style": false,
-    "show_matches": ["<all_urls>"]
+    "show_matches": [
+      "<all_urls>"
+    ]
   },
   "sidebar_action": {
     "default_title": "__MSG_extensionName__",
