@@ -347,7 +347,7 @@
   "closeStashedTabsTooltip": {
     "message": "Close all stashed tabs (except pinned and hidden)"
   },
-  "closeStashedTabsInGroupTooltip": {
+  "closeStashedTabsInTabGroupTooltip": {
     "message": "Close all stashed tabs in the group"
   },
   "closeStashedTabsMenu": {

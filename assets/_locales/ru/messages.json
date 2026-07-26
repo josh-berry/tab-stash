@@ -368,7 +368,7 @@
   "closeStashedTabsTooltip": {
     "message": "Закрыть все сохраненные вкладки (кроме закрепленных и скрытых)"
   },
-  "closeStashedTabsInGroupTooltip": {
+  "closeStashedTabsInTabGroupTooltip": {
     "message": "Закрыть все отложенные вкладки в группе"
   },
   "closeStashedTabsMenu": {
