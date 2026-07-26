@@ -132,6 +132,7 @@ build-dbg: node_modules icons dist/tab-stash.css
 	NODE_ENV=development ./node_modules/.bin/vite build -c vite.config.html.ts -m development
 	NODE_ENV=development ./node_modules/.bin/vite build -c vite.config.lib.ts -m development
 	./node_modules/.bin/copyfiles -u 1 'assets/**/*' dist
+	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-dbg
 
 build-rel:
