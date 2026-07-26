@@ -6,8 +6,6 @@
     "resolveJsonModule": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
 
-    "baseUrl": ".",
-
     "sourceMap": true,
     "noUnusedLocals": true
   },

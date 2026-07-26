@@ -233,10 +233,7 @@ describe("model/tree", () => {
       name: keyof typeof parents,
       index: number,
       expectedChildren: (
-        | keyof typeof leaves
-        | keyof typeof parents
-        | "new"
-        | undefined
+        keyof typeof leaves | keyof typeof parents | "new" | undefined
       )[],
       options?: {fails?: boolean},
     ) {
@@ -297,10 +294,7 @@ describe("model/tree", () => {
       name: keyof typeof parents,
       index: number,
       expectedChildren: (
-        | keyof typeof leaves
-        | keyof typeof parents
-        | "new"
-        | undefined
+        keyof typeof leaves | keyof typeof parents | "new" | undefined
       )[],
       options?: {fails?: boolean},
     ) {
@@ -356,9 +350,7 @@ describe("model/tree", () => {
       name: keyof typeof parents,
       index: number,
       expectedChildren: (
-        | keyof typeof leaves
-        | keyof typeof parents
-        | undefined
+        keyof typeof leaves | keyof typeof parents | undefined
       )[],
       options?: {fails?: boolean},
     ) {

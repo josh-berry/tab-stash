@@ -105,8 +105,7 @@ export class Model {
   private _filter: undefined | ((item: DeletedItem) => boolean);
 
   private _clear_recently_deleted_timeout:
-    | undefined
-    | ReturnType<typeof setTimeout>;
+    undefined | ReturnType<typeof setTimeout>;
 
   constructor(kvs: KeyValueStore<string, SourceValue>) {
     this._kvs = kvs;

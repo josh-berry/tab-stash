@@ -9,18 +9,11 @@
 // assign Send values to specific fields inside the messages it sends.
 // Assigning `undefined` to such a field would make it disappear.
 export type Send =
-  | null
-  | boolean
-  | number
-  | string
-  | {[k: string]: Send | undefined}
-  | Send[];
+  null | boolean | number | string | {[k: string]: Send | undefined} | Send[];
 
 // The NanoService communication protocol.
 export type Envelope<M extends Send> =
-  | NotifyEnvelope<M>
-  | RequestEnvelope<M>
-  | ResponseEnvelope<M>;
+  NotifyEnvelope<M> | RequestEnvelope<M> | ResponseEnvelope<M>;
 
 export type NotifyEnvelope<M extends Send> = {notify: M};
 

@@ -9,11 +9,7 @@ const ONLY_FOLDERS_TYPE = "application/x-tab-stash-dnd-folders";
 const ONLY_LEAVES_TYPE = "application/x-tab-stash-dnd-leaves";
 
 type DNDItem =
-  | DNDWindow
-  | DNDTabGroup
-  | DNDTab
-  | DNDBookmarkNode
-  | DNDBookmarkFolder;
+  DNDWindow | DNDTabGroup | DNDTab | DNDBookmarkNode | DNDBookmarkFolder;
 
 type DNDWindow = {window: T.WindowID};
 type DNDTabGroup = {group: T.TabGroupID};

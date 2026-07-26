@@ -569,8 +569,8 @@ describe("model", () => {
       }) =>
       async () => {
         const p = env.model.putItemsInFolder({
-          items: options.items.map(
-            i => env.model.bookmarks.node(env.bookmarks[i].id)!,
+          items: options.items.map(i =>
+            env.model.bookmarks.node(env.bookmarks[i].id)!,
           ),
           toFolder: env.model.bookmarks.folder(
             env.bookmarks[options.toFolder].id,

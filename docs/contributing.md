@@ -12,7 +12,7 @@ even a monthly sponsorship, I would be very grateful. Tab Stash will always be
 
 First of all, thanks for your interest in making Tab Stash better! Tab Stash
 has been a labor of love since 2018, and I never would have expected that N
-years later [*what year is it again?*], it would have grown to where it is
+years later [_what year is it again?_], it would have grown to where it is
 today.
 
 Below, I've included some information and resources to help you modify Tab Stash

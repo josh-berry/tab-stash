@@ -33,9 +33,7 @@ export type ClientMsg<K extends Key, V extends Value> =
   | DeleteAllMessage<K, V>
   | null;
 export type ServiceMsg<K extends Key, V extends Value> =
-  | SetMessage<K, V>
-  | EntriesMessage<K, V>
-  | null;
+  SetMessage<K, V> | EntriesMessage<K, V> | null;
 
 // Request for one or more values with known keys.  Only sent from client to
 // service.  Response is an EntriesMessage with all the entries that were found.

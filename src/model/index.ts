@@ -83,10 +83,7 @@ export const GROUP_TITLE_PATH_SEP = " > ";
  * its title, URL and identity (if it's part of the model). */
 export type StashItem = NewTab | NewFolder | ModelItem;
 export type StashParent =
-  | NewFolder
-  | Bookmarks.Folder
-  | Tabs.Window
-  | Tabs.TabGroupExtent;
+  NewFolder | Bookmarks.Folder | Tabs.Window | Tabs.TabGroupExtent;
 export type StashLeaf = NewTab | Bookmarks.Bookmark | Tabs.Tab;
 
 /** A container (bookmark folder or window) that is part of the model. */
@@ -94,10 +91,7 @@ export type ModelParent = Bookmarks.Folder | Tabs.Window | Tabs.TabGroupExtent;
 
 /** An actual bookmark/tab that is part of the model. */
 export type ModelItem =
-  | Bookmarks.Node
-  | Tabs.Window
-  | Tabs.TabGroupExtent
-  | Tabs.Tab;
+  Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab;
 
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};

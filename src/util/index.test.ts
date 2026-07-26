@@ -236,7 +236,7 @@ describe("util", function () {
       reset_after_idle_ms: 1600,
     };
 
-    let clock: FakeTimers.InstalledClock;
+    let clock: FakeTimers.Clock;
     beforeEach(() => {
       clock = FakeTimers.install();
     });

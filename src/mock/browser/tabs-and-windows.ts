@@ -1369,7 +1369,7 @@ class MockTabs implements T.Static {
       // Now find any tabs within each range that have been ungrouped, and move
       // them to just after the end of the group.
       for (let [_groupId, {start, end}] of groups) {
-        for (let i = start; i < end; ) {
+        for (let i = start; i < end;) {
           const t = win.tabs[i];
 
           if (t.groupId !== -1 && t.groupId !== undefined) {

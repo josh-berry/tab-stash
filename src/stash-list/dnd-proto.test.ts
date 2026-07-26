@@ -108,10 +108,7 @@ describe("stash-list/dnd-proto", () => {
   function testValid(
     desc: string,
     items: () => (
-      | {window: T.WindowID}
-      | {group: T.TabGroupID}
-      | T.TabID
-      | BM.NodeID
+      {window: T.WindowID} | {group: T.TabGroupID} | T.TabID | BM.NodeID
     )[],
   ) {
     it(desc, () => {
