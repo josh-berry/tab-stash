@@ -243,37 +243,37 @@
     "message": "What's New"
   },
   "whatsNewNotification": {
-    "message": "Tab Stash $1$ has new sorting options and a refreshed look to match Firefox's new sidebar styling. See what else is new!"
+    "message": "Tab Stash $1 has new sorting options and a refreshed look to match Firefox's new sidebar styling. See what else is new!"
   },
   "deletedItemUndo": {
-    "message": "Deleted \"$1$\". Undo?"
+    "message": "Deleted \"$1\". Undo?"
   },
   "deletedItemsShow": {
-    "message": "Deleted $1$ items. Show what was deleted?"
+    "message": "Deleted $1 items. Show what was deleted?"
   },
   "group_one": {
-    "message": "$1$ group"
+    "message": "$1 group"
   },
   "group_many": {
-    "message": "$1$ groups"
+    "message": "$1 groups"
   },
   "tab_one": {
-    "message": "$1$ tab"
+    "message": "$1 tab"
   },
   "tab_many": {
-    "message": "$1$ tabs"
+    "message": "$1 tabs"
   },
   "stashed_tab_one": {
-    "message": "$1$ stashed tab"
+    "message": "$1 stashed tab"
   },
   "stashed_tab_many": {
-    "message": "$1$ stashed tabs"
+    "message": "$1 stashed tabs"
   },
   "search_placeholder_fmt": {
-    "message": "Search $1$, $2$"
+    "message": "Search $1, $2"
   },
   "search_tooltip_fmt": {
-    "message": "$1$, $2$\n$3$ in this window ($4$ open, $5$ unloaded, $6$ hidden)"
+    "message": "$1, $2\n$3 in this window ($4 open, $5 unloaded, $6 hidden)"
   },
   "fetchingIconsDomain": {
     "message": "Fetching icons for each domain..."
@@ -282,16 +282,16 @@
     "message": "Fetching icons for each page..."
   },
   "group_dative_one": {
-    "message": "$1$ group"
+    "message": "$1 group"
   },
   "group_dative_many": {
-    "message": "$1$ groups"
+    "message": "$1 groups"
   },
   "tab_dative_one": {
-    "message": "$1$ tab"
+    "message": "$1 tab"
   },
   "tab_dative_many": {
-    "message": "$1$ tabs"
+    "message": "$1 tabs"
   },
   "openTabsTitle": {
     "message": "Open Tabs"
@@ -300,25 +300,25 @@
     "message": "Unstashed Tabs"
   },
   "open_tabs_one": {
-    "message": "$1$ open tab"
+    "message": "$1 open tab"
   },
   "open_tabs_many": {
-    "message": "$1$ open tabs"
+    "message": "$1 open tabs"
   },
   "unstashed_tabs_one": {
-    "message": "$1$ unstashed tab"
+    "message": "$1 unstashed tab"
   },
   "unstashed_tabs_many": {
-    "message": "$1$ unstashed tabs"
+    "message": "$1 unstashed tabs"
   },
   "hideTabsForGroup": {
     "message": "Hide the tabs for this group"
   },
   "stashAllOpenTabsTooltip": {
-    "message": "Stash all open tabs to a new group (hold $1$ to keep tabs open)"
+    "message": "Stash all open tabs to a new group (hold $1 to keep tabs open)"
   },
   "stashAllUnstashedTabsTooltip": {
-    "message": "Stash all unstashed tabs to a new group (hold $1$ to keep tabs open)"
+    "message": "Stash all unstashed tabs to a new group (hold $1 to keep tabs open)"
   },
   "createNewEmptyGroupTooltip": {
     "message": "Create a new empty group in the stash"
@@ -372,61 +372,61 @@
     "message": "Close Hidden Tabs"
   },
   "moveItemsToNewGroup_one": {
-    "message": "Move $1$ item to a new group (hold $2$ to copy)"
+    "message": "Move $1 item to a new group (hold $2 to copy)"
   },
   "moveItemsToNewGroup_many": {
-    "message": "Move $1$ items to a new group (hold $2$ to copy)"
+    "message": "Move $1 items to a new group (hold $2 to copy)"
   },
   "openSelectedItems_one": {
-    "message": "Open $1$ item"
+    "message": "Open $1 item"
   },
   "openSelectedItems_many": {
-    "message": "Open $1$ items"
+    "message": "Open $1 items"
   },
   "unstashSelectedItems_one": {
-    "message": "Unstash $1$ item"
+    "message": "Unstash $1 item"
   },
   "unstashSelectedItems_many": {
-    "message": "Unstash $1$ items"
+    "message": "Unstash $1 items"
   },
   "closeTabsConfirm_one": {
-    "message": "Close $1$ tab"
+    "message": "Close $1 tab"
   },
   "closeTabsConfirm_many": {
-    "message": "Close $1$ tabs"
+    "message": "Close $1 tabs"
   },
   "cancelButton": {
     "message": "Cancel"
   },
   "closeTabsWarn_one": {
-    "message": "You're about to close $1$ tab at once."
+    "message": "You're about to close $1 tab at once."
   },
   "closeTabsWarn_many": {
-    "message": "You're about to close $1$ tabs at once."
+    "message": "You're about to close $1 tabs at once."
   },
   "closeTabsIrreversible": {
     "message": "Your browser may not keep this many tabs in its recent history, so THIS IS IRREVERSIBLE. Are you sure?"
   },
   "toggleCollapsedGroupTooltip": {
-    "message": "Hide the tabs for this group (hold $1$ to hide tabs for child groups)"
+    "message": "Hide the tabs for this group (hold $1 to hide tabs for child groups)"
   },
   "toggleCollapsedTabGroupTooltip": {
     "message": "Hide the tabs for this group"
   },
   "stashAllOpenTabsToGroupTooltip": {
-    "message": "Stash all (or highlighted) open tabs to this group (hold $1$ to keep tabs open)"
+    "message": "Stash all (or highlighted) open tabs to this group (hold $1 to keep tabs open)"
   },
   "stashActiveTabToGroupTooltip": {
-    "message": "Stash the active tab to this group (hold $1$ to keep tabs open)"
+    "message": "Stash the active tab to this group (hold $1 to keep tabs open)"
   },
   "openAllTabsInGroupTooltip": {
-    "message": "Open all tabs in this group\nHold $1$ to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs in this group\nHold $1 to open in background\nHold Shift to open directly in the window"
   },
   "openAllTabsAndDeleteGroupTooltip": {
-    "message": "Open all tabs and delete this group\nHold $1$ to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs and delete this group\nHold $1 to open in background\nHold Shift to open directly in the window"
   },
   "openAllTabsAndRemoveFromGroupTooltip": {
-    "message": "Open all tabs and remove them from this group\nHold $1$ to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs and remove them from this group\nHold $1 to open in background\nHold Shift to open directly in the window"
   },
   "createNewSubGroupTooltip": {
     "message": "Create a new sub-group within this group"
@@ -441,13 +441,13 @@
     "message": "Stash Tabs to New Child Group"
   },
   "stashToGroupMenu": {
-    "message": "Stash to \"$1$\"..."
+    "message": "Stash to \"$1\"..."
   },
   "stashTabToGroupTooltip": {
-    "message": "Stash tab to this group (hold $1$ to keep tab open)"
+    "message": "Stash tab to this group (hold $1 to keep tab open)"
   },
   "tabStashedInTooltip": {
-    "message": "This tab is stashed in:\n$1$"
+    "message": "This tab is stashed in:\n$1"
   },
   "importIntoGroupTooltip": {
     "message": "Import links and URLs into this group"
@@ -477,16 +477,16 @@
     "message": "Delete Group"
   },
   "savedAt": {
-    "message": "Saved $1$"
+    "message": "Saved $1"
   },
   "folder_tooltip_fmt": {
-    "message": "$1$\n$2$, $3$ ($4$ open, $5$ unloaded, $6$ hidden)"
+    "message": "$1\n$2, $3 ($4 open, $5 unloaded, $6 hidden)"
   },
   "child_group_one": {
-    "message": "$1$ group"
+    "message": "$1 group"
   },
   "child_group_many": {
-    "message": "$1$ groups"
+    "message": "$1 groups"
   },
   "copiedNotification": {
     "message": "Copied"
@@ -519,10 +519,10 @@
     "message": "Fetch icons and titles from each site"
   },
   "importToFolderButton": {
-    "message": "Import to \"$1$\""
+    "message": "Import to \"$1\""
   },
   "importErrorAlert": {
-    "message": "Info for the following URLs could not be fetched:\n\n$1$\n\nStashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!"
+    "message": "Info for the following URLs could not be fetched:\n\n$1\n\nStashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!"
   },
   "exportTitle": {
     "message": "Export"
@@ -558,7 +558,7 @@
     "message": "Search Deleted Items"
   },
   "deletedDateGroupHeader": {
-    "message": "Deleted $1$"
+    "message": "Deleted $1"
   },
   "noMatchingDeletedItems": {
     "message": "No matching items were found. Your item may have been deleted on another computer, or outside of Tab Stash entirely."
@@ -579,7 +579,7 @@
     "message": "Delete Forever"
   },
   "filteredCountBadge": {
-    "message": "+ $1$ filtered"
+    "message": "+ $1 filtered"
   },
   "restoringLoading": {
     "message": "Restoring"
@@ -588,22 +588,22 @@
     "message": "Deleting Forever"
   },
   "deletedAtTooltip": {
-    "message": "Deleted at $1$"
+    "message": "Deleted at $1"
   },
   "deletedAtFromTooltip": {
-    "message": "Deleted at $1$ from \"$2$\""
+    "message": "Deleted at $1 from \"$2\""
   },
   "renameTooltip": {
     "message": "Rename"
   },
   "openBookmarkAndDeleteTooltip": {
-    "message": "Open this tab and delete it from the group (hold $1$ to open in background)"
+    "message": "Open this tab and delete it from the group (hold $1 to open in background)"
   },
   "deleteBookmarkTooltip": {
     "message": "Delete this tab from the group"
   },
   "stashTabTooltip": {
-    "message": "Stash this tab (hold $1$ to keep tab open)"
+    "message": "Stash this tab (hold $1 to keep tab open)"
   },
   "closeTabTooltip": {
     "message": "Close this tab"
@@ -615,10 +615,10 @@
     "message": "Open"
   },
   "openSelectedIntoTabGroupTooltip_one": {
-    "message": "Open $1$ selected item into this tab group"
+    "message": "Open $1 selected item into this tab group"
   },
   "openSelectedIntoTabGroupTooltip_many": {
-    "message": "Open $1$ selected items into this tab group"
+    "message": "Open $1 selected items into this tab group"
   },
   "unstashSelectedTooltip": {
     "message": "Open tabs and delete them from the stash"
@@ -627,10 +627,10 @@
     "message": "Unstash"
   },
   "unstashSelectedIntoTabGroupTooltip_one": {
-    "message": "Unstash $1$ selected item into this tab group"
+    "message": "Unstash $1 selected item into this tab group"
   },
   "unstashSelectedIntoTabGroupTooltip_many": {
-    "message": "Unstash $1$ selected items into this tab group"
+    "message": "Unstash $1 selected items into this tab group"
   },
   "exportSelectedTooltip": {
     "message": "Export selected links and URLs"
@@ -648,16 +648,16 @@
     "message": "Move to New Group"
   },
   "moveToGroupSearchMenu": {
-    "message": "Move to \"$1$\""
+    "message": "Move to \"$1\""
   },
   "moveToNewGroupTooltip": {
-    "message": "Move to a new group (hold $1$ to copy)"
+    "message": "Move to a new group (hold $1 to copy)"
   },
   "moveToGroupSearchTooltip": {
-    "message": "Move to new group \"$1$\" (hold $2$ to copy)"
+    "message": "Move to new group \"$1\" (hold $2 to copy)"
   },
   "moveToFolderTooltip": {
-    "message": "Move to \"$1$\" (hold $2$ to copy)"
+    "message": "Move to \"$1\" (hold $2 to copy)"
   },
   "whatsNewTitle": {
     "message": "What's New in Tab Stash"
@@ -780,7 +780,7 @@
     "message": "Crash reports can be turned on again in settings."
   },
   "stashTabGroup": {
-    "message": "Stash this tab group (hold $1$ to keep tabs open)"
+    "message": "Stash this tab group (hold $1 to keep tabs open)"
   },
   "openTabInGroup": {
     "message": "Open a new tab in this group"
