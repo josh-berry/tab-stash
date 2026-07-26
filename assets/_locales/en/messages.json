@@ -200,14 +200,8 @@
   "experimentalFeaturesFeedback": {
     "message": "To provide feedback or report a problem with a feature, leave a comment on the issue linked in [brackets] below."
   },
-  "restoreRecentlyClosedTabs": {
-    "message": "Restore Recently-Closed Tabs"
-  },
   "warningLabel": {
     "message": "WARNING:"
-  },
-  "restoreRecentlyClosedTabsDesc": {
-    "message": "When restoring tabs, if a hidden tab isn't available, search for and re-open recently-closed tabs with matching URLs. (NOTE: This is known to occasionally restore incorrect tabs on certain versions of Firefox, check the linked issue for more details.)"
   },
   "optionsMenu": {
     "message": "Options..."
@@ -327,7 +321,7 @@
     "message": "Stash all unstashed tabs to a new group (hold $1$ to keep tabs open)"
   },
   "createNewEmptyGroupTooltip": {
-    "message": "Create a new empty group"
+    "message": "Create a new empty group in the stash"
   },
   "showOnlyUnstashedTabsTooltip": {
     "message": "Show only unstashed tabs"
@@ -344,11 +338,17 @@
   "closeUnstashedTabsTooltip": {
     "message": "Close all unstashed tabs (except pinned and hidden)"
   },
+  "closeUnstashedTabsInGroupTooltip": {
+    "message": "Close all unstashed tabs in the group"
+  },
   "closeUnstashedTabsMenu": {
     "message": "Close Unstashed Tabs"
   },
   "closeStashedTabsTooltip": {
     "message": "Close all stashed tabs (except pinned and hidden)"
+  },
+  "closeStashedTabsInGroupTooltip": {
+    "message": "Close all stashed tabs in the group"
   },
   "closeStashedTabsMenu": {
     "message": "Close Stashed Tabs"
@@ -359,29 +359,35 @@
   "closeAllOpenTabsMenu": {
     "message": "Close All Open Tabs"
   },
+  "closeTabGroupTooltip": {
+    "message": "Close the entire tab group"
+  },
+  "closeTabGroupMenu": {
+    "message": "Close Group"
+  },
   "closeHiddenTabsTooltip": {
     "message": "Close any stashed tabs that are hidden (may reclaim memory)"
   },
   "closeHiddenTabsMenu": {
     "message": "Close Hidden Tabs"
   },
-  "moveTabsToNewGroup_one": {
-    "message": "Move $1$ tab to a new group (hold $2$ to copy)"
+  "moveItemsToNewGroup_one": {
+    "message": "Move $1$ item to a new group (hold $2$ to copy)"
   },
-  "moveTabsToNewGroup_many": {
-    "message": "Move $1$ tabs to a new group (hold $2$ to copy)"
+  "moveItemsToNewGroup_many": {
+    "message": "Move $1$ items to a new group (hold $2$ to copy)"
   },
-  "openSelectedTabs_one": {
-    "message": "Open $1$ tab"
+  "openSelectedItems_one": {
+    "message": "Open $1$ item"
   },
-  "openSelectedTabs_many": {
-    "message": "Open $1$ tabs"
+  "openSelectedItems_many": {
+    "message": "Open $1$ items"
   },
-  "unstashSelectedTabs_one": {
-    "message": "Unstash $1$ tab"
+  "unstashSelectedItems_one": {
+    "message": "Unstash $1$ item"
   },
-  "unstashSelectedTabs_many": {
-    "message": "Unstash $1$ tabs"
+  "unstashSelectedItems_many": {
+    "message": "Unstash $1$ items"
   },
   "closeTabsConfirm_one": {
     "message": "Close $1$ tab"
@@ -404,6 +410,9 @@
   "toggleCollapsedGroupTooltip": {
     "message": "Hide the tabs for this group (hold $1$ to hide tabs for child groups)"
   },
+  "toggleCollapsedTabGroupTooltip": {
+    "message": "Hide the tabs for this group"
+  },
   "stashAllOpenTabsToGroupTooltip": {
     "message": "Stash all (or highlighted) open tabs to this group (hold $1$ to keep tabs open)"
   },
@@ -411,13 +420,13 @@
     "message": "Stash the active tab to this group (hold $1$ to keep tabs open)"
   },
   "openAllTabsInGroupTooltip": {
-    "message": "Open all tabs in this group (hold $1$ to open in background)"
+    "message": "Open all tabs in this group\nHold $1$ to open in background\nHold Shift to open directly in the window"
   },
   "openAllTabsAndDeleteGroupTooltip": {
-    "message": "Open all tabs and delete this group (hold $1$ to open in background)"
+    "message": "Open all tabs and delete this group\nHold $1$ to open in background\nHold Shift to open directly in the window"
   },
   "openAllTabsAndRemoveFromGroupTooltip": {
-    "message": "Open all tabs and remove them from this group (hold $1$ to open in background)"
+    "message": "Open all tabs and remove them from this group\nHold $1$ to open in background\nHold Shift to open directly in the window"
   },
   "createNewSubGroupTooltip": {
     "message": "Create a new sub-group within this group"
@@ -605,11 +614,23 @@
   "openSelectedButton": {
     "message": "Open"
   },
+  "openSelectedIntoTabGroupTooltip_one": {
+    "message": "Open $1$ selected item into this tab group"
+  },
+  "openSelectedIntoTabGroupTooltip_many": {
+    "message": "Open $1$ selected items into this tab group"
+  },
   "unstashSelectedTooltip": {
     "message": "Open tabs and delete them from the stash"
   },
   "unstashSelectedButton": {
     "message": "Unstash"
+  },
+  "unstashSelectedIntoTabGroupTooltip_one": {
+    "message": "Unstash $1$ selected item into this tab group"
+  },
+  "unstashSelectedIntoTabGroupTooltip_many": {
+    "message": "Unstash $1$ selected items into this tab group"
   },
   "exportSelectedTooltip": {
     "message": "Export selected links and URLs"
@@ -757,5 +778,26 @@
   },
   "crashHideSettingsNote": {
     "message": "Crash reports can be turned on again in settings."
+  },
+  "stashTabGroup": {
+    "message": "Stash this tab group (hold $1$ to keep tabs open)"
+  },
+  "openTabInGroup": {
+    "message": "Open a new tab in this group"
+  },
+  "moveTabsOutOfGroup": {
+    "message": "Move all the tabs out of the group"
+  },
+  "ungroup": {
+    "message": "Ungroup"
+  },
+  "newTabTooltip": {
+    "message": "Open a new tab"
+  },
+  "newTabGroupTooltip": {
+    "message": "Create a new empty tab group"
+  },
+  "close": {
+    "message": "Close"
   }
 }

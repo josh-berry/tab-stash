@@ -118,6 +118,7 @@ describe("util", function () {
         i: ["file:///C|/Windows/System32/kernel32.dll"],
         o: `${REDIR_URL}?url=file%3A%2F%2F%2FC%7C%2FWindows%2FSystem32%2Fkernel32.dll`,
       },
+      {it: "passes through empty URLs", i: [""], o: ""},
     ]),
   );
 

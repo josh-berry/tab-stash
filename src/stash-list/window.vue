@@ -36,6 +36,16 @@
           @click.prevent.stop="stash"
         />
         <a
+          class="action stash newtab"
+          :title="$t('newTabTooltip')"
+          @click.prevent.stop="newTab"
+        />
+        <a
+          class="action stash newtabgroup"
+          :title="$t('newTabGroupTooltip')"
+          @click.prevent.stop="newTabGroup"
+        />
+        <a
           class="action stash newgroup"
           :title="$t('createNewEmptyGroupTooltip')"
           @click.prevent.stop="newGroup"
@@ -115,19 +125,25 @@
       <nav v-else class="action-group forest-toolbar">
         <a
           class="action stash newgroup"
-          :title="$ts(selectedCount, 'moveTabsToNewGroup', [altKey])"
+          :title="$ts(selectedCount, 'moveItemsToNewGroup', [altKey])"
           @click.prevent.stop="moveToNewGroup"
         />
         <a
           v-if="selectedCount > 0"
+          class="action restore newtabgroup"
+          :title="`Restore ${selectedCount} item(s) to a new group (hold ${altKey} to copy)`"
+          @click.prevent.stop="putInNewTabGroup"
+        />
+        <a
+          v-if="selectedCount > 0"
           class="action restore"
-          :title="$ts(selectedCount, 'openSelectedTabs')"
+          :title="$ts(selectedCount, 'openSelectedItems')"
           @click.prevent.stop="copyToWindow"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore-remove"
-          :title="$ts(selectedCount, 'unstashSelectedTabs')"
+          :title="$ts(selectedCount, 'unstashSelectedItems')"
           @click.prevent.stop="moveToWindow"
         />
       </nav>
@@ -139,14 +155,21 @@
       :class="{'forest-children': true, collapsed}"
       orientation="vertical"
       v-model="targetWindow.children"
-      :item-key="(item: Tab) => item.id"
+      :item-key="
+        (item: TabGroupExtent | Tab) =>
+          item.type === 'tab' ? item.id : `g-${item.group.id}`
+      "
       :item-accepts="itemAccepts"
       :list-accepts="_ => false"
       @drag="drag"
       @drop="drop"
+      @drop-inside="dropInside"
     >
-      <template #item="{item}: {item: Tab}">
-        <tab v-if="isVisible(item)" :tab="item" />
+      <template #item="{item}: {item: TabGroupExtent | Tab}">
+        <template v-if="isVisible(item)">
+          <tab v-if="item.type === 'tab'" :tab="item" />
+          <tab-group v-else :group="item" @close="closeTabs" />
+        </template>
       </template>
     </dnd-list>
 
@@ -184,7 +207,7 @@ import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
 import {copyIf} from "../model/index.js";
 import type {SyncState} from "../model/options.js";
-import type {Tab, Window} from "../model/tabs.js";
+import type {Tab, TabGroupExtent, Window} from "../model/tabs.js";
 
 import ConfirmDialog, {
   type ConfirmDialogEvent,
@@ -192,10 +215,12 @@ import ConfirmDialog, {
 import DndList, {
   type ListDragEvent,
   type ListDropEvent,
+  type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Menu from "../components/menu.vue";
 import Bookmark from "./bookmark.vue";
+import TabGroup from "./tab-group.vue";
 import TabVue from "./tab.vue";
 
 import type {FilterInfo} from "../model/tree-filter.js";
@@ -210,8 +235,9 @@ import {vDroppable} from "../components/dnd-directives.js";
 export default defineComponent({
   components: {
     ConfirmDialog,
-    DndList: DndList<Tab>,
+    DndList: DndList<TabGroupExtent | Tab>,
     Menu,
+    TabGroup,
     Tab: TabVue,
     Bookmark,
     ShowFilteredItem,
@@ -262,10 +288,6 @@ export default defineComponent({
       },
     },
 
-    tabs(): Tab[] {
-      return this.targetWindow.children;
-    },
-
     showStashedTabs(): boolean {
       return the.model.options.sync.state.show_open_tabs === "all";
     },
@@ -294,7 +316,7 @@ export default defineComponent({
     // How many tabs are visible in the list, ignoring the filter?
     displayCount(): number {
       let count = 0;
-      for (const c of this.targetWindow.children) {
+      for (const c of this.targetWindow.flattenedChildren) {
         if (this.isValidChild(c)) ++count;
       }
       return count;
@@ -342,16 +364,23 @@ export default defineComponent({
       });
     },
 
-    isVisible(t: Tab): boolean {
+    isVisible(t: TabGroupExtent | Tab): boolean {
+      if (!this.isValidChild(t)) return false;
+      if (this.showFiltered) return true;
+
       const f = the.model.filter.info(t);
+      if (f.isMatching) return true;
+      if (f.hasMatchInSubtree) return true;
+
       const s = the.model.selection.info(t);
-      return (
-        this.isValidChild(t) &&
-        (this.showFiltered || f.isMatching || s.isSelected)
-      );
+      if (s.isSelected) return true;
+      if (s.hasSelectionInSubtree) return true;
+
+      return false;
     },
 
-    isValidChild(t: Tab): boolean {
+    isValidChild(t: TabGroupExtent | Tab): boolean {
+      if (t.type === "tab-group") return true;
       if (t.hidden || t.pinned) return false;
       return (
         this.showStashedTabs ||
@@ -363,6 +392,29 @@ export default defineComponent({
     async newGroup() {
       this.attempt(async () => {
         await the.model.createStashFolder();
+      });
+    },
+
+    newTab() {
+      this.attempt(async () => {
+        await browser.tabs.create({
+          windowId: the.model.tabs.targetWindow.value!.id,
+          active: true,
+        });
+      });
+    },
+
+    newTabGroup() {
+      this.attempt(async () => {
+        const win = the.model.tabs.targetWindow.value;
+        if (!win) return;
+
+        await the.model.putItemsInNewTabGroup({
+          title: the.model.searchText.value || "Untitled",
+          items: [{url: ""}],
+          toWindow: win,
+          toIndex: win.children.length,
+        });
       });
     },
 
@@ -385,48 +437,53 @@ export default defineComponent({
     },
 
     async removeUnstashed() {
-      this.attempt(async () => {
-        const to_remove = this.tabs.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
             // Keep the active tab if it's the Tab Stash tab
             (!t.active || the.model.isURLStashable(t.url)) &&
             !the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.tabs.remove(to_remove);
-      });
+        ),
+      );
     },
 
     async removeStashed() {
-      this.attempt(async () => {
-        const to_remove = this.tabs.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
             the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.hideOrCloseStashedTabs(to_remove);
-      });
+        ),
+      );
     },
 
     removeOpen() {
-      this.attempt(async () => {
-        // Closes ALL open tabs (stashed and unstashed).
-        //
-        // For performance, we will try to identify stashed tabs the
-        // user might want to keep, and hide instead of close them.
-        //
-        // (Just as in remove(), we keep the active tab if it's a
-        // new-tab page or the Tab Stash page.)
-        const tabs = this.tabs.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             (!t.active || the.model.isURLStashable(t.url)) &&
             !t.hidden &&
             !t.pinned,
+        ),
+      );
+    },
+
+    removeHidden() {
+      this.attempt(async () => {
+        const tabs = this.targetWindow.flattenedChildren.filter(
+          t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
         );
+        await the.model.tabs.remove(tabs);
+      });
+    },
+
+    closeTabs(tabs: Tab[]) {
+      this.attempt(async () => {
+        if (!(await this.confirmRemove(tabs.length))) return;
+
         const hide_tabs = tabs.filter(t =>
           the.model.bookmarks.isURLLoadedInStash(t.url),
         );
@@ -434,21 +491,10 @@ export default defineComponent({
           .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
           .map(t => t.id);
 
-        if (!(await this.confirmRemove(tabs.length))) return;
-
         await the.model.tabs.refocusAwayFromTabs(tabs);
 
         the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
         browser.tabs.remove(close_tabs).catch(console.log);
-      });
-    },
-
-    removeHidden() {
-      this.attempt(async () => {
-        const tabs = this.tabs.filter(
-          t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        await the.model.tabs.remove(tabs);
       });
     },
 
@@ -470,6 +516,21 @@ export default defineComponent({
       this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
+    putInNewTabGroup(ev: MouseEvent | KeyboardEvent) {
+      this.attempt(async () => {
+        const items = copyIf(
+          ev.altKey,
+          Array.from(the.model.selection.selectedItems()),
+        );
+        console.log(items);
+        await the.model.putItemsInNewTabGroup({
+          items,
+          toWindow: this.targetWindow,
+          toIndex: this.targetWindow.children.length,
+        });
+      });
+    },
+
     moveToWindow() {
       this.attempt(() => the.model.putSelectedInWindow({copy: false}));
     },
@@ -486,17 +547,26 @@ export default defineComponent({
 
     itemAccepts(
       data: DataTransfer,
-      item: Tab,
+      item: TabGroupExtent | Tab,
       index: number,
     ): DNDAcceptedDropPositions {
-      return this.listAccepts(data) ? "before-after" : null;
+      const type = dragDataType(data);
+      switch (type) {
+        case undefined:
+          return null;
+        case "items":
+          if (item.type === "tab-group") return "before-inside-after";
+          return "before-after";
+        default:
+          return "before-after";
+      }
     },
 
     listAccepts(data: DataTransfer): boolean {
-      return dragDataType(data) === "items";
+      return dragDataType(data) !== null;
     },
 
-    drag(ev: ListDragEvent<Tab>) {
+    drag(ev: ListDragEvent<TabGroupExtent | Tab>) {
       const items = the.model.selection.info(ev.item).isSelected
         ? Array.from(the.model.selection.selectedItems())
         : [ev.item];
@@ -504,7 +574,7 @@ export default defineComponent({
     },
 
     parentDrop({data}: DropEvent) {
-      this.drop({data, insertBeforeIndex: this.tabs.length});
+      this.drop({data, insertBeforeIndex: this.targetWindow.children.length});
     },
 
     drop(ev: ListDropEvent) {
@@ -513,7 +583,25 @@ export default defineComponent({
       the.model.attempt(() =>
         the.model.putItemsInWindow({
           items,
+          toParent: this.targetWindow,
           toIndex: ev.insertBeforeIndex,
+        }),
+      );
+    },
+
+    dropInside(ev: ListDropInsideEvent<TabGroupExtent | Tab>) {
+      const parent = ev.insertInParent;
+      if (parent.type === "tab") {
+        console.warn(`Attempt to drop items inside a tab`, parent);
+        return;
+      }
+
+      const items = recvDragData(ev.data, the.model);
+      the.model.attempt(() =>
+        the.model.putItemsInWindow({
+          items,
+          toParent: parent,
+          toIndex: parent.children.length,
         }),
       );
     },

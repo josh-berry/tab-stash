@@ -113,6 +113,11 @@ export default (() => {
         async getBackgroundPage() {
           throw "unimplemented";
         },
+        async getContexts(
+          filter: Runtime.ContextFilter,
+        ): Promise<Runtime.ExtensionContext[]> {
+          throw "unimplemented";
+        },
         async openOptionsPage() {
           throw "unimplemented";
         },
@@ -165,6 +170,15 @@ export default (() => {
         onSuspend: new events.MockEvent("browser.runtime.onSuspend"),
         onSuspendCanceled: new events.MockEvent(
           "browser.runtime.onSuspendCanceled",
+        ),
+        onUserScriptConnect: new events.MockEvent(
+          "browser.runtime.onUserScriptConnect",
+        ),
+        onUserScriptMessage: new events.MockEvent(
+          "browser.runtime.onUserScriptMessage",
+        ),
+        onPerformanceWarning: new events.MockEvent(
+          "browser.runtime.onPerformanceWarning",
         ),
 
         id: "testing",

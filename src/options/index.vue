@@ -395,6 +395,7 @@
       </li>
     </section>
 
+    <!--
     <hr v-if="sync.meta_show_advanced" />
 
     <section class="advanced">
@@ -410,19 +411,8 @@
       <p>
         <em>{{ $t("experimentalFeaturesFeedback") }}</em>
       </p>
-
-      <FeatureFlag
-        name="ff_restore_closed_tabs"
-        v-model="local.ff_restore_closed_tabs"
-        :default_value="local_def().ff_restore_closed_tabs.default"
-        :issue="200"
-      >
-        <template v-slot:summary>{{
-          $t("restoreRecentlyClosedTabs")
-        }}</template>
-        {{ $t("restoreRecentlyClosedTabsDesc") }}
-      </FeatureFlag>
     </section>
+    -->
   </main>
 </template>
 

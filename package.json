@@ -15,7 +15,7 @@
     "@types/chai": "^4.3",
     "@types/mocha": "^10.0",
     "@types/sinonjs__fake-timers": "^8.1",
-    "@types/webextension-polyfill": "^0.10",
+    "@types/webextension-polyfill": "^0.12.5",
     "@vitejs/plugin-vue": "^5.0",
     "@vue/tsconfig": "^0.5",
     "c8": "^10.1.2",
@@ -24,7 +24,7 @@
     "fake-indexeddb": "^6.0",
     "idb": "^8.0",
     "less": "^4.1",
-    "mocha": "^10.0",
+    "mocha": "^11.7",
     "prettier": "^3.3",
     "prettier-plugin-organize-imports": "^4.0",
     "ts-node": "^10",
@@ -33,7 +33,7 @@
     "vue": "^3.4",
     "vue-tsc": "^2.0",
     "web-ext": "^8.2",
-    "webextension-polyfill": "^0.10"
+    "webextension-polyfill": "^0.12"
   },
   "scripts": {}
 }

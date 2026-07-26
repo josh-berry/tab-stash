@@ -41,6 +41,9 @@ export const required = <T>(type: T) => ({type, required: true}) as const;
 // Stash (see urlToOpen below).  (The __openable_url_marker__ property doesn't
 // actually exist, it's just used to force an explicit cast so you can't use a
 // string when you should be using a URL that has passed thru urlToOpen().)
+//
+// As a special case, the empty string means to open a new tab with whatever the
+// default new-tab page is.
 export type OpenableURL = string & {__openable_url_marker__: undefined};
 
 // Where do we redirect the user if they try to open a privileged URL?
@@ -140,6 +143,7 @@ export function urlToOpen(urlstr: string): OpenableURL {
 
     return urlstr as OpenableURL;
   } catch (e) {
+    if (urlstr === "") return "" as OpenableURL;
     return redirUrl(urlstr);
   }
 }
@@ -255,31 +259,36 @@ export async function shortPoll<T>(fn: () => T, ms: number = 100): Promise<T> {
   // delayed--see "Nested timeouts" from:
   // https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
 
+  let last_fail: TryAgainError | undefined;
+
   const start = Date.now();
   while (Date.now() - start < ms) {
     try {
       return fn();
     } catch (e) {
-      if (e !== TRY_AGAIN) throw e;
+      if (!(e instanceof TryAgainError)) throw e;
+      last_fail = e;
     }
     await nextTick();
   }
-  throw new TimedOutError();
+  throw new TimedOutError(
+    `Timed out${last_fail?.message ? `: ${last_fail.message} ;` : ""} waiting for: ${fn.toString()}`,
+  );
 }
 
 /** The exception to throw to get {@link shortPoll()} to try again. */
-const TRY_AGAIN: unique symbol = Symbol("TRY_AGAIN");
+class TryAgainError extends Error {}
 
 /** Call this during {@link shortPoll()} to make shortPoll() try again. */
-export function tryAgain(): never {
-  throw TRY_AGAIN;
+export function tryAgain(msg?: string): never {
+  throw new TryAgainError(msg);
 }
 
 /** The exception thrown by {@link shortPoll()} if we give up polling and the
  * function never returned a value. */
 export class TimedOutError extends Error {
-  constructor() {
-    super("Timed out");
+  constructor(msg?: string) {
+    super(msg || "Timed out");
   }
 }
 

@@ -109,7 +109,10 @@ export default defineComponent({
       return this.tab.status === "loading";
     },
     isActive(): boolean {
-      return this.tab.active && this.tab.position?.parent === this.targetWindow;
+      return (
+        this.tab.active &&
+        this.tab.flattenedPosition?.parent === this.targetWindow
+      );
     },
     stashedIn(): string[] {
       // Micro-optimizations - if the URL changes quickly, we don't want

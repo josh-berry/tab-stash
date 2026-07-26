@@ -90,8 +90,8 @@ import {altKeyName, textMatcher, $t} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import {
+  BookmarkTree,
   friendlyFolderName,
-  isFolder,
   type Folder,
   type Node,
 } from "../model/bookmarks.js";
@@ -101,7 +101,7 @@ import Menu from "../components/menu.vue";
 import SearchInput from "../components/search-input.vue";
 import SelectFolder from "./select-folder.vue";
 import ExportDialog from "../tasks/export.vue";
-import type {StashItem} from "../model/index.js";
+import {type StashItem} from "../model/index.js";
 
 export default defineComponent({
   components: {Menu, SearchInput, SelectFolder, ExportDialog},
@@ -130,12 +130,13 @@ export default defineComponent({
 
     filter(): (node: Folder | Node) => boolean {
       const matcher = textMatcher(this.searchText);
-      return node => isFolder(node) && matcher(friendlyFolderName(node.title));
+      return node =>
+        node.type === "folder" && matcher(friendlyFolderName(node.title));
     },
 
     nodeFilterFn() {
-      const tree = new TreeFilter<Folder, Node>(
-        isFolder,
+      const tree = new TreeFilter<never, Folder, Node>(
+        BookmarkTree,
         computed(() => this.filter),
       );
 

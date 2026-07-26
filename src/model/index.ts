@@ -57,7 +57,8 @@ import * as Options from "./options.js";
 import * as Tabs from "./tabs.js";
 import {TreeFilter} from "./tree-filter.js";
 import {TreeSelection} from "./tree-selection.js";
-import {pathTo} from "./tree.js";
+import {BookmarkTree, friendlyFolderName} from "./bookmarks.js";
+import {Tree, type TreePosition} from "./tree.js";
 
 export {
   BookmarkMetadata,
@@ -72,23 +73,40 @@ export {
 
 const trace = trace_fn("model");
 
+/** The path separator used in group titles, whenever we need to flatten nested
+ * folders into tab groups. */
+export const GROUP_TITLE_PATH_SEP = " > ";
+
 /** The StashItem is anything that can be placed in the stash.  It could already
  * be present as a tab (`id: number`), a bookmark (`id: string`), or not present
  * at all (no `id`).  It captures just the essential details of an item, like
  * its title, URL and identity (if it's part of the model). */
 export type StashItem = NewTab | NewFolder | ModelItem;
-export type StashParent = NewFolder | Bookmarks.Folder | Tabs.Window;
+export type StashParent =
+  | NewFolder
+  | Bookmarks.Folder
+  | Tabs.Window
+  | Tabs.TabGroupExtent;
 export type StashLeaf = NewTab | Bookmarks.Bookmark | Tabs.Tab;
 
 /** A container (bookmark folder or window) that is part of the model. */
-export type ModelParent = Bookmarks.Folder | Tabs.Window;
+export type ModelParent = Bookmarks.Folder | Tabs.Window | Tabs.TabGroupExtent;
 
 /** An actual bookmark/tab that is part of the model. */
-export type ModelItem = Bookmarks.Node | Tabs.Tab | Tabs.Window;
+export type ModelItem =
+  | Bookmarks.Node
+  | Tabs.Window
+  | Tabs.TabGroupExtent
+  | Tabs.Tab;
 
 export type NewTab = {title?: string; url: string};
 export type NewFolder = {title: string; children: (NewTab | NewFolder)[]};
 
+//
+// StashItem type predicates
+//
+
+// TODO remove most of these in favor of explicit .type checks
 export const isParent = (item: StashItem): item is StashParent =>
   "children" in item;
 
@@ -99,31 +117,102 @@ export const isModelParent = (
   item: ModelItem | ModelParent,
 ): item is ModelParent => "children" in item;
 
-export const isModelItem = (item: StashItem): item is ModelItem => "id" in item;
+export const isModelItem = (item: StashItem): item is ModelItem =>
+  "type" in item;
 
 export const isWindow = (item: StashItem): item is Tabs.Window =>
-  "id" in item && typeof item.id === "number" && "children" in item;
+  isModelItem(item) && item.type === "window";
+
+export const isTabGroupExtent = (
+  item: StashItem,
+): item is Tabs.TabGroupExtent => isModelItem(item) && "group" in item;
 
 export const isTab = (item: StashItem): item is Tabs.Tab =>
-  "id" in item && typeof item.id === "number" && !("children" in item);
+  isModelItem(item) && item.type === "tab";
 
 export const isNode = (item: StashItem): item is Bookmarks.Node =>
-  "id" in item && typeof item.id === "string";
+  isModelItem(item) &&
+  (item.type === "bookmark" ||
+    item.type === "folder" ||
+    item.type === "separator");
 
 export const isBookmark = (item: StashItem): item is Bookmarks.Bookmark =>
-  isNode(item) && Bookmarks.isBookmark(item);
+  isModelItem(item) && item.type === "bookmark";
 
 export const isFolder = (item: StashItem): item is Bookmarks.Folder =>
-  isNode(item) && Bookmarks.isFolder(item);
+  isModelItem(item) && item.type === "folder";
 
-export const isNewItem = (item: StashItem): item is NewTab | NewFolder =>
-  !("id" in item);
+// NOTE: There are no isNew*() functions because NewTab and NewFolder are strict
+// subsets of the model. What you're really asking is `!isModelItem()`, which is
+// different--TypeScript will assume that all Tabs are NewTabs, which is
+// probably not the behavior you want.
 
-export const isNewTab = (item: StashItem): item is NewTab =>
-  !("id" in item) && "url" in item;
+//
+// StashItem accessors
+//
 
-export const isNewFolder = (item: StashItem): item is NewFolder =>
-  !("id" in item) && "children" in item;
+function titleOf(item: StashItem): string | undefined {
+  if ("title" in item) return item.title;
+  if ("type" in item) {
+    if (item.type === "tab-group") return item.group.title;
+  }
+  return undefined;
+}
+
+export const ModelTree = new (class extends Tree<
+  Tabs.Window,
+  Bookmarks.Folder | Tabs.TabGroupExtent,
+  Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab
+> {
+  isRootType(
+    node: Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab,
+  ): node is Tabs.Window {
+    return node.type === "window";
+  }
+
+  isLeafType(
+    node: Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab,
+  ): node is Bookmarks.Bookmark | Bookmarks.Separator | Tabs.Tab {
+    return (
+      node.type === "bookmark" ||
+      node.type === "separator" ||
+      node.type === "tab"
+    );
+  }
+
+  isLoaded(
+    parent: Tabs.Window | Tabs.TabGroupExtent | Bookmarks.Folder,
+  ): boolean {
+    return (
+      isWindow(parent) ||
+      isTabGroupExtent(parent) ||
+      (isFolder(parent) && parent.isLoaded)
+    );
+  }
+
+  positionOf(
+    node: Bookmarks.Node | Tabs.TabGroupExtent | Tabs.Tab,
+  ):
+    | TreePosition<Tabs.Window | Bookmarks.Folder | Tabs.TabGroupExtent>
+    | undefined {
+    return node.position;
+  }
+
+  childrenOf(
+    parent: Tabs.Window | Tabs.TabGroupExtent | Bookmarks.Folder,
+  ): (Bookmarks.Node | Tabs.TabGroupExtent | Tabs.Tab | undefined)[] {
+    return parent.children;
+  }
+
+  protected setPosition(
+    _node: Bookmarks.Node | Tabs.Window | Tabs.TabGroupExtent | Tabs.Tab,
+    _position: TreePosition<Tabs.Window | Bookmarks.Folder> | undefined,
+  ): void {
+    throw new Error(
+      `Cannot move a node using the ModelTree; use Model.*() methods instead`,
+    );
+  }
+})();
 
 export type Source = {
   readonly browser_settings: BrowserSettings.Model;
@@ -159,10 +248,21 @@ export class Model {
   readonly bookmark_metadata: BookmarkMetadata.Model;
 
   readonly searchText = ref("");
-  readonly filter: TreeFilter<
-    Tabs.Window | Bookmarks.Folder,
+  readonly filter = new TreeFilter<
+    Tabs.Window,
+    Bookmarks.Folder | Tabs.TabGroupExtent,
     Bookmarks.Node | Tabs.Tab
-  >;
+  >(
+    ModelTree,
+    computed(() => {
+      const searchText = this.searchText.value;
+      if (!searchText) return _ => true;
+
+      const matcher = textMatcher(searchText);
+      return node =>
+        matcher(titleOf(node) ?? "") || ("url" in node && matcher(node.url));
+    }),
+  );
 
   /** This is a bit of volatile metadata that tracks whether children that don't
    * match the filter should be shown in the UI or not.  We need it here because
@@ -170,7 +270,19 @@ export class Model {
    * visible when doing a multi-select. */
   readonly showFilteredChildren = new WeakMap<ModelItem, Ref<boolean>>();
 
-  readonly selection: TreeSelection<ModelParent, ModelItem>;
+  readonly selection = new TreeSelection<
+    Tabs.Window,
+    Bookmarks.Folder | Tabs.TabGroupExtent,
+    Bookmarks.Node | Tabs.Tab
+  >(
+    ModelTree,
+    computed(() =>
+      filterMap(
+        [this.tabs.targetWindow.value, this.bookmarks.stash_root.value],
+        i => i,
+      ),
+    ),
+  );
 
   constructor(src: Source) {
     this.browser_settings = src.browser_settings;
@@ -183,29 +295,6 @@ export class Model {
 
     this.favicons = src.favicons;
     this.bookmark_metadata = src.bookmark_metadata;
-
-    this.filter = new TreeFilter(
-      isModelParent,
-      computed(() => {
-        const searchText = this.searchText.value;
-        if (!searchText) return _ => true;
-
-        const matcher = textMatcher(searchText);
-        return node =>
-          ("title" in node && matcher(node.title)) ||
-          ("url" in node && matcher(node.url));
-      }),
-    );
-
-    this.selection = new TreeSelection(
-      isModelParent,
-      computed(() =>
-        filterMap(
-          [this.tabs.targetWindow.value, this.bookmarks.stash_root.value],
-          i => i,
-        ),
-      ),
-    );
 
     this.selection.rangeSelectPredicate = item => {
       // This is super ugly because it mimics logic that is spread around
@@ -225,8 +314,10 @@ export class Model {
 
       if (this.filter.info(item).isMatching) return true;
 
-      const parent = item.position?.parent;
-      if (parent && this.showFilteredChildren.get(parent)?.value) return true;
+      if (!isWindow(item)) {
+        const parent = ModelTree.positionOf(item)?.parent;
+        if (parent && this.showFilteredChildren.get(parent)?.value) return true;
+      }
 
       return false;
     };
@@ -337,7 +428,7 @@ export class Model {
    * will be returned.
    */
   stashableTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
-    const tabs = window.children.filter(t => !t.hidden);
+    const tabs = window.flattenedChildren.filter(t => !t.hidden);
 
     let selected = tabs.filter(t => t.highlighted);
     if (selected.length <= 1) {
@@ -450,7 +541,13 @@ export class Model {
 
     let affected_items: StashItem[];
     if (options?.toFolder === undefined) {
-      affected_items = await this.putItemsInWindow({items});
+      const toParent = this.tabs.targetWindow.value;
+      if (!toParent) throw new Error(`No target window`);
+      affected_items = await this.putItemsInWindow({
+        items,
+        toParent,
+        toIndex: toParent.children.length,
+      });
     } else {
       affected_items = await this.putItemsInFolder({
         items,
@@ -482,6 +579,8 @@ export class Model {
    * for what to do with stashed tabs.  Creates a new tab if necessary to keep
    * the browser window(s) open. */
   async hideOrCloseStashedTabs(tabs: Tabs.Tab[]): Promise<void> {
+    if (tabs.length === 0) return;
+
     // Clear any highlights/selections on tabs we are stashing
     // Chromium rejects un-highlighting the active tab when it's the only
     // highlighted tab in the window; ignore that failure so it doesn't abort
@@ -544,7 +643,12 @@ export class Model {
     // previously closed the import dialog, changed the selection, etc.).
     if (url.searchParams.size > 0) url.hash = makeRandomString(8);
 
-    return this.restoreTabs([{title: "Tab Stash", url: url.href}], {});
+    // CAST: We know we're only getting tabs back because we are restoring only
+    // a single tab.
+    return this.restoreTabs(
+      [{title: "Tab Stash", url: url.href}],
+      {},
+    ) as Promise<Tabs.Tab[]>;
   }
 
   /** Restores the specified URLs as new tabs in the current window.  Returns
@@ -559,8 +663,12 @@ export class Model {
    * Stash is the homepage or the new-tab page).  In that situation, this
    * function may not return (since the tab running it will be closed). */
   async restoreTabs(
-    items: StashLeaf[],
+    items: StashItem[],
     options: {
+      /** Should the tabs be placed into a new tab group, and if so, what should
+       * the group be called? */
+      groupTitle?: string;
+
       /** Should tabs be opened in the background? */
       background?: boolean;
 
@@ -570,9 +678,11 @@ export class Model {
        *
        * Note that this function always runs exactly once (even if there is no
        * tab to close.) */
-      beforeClosing?: (tabs: Tabs.Tab[]) => Promise<void>;
+      beforeClosing?: (
+        restoredItems: (Tabs.TabGroupExtent | Tabs.Tab)[],
+      ) => Promise<void>;
     },
-  ): Promise<Tabs.Tab[]> {
+  ): Promise<(Tabs.TabGroupExtent | Tabs.Tab)[]> {
     const toWindow = this.tabs.targetWindow.value;
     if (toWindow === undefined) {
       throw new Error(`No target window; not sure where to restore tabs`);
@@ -581,9 +691,9 @@ export class Model {
     // As a special case, if we are restoring just a single tab, first check
     // if we already have the tab open and just switch to it.  (No need to
     // disturb the ordering of tabs in the browser window.)
-    if (!options.background && items.length === 1 && items[0].url) {
+    if (!options.background && items.length === 1 && "url" in items[0]) {
       const t = Array.from(this.tabs.tabsWithURL(items[0].url)).find(
-        t => !t.hidden && t.position?.parent === toWindow,
+        t => !t.hidden && t.flattenedPosition?.parent === toWindow,
       );
       if (t) {
         await browser.tabs.update(t.id, {active: true});
@@ -593,29 +703,46 @@ export class Model {
 
     // We want to know what tabs are currently open in the window, so we can
     // avoid opening duplicates.
-    const win_tabs = toWindow.children;
+    const win_tabs = toWindow.flattenedChildren;
 
     // We want to know which tab the user is currently looking at so we can
     // close it if it's just the new-tab page.
     const active_tab = win_tabs.filter(t => t.active)[0];
 
-    const tabs = await this.putItemsInWindow({items: copying(items), toWindow});
+    const restored_items =
+      options.groupTitle !== undefined
+        ? await this.putItemsInNewTabGroup({
+            title: options.groupTitle,
+            items: copying(items),
+            toWindow,
+            toIndex: toWindow.children.length,
+          })
+        : await this.putItemsInWindow({
+            items: copying(items),
+            toParent: toWindow,
+            toIndex: toWindow.children.length,
+          });
 
-    if (options.beforeClosing) await options.beforeClosing(tabs);
+    if (options.beforeClosing) await options.beforeClosing(restored_items);
 
     if (!options.background) {
       // Switch to the last tab that we restored (if desired).  We choose
       // the LAST tab to behave similarly to the user having just opened a
       // bunch of tabs.
-      if (tabs.length > 0) {
-        await browser.tabs.update(tabs[tabs.length - 1].id, {active: true});
+      if (restored_items.length > 0) {
+        const last_item = restored_items[restored_items.length - 1];
+        const last_tab =
+          last_item.type === "tab"
+            ? last_item
+            : last_item.children[last_item.children.length - 1];
+        await browser.tabs.update(last_tab.id, {active: true});
       }
 
       // Finally, if we opened at least one tab, AND we were looking at
       // the new-tab page, close the new-tab page in the background.
       if (
         active_tab &&
-        tabs.length > 0 &&
+        restored_items.length > 0 &&
         this.browser_settings.isNewTabURL(active_tab.url ?? "") &&
         active_tab.status === "complete"
       ) {
@@ -623,7 +750,7 @@ export class Model {
       }
     }
 
-    return tabs;
+    return restored_items;
   }
 
   /** Returns the "default" folder into which newly-stashed tabs should go,
@@ -660,9 +787,7 @@ export class Model {
     // put in the folder.
 
     // Check if we're trying to move a parent into itself or one of its children
-    const cyclic_sources = pathTo<Bookmarks.Folder, Bookmarks.Node>(
-      to_folder,
-    ).map(p => p.parent.id);
+    const cyclic_sources = BookmarkTree.pathTo(to_folder).map(p => p.parent.id);
     cyclic_sources.push(to_folder.id);
     for (const i of items) {
       if (!isFolder(i)) continue;
@@ -694,14 +819,13 @@ export class Model {
       ++i, ++to_index, options.task && ++options.task.value
     ) {
       const item = items[i];
-      const model_item = isModelItem(item) ? this.item(item.id) : undefined;
 
       // If it's a bookmark node, just move it directly.
-      if (model_item && isNode(model_item)) {
-        const pos = model_item.position;
-        await this.bookmarks.move(model_item, to_folder, to_index);
-        moved_items.push(model_item);
-        dont_steal_bms.add(model_item.id);
+      if (isNode(item)) {
+        const pos = item.position;
+        await this.bookmarks.move(item, to_folder, to_index);
+        moved_items.push(item);
+        dont_steal_bms.add(item.id);
 
         if (pos && pos.parent === to_folder && pos.index < to_index) {
           // Because we are moving items which appear in the list
@@ -714,8 +838,12 @@ export class Model {
         continue;
       }
 
-      // If it's a tab, mark the tab for closure.
+      // If it's a tab or group, mark it for closure.
       if (isTab(item)) close_tabs.push(item);
+      if (isTabGroupExtent(item)) {
+        // The group itself will be implicitly deleted once all its tabs close.
+        close_tabs.splice(close_tabs.length, 0, ...item.children);
+      }
 
       // Otherwise, if we're not allowing duplicates, check if there's a
       // duplicate in the current folder which we can steal.  If so, we
@@ -749,25 +877,29 @@ export class Model {
           parentId: Bookmarks.NodeID,
           index: number,
         ): Promise<Bookmarks.Node> => {
+          let title: string = titleOf(item) ?? "";
+          if (!title) {
+            if ("url" in item) {
+              title = item.url;
+            } else {
+              title = Bookmarks.genDefaultFolderName(new Date());
+            }
+          }
+
           const node =
             "url" in item
               ? await this.bookmarks.create({
-                  title: item.title || item.url,
+                  title,
                   url: urlToStash(item.url),
                   parentId,
                   index,
                 })
-              : await this.bookmarks.create({
-                  title:
-                    ("title" in item && item.title) ||
-                    Bookmarks.genDefaultFolderName(new Date()),
-                  parentId,
-                  index,
-                });
+              : await this.bookmarks.create({title, parentId, index});
 
           if ("children" in item) {
             let idx = 0;
             for (const c of item.children) {
+              if (c === undefined) continue;
               if (typeof c === "string") {
                 await this.bookmarks.move(c, node as Bookmarks.Folder, idx);
               } else {
@@ -796,10 +928,82 @@ export class Model {
     return moved_items;
   }
 
+  /** Move or copy items (bookmarks, tabs, external items) into a new tab
+   * group (or set of tab groups) at a particular location in a particular
+   * window.  Returns the newly-created tab groups. Otherwise works similarly
+   * to putItemsInWindow(). */
+  async putItemsInNewTabGroup(options: {
+    items: StashItem[];
+    toWindow: Tabs.Window;
+    toIndex: number;
+    task?: TaskMonitor;
+    title?: string;
+  }): Promise<Tabs.TabGroupExtent[]> {
+    const spawn = TaskMonitor.spawner(options.task);
+
+    const tabs = filterMap(options.items, i => (isLeaf(i) ? i : undefined));
+    const groups = filterMap(options.items, i => (!isLeaf(i) ? i : undefined));
+
+    const moved_tabs = (await spawn(tm =>
+      this.putItemsInWindow({
+        items: tabs,
+        toParent: options.toWindow,
+        toIndex: options.toIndex,
+        task: tm,
+      }),
+    )) as Tabs.Tab[];
+    const moved_groups = (await spawn(tm =>
+      this.putItemsInWindow({
+        items: groups,
+        toParent: options.toWindow,
+        toIndex: options.toIndex + moved_tabs.length,
+        task: tm,
+      }),
+    )) as Tabs.TabGroupExtent[];
+
+    if (moved_tabs.length > 0) {
+      const gid = await browser.tabs.group({
+        tabIds: moved_tabs.map(t => t.id),
+        createProperties: {windowId: options.toWindow.id},
+      });
+      await browser.tabGroups.update(gid, {
+        title: options.title ?? (this.searchText.value || "Untitled"),
+      });
+      const extent = await shortPoll(() => {
+        // NOTE: We're more relaxed about the target index, because the index
+        // may have changed in unpredictable ways due to tabs in the current
+        // window being moved into the new group.
+        const extent = options.toWindow.children.find(
+          c => c.type === "tab-group" && c.group.id === gid,
+        ) as Tabs.TabGroupExtent | undefined;
+        if (!extent) tryAgain("group extent not found");
+
+        // We also need to wait for all of the tabs to appear in the same extent
+        if (extent.children.length !== moved_tabs.length) {
+          tryAgain(`group extent doesn't have enough children`);
+        }
+
+        // And we need to make sure they're the right tabs
+        for (let i = 0; i < moved_tabs.length; ++i) {
+          if (moved_tabs[i].position?.parent !== extent) {
+            tryAgain(
+              `tab ${moved_tabs[i].id} not in group extent ${extent.group.id}`,
+            );
+          }
+        }
+        return extent;
+      });
+      moved_groups.unshift(extent);
+    }
+
+    return moved_groups;
+  }
+
   /** Move or copy items (bookmarks, tabs, and/or external items) to a
-   * particular location in a particular window.  Tabs which are
-   * moved/created/restored will NOT be active (i.e. they will always be in
-   * the background).
+   * particular location in a particular window.  Returns the affected
+   * tabs/groups (either the moved original items, or the new items that were
+   * created).  Tabs which are moved/created/restored will NOT be active (i.e.
+   * they will always be in the background).
    *
    * If the source item contains an ID and is a tab, it will be moved directly
    * (so the ID remains the same).  If it contains an ID and is a bookmark, a
@@ -812,31 +1016,11 @@ export class Model {
    * opening duplicate tabs. */
   async putItemsInWindow(options: {
     items: StashItem[];
-    toWindow?: Tabs.Window;
-    toIndex?: number;
+    toParent: Tabs.Window | Tabs.TabGroupExtent;
+    toIndex: number;
     task?: TaskMonitor;
-  }): Promise<Tabs.Tab[]> {
-    const win = options.toWindow ?? this.tabs.targetWindow.value;
-    if (win === undefined) {
-      throw new Error(`No target window available`);
-    }
-
+  }): Promise<(Tabs.TabGroupExtent | Tabs.Tab)[]> {
     const items = options.items;
-
-    // We want to know what tabs were recently closed, so we can
-    // restore/un-hide tabs as appropriate.
-    //
-    // TODO Unit tests don't support sessions yet
-    //
-    // TODO Known to be buggy on some Firefoxen, see #188.  If nobody
-    // complains, probably this whole path should just be removed.
-    //
-    /* c8 ignore next -- as above */
-    const closed_tabs =
-      !!browser.sessions?.getRecentlyClosed &&
-      this.options.local.state.ff_restore_closed_tabs
-        ? await browser.sessions.getRecentlyClosed()
-        : [];
 
     if (options.task) options.task.max = items.length + 1;
 
@@ -845,9 +1029,11 @@ export class Model {
     // tab which we are not already moving--in this case, we "steal" the
     // already-open tab so we don't have to open a duplicate.
     const dont_steal_tabs = new Set<Tabs.TabID>(
-      filterMap(items, i => {
-        if (!isTab(i)) return undefined;
-        return i.id;
+      items.flatMap(i => {
+        if (!isModelItem(i)) return [];
+        return Array.from(ModelTree.nodesInSubtree(i))
+          .filter(isTab)
+          .map(t => t.id);
       }),
     );
 
@@ -855,147 +1041,216 @@ export class Model {
     // console.log('dont_steal_tabs', dont_steal_tabs);
 
     // Now, we move/restore tabs.
-    const moved_items: Tabs.Tab[] = [];
-    const delete_bm_ids: Bookmarks.Bookmark[] = [];
+    const moved_items: (Tabs.TabGroupExtent | Tabs.Tab)[] = [];
+    const delete_bms: Bookmarks.Node[] = [];
 
-    for (
-      let i = 0, to_index = options.toIndex ?? win.children.length;
-      i < items.length;
-      ++i, ++to_index, options.task && ++options.task.value
-    ) {
-      const item = items[i];
-      const model_item = "id" in item ? this.item(item.id) : undefined;
+    // Inner helper that moves a single item and updates all the above state.
+    // Returns an adjustment to the index to use, in case it decides to steal a
+    // tab from the current window (or is asked to move a tab within the same
+    // window).
+    const moveLeaf = async (
+      item: StashLeaf,
+      to_parent: Tabs.Window | Tabs.TabGroupExtent,
+      to_index: number,
+    ): Promise<number> => {
+      // Figure out if there's already a tab we can move--maybe we're actually
+      // being asked to move a tab, or maybe there's a hidden tab or tab
+      // elsewhere in the same window/group we can move into place.
+      let tab = isTab(item)
+        ? item
+        : Array.from(this.tabs.tabsWithURL(item.url))
+            .filter(
+              t =>
+                !dont_steal_tabs.has(t.id) &&
+                !t.pinned &&
+                (t.hidden || t.position?.parent === to_parent),
+            )
+            .sort((a, b) => -a.hidden - -b.hidden)[0];
 
-      // console.log('processing', item);
-
-      // If the item we're moving is a tab, just move it into place.
-      if (model_item && isTab(model_item)) {
-        const pos = model_item.position;
-        await this.tabs.move(model_item, win, to_index);
-        moved_items.push(model_item);
-        dont_steal_tabs.add(model_item.id);
-
-        if (pos && pos.parent === win && pos.index < to_index) {
-          // This is a rotation in the same window; since move() first
-          // removes and then adds the tab, we need to decrement
-          // toIndex so the moved tab ends up in the right place.
-          --to_index;
-        }
-        // console.log('moved tab', model_item, 'to position', {to_win_id, to_index});
-        continue;
+      if (!tab) {
+        // There is no tab to move, so create one in the right place.
+        tab = await this.tabs.create({
+          atParent: to_parent,
+          atIndex: to_index,
+          active: false,
+          discarded: this.options.local.state.load_tabs_on_restore === "lazily",
+          title: item.title,
+          url: urlToOpen(item.url),
+        });
+      } else {
+        // Move the tab into the right place.
+        await this.tabs.move(tab, to_parent, to_index);
       }
 
-      // If we're "moving" a bookmark into a window, mark the bookmark
-      // for deletion later.
-      if (model_item && isBookmark(model_item)) delete_bm_ids.push(model_item);
+      if (tab.hidden) await this.tabs.show(tab);
 
-      // If the item we're moving is not a tab, we need to create a
-      // new tab or restore an old one from somewhere else.
-
-      if (!("url" in item)) {
-        // No URL? Don't bother restoring anything.  This means we will skip
-        // over nested folders entirely.  We do this because there's no way to
-        // represent a tree of tabs in the UI.
-        --to_index;
-        // console.log('item has no URL', item);
-        continue;
-      }
-      const url = item.url;
-
-      // First let's see if we have another tab we can just "steal"--that
-      // is, move into place to represent the source item (which,
-      // remember, is NOT ITSELF A TAB).
-      //
-      // There is a dual purpose here--we want to reuse hidden tabs where
-      // possible, but we also try to move other tabs from the current
-      // window so that we don't end up creating duplicates for the user.
-      const already_open: Tabs.Tab[] = Array.from(this.tabs.tabsWithURL(url))
-        .filter(
-          t =>
-            !dont_steal_tabs.has(t.id) &&
-            !t.pinned &&
-            (t.hidden || t.position?.parent === win),
-        )
-        .sort((a, b) => -a.hidden - -b.hidden); // prefer hidden tabs
-      if (already_open.length > 0) {
-        const t = already_open[0];
-        const pos = t.position;
-        // console.log('already-open tab: ', t, pos);
-        // console.log('existing layout:', this.tabs.window(t.windowId)?.tabs);
-
-        // First move the tab into place, and then show it (if hidden).
-        // If we show and then move, it will briefly appear in a random
-        // location before moving to the desired location, so doing the
-        // move first reduces flickering in the UI.
-        await this.tabs.move(t, win, to_index);
-        if (t.hidden && !!browser.tabs.show) await this.tabs.show(t);
-
-        // console.log('new layout:', this.tabs.window(t.windowId)?.tabs);
-
-        if (pos && pos.parent === win && pos.index < to_index) --to_index;
-        moved_items.push(t);
-        dont_steal_tabs.add(t.id);
-        this.selection.info(t).isSelected =
-          isModelItem(item) && this.selection.info(item).isSelected;
-        // console.log('moved already-open tab', t);
-        continue;
-      }
-
-      // If we don't have a tab to move, let's see if a tab was recently
-      // closed that we can restore.
-      const closed = filterMap(closed_tabs, s => s.tab).find(
-        tabLookingAtP(url),
-      );
-      /* c8 ignore next - per Firefox bug noted above, see #188 */
-      if (closed) {
-        console.log(`Restoring recently-closed tab for URL: ${url}`, closed);
-        // Remember the active tab in this window (if any), because
-        // restoring a recently-closed tab will disturb the focus.
-        const active_tab = win.children.find(t => t.active);
-
-        const t = (await browser.sessions.restore(closed.sessionId!)).tab!;
-        await browser.tabs.move(t.id!, {windowId: win.id, index: to_index});
-
-        // Reset the focus to the previously-active tab. (We do this
-        // immediately, inside the loop, so as to minimize any
-        // flickering the user might see.)
-        if (active_tab) {
-          await browser.tabs.update(active_tab.id, {active: true});
-        }
-
-        const tab = await shortPoll(
-          () => this.tabs.tab(t.id as Tabs.TabID) || tryAgain(),
-        );
-        moved_items.push(tab);
-        dont_steal_tabs.add(tab.id);
-        this.selection.info(tab).isSelected =
-          isModelItem(item) && this.selection.info(item).isSelected;
-        // console.log('restored recently-closed tab', tab);
-        continue;
-      }
-
-      // Else we just need to create a completely new tab.
-      const tab = await this.tabs.create({
-        active: false,
-        discarded: this.options.local.state.load_tabs_on_restore === "lazily",
-        title: item.title,
-        url: urlToOpen(url),
-        windowId: win.id,
-        index: to_index,
-      });
       moved_items.push(tab);
       dont_steal_tabs.add(tab.id);
       this.selection.info(tab).isSelected =
         isModelItem(item) && this.selection.info(item).isSelected;
-      // console.log('created new tab', tab);
+
+      const pos = tab.position;
+      if (pos && pos.parent === to_parent && pos.index < to_index) return -1;
+      return 0;
+    };
+
+    // Create a bookmark/item tree inside the window at the specified position,
+    // by creating tabs and tab groups.
+    const createTreeInWindow = async (
+      tree: StashParent,
+      to_parent: Tabs.Window | Tabs.TabGroupExtent,
+      to_index: number,
+      title: string,
+      task?: TaskMonitor,
+    ): Promise<void> => {
+      const leaves = filterMap(tree.children, c =>
+        c && isLeaf(c) ? {...c, url: urlToOpen(c.url)} : undefined,
+      );
+      const subgroups = filterMap(tree.children, c =>
+        c && isParent(c) ? c : undefined,
+      );
+
+      if (to_parent.type === "tab-group") {
+        // We're moving a folder inside a tab group, but that's not supported;
+        // we should just make an adjacent tab group in the parent window.
+        to_index = to_parent.position!.index + 1;
+        to_parent = to_parent.position!.parent;
+      }
+
+      if (leaves.length > 0) {
+        const g = await this.tabs.createGroup({
+          title,
+          atParent: to_parent,
+          atIndex: to_index,
+          tabs: leaves,
+        });
+        moved_items.push(g);
+        if (isModelItem(tree)) {
+          this.selection.info(g).isSelected =
+            this.selection.info(tree).isSelected;
+        }
+
+        for (let i = 0; i < leaves.length; ++i) {
+          const l = leaves[i];
+          const n = g.children[i];
+          if (!isModelItem(l)) continue;
+          if (!n) continue;
+          this.selection.info(n).isSelected = this.selection.info(l).isSelected;
+        }
+      }
+
+      for (const g of subgroups) {
+        ++to_index;
+        const subtitle = titleOf(g) ?? "Untitled";
+        const t = (tm?: TaskMonitor) =>
+          createTreeInWindow(
+            g,
+            to_parent,
+            to_index,
+            `${title}${GROUP_TITLE_PATH_SEP}${friendlyFolderName(subtitle)}`,
+            tm,
+          );
+        await (task ? task.spawn(t) : t());
+      }
+    };
+
+    // Tab groups are handled specially because we can move the whole group with
+    // a single call. This is better than moving tabs one by one, as
+    // moveParent() does.
+    const moveTabGroupExtent = async (
+      item: Tabs.TabGroupExtent,
+      to_parent: Tabs.Window | Tabs.TabGroupExtent,
+      to_index: number,
+    ): Promise<number> => {
+      // We cannot move a group into another group, so adjust our new position
+      // to be after the target group instead.
+      if (to_parent.type === "tab-group") {
+        to_index = to_parent.position!.index + 1;
+        to_parent = to_parent.position!.parent;
+      }
+
+      const isSelected = this.selection.info(item).isSelected;
+
+      const adjust_index =
+        item.position?.parent === to_parent && to_index < item.position?.index
+          ? -1
+          : 0;
+      const new_extent = await this.tabs.moveGroup(item, to_parent, to_index);
+      moved_items.push(new_extent); // the old extent will be removed
+
+      // Inherit selection on the new extent
+      this.selection.info(new_extent).isSelected = isSelected;
+
+      return adjust_index;
+    };
+
+    const moveItem = async (
+      item: StashItem,
+      to_parent: Tabs.Window | Tabs.TabGroupExtent,
+      to_index: number,
+      task?: TaskMonitor,
+    ): Promise<number> => {
+      try {
+        if ("url" in item) {
+          return await moveLeaf(item, to_parent, to_index);
+        } else if (isModelItem(item) && item.type === "separator") {
+          // There's no way to represent a separator in the window, so just
+          // let it be removed.
+        } else if (isTabGroupExtent(item)) {
+          return await moveTabGroupExtent(item, to_parent, to_index);
+        } else if (isWindow(item)) {
+          // There's no way to do this in the UI right now
+          throw new Error(`Moving whole windows is not implemented`);
+        } else {
+          const t = (tm?: TaskMonitor) =>
+            createTreeInWindow(
+              item,
+              to_parent,
+              to_index,
+              friendlyFolderName(item.title),
+              tm,
+            );
+          await (task ? task.spawn(t) : t());
+        }
+        return 0;
+      } finally {
+        if (task) ++task.value;
+      }
+    };
+
+    for (
+      let i = 0, to_index = options.toIndex ?? options.toParent.children.length;
+      i < items.length;
+      ++i, ++to_index
+    ) {
+      const item = items[i];
+      to_index += await moveItem(
+        item,
+        options.toParent,
+        to_index,
+        options.task,
+      );
+
+      if (isNode(item)) delete_bms.push(item);
     }
 
     // Delete bookmarks for all the tabs we restored.  We use the same
     // timestamp for each deleted item so that we can guarantee the deleted
     // items are sorted in the same order they were listed in the stash
     // (which makes it easier for users to find things).
+    //
+    // We do this at the end so that (a) we never delete anything until all the
+    // moves/creations are done, and (b) we can delete just the top-level
+    // bookmarks that were moved. If we delete each node individually, we won't
+    // save the tree structure in the user's deleted-items DB.
     const now = new Date();
-    await Promise.all(delete_bm_ids.map(bm => this.deleteBookmark(bm, now)));
+    await Promise.all(
+      delete_bms.map(bm => {
+        if (bm.type === "bookmark") return this.deleteBookmark(bm, now);
+        if (bm.type === "separator") return browser.bookmarks.remove(bm.id);
+        return this.deleteBookmarkTree(bm, now);
+      }),
+    );
     if (options.task) ++options.task.value;
 
     return moved_items;
@@ -1005,8 +1260,8 @@ export class Model {
    * bookmarks to the deleted-items model. */
   async deleteItems(items: Iterable<ModelItem>) {
     const now = new Date();
-    const tabs = [];
-    const windows = [];
+    const tabs: Tabs.Tab[] = [];
+    const windows: Tabs.Window[] = [];
 
     for (const i of items) {
       if (isNode(i)) {
@@ -1018,6 +1273,12 @@ export class Model {
           // separator
           await this.bookmarks.remove(i);
         }
+      } else if (isTabGroupExtent(i)) {
+        // We just push the children into `tabs`, because closing all the
+        // selected tabs will automatically destroy the group. And if we happen
+        // to be in a weird situation where there are multiple extents for the
+        // group, this is safer because it doesn't close unexpected tabs.
+        for (const c of i.children) tabs.push(c);
       } else if (isTab(i)) {
         tabs.push(i);
       } else {
@@ -1275,16 +1536,20 @@ export function copyIf(predicate: boolean, items: StashItem[]): StashItem[] {
  * original sources untouched. */
 export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
   return filterMap(items, item => {
-    if (isNewItem(item)) return item;
+    if (!isModelItem(item)) return item;
 
     if (isWindow(item)) {
       return {title: "", children: copying(item.children)};
     }
 
+    if (isTabGroupExtent(item)) {
+      return {title: item.group.title, children: copying(item.children)};
+    }
+
     if (isTab(item)) return {title: item.title, url: item.url};
 
     if (isNode(item)) {
-      if (Bookmarks.isBookmark(item)) {
+      if (item.type === "bookmark") {
         return {title: item.title, url: item.url};
       }
       if (isFolder(item)) {
@@ -1299,21 +1564,52 @@ export function copying(items: StashItem[]): (NewTab | NewFolder)[] {
 }
 
 //
-// Private helper functions
+// Public helper functions for sorting nodes
 //
 
-/** Returns a function which returns true if a tab is looking at a particular
- * URL, taking into account any transformations done by urlToOpen(). */
-function tabLookingAtP(url: string): (t?: {url?: string}) => boolean {
-  const open_url = urlToOpen(url);
-  return (t?: {url?: string}) => {
-    if (!t || !t.url) return false;
-    const to_url = urlToOpen(t.url);
-    return (
-      t.url === url ||
-      t.url === open_url ||
-      to_url === url ||
-      to_url === open_url
-    );
-  };
+const sortTextCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "base",
+  numeric: true,
+});
+const sortURLCollator = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "variant",
+  numeric: true,
+});
+
+export function sortByTitle(a: StashItem, b: StashItem): number {
+  return sortTextCollator.compare(titleOf(a) ?? "", titleOf(b) ?? "");
+}
+
+export function sortByURL(a: StashItem, b: StashItem): number {
+  const urlA = new URL("url" in a ? a.url : "about:blank");
+  const urlB = new URL("url" in b ? b.url : "about:blank");
+
+  const host_parts = (u: URL) => u.hostname.split(".").reverse();
+
+  const a_parts = host_parts(urlA);
+  const b_parts = host_parts(urlB);
+
+  for (let i = 0; i < Math.min(a_parts.length, b_parts.length); ++i) {
+    const cmp = sortURLCollator.compare(a_parts[i], b_parts[i]);
+    if (cmp !== 0) return cmp;
+  }
+
+  const port_cmp = sortURLCollator.compare(urlA.port || "0", urlB.port || "0");
+  if (port_cmp !== 0) return port_cmp;
+
+  const path_cmp = sortURLCollator.compare(urlA.pathname, urlB.pathname);
+  if (path_cmp !== 0) return path_cmp;
+
+  const query_cmp = sortURLCollator.compare(urlA.search, urlB.search);
+  if (query_cmp !== 0) return query_cmp;
+
+  const hash_cmp = sortURLCollator.compare(urlA.hash, urlB.hash);
+  if (hash_cmp !== 0) return hash_cmp;
+
+  const scheme_cmp = sortURLCollator.compare(urlA.protocol, urlB.protocol);
+  if (scheme_cmp !== 0) return scheme_cmp;
+
+  return 0;
 }

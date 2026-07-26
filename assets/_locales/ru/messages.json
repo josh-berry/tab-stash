@@ -200,14 +200,8 @@
   "experimentalFeaturesFeedback": {
     "message": "Чтобы оставить отзыв или сообщить о проблеме с функцией, оставьте комментарий к задаче, указанной в [квадратных скобках] ниже."
   },
-  "restoreRecentlyClosedTabs": {
-    "message": "Восстанавливать недавно закрытые вкладки"
-  },
   "warningLabel": {
     "message": "ВНИМАНИЕ:"
-  },
-  "restoreRecentlyClosedTabsDesc": {
-    "message": "При восстановлении вкладок, если скрытая вкладка недоступна, искать и повторно открывать недавно закрытые вкладки с совпадающими URL-адресами. (ПРИМЕЧАНИЕ: Известно, что в некоторых версиях Firefox это иногда приводит к восстановлению не тех вкладок; подробнее см. в связанной задаче.)"
   },
   "optionsMenu": {
     "message": "Настройки..."
@@ -348,7 +342,7 @@
     "message": "Сохранить все несохраненные вкладки в новую группу (удерживайте $1$, чтобы оставить вкладки открытыми)"
   },
   "createNewEmptyGroupTooltip": {
-    "message": "Создать новую пустую группу"
+    "message": "Создать новую пустую группу в тайнике"
   },
   "showOnlyUnstashedTabsTooltip": {
     "message": "Показывать только несохраненные вкладки"
@@ -365,11 +359,17 @@
   "closeUnstashedTabsTooltip": {
     "message": "Закрыть все несохраненные вкладки (кроме закрепленных и скрытых)"
   },
+  "closeUnstashedTabsInGroupTooltip": {
+    "message": "Закрыть все неотложенные вкладки в группе"
+  },
   "closeUnstashedTabsMenu": {
     "message": "Закрыть несохраненные вкладки"
   },
   "closeStashedTabsTooltip": {
     "message": "Закрыть все сохраненные вкладки (кроме закрепленных и скрытых)"
+  },
+  "closeStashedTabsInGroupTooltip": {
+    "message": "Закрыть все отложенные вкладки в группе"
   },
   "closeStashedTabsMenu": {
     "message": "Закрыть сохраненные вкладки"
@@ -380,38 +380,44 @@
   "closeAllOpenTabsMenu": {
     "message": "Закрыть все открытые вкладки"
   },
+  "closeTabGroupTooltip": {
+    "message": "Закрыть всю группу вкладок"
+  },
+  "closeTabGroupMenu": {
+    "message": "Закрыть группу"
+  },
   "closeHiddenTabsTooltip": {
     "message": "Закрыть все скрытые сохраненные вкладки (освобождает память)"
   },
   "closeHiddenTabsMenu": {
     "message": "Закрыть скрытые вкладки"
   },
-  "moveTabsToNewGroup_one": {
-    "message": "Переместить $1$ вкладку в новую группу (удерживайте $2$ для копирования)"
+  "moveItemsToNewGroup_one": {
+    "message": "Переместить $1$ объект в новую группу (удерживайте $2$ для копирования)"
   },
-  "moveTabsToNewGroup_few": {
-    "message": "Переместить $1$ вкладки в новую группу (удерживайте $2$ для копирования)"
+  "moveItemsToNewGroup_few": {
+    "message": "Переместить $1$ объекта в новую группу (удерживайте $2$ для копирования)"
   },
-  "moveTabsToNewGroup_many": {
-    "message": "Переместить $1$ вкладок в новую группу (удерживайте $2$ для копирования)"
+  "moveItemsToNewGroup_many": {
+    "message": "Переместить $1$ объектов в новую группу (удерживайте $2$ для копирования)"
   },
-  "openSelectedTabs_one": {
-    "message": "Открыть $1$ вкладку"
+  "openSelectedItems_one": {
+    "message": "Открыть $1$ объект"
   },
-  "openSelectedTabs_few": {
-    "message": "Открыть $1$ вкладки"
+  "openSelectedItems_few": {
+    "message": "Открыть $1$ объекта"
   },
-  "openSelectedTabs_many": {
-    "message": "Открыть $1$ вкладок"
+  "openSelectedItems_many": {
+    "message": "Открыть $1$ объектов"
   },
-  "unstashSelectedTabs_one": {
-    "message": "Убрать из сохраненных $1$ вкладку"
+  "unstashSelectedItems_one": {
+    "message": "Убрать из сохраненных $1$ объект"
   },
-  "unstashSelectedTabs_few": {
-    "message": "Убрать из сохраненных $1$ вкладки"
+  "unstashSelectedItems_few": {
+    "message": "Убрать из сохраненных $1$ объекта"
   },
-  "unstashSelectedTabs_many": {
-    "message": "Убрать из сохраненных $1$ вкладок"
+  "unstashSelectedItems_many": {
+    "message": "Убрать из сохраненных $1$ объектов"
   },
   "closeTabsConfirm_one": {
     "message": "Закрыть $1$ вкладку"
@@ -440,6 +446,9 @@
   "toggleCollapsedGroupTooltip": {
     "message": "Скрыть вкладки этой группы (удерживайте $1$, чтобы скрыть вкладки дочерних групп)"
   },
+  "toggleCollapsedTabGroupTooltip": {
+    "message": "Скрыть вкладки для этой группы"
+  },
   "stashAllOpenTabsToGroupTooltip": {
     "message": "Сохранить все (или выделенные) открытые вкладки в эту группу (удерживайте $1$, чтобы оставить вкладки открытыми)"
   },
@@ -447,13 +456,13 @@
     "message": "Сохранить активную вкладку в эту группу (удерживайте $1$, чтобы оставить её открытой)"
   },
   "openAllTabsInGroupTooltip": {
-    "message": "Открыть все вкладки этой группы (удерживайте $1$, чтобы открыть в фоновом режиме)"
+    "message": "Открыть все вкладки в этой группе\nУдерживайте $1$, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
   },
   "openAllTabsAndDeleteGroupTooltip": {
-    "message": "Открыть все вкладки и удалить эту группу (удерживайте $1$, чтобы открыть в фоновом режиме)"
+    "message": "Открыть все вкладки и удалить эту группу\nУдерживайте $1$, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
   },
   "openAllTabsAndRemoveFromGroupTooltip": {
-    "message": "Открыть все вкладки и убрать их из этой группы (удерживайте $1$, чтобы открыть в фоновом режиме)"
+    "message": "Открыть все вкладки и удалить их из этой группы\nУдерживайте $1$, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
   },
   "createNewSubGroupTooltip": {
     "message": "Создать новую подгруппу в этой группе"
@@ -644,11 +653,23 @@
   "openSelectedButton": {
     "message": "Открыть"
   },
+  "openSelectedIntoTabGroupTooltip_one": {
+    "message": "Открыть $1$ выбранный элемент в этой группе вкладок"
+  },
+  "openSelectedIntoTabGroupTooltip_many": {
+    "message": "Открыть $1$ выбранных элементов в этой группе вкладок"
+  },
   "unstashSelectedTooltip": {
     "message": "Открыть вкладки и удалить их из сохраненных"
   },
   "unstashSelectedButton": {
     "message": "Убрать из сохраненных"
+  },
+  "unstashSelectedIntoTabGroupTooltip_one": {
+    "message": "Восстановить $1$ выбранный элемент в эту группу вкладок"
+  },
+  "unstashSelectedIntoTabGroupTooltip_many": {
+    "message": "Восстановить $1$ выбранных элементов в эту группу вкладок"
   },
   "exportSelectedTooltip": {
     "message": "Экспортировать выбранные ссылки и URL"
@@ -796,5 +817,26 @@
   },
   "crashHideSettingsNote": {
     "message": "Отчеты о сбоях можно включить обратно в настройках."
+  },
+  "stashTabGroup": {
+    "message": "Отложить эту группу вкладок (удерживайте $1$, чтобы оставить вкладки открытыми)"
+  },
+  "openTabInGroup": {
+    "message": "Открыть новую вкладку в этой группе"
+  },
+  "moveTabsOutOfGroup": {
+    "message": "Переместить все вкладки из группы"
+  },
+  "ungroup": {
+    "message": "Разгруппировать"
+  },
+  "newTabTooltip": {
+    "message": "Открыть новую вкладку"
+  },
+  "newTabGroupTooltip": {
+    "message": "Создать новую пустую группу вкладок"
+  },
+  "close": {
+    "message": "Закрыть"
   }
 }

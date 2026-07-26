@@ -1,10 +1,11 @@
 --- a/assets/manifest.json	2022-12-10 17:52:31
 +++ b/assets/manifest-chrome.json	2022-12-10 17:54:08
-@@ -21,13 +21,10 @@
+@@ -21,14 +21,11 @@
    "permissions": [
      "sessions",
      "tabs",
 -    "tabHide",
+     "tabGroups",
      "bookmarks",
      "contextMenus",
 -    "browserSettings",

@@ -226,7 +226,7 @@ export default defineComponent({
     tabs(): readonly Tab[] {
       const m = the.model.tabs;
       if (m.targetWindow.value === undefined) return [];
-      return m.targetWindow.value.children;
+      return m.targetWindow.value.flattenedChildren;
     },
     stashRoot(): Folder | undefined {
       const sr = the.model.bookmarks.stash_root.value;
@@ -281,7 +281,7 @@ export default defineComponent({
         discarded = 0,
         hidden = 0;
       for (const tab of this.tabs) {
-        if (tab.position?.parent !== this.targetWindow) continue;
+        if (tab.flattenedPosition?.parent !== this.targetWindow) continue;
         if (tab.hidden) {
           hidden += 1;
         } else if (tab.discarded) {

@@ -222,8 +222,8 @@
   >
     <template #item="{item}: {item: Node}">
       <template v-if="isChildVisible(item)">
-        <child-folder v-if="isFolder(item)" :folder="item" />
-        <bookmark v-else-if="isBookmark(item)" :bookmark="item" />
+        <child-folder v-if="item.type === 'folder'" :folder="item" />
+        <bookmark v-else-if="item.type === 'bookmark'" :bookmark="item" />
       </template>
     </template>
   </dnd-list>
@@ -272,17 +272,13 @@ import {
   friendlyFolderName,
   genDefaultFolderName,
   getDefaultFolderNameISODate,
-  isBookmark,
-  isFolder,
   sortByDateAdded,
   sortByDateAddedDescending,
-  sortByTitle,
-  sortByURL,
   type Bookmark,
   type Folder,
   type Node,
 } from "../model/bookmarks.js";
-import {copyIf} from "../model/index.js";
+import {copyIf, sortByTitle, sortByURL} from "../model/index.js";
 import type {Tab, Window} from "../model/tabs.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -383,9 +379,9 @@ export default defineComponent({
       return this.children.map(n => ({
         node: n,
         tabs:
-          isBookmark(n) && n.url
+          n.type === "bookmark" && n.url
             ? Array.from(tab_model.tabsWithURL(n.url)).filter(
-                t => t.position?.parent === this.targetWindow,
+                t => t.flattenedPosition?.parent === this.targetWindow,
               )
             : [],
       }));
@@ -397,7 +393,7 @@ export default defineComponent({
         hidden = 0;
       for (const nwt of this.childrenWithTabs) {
         for (const tab of nwt.tabs) {
-          if (tab.position?.parent !== this.targetWindow) {
+          if (tab.flattenedPosition?.parent !== this.targetWindow) {
             continue;
           }
           if (tab.hidden) {
@@ -434,7 +430,7 @@ export default defineComponent({
       const target_win = the.model.tabs.targetWindow.value;
       if (!target_win) return [];
 
-      return target_win.children
+      return target_win.flattenedChildren
         .filter(
           t =>
             !t.pinned &&
@@ -500,7 +496,9 @@ export default defineComponent({
     },
 
     leafChildren(): Bookmark[] {
-      return filterMap(this.children, c => (isBookmark(c) ? c : undefined));
+      return filterMap(this.children, c =>
+        c.type === "bookmark" ? c : undefined,
+      );
     },
 
     selectedCount(): number {
@@ -535,9 +533,6 @@ export default defineComponent({
       // loading again anyway.
       await the.model.bookmarks.loaded(this.folder);
     },
-
-    isFolder,
-    isBookmark,
 
     showImportDialog() {
       if (the.view !== "popup") {
@@ -649,6 +644,7 @@ export default defineComponent({
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         await the.model.restoreTabs(this.leafChildren, {
+          groupTitle: !ev.shiftKey ? this.title : undefined,
           background: bgKeyPressed(ev),
         });
       });
@@ -665,6 +661,7 @@ export default defineComponent({
         const bg = bgKeyPressed(ev);
 
         await the.model.restoreTabs(this.leafChildren, {
+          groupTitle: !ev.shiftKey ? this.title : undefined,
           background: bg,
           beforeClosing: () =>
             this.leafChildren.length === this.folder.children.length
@@ -728,7 +725,7 @@ export default defineComponent({
       index: number,
     ): DNDAcceptedDropPositions {
       if (
-        isFolder(item) &&
+        item.type === "folder" &&
         (item.children.length === 0 ||
           the.model.bookmark_metadata.get(item.id).value?.collapsed ||
           !the.model.filter.info(item).hasMatchInSubtree)
@@ -770,7 +767,7 @@ export default defineComponent({
       the.model.attempt(async () => {
         const items = recvDragData(ev.data, the.model);
         const child = ev.insertInParent;
-        if (!isFolder(child)) {
+        if (child.type !== "folder") {
           throw new Error(
             `Attempt to drop inside non-folder node: ${child?.title} [${child?.id}]`,
           );

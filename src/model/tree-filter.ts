@@ -1,6 +1,6 @@
 import {computed, reactive, type Ref} from "vue";
 
-import type {IsParentFn, TreeNode, TreeParent} from "./tree.js";
+import type {Tree} from "./tree.js";
 
 export interface FilterInfo {
   /** Does this node match the predicate function? */
@@ -17,38 +17,37 @@ export interface FilterInfo {
 }
 
 /** A Tree whose nodes have been filtered by a predicate function. */
-export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
-  /** Check if a particular node is a parent node or not. */
-  readonly isParent: IsParentFn<P, N>;
+export class TreeFilter<R extends object, M extends object, L extends object> {
+  readonly tree: Tree<R, M, L>;
 
   /** The predicate function used to determine whether a node `isMatching` or
    * not.  Updating this ref will update the `.isMatching` property on every
    * node. */
-  readonly predicate: Ref<(node: P | N) => boolean>;
+  readonly predicate: Ref<(node: R | M | L) => boolean>;
 
-  private readonly nodes = new WeakMap<P | N, FilterInfo>();
+  private readonly nodes = new WeakMap<R | M | L, FilterInfo>();
 
   constructor(
-    isParent: IsParentFn<P, N>,
-    predicate: Ref<(node: P | N) => boolean>,
+    tree: Tree<R, M, L>,
+    predicate: Ref<(node: R | M | L) => boolean>,
   ) {
-    this.isParent = isParent;
+    this.tree = tree;
     this.predicate = predicate;
   }
 
   /** Returns a FilterInfo object describing whether this node (and/or its
    * sub-tree) matches the predicate or not. */
-  info(node: P | N): FilterInfo {
+  info(node: R | M | L): FilterInfo {
     const n = this.nodes.get(node);
     if (n) return n;
 
-    const isParent = this.isParent(node);
+    const isParent = !this.tree.isLeafType(node);
 
     const isMatching = computed(() => this.predicate.value(node));
 
     const hasMatchInSubtree = isParent
       ? computed(() => {
-          for (const c of node.children) {
+          for (const c of this.tree.childrenOf(node)) {
             if (!c) continue;
             const i = this.info(c);
             if (i.isMatching || i.hasMatchInSubtree) return true;
@@ -60,7 +59,7 @@ export class TreeFilter<P extends TreeParent<P, N>, N extends TreeNode<P, N>> {
     const nonMatchingCount = isParent
       ? computed(() => {
           let count = 0;
-          for (const c of node.children) {
+          for (const c of this.tree.childrenOf(node)) {
             if (!c) continue;
             const i = this.info(c);
             if (!i.isMatching && !i.hasMatchInSubtree) ++count;

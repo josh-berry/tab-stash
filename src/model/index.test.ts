@@ -5,22 +5,18 @@ import {expect} from "chai";
 import browser from "webextension-polyfill";
 
 import * as events from "../mock/events.js";
-import {B} from "./fixtures.testlib.js";
+import {B, windowStructureOf} from "./fixtures.testlib.js";
 import {setupModelTestEnv, type ModelTestEnv} from "./index.testlib.js";
 
 import {filterMap, later, redirUrl, urlToStash} from "../util/index.js";
 
 import {_StoredObjectFactory} from "../datastore/stored-object.js";
 import {CUR_WINDOW_MD_ID} from "./bookmark-metadata.js";
-import {
-  getDefaultFolderNameISODate,
-  isBookmark,
-  isFolder,
-  type Folder,
-} from "./bookmarks.js";
+import {getDefaultFolderNameISODate, type Folder} from "./bookmarks.js";
 import type {DeletedFolder} from "./deleted-items.js";
 import * as M from "./index.js";
-import type {TabID} from "./tabs.js";
+import type {TabGroupExtent, TabGroupID, TabID, WindowID} from "./tabs.js";
+import {copying} from "./index.js";
 
 describe("model", () => {
   let env: ModelTestEnv = undefined!;
@@ -398,7 +394,9 @@ describe("model", () => {
       ]);
 
       expect(
-        env.model.tabs.window(env.windows.left.id)!.children.map(bm => bm.id),
+        env.model.tabs
+          .window(env.windows.left.id)!
+          .flattenedChildren.map(bm => bm.id),
       ).to.deep.equal([
         env.tabs.left_alice.id,
         env.tabs.left_betty.id,
@@ -452,9 +450,10 @@ describe("model", () => {
       const si = env.model.selection.info(tab);
 
       si.isSelected = true;
-      expect(Array.from(env.model.selection.selectedItems())).to.deep.equal([
-        tab,
-      ]);
+      expect(
+        Array.from(env.model.selection.selectedItems()),
+        "precondition met",
+      ).to.deep.equal([tab]);
 
       const p1 = browser.tabs.update(tab.id, {highlighted: true});
       await events.next(browser.tabs.onHighlighted);
@@ -470,7 +469,10 @@ describe("model", () => {
       expect(tab.hidden).to.be.true;
       expect(tab.highlighted).to.be.false;
       expect(si.isSelected).to.be.false;
-      expect(Array.from(env.model.selection.selectedItems())).to.deep.equal([]);
+      expect(
+        Array.from(env.model.selection.selectedItems()),
+        "selection cleared",
+      ).to.deep.equal([]);
     });
   });
 
@@ -877,7 +879,7 @@ describe("model", () => {
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => c && isBookmark(c) && c.url),
+        folder.children.map(c => c?.type === "bookmark" && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
     });
@@ -892,7 +894,7 @@ describe("model", () => {
         toIndex: 2,
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
-      await events.nextN(browser.tabs.onUpdated, 2);
+      await events.nextN(browser.tabs.onUpdated, 3);
       await p;
 
       const titles = [
@@ -933,7 +935,7 @@ describe("model", () => {
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => c && isBookmark(c) && c.url),
+        folder.children.map(c => c?.type === "bookmark" && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
     });
@@ -951,7 +953,7 @@ describe("model", () => {
       });
       await events.nextN(browser.bookmarks.onCreated, 2);
       await events.nextN(browser.bookmarks.onMoved, 2);
-      await events.nextN(browser.tabs.onUpdated, 2);
+      await events.nextN(browser.tabs.onUpdated, 3);
       await p;
 
       const titles = [
@@ -1002,7 +1004,7 @@ describe("model", () => {
         "Model bookmark titles",
       ).to.deep.equal(titles);
       expect(
-        folder.children.map(c => c && isBookmark(c) && c.url),
+        folder.children.map(c => c?.type === "bookmark" && c.url),
         "Model bookmark URLs",
       ).to.deep.equal(urls);
 
@@ -1060,7 +1062,7 @@ describe("model", () => {
 
       expect(folder.children.map(bm => bm?.id)).to.deep.equal(expectedIds);
       expect(
-        folder.children.map(b => b && isBookmark(b) && b.url),
+        folder.children.map(b => b?.type === "bookmark" && b.url),
       ).to.deep.equal([
         `${B}#helen`,
         `${B}#gazebo`,
@@ -1104,7 +1106,7 @@ describe("model", () => {
       await p;
 
       const topChild = folder.children[0] as Folder;
-      expect(isFolder(topChild)).to.be.true;
+      expect(topChild.type).to.equal("folder");
       expect(topChild.title).to.equal("Folder");
       expect(topChild.children.map(c => c?.title)).to.deep.equal([
         "1",
@@ -1114,6 +1116,49 @@ describe("model", () => {
 
       const nestedChildren = (topChild.children[2] as Folder).children;
       expect(nestedChildren.map(c => c?.title)).to.deep.equal(["3", "4"]);
+    });
+
+    it("puts tab groups into the stash", async () => {
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      const ef = win.children[6] as TabGroupExtent;
+      expect(ef.type).to.equal("tab-group");
+      expect(ef.group.id).to.equal(env.groups.ef.id);
+
+      const p = env.model.putItemsInFolder({
+        items: [ef],
+        toFolder: env.model.bookmarks.stash_root.value!,
+        toIndex: 0,
+      });
+      await events.nextN(browser.bookmarks.onCreated, 3);
+      await events.nextN(browser.tabs.onUpdated, 2); // tabs hidden
+      await events.nextN(browser.tabs.onUpdated, 2); // tabs removed from group
+      await events.next(browser.tabGroups.onRemoved);
+      const res = await p;
+
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}#patricia`,
+        `${B}#paul`,
+        `${B}`,
+        `${B}#bob`,
+        `${B}#doug`,
+        `${B}#doug`,
+        `${B}#estelle`,
+        `${B}#francis`,
+        `${B}#harry`,
+        `${B}#unstashed`,
+        `${B}#helen`,
+      ]);
+
+      expect(env.model.tabs.tab(env.tabs.real_estelle.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.real_francis.id)!.hidden).to.be.true;
+
+      expect(res.length).to.equal(1);
+      expect(res[0].title).to.equal("EF Group");
+      expect(res[0].type).to.equal("folder");
+      const f = res[0] as Folder;
+      expect(
+        f.children.map(c => c && c.type === "bookmark" && c.url),
+      ).to.deep.equal([`${B}#estelle`, `${B}#francis`]);
     });
   });
 
@@ -1138,11 +1183,11 @@ describe("model", () => {
       // console.log(win.tabs);
       // console.log(children.map(c => ({[c]: tabs[c].id})));
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(children.map(c => env.tabs[c].url));
       expect(
-        win.children.map(t => t.id),
+        win.flattenedChildren.map(t => t.id),
         "Model tab IDs",
       ).to.deep.equal(children.map(c => env.tabs[c].id));
     }
@@ -1153,18 +1198,36 @@ describe("model", () => {
         toWindow: keyof typeof env.windows;
         toIndex: number;
         finalState: (keyof typeof env.tabs)[];
+        updates?: {
+          tab: keyof typeof env.tabs;
+          u: browser.Tabs.OnUpdatedChangeInfoType;
+        }[];
       }) =>
       async () => {
         const p = env.model.putItemsInWindow({
           items: options.items.map(i => env.model.tabs.tab(env.tabs[i].id)!),
-          toWindow: env.model.tabs.window(env.windows[options.toWindow].id)!,
+          toParent: env.model.tabs.window(env.windows[options.toWindow].id)!,
           toIndex: options.toIndex,
         });
-        await events.nextN<any>(
+        const i = events.ignore(
+          // We don't know how many move events to expect, because some tabs
+          // could never move and wind up in different places, and some tabs
+          // could move yet wind up in exactly the same place.
           [browser.tabs.onMoved, browser.tabs.onAttached],
-          options.items.length,
         );
+        if (options.updates) {
+          for (let i = 0; i < options.updates.length; ++i) {
+            const u = await events.next(browser.tabs.onUpdated);
+            expect(u[0], `updated tab id = ${options.updates[i].tab}`).to.equal(
+              env.tabs[options.updates[i].tab].id,
+            );
+            expect(u[1], `event for ${options.updates[i].tab}`).to.include(
+              options.updates[i].u,
+            );
+          }
+        }
         await p;
+        i.cancel();
         await check_window(options.toWindow, options.finalState);
       };
 
@@ -1204,6 +1267,7 @@ describe("model", () => {
             "real_unstashed",
             "real_helen",
           ],
+          updates: [{tab: "real_bob", u: {pinned: true}}],
         }),
       );
 
@@ -1212,7 +1276,7 @@ describe("model", () => {
         testMove({
           items: ["real_bob"],
           toWindow: "real",
-          toIndex: 10,
+          toIndex: 9,
           finalState: [
             "real_patricia",
             "real_paul",
@@ -1234,7 +1298,7 @@ describe("model", () => {
         testMove({
           items: ["real_bob"],
           toWindow: "real",
-          toIndex: 11,
+          toIndex: 10,
           finalState: [
             "real_patricia",
             "real_paul",
@@ -1256,7 +1320,7 @@ describe("model", () => {
         testMove({
           items: ["real_bob"],
           toWindow: "real",
-          toIndex: 7,
+          toIndex: 8,
           finalState: [
             "real_patricia",
             "real_paul",
@@ -1264,9 +1328,9 @@ describe("model", () => {
             "real_doug",
             "real_doug_2",
             "real_estelle",
-            "real_bob",
             "real_francis",
             "real_harry",
+            "real_bob",
             "real_unstashed",
             "real_helen",
           ],
@@ -1276,20 +1340,20 @@ describe("model", () => {
       it(
         "backward single",
         testMove({
-          items: ["real_francis"],
+          items: ["real_unstashed"],
           toWindow: "real",
           toIndex: 2,
           finalState: [
             "real_patricia",
             "real_paul",
-            "real_francis",
+            "real_unstashed",
             "real_blank",
             "real_bob",
             "real_doug",
             "real_doug_2",
             "real_estelle",
+            "real_francis",
             "real_harry",
-            "real_unstashed",
             "real_helen",
           ],
         }),
@@ -1298,19 +1362,19 @@ describe("model", () => {
       it(
         "forward multiple",
         testMove({
-          items: ["real_bob", "real_doug_2"],
+          items: ["real_bob", "real_doug"],
           toWindow: "real",
-          toIndex: 7,
+          toIndex: 8,
           finalState: [
             "real_patricia",
             "real_paul",
             "real_blank",
-            "real_doug",
-            "real_estelle",
-            "real_bob",
             "real_doug_2",
+            "real_estelle",
             "real_francis",
             "real_harry",
+            "real_bob",
+            "real_doug",
             "real_unstashed",
             "real_helen",
           ],
@@ -1320,20 +1384,20 @@ describe("model", () => {
       it(
         "backward multiple",
         testMove({
-          items: ["real_estelle", "real_harry"],
+          items: ["real_doug", "real_unstashed"],
           toWindow: "real",
           toIndex: 2,
           finalState: [
             "real_patricia",
             "real_paul",
-            "real_estelle",
-            "real_harry",
+            "real_doug",
+            "real_unstashed",
             "real_blank",
             "real_bob",
-            "real_doug",
             "real_doug_2",
+            "real_estelle",
             "real_francis",
-            "real_unstashed",
+            "real_harry",
             "real_helen",
           ],
         }),
@@ -1342,7 +1406,7 @@ describe("model", () => {
       it(
         "to the middle",
         testMove({
-          items: ["real_paul", "real_bob", "real_francis", "real_harry"],
+          items: ["real_paul", "real_bob", "real_harry", "real_unstashed"],
           toWindow: "real",
           toIndex: 5,
           finalState: [
@@ -1351,12 +1415,16 @@ describe("model", () => {
             "real_doug",
             "real_paul",
             "real_bob",
-            "real_francis",
             "real_harry",
+            "real_unstashed",
             "real_doug_2",
             "real_estelle",
-            "real_unstashed",
+            "real_francis",
             "real_helen",
+          ],
+          updates: [
+            {tab: "real_paul", u: {pinned: false}},
+            {tab: "real_harry", u: {hidden: false}},
           ],
         }),
       );
@@ -1380,13 +1448,18 @@ describe("model", () => {
             "real_unstashed",
             "real_helen",
           ],
+          updates: [
+            {tab: "real_paul", u: {pinned: false}},
+            {tab: "real_doug_2", u: {hidden: false}},
+            {tab: "real_harry", u: {hidden: false}},
+          ],
         }),
       );
 
       it(
         "leaves everything where it is",
         testMove({
-          items: ["real_bob", "real_doug", "real_doug_2", "real_estelle"],
+          items: ["real_bob", "real_doug", "real_doug_2"],
           toWindow: "real",
           toIndex: 5,
           finalState: [
@@ -1402,6 +1475,7 @@ describe("model", () => {
             "real_unstashed",
             "real_helen",
           ],
+          updates: [{tab: "real_doug_2", u: {hidden: false}}],
         }),
       );
     });
@@ -1423,7 +1497,7 @@ describe("model", () => {
 
       const p = env.model.putItemsInWindow({
         items: [{url: "http://example.com/#1"}, {url: "http://example.com/#2"}],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1459,7 +1533,7 @@ describe("model", () => {
 
       const p = env.model.putItemsInWindow({
         items: [{url: `${B}#new1`}, {url: `${B}#new2`}],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN(browser.tabs.onCreated, 2);
@@ -1478,7 +1552,7 @@ describe("model", () => {
 
       const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
     });
@@ -1486,7 +1560,7 @@ describe("model", () => {
     it("moves bookmarks into the window", async () => {
       await env.model.bookmarks.loadedStash();
       expect(env.model.tabs.tab(env.tabs.real_helen.id)).to.deep.include({
-        position: {
+        flattenedPosition: {
           parent: env.model.tabs.window(env.windows.real.id),
           index: 10,
         },
@@ -1498,7 +1572,7 @@ describe("model", () => {
           env.model.bookmarks.bookmark(env.bookmarks.helen.id)!, // hidden tab
           env.model.bookmarks.bookmark(env.bookmarks.nate.id)!, // not open
         ],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 2,
       });
       await events.nextN<any>(
@@ -1510,6 +1584,9 @@ describe("model", () => {
       await events.nextN(browser.tabs.onUpdated, 1); // nate loaded
       await events.nextN(browser.bookmarks.onRemoved, 2);
       const res = await p;
+
+      expect(res[0].type).to.equal("tab");
+      expect(res[1].type).to.equal("tab");
 
       const urls = [
         `${B}`,
@@ -1523,7 +1600,7 @@ describe("model", () => {
         env.tabs.right_blank.id,
         env.tabs.right_adam.id,
         env.tabs.real_helen.id,
-        res[1].id,
+        (res[1] as M.Tabs.Tab).id,
         env.tabs.right_doug.id,
       ];
 
@@ -1541,11 +1618,11 @@ describe("model", () => {
 
       const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
       expect(
-        win.children.map(t => t.id),
+        win.flattenedChildren.map(t => t.id),
         "Model tab IDs",
       ).to.deep.equal(ids);
 
@@ -1556,7 +1633,7 @@ describe("model", () => {
       ).to.deep.equal([env.bookmarks.doug_2.id, env.bookmarks.patricia.id]);
 
       expect(env.model.tabs.tab(env.tabs.real_helen.id)).to.deep.include({
-        position: {
+        flattenedPosition: {
           parent: env.model.tabs.window(env.windows.right.id),
           index: 2,
         },
@@ -1581,7 +1658,7 @@ describe("model", () => {
           env.model.tabs.tab(env.tabs.right_doug.id)!,
           env.model.bookmarks.bookmark(env.bookmarks.nate.id)!,
         ],
-        toWindow: env.model.tabs.window(env.windows.right.id)!,
+        toParent: env.model.tabs.window(env.windows.right.id)!,
         toIndex: 1,
       });
       await events.nextN(browser.tabs.onMoved, 1);
@@ -1602,7 +1679,7 @@ describe("model", () => {
 
       const win = env.model.tabs.window(env.windows.right.id)!;
       expect(
-        win.children.map(c => c.url),
+        win.flattenedChildren.map(c => c.url),
         "Model tab URLs",
       ).to.deep.equal(urls);
 
@@ -1628,8 +1705,8 @@ describe("model", () => {
       await env.model.bookmarks.loadedStash();
       const p = env.model.putItemsInWindow({
         items: [env.model.bookmarks.bookmark(env.bookmarks.helen.id)!],
-        toWindow: env.model.tabs.window(env.windows.real.id)!,
-        toIndex: 9,
+        toParent: env.model.tabs.window(env.windows.real.id)!,
+        toIndex: 8,
       });
       await events.next(browser.tabs.onMoved);
       await events.next(browser.tabs.onUpdated);
@@ -1656,8 +1733,8 @@ describe("model", () => {
       await env.model.bookmarks.loadedStash();
       const p = env.model.putItemsInWindow({
         items: [env.model.bookmarks.bookmark(env.bookmarks.doug_2.id)!],
-        toWindow: env.model.tabs.window(env.windows.real.id)!,
-        toIndex: 9,
+        toParent: env.model.tabs.window(env.windows.real.id)!,
+        toIndex: 8,
       });
       await events.next(browser.tabs.onMoved);
       await events.next(browser.tabs.onUpdated);
@@ -1677,6 +1754,231 @@ describe("model", () => {
         "real_doug_2",
         "real_unstashed",
         "real_helen",
+      ]);
+    });
+
+    it("moves folders into the window as tab groups", async () => {
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
+        items: copying([env.model.bookmarks.folder(env.bookmarks.nested.id)!]),
+        toParent: env.model.tabs.window(env.windows.right.id)!,
+        toIndex: 3,
+      });
+      const ign = events.ignore([
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+        browser.tabs.onAttached,
+      ]);
+      const tabs_or_tgs = await p;
+      ign.cancel();
+      expect(tabStructureOf(tabs_or_tgs)).to.deep.equal([
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {title: "Stash with Nested Folder > Extra", children: [`${B}#2`]},
+      ]);
+
+      const win = env.model.tabs.window(env.windows.right.id)!;
+
+      expect(win.flattenedChildren.map(c => c.url)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        `${B}#nested_1`,
+        `${B}#nested_2`,
+        `${B}#nested_child_1`,
+        `${B}#2`,
+      ]);
+
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {title: "Stash with Nested Folder > Extra", children: [`${B}#2`]},
+      ]);
+    });
+
+    it("moves folders inside tab groups by dropping them adjacent", async () => {
+      await env.model.bookmarks.loadedStash();
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      const extent = win.children.find(
+        c => c.type === "tab-group" && c.group.id === env.groups.ef.id,
+      ) as TabGroupExtent;
+      expect(extent).to.not.be.undefined;
+
+      const ign = events.ignore([
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+      ]);
+      const tabs_or_tgs = await env.model.putItemsInWindow({
+        items: [
+          {
+            title: "New Folder",
+            children: [
+              {url: `${B}#asdf`},
+              {title: "Sub", children: [{url: `${B}#sub1`}]},
+              {url: `${B}#qwer`},
+            ],
+          },
+        ],
+        toParent: extent,
+        toIndex: 1,
+      });
+      ign.cancel();
+
+      expect(tabStructureOf(tabs_or_tgs)).to.deep.equal([
+        {title: "New Folder", children: [`${B}#asdf`, `${B}#qwer`]},
+        {title: "New Folder > Sub", children: [`${B}#sub1`]},
+      ]);
+
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}#patricia`,
+        `${B}#paul`,
+        `${B}`,
+        `${B}#bob`,
+        `${B}#doug`,
+        `${B}#doug`,
+        {title: "EF Group", children: [`${B}#estelle`, `${B}#francis`]},
+        {title: "New Folder", children: [`${B}#asdf`, `${B}#qwer`]},
+        {title: "New Folder > Sub", children: [`${B}#sub1`]},
+        `${B}#harry`,
+        `${B}#unstashed`,
+        `${B}#helen`,
+      ]);
+    });
+
+    // NOTE: This catches a regression and also checks unnamed folders
+    it("makes tab groups at the end of the window", async () => {
+      await env.model.bookmarks.loadedStash();
+      const p = env.model.putItemsInWindow({
+        items: copying([env.model.bookmarks.folder(env.bookmarks.unnamed.id)!]),
+        toParent: env.model.tabs.window(env.windows.right.id)!,
+        toIndex: 100,
+      });
+      const ign = events.ignore([
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+        browser.tabs.onAttached,
+      ]);
+      const tabs_or_tgs = await p;
+      ign.cancel();
+      expect(tabStructureOf(tabs_or_tgs)).to.deep.equal([
+        {
+          title: `Saved ${new Date("1970-01-01T00:00:00.000Z").toLocaleString()}`,
+          children: [`${B}#undyne`],
+        },
+      ]);
+
+      const win = env.model.tabs.window(env.windows.right.id)!;
+
+      expect(win.flattenedChildren.map(c => c.url)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        `${B}#undyne`,
+      ]);
+
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        {
+          title: `Saved ${new Date("1970-01-01T00:00:00.000Z").toLocaleString()}`,
+          children: [`${B}#undyne`],
+        },
+      ]);
+    });
+
+    it("wraps loose items in a group when requested", async () => {
+      const win = env.model.tabs.window(env.windows.right.id)!;
+
+      const p = env.model.putItemsInNewTabGroup({
+        items: [
+          {url: `${B}#sylvia`},
+          {url: `${B}#matthew`},
+          {
+            title: "Subgroup",
+            children: [{url: `${B}#lenny`}, {url: `${B}#penny`}],
+          },
+          env.model.bookmarks.folder(env.bookmarks.nested.id)!,
+        ],
+        toWindow: win,
+        toIndex: win.children.length,
+      });
+      const ignore = events.ignore([
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onActivated,
+        browser.tabs.onHighlighted,
+        browser.tabs.onAttached,
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+        browser.bookmarks.onRemoved,
+        "KVS.Memory.onSet",
+      ]);
+      const groups = await p;
+      ignore.cancel();
+
+      expect(tabStructureOf(groups)).to.deep.equal([
+        {title: "Untitled", children: [`${B}#sylvia`, `${B}#matthew`]},
+        {title: "Subgroup", children: [`${B}#lenny`, `${B}#penny`]},
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {
+          title: "Stash with Nested Folder > Extra",
+          children: [`${B}#2`],
+        },
+      ]);
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}`,
+        `${B}#adam`,
+        `${B}#doug`,
+        {title: "Untitled", children: [`${B}#sylvia`, `${B}#matthew`]},
+        {title: "Subgroup", children: [`${B}#lenny`, `${B}#penny`]},
+        {
+          title: "Stash with Nested Folder",
+          children: [`${B}#nested_1`, `${B}#nested_2`],
+        },
+        {
+          title: "Stash with Nested Folder > Nested Child",
+          children: [`${B}#nested_child_1`],
+        },
+        {
+          title: "Stash with Nested Folder > Extra",
+          children: [`${B}#2`],
+        },
       ]);
     });
   });
@@ -1701,12 +2003,14 @@ describe("model", () => {
       const restored = env.model.tabs.tab(env.tabs.real_harry.id)!;
       expect(restored.hidden).to.be.false;
       expect(restored.active).to.be.true;
-      expect(restored.position?.parent.id).to.equal(env.windows.real.id);
+      expect(restored.flattenedPosition?.parent.id).to.equal(
+        env.windows.real.id,
+      );
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children[win.children.length - 1].id).to.equal(
-        env.tabs.real_harry.id,
-      );
+      expect(
+        win.flattenedChildren[win.flattenedChildren.length - 1].id,
+      ).to.equal(env.tabs.real_harry.id);
     });
 
     it("restores a single already-open tab by switching to it", async () => {
@@ -1717,11 +2021,13 @@ describe("model", () => {
       const restored = env.model.tabs.tab(env.tabs.real_estelle.id)!;
       expect(restored.hidden).to.be.false;
       expect(restored.active).to.be.true;
-      expect(restored.position?.parent.id).to.equal(env.windows.real.id);
+      expect(restored.flattenedPosition?.parent.id).to.equal(
+        env.windows.real.id,
+      );
 
       // Nothing should have moved
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children.map(t => t.id)).to.deep.equal(
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal(
         env.windows.real.tabs!.map(t => t.id),
       );
     });
@@ -1737,7 +2043,7 @@ describe("model", () => {
       await events.next(browser.tabs.onUpdated);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
-      const restored = await p;
+      const restored = (await p) as M.Tabs.Tab[];
       await events.next(browser.tabs.onRemoved); // closing new-tab page
 
       expect(restored[0].hidden).to.be.false;
@@ -1746,7 +2052,7 @@ describe("model", () => {
       expect(restored[1].active).to.be.true;
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children.map(t => t.id)).to.deep.equal([
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal([
         env.tabs.real_patricia.id,
         env.tabs.real_paul.id,
         env.tabs.real_bob.id,
@@ -1778,7 +2084,7 @@ describe("model", () => {
       await events.nextN(browser.tabs.onUpdated, 2);
       await events.next(browser.tabs.onActivated);
       await events.next(browser.tabs.onHighlighted);
-      const restored = await p;
+      const restored = (await p) as M.Tabs.Tab[];
       await events.next(browser.tabs.onRemoved); // closing new-tab page
 
       expect(restored).to.deep.equal(
@@ -1807,7 +2113,7 @@ describe("model", () => {
       ]);
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(win.children.map(t => t.id)).to.deep.equal([
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal([
         env.tabs.real_patricia.id,
         env.tabs.real_paul.id,
         env.tabs.real_bob.id,
@@ -1820,6 +2126,125 @@ describe("model", () => {
         new_betty.id,
         env.tabs.real_doug.id,
         new_paul.id,
+      ]);
+    });
+
+    it("restores groups", async () => {
+      events.ignore([
+        browser.tabs.onCreated,
+        browser.tabs.onUpdated,
+        browser.tabs.onRemoved, // for the active new tab
+        browser.tabs.onHighlighted,
+        browser.tabs.onActivated,
+        browser.tabGroups.onCreated,
+        browser.tabGroups.onUpdated,
+      ]);
+      const restored_items = await env.model.restoreTabs(
+        [
+          {
+            title: "Group",
+            children: [
+              {url: `${B}#meow`},
+              {title: "Subgroup", children: [{url: `${B}#hiss`}]},
+              {url: `${B}#mew`},
+            ],
+          },
+          {title: "Empty", children: []},
+        ],
+        {},
+      );
+
+      expect(tabStructureOf(restored_items)).to.deep.equal([
+        {title: "Group", children: [`${B}#meow`, `${B}#mew`]},
+        {title: "Group > Subgroup", children: [`${B}#hiss`]},
+      ]);
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}#patricia`,
+        `${B}#paul`,
+        `${B}`,
+        `${B}#bob`,
+        `${B}#doug`,
+        `${B}#doug`,
+        {title: "EF Group", children: [`${B}#estelle`, `${B}#francis`]},
+        `${B}#harry`,
+        `${B}#unstashed`,
+        `${B}#helen`,
+        {title: "Group", children: [`${B}#meow`, `${B}#mew`]},
+        {title: "Group > Subgroup", children: [`${B}#hiss`]},
+      ]);
+    });
+
+    it("restores tabs to new tab groups", async () => {
+      const p = env.model.restoreTabs(
+        [{url: `${B}#harry`}, {url: `${B}#new-restored`}],
+        {groupTitle: "New Group"},
+      );
+      await events.next(browser.tabs.onMoved);
+      await events.next(browser.tabs.onUpdated);
+      await events.next(browser.tabs.onCreated);
+      await events.next(browser.tabs.onUpdated);
+      await events.next(browser.tabGroups.onCreated);
+      await events.next(browser.tabGroups.onUpdated);
+      await events.nextN(browser.tabs.onUpdated, 2); // group membership
+      await events.next(browser.tabs.onActivated);
+      await events.next(browser.tabs.onHighlighted);
+      const restored = (await p) as M.Tabs.TabGroupExtent[];
+      await events.next(browser.tabs.onRemoved); // closing new-tab page
+
+      expect(restored[0].type).to.equal("tab-group");
+
+      const restored_tg = restored[0] as TabGroupExtent;
+      const restored_tabs = restored_tg.children;
+
+      expect(restored_tg.group.title).to.equal("New Group");
+      expect(restored_tg.children.length).to.equal(2);
+
+      expect(restored_tabs[0].hidden, "0 hidden").to.be.false;
+      expect(restored_tabs[0].active, "0 active").to.be.false;
+      expect(restored_tabs[1].hidden, "1 hidden").to.be.false;
+      expect(restored_tabs[1].active, "1 active").to.be.true;
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(win.flattenedChildren.map(t => t.id)).to.deep.equal([
+        env.tabs.real_patricia.id,
+        env.tabs.real_paul.id,
+        env.tabs.real_bob.id,
+        env.tabs.real_doug.id,
+        env.tabs.real_doug_2.id,
+        env.tabs.real_estelle.id,
+        env.tabs.real_francis.id,
+        env.tabs.real_unstashed.id,
+        env.tabs.real_helen.id,
+        env.tabs.real_harry.id,
+        restored_tabs[1].id,
+      ]);
+
+      expect(
+        windowStructureOf(env.model.tabs.window(env.windows.real.id)!),
+      ).to.deep.equal([
+        [env.tabs.real_patricia.url, env.tabs.real_patricia.id],
+        [env.tabs.real_paul.url, env.tabs.real_paul.id],
+        [env.tabs.real_bob.url, env.tabs.real_bob.id],
+        [env.tabs.real_doug.url, env.tabs.real_doug.id],
+        [env.tabs.real_doug_2.url, env.tabs.real_doug_2.id],
+        [
+          env.groups.ef.id,
+          [
+            [env.tabs.real_estelle.url, env.tabs.real_estelle.id],
+            [env.tabs.real_francis.url, env.tabs.real_francis.id],
+          ],
+        ],
+        [env.tabs.real_unstashed.url, env.tabs.real_unstashed.id],
+        [env.tabs.real_helen.url, env.tabs.real_helen.id],
+        [
+          restored_tg.group.id,
+          [
+            [env.tabs.real_harry.url, env.tabs.real_harry.id],
+            [restored_tabs[1].url, restored_tabs[1].id],
+          ],
+        ],
       ]);
     });
   });
@@ -1925,10 +2350,10 @@ describe("model", () => {
 
       const restored = env.model.bookmarks.stash_root.value!
         .children[0] as Folder;
-      expect(isFolder(restored)).to.be.true;
+      expect(restored.type).to.equal("folder");
       expect(restored.title).to.equal(env.bookmarks.names.title);
       expect(
-        restored.children.map(bm => bm && isBookmark(bm) && bm.url),
+        restored.children.map(bm => bm?.type === "bookmark" && bm.url),
       ).to.deep.equal(env.bookmarks.names.children!.map(bm => bm.url));
     });
 
@@ -1975,7 +2400,7 @@ describe("model", () => {
         const bms = env.model.bookmarks.folder(
           env.bookmarks.names.id,
         )!.children;
-        expect(bms.map(bm => bm && isBookmark(bm) && bm.url)).to.deep.equal([
+        expect(bms.map(bm => bm?.type === "bookmark" && bm.url)).to.deep.equal([
           `${B}#doug`,
           `${B}#patricia`,
           `${B}#nate`,
@@ -2016,7 +2441,7 @@ describe("model", () => {
           env.bookmarks.unnamed.id,
         )!;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#helen`]);
       });
 
@@ -2052,11 +2477,11 @@ describe("model", () => {
         );
         const restored_folder = env.model.bookmarks.stash_root.value!
           .children[0] as Folder;
-        expect(isFolder(restored_folder)).to.be.true;
+        expect(restored_folder.type).to.equal("folder");
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
           .null;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#helen`]);
       });
     });
@@ -2092,7 +2517,7 @@ describe("model", () => {
           env.bookmarks.unnamed.id,
         )!;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#undyne`, `${B}#patricia`]);
 
         const item = env.model.deleted_items.state.entries[0]
@@ -2126,11 +2551,11 @@ describe("model", () => {
         );
         const restored_folder = env.model.bookmarks.stash_root.value!
           .children[0] as Folder;
-        expect(isFolder(restored_folder)).to.be.true;
+        expect(restored_folder.type).to.equal("folder");
         expect(getDefaultFolderNameISODate(restored_folder.title)).not.to.be
           .null;
         expect(
-          restored_folder.children.map(bm => bm && isBookmark(bm) && bm.url),
+          restored_folder.children.map(bm => bm?.type === "bookmark" && bm.url),
         ).to.deep.equal([`${B}#patricia`]);
 
         const item = env.model.deleted_items.state.entries[0]
@@ -2147,4 +2572,138 @@ describe("model", () => {
       });
     });
   });
+
+  describe("sort comparators", () => {
+    function t(
+      comparator: (a: M.StashItem, b: M.StashItem) => number,
+      a: M.StashItem,
+      expected: "==" | "<" | ">",
+      b: M.StashItem,
+    ) {
+      it(`${comparator.name}: ${JSON.stringify(a)} ${expected} "${JSON.stringify(b)}"`, () => {
+        const cmp = comparator(a, b);
+        if (expected === "==") expect(cmp).to.equal(0);
+        else if (expected === "<") expect(cmp).to.be.lessThan(0);
+        else expect(cmp).to.be.greaterThan(0);
+      });
+    }
+
+    t(M.sortByTitle, {title: "A", url: ""}, "==", {title: "A", children: []});
+    t(M.sortByTitle, {title: "B", url: ""}, ">", {title: "A", url: ""});
+    t(M.sortByTitle, {title: "A", url: ""}, "<", {title: "B", url: ""});
+    t(M.sortByTitle, {title: "A", url: ""}, "==", {title: "a", url: ""});
+    t(M.sortByTitle, {title: "e", url: ""}, "==", {title: "é", url: ""});
+    t(M.sortByTitle, {title: "[ticket-1234]", url: ""}, ">", {
+      title: "[ticket-20]",
+      url: "",
+    });
+
+    t(
+      M.sortByTitle,
+      {
+        type: "tab-group",
+        position: undefined,
+        children: [],
+        group: {
+          id: 0 as TabGroupID,
+          color: "blue",
+          collapsed: false,
+          title: "A",
+        },
+      },
+      "<",
+      {title: "B", url: ""},
+    );
+
+    t(
+      M.sortByTitle,
+      {
+        type: "tab-group",
+        position: undefined,
+        children: [],
+        group: {
+          id: 0 as TabGroupID,
+          color: "blue",
+          collapsed: false,
+          title: "A",
+        },
+      },
+      ">",
+      {url: "http://example.com/b"},
+    );
+
+    t(M.sortByTitle, {url: "http://example.com/a"}, "==", {
+      title: "",
+      children: [],
+    });
+
+    t(M.sortByURL, {url: "http://example.com/a"}, "<", {
+      url: "http://example.com/b",
+    });
+
+    t(M.sortByURL, {url: "http://example.com/a"}, "==", {
+      url: "http://example.com/a",
+    });
+
+    t(M.sortByURL, {url: "http://example.com/b"}, ">", {
+      url: "http://example.com/a",
+    });
+
+    t(M.sortByURL, {url: "http://a.b.com/foo"}, ">", {
+      url: "http://b.a.com/foo",
+    });
+
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#bar"}, "==", {
+      url: "http://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#baz"}, ">", {
+      url: "http://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#baz"}, ">", {
+      url: "https://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://a.b.com/foo?a=b#bar"}, "<", {
+      url: "https://a.b.com/foo?a=b#bar",
+    });
+    t(M.sortByURL, {url: "http://example.com/issues/10"}, ">", {
+      url: "http://example.com/issues/2",
+    });
+
+    t(
+      M.sortByURL,
+      {type: "window", id: 0 as WindowID, children: [], flattenedChildren: []},
+      "==",
+      {
+        title: "",
+        children: [],
+      },
+    );
+
+    t(
+      M.sortByURL,
+      {
+        type: "tab-group",
+        position: undefined,
+        children: [],
+        group: {
+          id: 0 as TabGroupID,
+          color: "blue",
+          collapsed: true,
+          title: "http://example.com/bbbb",
+        },
+      },
+      "<",
+      {title: "http://exaxmple.com/cccc", url: "http://example.com/"},
+    );
+  });
 });
+
+function tabStructureOf(
+  tabsOrTabGroups: (M.Tabs.TabGroupExtent | M.Tabs.Tab)[],
+): (string | {title: string; children: string[]})[] {
+  return tabsOrTabGroups.map(i =>
+    i.type === "tab"
+      ? i.url
+      : {title: i.group.title, children: i.children.map(c => c.url)},
+  );
+}

@@ -42,6 +42,10 @@ class MockStorageArea {
     return res;
   }
 
+  async getKeys(): Promise<string[]> {
+    return Object.keys(this._storage);
+  }
+
   async set(obj: StorageObject): Promise<void> {
     const ev: ChangeDict = {};
     for (let k of Object.keys(obj)) {

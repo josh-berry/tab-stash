@@ -4,6 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
 
     "baseUrl": ".",
 

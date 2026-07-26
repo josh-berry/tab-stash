@@ -46,7 +46,7 @@ const selection = the.model.selection;
 
 const visibleChildFolders = computed(() =>
   filterMap(props.folder.children, c =>
-    c && "children" in c && props.filter(c) && !selection.info(c).isSelected
+    c?.type === "folder" && props.filter(c) && !selection.info(c).isSelected
       ? c
       : undefined,
   ),
