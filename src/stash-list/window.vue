@@ -37,12 +37,12 @@
         />
         <a
           class="action stash newtab"
-          :title="`Open a new tab`"
+          :title="$t('newTabTooltip')"
           @click.prevent.stop="newTab"
         />
         <a
           class="action stash newtabgroup"
-          title="Create a new empty tab group"
+          :title="$t('newTabGroupTooltip')"
           @click.prevent.stop="newTabGroup"
         />
         <a

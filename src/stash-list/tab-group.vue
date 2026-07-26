@@ -31,7 +31,7 @@
         collapse: !props.group.group.collapsed,
         expand: props.group.group.collapsed,
       }"
-      :title="`Hide the tabs for this group`"
+      :title="$t('toggleCollapsedTabGroupTooltip')"
       @click.prevent.stop="toggleCollapsed"
     />
 
@@ -56,13 +56,13 @@
       <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
         <a
           class="action stash many"
-          :title="`Stash this tab group (hold ${altKeyName()} to keep tabs open)`"
+          :title="$t('stashTabGroup', [altKeyName()])"
           @click.prevent.stop="stash"
         />
 
         <a
           class="action stash newtab"
-          :title="`Open a new tab in this group`"
+          :title="$t('openTabInGroup')"
           @click.prevent.stop="newTab"
         />
 
@@ -70,59 +70,56 @@
           summary-class="action neutral icon-item-menu last-toolbar-button"
           h-position="right"
         >
-          <button
-            @click.prevent="ungroup"
-            title="Move all the tabs out of the group"
-          >
+          <button @click.prevent="ungroup" :title="$t('moveTabsOutOfGroup')">
             <span class="menu-icon icon icon-restore" />
-            <span>Ungroup</span>
+            <span>{{ $t("ungroup") }}</span>
           </button>
 
           <hr />
 
           <button
             @click.prevent="isShowingExportDialog = true"
-            title="Export links and URLs from this group"
+            :title="$t('exportFromGroupTooltip')"
           >
             <span class="menu-icon icon icon-export" />
-            <span>Export...</span>
+            <span>{{ $t("exportMenu") }}</span>
           </button>
 
           <hr />
 
           <button @click.prevent="sort(sortByTitle)">
             <span class="menu-icon icon icon-sort" />
-            <span>Sort by Title</span>
+            <span>{{ $t("sortByTitleMenu") }}</span>
           </button>
 
           <button @click.prevent="sort(sortByURL)">
             <span class="menu-icon icon icon-sort" />
-            <span>Sort by URL</span>
+            <span>{{ $t("sortByUrlMenu") }}</span>
           </button>
 
           <hr />
 
           <button
             @click.prevent="closeUnstashed"
-            title="Close all unstashed tabs in the group"
+            :title="$t('closeUnstashedTabsInGroupTooltip')"
           >
             <span class="menu-icon icon icon-delete-opened" />
-            <span>Close Unstashed Tabs</span>
+            <span>{{ $t("closeUnstashedTabsMenu") }}</span>
           </button>
 
           <button
             @click.prevent="closeStashed"
-            title="Close all stashed tabs in the group"
+            :title="$t('closeStashedTabsInGroupTooltip')"
           >
             <span class="menu-icon icon icon-delete-stashed" />
-            <span>Close Stashed Tabs</span>
+            <span>{{ $t("closeStashedTabsMenu") }}</span>
           </button>
 
           <hr />
 
-          <button @click.prevent="close" title="Close the entire tab group">
+          <button @click.prevent="close" :title="$t('closeTabGroupTooltip')">
             <span class="menu-icon icon icon-delete" />
-            <span>Close Group</span>
+            <span>{{ $t("closeTabGroupMenu") }}</span>
           </button>
         </Menu>
       </nav>
@@ -133,12 +130,20 @@
       >
         <a
           class="action restore"
-          :title="`Open ${selectedCount} selected item(s) into this tab group`"
+          :title="
+            $ts(selectedCount, 'openSelectedIntoTabGroupTooltip', [
+              `${selectedCount}`,
+            ])
+          "
           @click.prevent.stop="copySelectedItemsHere"
         />
         <a
           class="action restore-remove"
-          :title="`Unstash ${selectedCount} selected item(s) into this tab group`"
+          :title="
+            $ts(selectedCount, 'unstashSelectedIntoTabGroupTooltip', [
+              `${selectedCount}`,
+            ])
+          "
           @click.prevent.stop="moveSelectedItemsHere"
         />
       </nav>
@@ -190,7 +195,7 @@ import type {Tab, TabGroupExtent} from "../model/tabs.js";
 import the from "../globals-ui.js";
 import {dragDataType, recvDragData, sendDragData} from "./dnd-proto.js";
 import type {DNDAcceptedDropPositions} from "../components/dnd.js";
-import {altKeyName} from "../util/index.js";
+import {$t, $ts, altKeyName} from "../util/index.js";
 import {copyIf, copying, sortByTitle, sortByURL} from "../model/index.js";
 
 import ItemIcon from "../components/item-icon.vue";
