@@ -115,7 +115,12 @@ release-tag: clean-working-tree
 .NOTPARALLEL: release-tag
 
 clean-working-tree:
-	[ -z "$$(git status --porcelain)" ] # Working tree must be clean.
+	@if [ ! -z "$$(git status --porcelain)" ]; then \
+		git diff; \
+		git status; \
+		echo "!!! The working tree must be clean." >&2; \
+		exit 1; \
+	fi
 .PHONY: clean-working-tree
 .NOTPARALLEL: clean-working-tree
 
