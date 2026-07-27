@@ -84,6 +84,8 @@ rel-inner:
 # lying around in package-lock.json. :/
 up:
 	rm -rf package-lock.json node_modules
+	npm install
+	touch node_modules
 	$(MAKE)
 .PHONY: up
 
@@ -152,10 +154,9 @@ build-rel:
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 
-node_modules: package-lock.json
-node_modules package-lock.json: package.json
-	npm install
-	touch node_modules package-lock.json
+node_modules: package-lock.json package.json
+	npm clean-install
+	touch node_modules
 
 dist/tab-stash.css: node_modules $(wildcard styles/*.less) $(wildcard styles/*/*.less)
 	@mkdir -p dist
