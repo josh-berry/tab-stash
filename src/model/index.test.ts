@@ -254,6 +254,40 @@ describe("model", () => {
         ],
       );
     });
+
+    it("includes pinned tabs when the stash_include_pinned option is enabled", async () => {
+      await env.model.options.sync.set({stash_include_pinned: true});
+      await events.next(browser.storage.onChanged);
+      await events.next(browser.storage.sync.onChanged);
+      await events.next(env.model.options.sync.onChanged);
+
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
+        [
+          env.tabs.real_patricia.id,
+          env.tabs.real_paul.id,
+          env.tabs.real_bob.id,
+          env.tabs.real_doug.id,
+          env.tabs.real_estelle.id,
+          env.tabs.real_francis.id,
+          env.tabs.real_unstashed.id,
+        ],
+      );
+    });
+  });
+
+  describe("choosing pinned tabs in a window", () => {
+    it("throws when an invalid window is selected", () => {
+      expect(() => env.model.pinnedTabsInWindow("asdf" as any)).to.throw(Error);
+    });
+
+    it("chooses all non-hidden, pinned and non-privileged tabs", () => {
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      expect(env.model.pinnedTabsInWindow(win).map(t => t.id)).to.deep.equal([
+        env.tabs.real_patricia.id,
+        env.tabs.real_paul.id,
+      ]);
+    });
   });
 
   describe("hides or closes stashed tabs", () => {
@@ -394,6 +428,36 @@ describe("model", () => {
         });
         expect(env.model.tabs.tab(env.tabs.right_doug.id)).to.deep.include({
           url: env.tabs.right_doug.url,
+          hidden: true,
+        });
+      });
+
+      it("unpins and hides multiple pinned tabs, even when unpinning repositions them", async () => {
+        await env.model.options.local.set({after_stashing_tab: "hide"});
+        await events.next(browser.storage.onChanged);
+        await events.next(browser.storage.local.onChanged);
+        await events.next(env.model.options.local.onChanged);
+
+        // real_patricia and real_paul are both pinned, with real_patricia
+        // first; unpinning real_patricia moves it behind real_paul in the
+        // pinned/unpinned boundary, exercising the reposition+onMoved path.
+        const p = env.model.hideOrCloseStashedTabs([
+          env.model.tabs.tab(env.tabs.real_patricia.id)!,
+          env.model.tabs.tab(env.tabs.real_paul.id)!,
+        ]);
+        const i = events.ignore(browser.tabs.onMoved);
+        await events.nextN(browser.tabs.onUpdated, 4); // 2x unpinned, 2x hidden
+        await p;
+        i.cancel();
+
+        expect(env.model.tabs.tab(env.tabs.real_patricia.id)).to.deep.include({
+          url: env.tabs.real_patricia.url,
+          pinned: false,
+          hidden: true,
+        });
+        expect(env.model.tabs.tab(env.tabs.real_paul.id)).to.deep.include({
+          url: env.tabs.real_paul.url,
+          pinned: false,
           hidden: true,
         });
       });
