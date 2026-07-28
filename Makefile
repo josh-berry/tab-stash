@@ -84,6 +84,8 @@ rel-inner:
 # lying around in package-lock.json. :/
 up:
 	rm -rf package-lock.json node_modules
+	npm install
+	touch node_modules
 	$(MAKE)
 .PHONY: up
 
@@ -115,7 +117,12 @@ release-tag: clean-working-tree
 .NOTPARALLEL: release-tag
 
 clean-working-tree:
-	[ -z "$$(git status --porcelain)" ] # Working tree must be clean.
+	@if [ ! -z "$$(git status --porcelain)" ]; then \
+		git diff; \
+		git status; \
+		echo "!!! The working tree must be clean." >&2; \
+		exit 1; \
+	fi
 .PHONY: clean-working-tree
 .NOTPARALLEL: clean-working-tree
 
@@ -124,14 +131,17 @@ clean-working-tree:
 
 build-chrome-dbg: build-dbg
 	rsync -aHvx --delete --force dist/ dist-chrome/
-	cp assets/manifest.json dist-chrome/
-	patch --no-backup-if-mismatch dist-chrome/manifest.json chrome-manifest.patch
+	node ./patch-manifest-for-chrome.js >dist-chrome/manifest.json || (\
+		rm -f dist-chrome/manifest.json; \
+		exit 1 \
+	)
 .PHONY: build-chrome-dbg
 
 build-dbg: node_modules icons dist/tab-stash.css
 	NODE_ENV=development ./node_modules/.bin/vite build -c vite.config.html.ts -m development
 	NODE_ENV=development ./node_modules/.bin/vite build -c vite.config.lib.ts -m development
 	./node_modules/.bin/copyfiles -u 1 'assets/**/*' dist
+	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-dbg
 
 build-rel:
@@ -144,10 +154,9 @@ build-rel:
 	./node_modules/.bin/web-ext lint -s dist -i 'test.*'
 .PHONY: build-rel
 
-node_modules: package-lock.json
-node_modules package-lock.json: package.json
-	npm install
-	touch node_modules package-lock.json
+node_modules: package-lock.json package.json
+	npm clean-install
+	touch node_modules
 
 dist/tab-stash.css: node_modules $(wildcard styles/*.less) $(wildcard styles/*/*.less)
 	@mkdir -p dist

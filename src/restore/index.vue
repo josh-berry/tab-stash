@@ -6,28 +6,27 @@
       appear
       name="notification"
     >
-      <Notification v-if="copied" @dismiss="closeNotif">Copied</Notification>
+      <Notification v-if="copied" @dismiss="closeNotif">{{
+        $t("copiedNotification")
+      }}</Notification>
     </transition-group>
 
     <div class="flat-heading-icon icon-warning" />
 
-    <h1 v-if="protocol === 'file:'">Restoring a Local File</h1>
-    <h1 v-else>Suspicious Stashed Tab</h1>
+    <h1 v-if="protocol === 'file:'">{{ $t("restoreLocalFileTitle") }}</h1>
+    <h1 v-else>{{ $t("restoreSuspiciousTitle") }}</h1>
 
     <p v-if="protocol === 'file:'">
-      For security reasons, your browser won't allow Tab Stash to restore tabs
-      that show files on your computer without your intervention.
+      {{ $t("restoreLocalFileWarning") }}
     </p>
 
     <p v-else>
-      For security reasons, your browser won't allow Tab Stash to restore
-      privileged tabs without your intervention.
+      {{ $t("restorePrivilegedWarning") }}
     </p>
 
     <p>
-      <strong>Please make sure this URL looks right.</strong> If it looks okay,
-      you can restore the tab by copying and pasting the URL into the address
-      bar:
+      <strong>{{ $t("restoreURLWarningBold") }}</strong>
+      {{ $t("restoreURLWarningText") }}
     </p>
 
     <a ref="url" class="unsafe-url" :href="url" @click.prevent.stop="copy">{{
@@ -39,7 +38,7 @@
 <script lang="ts">
 import {defineComponent} from "vue";
 
-import {required} from "../util/index.js";
+import {required, $t} from "../util/index.js";
 
 import Notification from "../components/notification.vue";
 
@@ -65,6 +64,7 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
     copy() {
       const r = document.createRange();
       r.selectNodeContents(<Element>this.$refs.url);

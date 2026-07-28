@@ -1,41 +1,39 @@
 <template>
   <Notification inactive @dismiss="clearErrorLog">
     <div :class="$style.msg">
-      Oops! Something went wrong. Tab Stash will try to recover automatically.
+      {{ $t("crashRecoverMsg") }}
     </div>
 
     <details :class="$style.details" @click.stop="">
-      <summary>Get Help With This Crash</summary>
+      <summary>{{ $t("crashGetHelpSummary") }}</summary>
 
       <p>
-        Here are a few options that might help. Crash details are shown below
-        for easy reference&mdash;they will be cleared once you close this
-        notification.
+        {{ $t("crashOptionsHelp") }}
       </p>
 
       <p>
         <button @click.stop="showTroubleshooting">
-          Show Troubleshooting Guide
+          {{ $t("crashShowTroubleshootingBtn") }}
         </button>
-        <button @click.stop="searchGitHub">Search for Similar Issues</button>
+        <button @click.stop="searchGitHub">
+          {{ $t("crashSearchGitHubBtn") }}
+        </button>
         <button
           :disabled="!searchedForCrashes"
-          :title="
-            !searchedForCrashes
-              ? `Please search for similar issues before reporting a crash, to be sure you're not about to report a duplicate.`
-              : ''
-          "
+          :title="!searchedForCrashes ? $t('crashReportWarnTooltip') : ''"
           @click.stop="reportCrash"
         >
-          Report Crash
+          {{ $t("crashReportBtn") }}
         </button>
       </p>
 
       <p>
         <output ref="err_log_el" :class="$style.err_details_list">
           <p :class="$style.environment">
-            Browser: {{ aboutBrowser }} ({{ aboutPlatform }})<br />
-            Extension: {{ aboutExtension }}
+            {{ $t("crashBrowserLabel") }} {{ aboutBrowser }} ({{
+              aboutPlatform
+            }})<br />
+            {{ $t("crashExtensionLabel") }} {{ aboutExtension }}
           </p>
 
           <p v-for="err of errorLog">
@@ -48,28 +46,28 @@
     </details>
 
     <details :class="$style.details" @click.stop="">
-      <summary>Hide Crash Reports</summary>
+      <summary>{{ $t("crashHideReportsSummary") }}</summary>
 
       <p>
-        If you're seeing too many crash reports, you can temporarily hide them:
+        {{ $t("crashHideReportsHelp") }}
       </p>
 
       <p>
         <button @click.stop="hideCrashReports(5 * 60 * 1000)">
-          for 5 minutes
+          {{ $t("crashHide5Min") }}
         </button>
         <button @click.stop="hideCrashReports(60 * 60 * 1000)">
-          for 1 hour
+          {{ $t("crashHide1Hour") }}
         </button>
         <button @click.stop="hideCrashReports(24 * 60 * 60 * 1000)">
-          for 1 day
+          {{ $t("crashHide1Day") }}
         </button>
         <button @click.stop="hideCrashReports(7 * 24 * 60 * 60 * 1000)">
-          for 1 week
+          {{ $t("crashHide1Week") }}
         </button>
       </p>
 
-      <p>Crash reports can be turned on again in settings.</p>
+      <p>{{ $t("crashHideSettingsNote") }}</p>
     </details>
   </Notification>
 </template>
@@ -107,6 +105,7 @@ if (browser.management.getSelf) {
 import the from "../globals-ui.js";
 import {clearErrorLog, errorLog, logErrorsFrom} from "../util/oops.js";
 import Notification from "./notification.vue";
+import {$t} from "../util/index.js";
 
 const err_log_el: Ref<object | null> = ref(null);
 

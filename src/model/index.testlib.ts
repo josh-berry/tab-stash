@@ -21,6 +21,7 @@ import {LOCAL_DEF, SYNC_DEF} from "./options.js";
 
 export interface ModelTestEnv {
   tabs: TabFixture["tabs"];
+  groups: TabFixture["groups"];
   windows: TabFixture["windows"];
   bookmarks: BookmarkFixture;
 
@@ -34,6 +35,7 @@ export interface ModelTestEnv {
 
 export async function setupModelTestEnv(): Promise<ModelTestEnv> {
   let tabs: TabFixture["tabs"];
+  let groups: TabFixture["groups"];
   let windows: TabFixture["windows"];
   let bookmarks: BookmarkFixture;
 
@@ -51,6 +53,7 @@ export async function setupModelTestEnv(): Promise<ModelTestEnv> {
 
   const tw = await make_tabs();
   tabs = tw.tabs;
+  groups = tw.groups;
   windows = tw.windows;
   bookmarks = await make_bookmarks();
 
@@ -98,13 +101,20 @@ export async function setupModelTestEnv(): Promise<ModelTestEnv> {
   await events
     .watch(["EventfulMap.onInsert", "EventfulMap.onUpdate"])
     .untilNextTick();
-  expect(tab_model.window(windows.left.id)!.children.length).to.equal(3);
-  expect(tab_model.window(windows.right.id)!.children.length).to.equal(3);
-  expect(tab_model.window(windows.real.id)!.children.length).to.equal(11);
+  expect(tab_model.window(windows.left.id)!.flattenedChildren.length).to.equal(
+    3,
+  );
+  expect(tab_model.window(windows.right.id)!.flattenedChildren.length).to.equal(
+    3,
+  );
+  expect(tab_model.window(windows.real.id)!.flattenedChildren.length).to.equal(
+    11,
+  );
   expect(bm_model.stash_root.value!.id).to.equal(bookmarks.stash_root.id);
 
   return {
     tabs,
+    groups,
     windows,
     bookmarks,
     bookmark_metadata,

@@ -3,21 +3,54 @@ import browser from "webextension-polyfill";
 
 import * as events from "../mock/events.js";
 
-import {B, make_tabs, type TabFixture} from "./fixtures.testlib.js";
+import {
+  B,
+  make_tabs,
+  type TabFixture,
+  windowStructureOf,
+} from "./fixtures.testlib.js";
 import * as M from "./tabs.js";
 
 describe("model/tabs", () => {
   let windows: TabFixture["windows"];
+  let groups: TabFixture["groups"];
   let tabs: TabFixture["tabs"];
   let model: M.Model;
 
   beforeEach(async () => {
     const setup = await make_tabs();
     windows = setup.windows;
+    groups = setup.groups;
     tabs = setup.tabs;
 
     model = await M.Model.from_browser();
     expect(events.pendingCount()).to.equal(0);
+  });
+
+  afterEach(async () => {
+    for (const w of model.allWindows()) {
+      for (const t of w.flattenedChildren) {
+        expect(t.flattenedPosition!.parent).to.equal(w);
+        expect(t.flattenedPosition!.index).to.equal(
+          w.flattenedChildren.indexOf(t),
+        );
+      }
+
+      for (const c of w.children) {
+        if (c.type === "tab") {
+          expect(c.position!.parent).to.equal(w);
+          expect(c.position!.index).to.equal(w.children.indexOf(c));
+        } else if (c.type === "tab-group") {
+          expect(c.position!.parent).to.equal(w);
+          expect(c.position!.index).to.equal(w.children.indexOf(c));
+
+          for (const t of c.children) {
+            expect(t.position!.parent).to.equal(c);
+            expect(t.position!.index).to.equal(c.children.indexOf(t));
+          }
+        }
+      }
+    }
   });
 
   it("loads tabs correctly", async () => {
@@ -26,7 +59,7 @@ describe("model/tabs", () => {
       /* c8 ignore next -- the ?? operators always short-circuit */
       expect(model.tab(tab.id)).to.deep.include({
         id: tab.id,
-        position: {
+        flattenedPosition: {
           parent: model.window(tab.windowId!),
           index: tab.index,
         },
@@ -44,12 +77,24 @@ describe("model/tabs", () => {
     }
   });
 
+  it("loads tab groups correctly", async () => {
+    for (const g in groups) {
+      const group = groups[g as keyof typeof groups];
+      expect(model.group(group.id)).to.deep.include({
+        id: group.id,
+        title: group.title,
+        color: group.color,
+        collapsed: group.collapsed,
+      });
+    }
+  });
+
   it("tracks tabs by window", async () => {
     for (const w in windows) {
       const win = windows[w as keyof typeof windows];
-      expect(model.window(win.id)!.children.map(t => t.id)).to.deep.equal(
-        win.tabs!.map(t => t.id),
-      );
+      expect(
+        model.window(win.id)!.flattenedChildren.map(t => t.id),
+      ).to.deep.equal(win.tabs!.map(t => t.id));
     }
   });
 
@@ -75,7 +120,7 @@ describe("model/tabs", () => {
       discarded: false,
       cookieStoreId: undefined,
     });
-    expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
+    expect(model.tab(t.id! as M.TabID)!.flattenedPosition).to.deep.equal({
       parent: model.window(windows.left.id),
       index: 3,
     });
@@ -87,13 +132,13 @@ describe("model/tabs", () => {
       title: "",
       url: "about:blank#insert-new-tab",
     });
-    expect(model.tab(t.id! as M.TabID)!.position).to.deep.equal({
+    expect(model.tab(t.id! as M.TabID)!.flattenedPosition).to.deep.equal({
       parent: model.window(windows.left.id),
       index: 3,
     });
 
     expect(
-      model.window(windows.left.id)!.children.map(t => t.id),
+      model.window(windows.left.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_betty.id,
@@ -101,7 +146,7 @@ describe("model/tabs", () => {
       t.id!,
     ]);
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
@@ -151,19 +196,20 @@ describe("model/tabs", () => {
 
     expect(model.tab(tid)).to.deep.include({
       id: tid,
-      position: {parent: model.window(win.id!)!, index: 0},
+      flattenedPosition: {parent: model.window(win.id!)!, index: 0},
       url: `${B}#hi`,
     });
     expect(model.tabsWithURL(`${B}#hi`)).to.deep.equal(
       new Set([model.tab(tid)]),
     );
     expect(
-      model.window(win.id as M.WindowID)!.children.map(t => t.id),
+      model.window(win.id as M.WindowID)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tid]);
 
     // Cleanup for running this test in a live environment - close the
     // window we just created
     await browser.windows.remove(win.id!);
+    await events.next(browser.tabs.onRemoved);
     await events.next(browser.windows.onRemoved);
     await events.next(browser.windows.onFocusChanged);
 
@@ -190,27 +236,32 @@ describe("model/tabs", () => {
     await events.next(browser.tabs.onCreated);
 
     expect(model.tab(16384 as M.TabID)).to.deep.equal({
-      id: tab.id,
+      type: "tab",
       position: {
         parent: model.window(16590 as M.WindowID)!,
         index: 0,
       },
+      flattenedPosition: {
+        parent: model.window(16590 as M.WindowID)!,
+        index: 0,
+      },
+      id: tab.id,
       status: "loading",
       title: "",
       url: "hi",
       favIconUrl: "",
+      cookieStoreId: tab.cookieStoreId,
       pinned: false,
       hidden: false,
       active: false,
       highlighted: false,
       discarded: false,
-      cookieStoreId: tab.cookieStoreId,
     });
     expect(Array.from(model.tabsWithURL("hi"))).to.deep.equal([
       model.tab(16384 as M.TabID),
     ]);
     expect(
-      model.window(16590 as M.WindowID)!.children.map(t => t.id),
+      model.window(16590 as M.WindowID)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tab.id]);
   });
 
@@ -253,16 +304,17 @@ describe("model/tabs", () => {
       cookieStoreId: tab.cookieStoreId,
     });
     expect(model.tab(tid)).to.deep.include({
-      position: {parent: model.window(win.id!)!, index: 0},
+      flattenedPosition: {parent: model.window(win.id!)!, index: 0},
     });
     expect(model.tabsWithURL("cats")).to.deep.equal(new Set([model.tab(tid)]));
     expect(
-      model.window(win.id! as M.WindowID)!.children.map(t => t.id),
+      model.window(win.id! as M.WindowID)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tid]);
 
     // Cleanup when running in a live environment - close the window we just
     // created
     await browser.windows.remove(win.id!);
+    await events.next(browser.tabs.onRemoved);
     await events.next(browser.windows.onRemoved);
     await events.next(browser.windows.onFocusChanged);
 
@@ -277,12 +329,13 @@ describe("model/tabs", () => {
 
     expect(model.tab(tabs.right_adam.id)).to.be.undefined;
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tabs.right_blank.id, tabs.right_doug.id]);
   });
 
   it("closes windows", async () => {
     const p = model.removeWindows([model.window(windows.left.id)!]);
+    await events.nextN(browser.tabs.onRemoved, 3);
     await events.next(browser.windows.onRemoved);
     await p;
 
@@ -301,13 +354,14 @@ describe("model/tabs", () => {
 
     expect(model.tab(tabs.right_adam.id)).to.be.undefined;
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tabs.right_blank.id, tabs.right_doug.id]);
   });
 
   it("drops tabs in a window when the window is closed", async () => {
     // Initial state validated by the earlier tabs-by-window test
     await browser.windows.remove(windows.right.id);
+    await events.nextN(browser.tabs.onRemoved, 3);
     await events.next(browser.windows.onRemoved);
 
     expect(model.window(windows.right.id)).to.be.undefined;
@@ -320,122 +374,122 @@ describe("model/tabs", () => {
   });
 
   it("moves tabs within a window (forwards)", async () => {
-    await browser.tabs.move(tabs.left_alice.id, {
-      windowId: windows.left.id,
-      index: 2,
-    });
-    await events.next(browser.tabs.onMoved);
-
     const left = model.window(windows.left.id)!;
-    expect(left.children.map(t => t.id)).to.deep.equal([
+    const alice = model.tab(tabs.left_alice.id)!;
+
+    const p = model.move(alice, left, 3);
+    await events.next(browser.tabs.onMoved);
+    await p;
+
+    expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_betty.id,
       tabs.left_charlotte.id,
       tabs.left_alice.id,
     ]);
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      position: {parent: left, index: 0},
+      flattenedPosition: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      position: {parent: left, index: 1},
+      flattenedPosition: {parent: left, index: 1},
     });
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      position: {parent: left, index: 2},
+      flattenedPosition: {parent: left, index: 2},
     });
 
     const right = model.window(windows.right.id)!;
-    expect(right.children.map(t => t.id)).to.deep.equal([
+    expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      position: {parent: right, index: 0},
+      flattenedPosition: {parent: right, index: 0},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      position: {parent: right, index: 1},
+      flattenedPosition: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      position: {parent: right, index: 2},
+      flattenedPosition: {parent: right, index: 2},
     });
   });
 
   it("moves tabs within a window (backwards)", async () => {
-    await browser.tabs.move(tabs.left_charlotte.id, {
-      windowId: windows.left.id,
-      index: 0,
-    });
-    await events.next(browser.tabs.onMoved);
-
     const left = model.window(windows.left.id)!;
-    expect(left.children.map(t => t.id)).to.deep.equal([
+    const charlotte = model.tab(tabs.left_charlotte.id)!;
+
+    const p = model.move(charlotte, left, 0);
+    await events.next(browser.tabs.onMoved);
+    await p;
+
+    expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_charlotte.id,
       tabs.left_alice.id,
       tabs.left_betty.id,
     ]);
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      position: {parent: left, index: 0},
+      flattenedPosition: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      position: {parent: left, index: 1},
+      flattenedPosition: {parent: left, index: 1},
     });
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      position: {parent: left, index: 2},
+      flattenedPosition: {parent: left, index: 2},
     });
 
     const right = model.window(windows.right.id)!;
-    expect(right.children.map(t => t.id)).to.deep.equal([
+    expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      position: {parent: right, index: 0},
+      flattenedPosition: {parent: right, index: 0},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      position: {parent: right, index: 1},
+      flattenedPosition: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      position: {parent: right, index: 2},
+      flattenedPosition: {parent: right, index: 2},
     });
   });
 
   it("moves tabs between windows", async () => {
-    await browser.tabs.move(tabs.left_betty.id, {
-      windowId: windows.right.id,
-      index: 1,
-    });
-    await events.next(browser.tabs.onAttached);
-
     const left = model.window(windows.left.id)!;
-    expect(left.children.map(t => t.id)).to.deep.equal([
+    const right = model.window(windows.right.id)!;
+    const betty = model.tab(tabs.left_betty.id)!;
+
+    const p = model.move(betty, right, 1);
+    await events.next(browser.tabs.onAttached);
+    await p;
+
+    expect(left.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.left_alice.id,
       tabs.left_charlotte.id,
     ]);
     expect(model.tab(tabs.left_alice.id)).to.deep.include({
-      position: {parent: left, index: 0},
+      flattenedPosition: {parent: left, index: 0},
     });
     expect(model.tab(tabs.left_charlotte.id)).to.deep.include({
-      position: {parent: left, index: 1},
+      flattenedPosition: {parent: left, index: 1},
     });
 
-    const right = model.window(windows.right.id)!;
-    expect(right.children.map(t => t.id)).to.deep.equal([
+    expect(right.flattenedChildren.map(t => t.id)).to.deep.equal([
       tabs.right_blank.id,
       tabs.left_betty.id,
       tabs.right_adam.id,
       tabs.right_doug.id,
     ]);
     expect(model.tab(tabs.right_blank.id)).to.deep.include({
-      position: {parent: right, index: 0},
+      flattenedPosition: {parent: right, index: 0},
     });
     expect(model.tab(tabs.left_betty.id)).to.deep.include({
-      position: {parent: right, index: 1},
+      flattenedPosition: {parent: right, index: 1},
     });
     expect(model.tab(tabs.right_adam.id)).to.deep.include({
-      position: {parent: right, index: 2},
+      flattenedPosition: {parent: right, index: 2},
     });
     expect(model.tab(tabs.right_doug.id)).to.deep.include({
-      position: {parent: right, index: 3},
+      flattenedPosition: {parent: right, index: 3},
     });
   });
 
@@ -449,10 +503,10 @@ describe("model/tabs", () => {
     expect(model.tab(16384 as M.TabID)).to.equal(tab);
 
     expect(
-      model.window(windows.left.id)!.children.map(t => t.id),
+      model.window(windows.left.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([tabs.left_alice.id, tabs.left_betty.id, 16384 as M.TabID]);
     expect(
-      model.window(windows.right.id)!.children.map(t => t.id),
+      model.window(windows.right.id)!.flattenedChildren.map(t => t.id),
     ).to.deep.equal([
       tabs.right_blank.id,
       tabs.right_adam.id,
@@ -478,7 +532,7 @@ describe("model/tabs", () => {
 
     expect(model.tab(16384 as M.TabID)).to.deep.include({
       id: 16384,
-      position: {
+      flattenedPosition: {
         parent: model.window(16590 as M.WindowID),
         index: 0,
       },
@@ -592,4 +646,1025 @@ describe("model/tabs", () => {
       newActiveTab: undefined,
     });
   });
+
+  describe("tab groups", () => {
+    const groupIdOf = (tab: M.Tab) =>
+      tab.position && "group" in tab.position.parent
+        ? tab.position.parent.group.id
+        : -1;
+
+    it("creates groups from multiple existing tabs at once", async () => {
+      const gid = await browser.tabs.group({
+        tabIds: [tabs.left_alice.id, tabs.left_betty.id],
+        createProperties: {windowId: windows.left.id},
+      });
+      expect(gid).to.not.equal(groups.ef.id);
+      await events.next(browser.tabGroups.onCreated);
+      await events.nextN(browser.tabs.onUpdated, 2);
+
+      expect(
+        model
+          .window(windows.left.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+      ).to.deep.equal([
+        [tabs.left_alice.url, tabs.left_alice.id, gid],
+        [tabs.left_betty.url, tabs.left_betty.id, gid],
+        [tabs.left_charlotte.url, tabs.left_charlotte.id, -1],
+      ]);
+
+      expect(windowStructureOf(model.window(windows.left.id)!)).to.deep.equal([
+        [
+          gid,
+          [
+            [tabs.left_alice.url, tabs.left_alice.id],
+            [tabs.left_betty.url, tabs.left_betty.id],
+          ],
+        ],
+        [tabs.left_charlotte.url, tabs.left_charlotte.id],
+      ]);
+
+      expect(model.group(gid as M.TabGroupID)).to.deep.include({
+        id: gid,
+        title: "",
+        color: "grey",
+        collapsed: false,
+      });
+      expect(model.tab(tabs.left_alice.id)!.position!.parent).to.deep.include({
+        group: model.group(gid as M.TabGroupID),
+      });
+      expect(model.tab(tabs.left_betty.id)!.position!.parent).to.deep.include({
+        group: model.group(gid as M.TabGroupID),
+      });
+    });
+
+    describe("new tab is created inside a group", () => {
+      // This is untestable; there is no groupId parameter, so it's impossible
+      // to create a tab directly inside the group. The best we can do is akin
+      // to "tab stays in position and moves into group".
+      // it("...at the beginning of the group");
+
+      it("...in the middle of the group", async () => {
+        const tab = await browser.tabs.create({
+          windowId: windows.real.id,
+          index: tabs.real_francis.index,
+          url: `${B}#new-next-to-francis`,
+        });
+        await events.next(browser.tabs.onCreated);
+        await events.next(browser.tabs.onUpdated);
+        await events.next(browser.tabs.onActivated);
+        await events.next(browser.tabs.onHighlighted);
+
+        expect(
+          model
+            .window(windows.real.id)!
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+          [`${B}#new-next-to-francis`, tab.id, groups.ef.id],
+          [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [`${B}#new-next-to-francis`, tab.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+      });
+
+      // it("...at the end of the group"); // same problem as "beginning"
+    });
+
+    it("tab changes position and moves into group", async () => {
+      await browser.tabs.move(tabs.real_blank.id, {
+        windowId: windows.real.id,
+        index: tabs.real_estelle.index,
+      });
+
+      await events.next(browser.tabs.onMoved);
+      expect(
+        model
+          .window(windows.real.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        "after onMoved, the flattened children should be in the correct order",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+        [tabs.real_paul.url, tabs.real_paul.id, -1],
+        [tabs.real_bob.url, tabs.real_bob.id, -1],
+        [tabs.real_doug.url, tabs.real_doug.id, -1],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+        [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+        [tabs.real_blank.url, tabs.real_blank.id, -1],
+        [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+        [tabs.real_harry.url, tabs.real_harry.id, -1],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+        [tabs.real_helen.url, tabs.real_helen.id, -1],
+      ]);
+
+      expect(
+        windowStructureOf(model.window(windows.real.id)!),
+        "after onMoved, there should be multiple extents for the group",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [groups.ef.id, [[tabs.real_estelle.url, tabs.real_estelle.id]]],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+
+      await events.next(browser.tabs.onUpdated);
+      expect(
+        model
+          .window(windows.real.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        "after onUpdated, the flattened children should be in the correct order",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+        [tabs.real_paul.url, tabs.real_paul.id, -1],
+        [tabs.real_bob.url, tabs.real_bob.id, -1],
+        [tabs.real_doug.url, tabs.real_doug.id, -1],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+        [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+        [tabs.real_blank.url, tabs.real_blank.id, groups.ef.id],
+        [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+        [tabs.real_harry.url, tabs.real_harry.id, -1],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+        [tabs.real_helen.url, tabs.real_helen.id, -1],
+      ]);
+
+      expect(
+        windowStructureOf(model.window(windows.real.id)!),
+        "after onUpdated, the window structure should be correct",
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [
+          groups.ef.id,
+          [
+            [tabs.real_estelle.url, tabs.real_estelle.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_francis.url, tabs.real_francis.id],
+          ],
+        ],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+    });
+
+    describe("tab stays in position and...", () => {
+      describe("...is not in a group and is added to an adjacent group", () => {
+        it("...at the beginning", async () => {
+          const real = model.window(windows.real.id)!;
+          const ef = real.children[6] as M.TabGroupExtent;
+          expect(ef.type).to.equal("tab-group");
+          const doug_2 = model.tab(tabs.real_doug_2.id)!;
+
+          await model.show(doug_2);
+          await events.next(browser.tabs.onUpdated);
+
+          const p = model.move(doug_2, ef, 0);
+          await events.next(browser.tabs.onUpdated);
+          await p;
+
+          expect(
+            real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+            [tabs.real_paul.url, tabs.real_paul.id, -1],
+            [tabs.real_blank.url, tabs.real_blank.id, -1],
+            [tabs.real_bob.url, tabs.real_bob.id, -1],
+            [tabs.real_doug.url, tabs.real_doug.id, -1],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, groups.ef.id],
+            [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+            [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+            [tabs.real_harry.url, tabs.real_harry.id, -1],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+            [tabs.real_helen.url, tabs.real_helen.id, -1],
+          ]);
+
+          expect(
+            windowStructureOf(model.window(windows.real.id)!),
+            "after onUpdated, the window structure should be correct",
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
+        });
+
+        it("...at the end", async () => {
+          const real = model.window(windows.real.id)!;
+          const ef = real.children[6] as M.TabGroupExtent;
+          expect(ef.type).to.equal("tab-group");
+          const harry = model.tab(tabs.real_harry.id)!;
+
+          await model.show(harry);
+          await events.next(browser.tabs.onUpdated);
+
+          const p = model.move(harry, ef, ef.children.length);
+          await events.next(browser.tabs.onUpdated);
+          await p;
+
+          expect(
+            real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+            [tabs.real_paul.url, tabs.real_paul.id, -1],
+            [tabs.real_blank.url, tabs.real_blank.id, -1],
+            [tabs.real_bob.url, tabs.real_bob.id, -1],
+            [tabs.real_doug.url, tabs.real_doug.id, -1],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+            [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+            [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+            [tabs.real_harry.url, tabs.real_harry.id, groups.ef.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+            [tabs.real_helen.url, tabs.real_helen.id, -1],
+          ]);
+
+          expect(
+            windowStructureOf(model.window(windows.real.id)!),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+                [tabs.real_harry.url, tabs.real_harry.id],
+              ],
+            ],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
+        });
+      });
+
+      describe("...switches from one group to an adjacent group", () => {
+        let groupId: number = -1;
+        beforeEach(async () => {
+          await browser.tabs.show(tabs.real_doug_2.id);
+          await events.next(browser.tabs.onUpdated);
+          expect(model.tab(tabs.real_doug_2.id)).to.deep.include({
+            hidden: false,
+          });
+
+          groupId = await browser.tabs.group({
+            tabIds: [tabs.real_doug.id, tabs.real_doug_2.id],
+          });
+          expect(groupId).to.not.equal(groups.ef.id);
+          await events.next(browser.tabGroups.onCreated);
+          await events.next(browser.tabs.onUpdated);
+          await events.next(browser.tabs.onUpdated);
+
+          expect(
+            model
+              .window(windows.real.id)!
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+            [tabs.real_paul.url, tabs.real_paul.id, -1],
+            [tabs.real_blank.url, tabs.real_blank.id, -1],
+            [tabs.real_bob.url, tabs.real_bob.id, -1],
+            [tabs.real_doug.url, tabs.real_doug.id, groupId],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, groupId],
+            [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+            [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+            [tabs.real_harry.url, tabs.real_harry.id, -1],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+            [tabs.real_helen.url, tabs.real_helen.id, -1],
+          ]);
+
+          expect(
+            windowStructureOf(model.window(windows.real.id)!),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [
+              groupId,
+              [
+                [tabs.real_doug.url, tabs.real_doug.id],
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
+              ],
+            ],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
+        });
+
+        it("...from the beginning of the old group to the end of the new group", async () => {
+          const real = model.window(windows.real.id)!;
+          const ef = real.children[5] as M.TabGroupExtent;
+          expect(ef.type, "ef.type").to.equal("tab-group");
+          expect(ef.group.id).to.equal(groups.ef.id);
+          const newGroup = real.children[4] as M.TabGroupExtent;
+          expect(newGroup.type, "newGroup.type").to.equal("tab-group");
+          expect(newGroup.group.id).to.equal(groupId);
+          const estelle = model.tab(tabs.real_estelle.id)!;
+
+          const p = model.move(estelle, newGroup, newGroup.children.length);
+          await events.next(browser.tabs.onUpdated);
+          await p;
+
+          expect(
+            real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+            [tabs.real_paul.url, tabs.real_paul.id, -1],
+            [tabs.real_blank.url, tabs.real_blank.id, -1],
+            [tabs.real_bob.url, tabs.real_bob.id, -1],
+            [tabs.real_doug.url, tabs.real_doug.id, groupId],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, groupId],
+            [tabs.real_estelle.url, tabs.real_estelle.id, groupId],
+            [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+            [tabs.real_harry.url, tabs.real_harry.id, -1],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+            [tabs.real_helen.url, tabs.real_helen.id, -1],
+          ]);
+        });
+
+        it("...from the end of the old group to the beginning of the new group", async () => {
+          await browser.tabs.group({
+            groupId: groups.ef.id,
+            tabIds: [tabs.real_doug_2.id],
+          });
+          await events.next(browser.tabs.onUpdated);
+
+          expect(
+            model
+              .window(windows.real.id)!
+              .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+            [tabs.real_paul.url, tabs.real_paul.id, -1],
+            [tabs.real_blank.url, tabs.real_blank.id, -1],
+            [tabs.real_bob.url, tabs.real_bob.id, -1],
+            [tabs.real_doug.url, tabs.real_doug.id, groupId],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id, groups.ef.id],
+            [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+            [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+            [tabs.real_harry.url, tabs.real_harry.id, -1],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+            [tabs.real_helen.url, tabs.real_helen.id, -1],
+          ]);
+
+          expect(
+            windowStructureOf(model.window(windows.real.id)!),
+          ).to.deep.equal([
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [groupId, [[tabs.real_doug.url, tabs.real_doug.id]]],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_doug_2.url, tabs.real_doug_2.id],
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ]);
+        });
+      });
+
+      it("...is added to a completely new group", async () => {
+        // Tested directly in beforeEach
+      });
+
+      it("...is removed from its group", async () => {
+        const real = model.window(windows.real.id)!;
+        const estelle = model.tab(tabs.real_estelle.id)!;
+
+        const p = model.move(estelle, real, 6);
+        await events.next(browser.tabs.onUpdated);
+        await p;
+
+        expect(
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, -1],
+          [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [tabs.real_estelle.url, tabs.real_estelle.id],
+            [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+      });
+
+      it("...is removed from its group and the group is destroyed", async () => {
+        const real = model.window(windows.real.id)!;
+        const estelle = model.tab(tabs.real_estelle.id)!;
+        const francis = model.tab(tabs.real_francis.id)!;
+
+        let p = model.move(estelle, real, 6);
+        await events.next(browser.tabs.onUpdated);
+        await p;
+
+        p = model.move(francis, real, 7);
+        await events.next(browser.tabs.onUpdated);
+        await events.next(browser.tabGroups.onRemoved);
+        await p;
+
+        expect(
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, -1],
+          [tabs.real_francis.url, tabs.real_francis.id, -1],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [tabs.real_estelle.url, tabs.real_estelle.id],
+            [tabs.real_francis.url, tabs.real_francis.id],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+
+        expect(model.group(groups.ef.id)).to.be.undefined;
+      });
+    }); // tab stays in position
+
+    describe("an entire group is moved", () => {
+      it("...backward in the window", async () => {
+        const real = model.window(windows.real.id)!;
+        const ef = real.children[6] as M.TabGroupExtent;
+        expect(ef.type).to.equal("tab-group");
+        expect(ef.group.id).to.equal(groups.ef.id);
+
+        const p = model.moveGroup(ef, real, 3);
+        await events.nextN(browser.tabs.onMoved, 2);
+        await events.next(browser.tabGroups.onMoved);
+        await p;
+
+        expect(
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+          [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+      });
+
+      it("...forward in the window", async () => {
+        const real = model.window(windows.real.id)!;
+        const ef = real.children[6] as M.TabGroupExtent;
+        expect(ef.type).to.equal("tab-group");
+        expect(ef.group.id).to.equal(groups.ef.id);
+
+        const p = model.moveGroup(ef, real, 9);
+        await events.nextN(browser.tabs.onMoved, 2);
+        await events.next(browser.tabGroups.onMoved);
+        await p;
+
+        expect(
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+          [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_francis.url, tabs.real_francis.id],
+              ],
+            ],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+      });
+
+      it("...from one window to another", async () => {
+        const real = model.window(windows.real.id)!;
+        const right = model.window(windows.right.id)!;
+        const ef = real.children[6] as M.TabGroupExtent;
+        expect(ef.type).to.equal("tab-group");
+        expect(ef.group.id).to.equal(groups.ef.id);
+
+        const p = model.moveGroup(ef, right, 3);
+        await events.nextN(browser.tabs.onAttached, 2);
+        await events.nextN(browser.tabs.onUpdated, 2);
+        await events.next(browser.tabGroups.onMoved);
+        await p;
+
+        expect(
+          real.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+
+        expect(
+          right.flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.right_blank.url, tabs.right_blank.id, -1],
+          [tabs.right_adam.url, tabs.right_adam.id, -1],
+          [tabs.right_doug.url, tabs.right_doug.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+          [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+        ]);
+
+        expect(
+          windowStructureOf(model.window(windows.right.id)!),
+        ).to.deep.equal([
+          [tabs.right_blank.url, tabs.right_blank.id],
+          [tabs.right_adam.url, tabs.right_adam.id],
+          [tabs.right_doug.url, tabs.right_doug.id],
+          [
+            groups.ef.id,
+            [
+              [tabs.real_estelle.url, tabs.real_estelle.id],
+              [tabs.real_francis.url, tabs.real_francis.id],
+            ],
+          ],
+        ]);
+      });
+    }); // an entire group is moved
+
+    describe("a tab within an existing group is moved to a new group", () => {
+      it("...from the beginning of the old group", async () => {
+        const gid = await browser.tabs.group({
+          tabIds: [tabs.real_estelle.id],
+        });
+        await events.next(browser.tabs.onUpdated);
+        await events.next(browser.tabGroups.onCreated);
+
+        expect(
+          model
+            .window(windows.real.id)!
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_estelle.url, tabs.real_estelle.id, gid],
+          [tabs.real_francis.url, tabs.real_francis.id, groups.ef.id],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [gid, [[tabs.real_estelle.url, tabs.real_estelle.id]]],
+            [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+
+        expect(model.group(gid)).to.deep.include({
+          id: gid,
+          title: "",
+          color: "grey",
+          collapsed: false,
+        });
+      });
+
+      it("...from the middle of the old group", async () => {
+        await browser.tabs.show(tabs.real_harry.id);
+        await events.next(browser.tabs.onUpdated);
+
+        await browser.tabs.group({
+          groupId: groups.ef.id,
+          tabIds: [tabs.real_harry.id],
+        });
+        await events.next(browser.tabs.onUpdated);
+
+        const gid = await browser.tabs.group({
+          tabIds: [tabs.real_francis.id],
+        });
+        await events.next(browser.tabs.onUpdated);
+        await events.next(browser.tabs.onMoved);
+        await events.next(browser.tabGroups.onCreated);
+
+        expect(
+          model
+            .window(windows.real.id)!
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_francis.url, tabs.real_francis.id, gid],
+          [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+          [tabs.real_harry.url, tabs.real_harry.id, groups.ef.id],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [gid, [[tabs.real_francis.url, tabs.real_francis.id]]],
+            [
+              groups.ef.id,
+              [
+                [tabs.real_estelle.url, tabs.real_estelle.id],
+                [tabs.real_harry.url, tabs.real_harry.id],
+              ],
+            ],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+
+        expect(model.group(gid)).to.deep.include({
+          id: gid,
+          title: "",
+          color: "grey",
+          collapsed: false,
+        });
+      });
+
+      it("...from the end of the old group", async () => {
+        const gid = await browser.tabs.group({
+          tabIds: [tabs.real_francis.id],
+        });
+        expect(gid).to.not.equal(groups.ef.id);
+        await events.next(browser.tabs.onUpdated);
+        await events.next(browser.tabs.onMoved);
+        await events.next(browser.tabGroups.onCreated);
+
+        expect(
+          model
+            .window(windows.real.id)!
+            .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+        ).to.deep.equal([
+          [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+          [tabs.real_paul.url, tabs.real_paul.id, -1],
+          [tabs.real_blank.url, tabs.real_blank.id, -1],
+          [tabs.real_bob.url, tabs.real_bob.id, -1],
+          [tabs.real_doug.url, tabs.real_doug.id, -1],
+          [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+          [tabs.real_francis.url, tabs.real_francis.id, gid],
+          [tabs.real_estelle.url, tabs.real_estelle.id, groups.ef.id],
+          [tabs.real_harry.url, tabs.real_harry.id, -1],
+          [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+          [tabs.real_helen.url, tabs.real_helen.id, -1],
+        ]);
+
+        expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal(
+          [
+            [tabs.real_patricia.url, tabs.real_patricia.id],
+            [tabs.real_paul.url, tabs.real_paul.id],
+            [tabs.real_blank.url, tabs.real_blank.id],
+            [tabs.real_bob.url, tabs.real_bob.id],
+            [tabs.real_doug.url, tabs.real_doug.id],
+            [tabs.real_doug_2.url, tabs.real_doug_2.id],
+            [gid, [[tabs.real_francis.url, tabs.real_francis.id]]],
+            [groups.ef.id, [[tabs.real_estelle.url, tabs.real_estelle.id]]],
+            [tabs.real_harry.url, tabs.real_harry.id],
+            [tabs.real_unstashed.url, tabs.real_unstashed.id],
+            [tabs.real_helen.url, tabs.real_helen.id],
+          ],
+        );
+
+        expect(model.group(gid)).to.deep.include({
+          id: gid,
+          title: "",
+          color: "grey",
+          collapsed: false,
+        });
+      });
+    }); // a tab within an existing group is moved to a new group
+
+    it("all tabs are moved out of the group and the group is removed", async () => {
+      await browser.tabs.ungroup([tabs.real_estelle.id, tabs.real_francis.id]);
+      await events.nextN(browser.tabs.onUpdated, 2);
+      await events.next(browser.tabGroups.onRemoved);
+
+      expect(
+        model
+          .window(windows.real.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+        [tabs.real_paul.url, tabs.real_paul.id, -1],
+        [tabs.real_blank.url, tabs.real_blank.id, -1],
+        [tabs.real_bob.url, tabs.real_bob.id, -1],
+        [tabs.real_doug.url, tabs.real_doug.id, -1],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+        [tabs.real_estelle.url, tabs.real_estelle.id, -1],
+        [tabs.real_francis.url, tabs.real_francis.id, -1],
+        [tabs.real_harry.url, tabs.real_harry.id, -1],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+        [tabs.real_helen.url, tabs.real_helen.id, -1],
+      ]);
+
+      expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [tabs.real_estelle.url, tabs.real_estelle.id],
+        [tabs.real_francis.url, tabs.real_francis.id],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+
+      expect(model.group(groups.ef.id)).to.be.undefined;
+    });
+
+    it("moves a tab out of a group and into another window", async () => {
+      const left = model.window(windows.left.id)!;
+      const real = model.window(windows.real.id)!;
+      const tab = model.tab(tabs.real_estelle.id)!;
+
+      const p = model.move(tab, left, 1);
+      await events.next(browser.tabs.onAttached);
+      await p;
+
+      expect(windowStructureOf(model.window(left.id)!)).to.deep.equal([
+        [`${B}#alice`, tabs.left_alice.id],
+        [`${B}#estelle`, tabs.real_estelle.id],
+        [`${B}#betty`, tabs.left_betty.id],
+        [`${B}#charlotte`, tabs.left_charlotte.id],
+      ]);
+
+      expect(windowStructureOf(model.window(real.id)!)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [groups.ef.id, [[tabs.real_francis.url, tabs.real_francis.id]]],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+    });
+
+    it("moves a tab into a group from another window", async () => {
+      events.trace(true);
+      const left = model.window(windows.left.id)!;
+      const real = model.window(windows.real.id)!;
+      const ef = real.children[6] as M.TabGroupExtent;
+      const tab = model.tab(tabs.left_betty.id)!;
+
+      const p = model.move(tab, ef, 0);
+      await events.next(browser.tabs.onAttached);
+      await p;
+
+      expect(windowStructureOf(model.window(left.id)!)).to.deep.equal([
+        [`${B}#alice`, tabs.left_alice.id],
+        [`${B}#charlotte`, tabs.left_charlotte.id],
+      ]);
+
+      expect(windowStructureOf(model.window(real.id)!)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [
+          groups.ef.id,
+          [
+            [`${B}#betty`, tabs.left_betty.id],
+            [tabs.real_estelle.url, tabs.real_estelle.id],
+            [tabs.real_francis.url, tabs.real_francis.id],
+          ],
+        ],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+    });
+
+    it("an entire group is closed", async () => {
+      const p = browser.tabs.remove([
+        tabs.real_estelle.id,
+        tabs.real_francis.id,
+      ]);
+      await events.nextN(browser.tabs.onRemoved, 2);
+      await events.next(browser.tabGroups.onRemoved);
+      await p;
+
+      expect(
+        model
+          .window(windows.real.id)!
+          .flattenedChildren.map(t => [t.url, t.id, groupIdOf(t)]),
+      ).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id, -1],
+        [tabs.real_paul.url, tabs.real_paul.id, -1],
+        [tabs.real_blank.url, tabs.real_blank.id, -1],
+        [tabs.real_bob.url, tabs.real_bob.id, -1],
+        [tabs.real_doug.url, tabs.real_doug.id, -1],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id, -1],
+        [tabs.real_harry.url, tabs.real_harry.id, -1],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id, -1],
+        [tabs.real_helen.url, tabs.real_helen.id, -1],
+      ]);
+
+      expect(windowStructureOf(model.window(windows.real.id)!)).to.deep.equal([
+        [tabs.real_patricia.url, tabs.real_patricia.id],
+        [tabs.real_paul.url, tabs.real_paul.id],
+        [tabs.real_blank.url, tabs.real_blank.id],
+        [tabs.real_bob.url, tabs.real_bob.id],
+        [tabs.real_doug.url, tabs.real_doug.id],
+        [tabs.real_doug_2.url, tabs.real_doug_2.id],
+        [tabs.real_harry.url, tabs.real_harry.id],
+        [tabs.real_unstashed.url, tabs.real_unstashed.id],
+        [tabs.real_helen.url, tabs.real_helen.id],
+      ]);
+
+      expect(model.group(groups.ef.id)).to.be.undefined;
+    });
+  }); // tab groups
 });

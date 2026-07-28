@@ -1,11 +1,6 @@
 import {computed, reactive, ref, type Ref} from "vue";
 
-import {
-  forEachNodeInSubtree,
-  type IsParentFn,
-  type TreeNode,
-  type TreeParent,
-} from "./tree.js";
+import {Tree} from "./tree.js";
 
 export interface SelectionInfo {
   /** Is this node selected? */
@@ -30,17 +25,18 @@ export interface SelectionInfo {
 }
 
 export class TreeSelection<
-  P extends TreeParent<P, N>,
-  N extends TreeNode<P, N>,
+  R extends object,
+  M extends object,
+  L extends object,
 > {
-  readonly isParent: IsParentFn<P, N>;
+  readonly tree: Tree<R, M, L>;
 
   /** The roots of the tree, mainly used to calculate the count of selected
    * nodes. */
-  readonly roots: Ref<P[]>;
+  readonly roots: Ref<(R | M)[]>;
 
   /** An optional predicate function used to filter items from range selections. */
-  rangeSelectPredicate?: (n: P | N) => boolean;
+  rangeSelectPredicate?: (n: R | M | L) => boolean;
 
   /** How many nodes are selected in `this.roots` and their subtrees? */
   readonly selectedCount: Ref<number>;
@@ -49,17 +45,17 @@ export class TreeSelection<
   lastSelected?: {
     /** The last item that was clicked on, either as part of a single-item
      * selection or a range selection. */
-    node: P | N;
+    node: R | M | L;
 
     /** The last range selection that was done; stored so we can adjust the
      * range on subsequent range-select actions. */
-    range?: (P | N)[];
+    range?: (R | M | L)[];
   };
 
-  private readonly nodes = new WeakMap<P | N, SelectionInfo>();
+  private readonly nodes = new WeakMap<R | M | L, SelectionInfo>();
 
-  constructor(isParent: IsParentFn<P, N>, roots: Ref<P[]>) {
-    this.isParent = isParent;
+  constructor(tree: Tree<R, M, L>, roots: Ref<(R | M)[]>) {
+    this.tree = tree;
     this.roots = roots;
     this.selectedCount = computed(() =>
       this.roots.value.reduce(
@@ -69,18 +65,18 @@ export class TreeSelection<
     );
   }
 
-  info(node: P | N): SelectionInfo {
+  info(node: R | M | L): SelectionInfo {
     const n = this.nodes.get(node);
     if (n) return n;
 
-    const isParent = this.isParent(node);
+    const isParent = !this.tree.isLeafType(node);
 
     const isSelected = ref(false);
 
     const selectedCount = isParent
       ? computed(() => {
           let count = isSelected.value ? 1 : 0;
-          for (const c of node.children) {
+          for (const c of this.tree.childrenOf(node)) {
             if (!c) continue;
             const info = this.info(c);
             count += info.selectedCount;
@@ -103,27 +99,28 @@ export class TreeSelection<
     return i;
   }
 
-  *selectedItems(): Generator<P | N> {
+  *selectedItems(): Generator<R | M | L> {
     for (const n of this.roots.value) yield* this.selectedItemsInSubtree(n);
   }
 
-  *selectedItemsInSubtree(node: P | N): Generator<P | N> {
+  *selectedItemsInSubtree(node: R | M | L): Generator<R | M | L> {
     if (this.info(node).isSelected) yield node;
-    if (!this.isParent(node)) return;
+    if (this.tree.isLeafType(node)) return;
 
     // NOTE: We could optimize this by checking `hasSelectionInSubtree`,
     // however, that property is eventually-consistent and we want stronger
     // consistency here until we see that it's actually a performance issue.
-    for (const c of node.children) if (c) yield* this.selectedItemsInSubtree(c);
+    for (const c of this.tree.childrenOf(node)) {
+      if (c) yield* this.selectedItemsInSubtree(c);
+    }
   }
 
   /** Check if the provided node or any of its parents is selected.  Useful for
    * precluding things like moving a node into a child of itself. */
-  isSelfOrParentSelected(node?: P | N): boolean {
-    while (node) {
-      const si = this.info(node);
+  isSelfOrParentSelected(node: R | M | L): boolean {
+    for (const n of this.tree.nodesOnPathToRoot(node)) {
+      const si = this.info(n);
       if (si.isSelected) return true;
-      node = node.position?.parent;
     }
     return false;
   }
@@ -132,14 +129,14 @@ export class TreeSelection<
   clearSelection(): void {
     this.lastSelected = undefined;
     for (const r of this.roots.value) {
-      forEachNodeInSubtree(r, this.isParent, n => {
+      this.tree.forEachNodeInSubtree(r, n => {
         this.info(n).isSelected = false;
       });
     }
   }
 
   /** Trigger a selection action based on a DOM event. */
-  toggleSelectFromEvent(ev: MouseEvent, node: P | N) {
+  toggleSelectFromEvent(ev: MouseEvent, node: R | M | L) {
     if (ev.shiftKey) return this.toggleSelectRange(node);
     if (ev.ctrlKey || ev.metaKey) return this.toggleSelectOne(node);
     return this.toggleSelectScattered(node);
@@ -148,7 +145,7 @@ export class TreeSelection<
   /** Analogous to a regular click--select a single item.  If any other items
    * were selected before, de-select them.  If only `item` is selected,
    * de-select it. */
-  toggleSelectOne(node: P | N) {
+  toggleSelectOne(node: R | M | L) {
     const ni = this.info(node);
     const wasSelected = ni.isSelected;
     const selectCount = this.selectedCount.value;
@@ -162,7 +159,7 @@ export class TreeSelection<
 
   /** Toggle selection on a single item, regardless of what else is selected.
    * Analogous to a Ctrl+Click or Cmd+Click. */
-  toggleSelectScattered(node: P | N) {
+  toggleSelectScattered(node: R | M | L) {
     const ni = this.info(node);
     ni.isSelected = !ni.isSelected;
     this.lastSelected = {node};
@@ -170,7 +167,7 @@ export class TreeSelection<
 
   /** Select a range of items (if possible), analogous to Shift+Click.  All
    * items between lastSelected and the passed-in item will be toggled. */
-  toggleSelectRange(node: P | N) {
+  toggleSelectRange(node: R | M | L) {
     if (!this.lastSelected) {
       return this.toggleSelectScattered(node);
     }
@@ -203,9 +200,13 @@ export class TreeSelection<
   }
 
   // TODO Move me into tree.ts and find common parents
-  itemsInRange(start: P | N, end: P | N): (P | N)[] | undefined {
-    let startPos = start.position;
-    let endPos = end.position;
+  itemsInRange(start: R | M | L, end: R | M | L): (R | M | L)[] | undefined {
+    if (this.tree.isRootType(start) || this.tree.isRootType(end)) {
+      return undefined;
+    }
+
+    let startPos = this.tree.positionOf(start);
+    let endPos = this.tree.positionOf(end);
 
     if (!startPos || !endPos) return undefined;
     if (startPos.parent !== endPos.parent) return undefined;
@@ -216,7 +217,8 @@ export class TreeSelection<
       startPos = tmp;
     }
 
-    return startPos.parent.children
+    return this.tree
+      .childrenOf(startPos.parent)
       .slice(startPos.index, endPos.index + 1)
       .filter(i => i !== undefined);
   }

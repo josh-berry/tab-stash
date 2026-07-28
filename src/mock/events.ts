@@ -53,10 +53,7 @@ type Waiter = {
 };
 
 type EventQuery<L extends AnyListener> =
-  | undefined
-  | string
-  | EventSource<L>
-  | EventQuery<L>[];
+  undefined | string | EventSource<L> | EventQuery<L>[];
 
 let the_state: EventSystemState;
 beforeTest();

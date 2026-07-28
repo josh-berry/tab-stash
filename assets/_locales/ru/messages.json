@@ -1,0 +1,842 @@
+{
+  "extensionName": {
+    "message": "Tab Stash"
+  },
+  "extensionDescription": {
+    "message": "Простой способ сохранять и восстанавливать группы вкладок в виде закладок."
+  },
+  "stashThisTab": {
+    "message": "Сохранить эту вкладку"
+  },
+  "showAdvancedSettings": {
+    "message": "Показывать дополнительные настройки"
+  },
+  "stopHidingCrashReports": {
+    "message": "Перестать скрывать отчеты о сбоях"
+  },
+  "behaviorTitle": {
+    "message": "Поведение Tab Stash (все синхронизированные браузеры)"
+  },
+  "whenToolbarClicked": {
+    "message": "При нажатии кнопки на панели инструментов:"
+  },
+  "stashAllTabs": {
+    "message": "Сохранить все (или выбранные) вкладки"
+  },
+  "stashActiveTab": {
+    "message": "Сохранить активную вкладку"
+  },
+  "dontStashTabs": {
+    "message": "Не сохранять вкладки"
+  },
+  "and": {
+    "message": "и"
+  },
+  "showInSidebar": {
+    "message": "показать список в боковой панели"
+  },
+  "showInTab": {
+    "message": "показать список во вкладке"
+  },
+  "showInPopup": {
+    "message": "показать список во всплывающем окне"
+  },
+  "dontShowStash": {
+    "message": "не показывать список"
+  },
+  "whenStashingFromMenu": {
+    "message": "При сохранении вкладок из контекстного меню или адресной строки:"
+  },
+  "showStashInSidebar": {
+    "message": "Показывать список в боковой панели"
+  },
+  "showStashInTab": {
+    "message": "Показывать список во вкладке"
+  },
+  "dontShowStashOption": {
+    "message": "Не показывать список"
+  },
+  "whenStashingSingleTab": {
+    "message": "При сохранении одной вкладки:"
+  },
+  "newFolderTimeoutTitle": {
+    "message": "Если самая верхняя группа имеет имя или она старше указанного времени, вместо неё будет создана новая группа без имени."
+  },
+  "appendToTopGroupPrefix": {
+    "message": "Добавлять в самую верхнюю группу, только если она создана за последние"
+  },
+  "minutes": {
+    "message": "минут"
+  },
+  "appearanceTitle": {
+    "message": "Внешний вид (все синхронизированные браузеры)"
+  },
+  "spacingAndFonts": {
+    "message": "Интервалы и шрифты:"
+  },
+  "themeNormal": {
+    "message": "Обычный"
+  },
+  "themeCompact": {
+    "message": "Компактный"
+  },
+  "themeLabel": {
+    "message": "Тема:"
+  },
+  "themeSystem": {
+    "message": "Как в операционной системе"
+  },
+  "themeLight": {
+    "message": "Светлая"
+  },
+  "themeDark": {
+    "message": "Темная"
+  },
+  "showWhichOpenTabs": {
+    "message": "Какие открытые вкладки показывать:"
+  },
+  "showOpenTabsTitle": {
+    "message": "Нажмите на заголовок «Открытые вкладки» или «Несохраненные вкладки» для переключения между этими параметрами. Обратите внимание, что закрепленные вкладки никогда не показываются."
+  },
+  "unstashedTabsOnly": {
+    "message": "Только несохраненные вкладки"
+  },
+  "stashedAndUnstashedTabs": {
+    "message": "Сохраненные и несохраненные вкладки"
+  },
+  "showNewGroups": {
+    "message": "Показывать новые группы:"
+  },
+  "expanded": {
+    "message": "Развернутыми"
+  },
+  "collapsed": {
+    "message": "Свернутыми"
+  },
+  "privacyTitle": {
+    "message": "Конфиденциальность (все синхронизированные браузеры)"
+  },
+  "whenDeletingItems": {
+    "message": "При удалении элементов из списка:"
+  },
+  "rememberDeletedItemsPrefix": {
+    "message": "Помнить элементы, удаленные на этом компьютере, в течение"
+  },
+  "days": {
+    "message": "дн."
+  },
+  "tabMemoryTitle": {
+    "message": "Управление вкладками и памятью (этот браузер)"
+  },
+  "onceTabStashed": {
+    "message": "После того, как вкладка была сохранена:"
+  },
+  "afterStashingTabHideTitle": {
+    "message": "Скрытые вкладки, которые все еще загружены, могут быть восстановлены мгновенно. Они также сохраняют все, что вы ввели во вкладку, и ее историю (например, кнопку «Назад»)."
+  },
+  "hideKeepLoaded": {
+    "message": "Скрыть вкладку и оставить её загруженной в фоне"
+  },
+  "autoDiscardHiddenTitle": {
+    "message": "Следит за общим количеством вкладок в вашем браузере, и если у вас открыто много вкладок, выгружает скрытые вкладки, которые не использовались в последнее время. Этот параметр значительно снижает потребление памяти и рекомендуется для большинства пользователей."
+  },
+  "autoUnloadHidden": {
+    "message": "Автоматически выгружать скрытые вкладки, которые не использовались некоторое время"
+  },
+  "checkHiddenEvery": {
+    "message": "Проверять старые скрытые вкладки каждые"
+  },
+  "keepAtLeast": {
+    "message": "Держать как минимум"
+  },
+  "hiddenVisibleLoaded": {
+    "message": "скрытых и видимых вкладок загруженными всё время"
+  },
+  "keepOldestLoaded": {
+    "message": "Держать старейшие вкладки загруженными как минимум"
+  },
+  "minutesBut": {
+    "message": "минут, но..."
+  },
+  "unloadMoreAggressively": {
+    "message": "...выгружать вкладки активнее, если открыто более"
+  },
+  "tabsLoaded": {
+    "message": "вкладок"
+  },
+  "afterStashingTabHideDiscardTitle": {
+    "message": "Скрытые выгруженные вкладки можно восстановить очень быстро, и обычно без подключения к сети. Они также сохраняют историю просмотров (например, кнопку «Назад»). Однако, в зависимости от веб-сайта, вы можете потерять все, что ввели во вкладку, если оно еще не сохранено. Потребляет меньше памяти."
+  },
+  "hideImmediatelyUnload": {
+    "message": "Скрыть вкладку и сразу выгрузить её из памяти"
+  },
+  "afterStashingTabCloseTitle": {
+    "message": "Потребляет наименьшее количество памяти и восстанавливается дольше всего, поскольку содержимое вкладки может потребоваться загрузить из сети. Этот параметр заставит браузер забыть все, что вы ввели во вкладку, а также историю просмотров вкладки (например, кнопку «Назад»)."
+  },
+  "closeTabImmediately": {
+    "message": "Сразу закрыть вкладку"
+  },
+  "whenOpeningFromStash": {
+    "message": "При открытии вкладок из списка:"
+  },
+  "loadImmediately": {
+    "message": "Загружать все открытые вкладки сразу"
+  },
+  "loadLazily": {
+    "message": "Загружать вкладку только при её выборе"
+  },
+  "confirmationsTitle": {
+    "message": "Подтверждения (этот браузер)"
+  },
+  "confirmCloseTabs": {
+    "message": "Запрашивать подтверждение при закрытии большого количества открытых вкладок"
+  },
+  "experimentalFeaturesTitle": {
+    "message": "Экспериментальные функции"
+  },
+  "experimentalFeaturesWarning": {
+    "message": "ВНИМАНИЕ: Включение экспериментальных функций может нарушить работу Tab Stash или привести к потере данных! Они являются «экспериментальными», поскольку все еще находятся в разработке и/или могут иметь известные проблемы. Экспериментальные функции могут существенно измениться или быть полностью удалены в будущих версиях."
+  },
+  "experimentalFeaturesFeedback": {
+    "message": "Чтобы оставить отзыв или сообщить о проблеме с функцией, оставьте комментарий к задаче, указанной в [квадратных скобках] ниже."
+  },
+  "warningLabel": {
+    "message": "ВНИМАНИЕ:"
+  },
+  "optionsMenu": {
+    "message": "Настройки..."
+  },
+  "importMenu": {
+    "message": "Импорт..."
+  },
+  "exportMenu": {
+    "message": "Экспорт..."
+  },
+  "deletedItemsMenu": {
+    "message": "Удаленные элементы..."
+  },
+  "fetchMissingIconsMenu": {
+    "message": "Загрузить недостающие иконки"
+  },
+  "tipsAndTricksMenu": {
+    "message": "Советы и хитрости"
+  },
+  "wikiMenu": {
+    "message": "Вики"
+  },
+  "helpAndSupportMenu": {
+    "message": "Помощь и поддержка"
+  },
+  "whatsNewMenu": {
+    "message": "Что нового?"
+  },
+  "sponsorMenu": {
+    "message": "Спонсировать"
+  },
+  "showStashedTabsInTabTitle": {
+    "message": "Показать сохраненные вкладки во вкладке"
+  },
+  "hideAllTabsTitle": {
+    "message": "Скрыть все вкладки, оставив только названия групп"
+  },
+  "whatsNewFooter": {
+    "message": "Что нового"
+  },
+  "whatsNewNotification": {
+    "message": "В Tab Stash $1 появились новые параметры сортировки и обновленный внешний вид под стиль боковой панели Firefox. Посмотрите, что еще нового!"
+  },
+  "deletedItemUndo": {
+    "message": "Удалено: \"$1\". Отменить?"
+  },
+  "deletedItemsShow": {
+    "message": "Удалено элементов: $1. Показать удаленные элементы?"
+  },
+  "group_one": {
+    "message": "$1 группа"
+  },
+  "group_few": {
+    "message": "$1 группы"
+  },
+  "group_many": {
+    "message": "$1 групп"
+  },
+  "tab_one": {
+    "message": "$1 вкладка"
+  },
+  "tab_few": {
+    "message": "$1 вкладки"
+  },
+  "tab_many": {
+    "message": "$1 вкладок"
+  },
+  "stashed_tab_one": {
+    "message": "$1 сохраненная вкладка"
+  },
+  "stashed_tab_few": {
+    "message": "$1 сохраненные вкладки"
+  },
+  "stashed_tab_many": {
+    "message": "$1 сохраненных вкладок"
+  },
+  "search_placeholder_fmt": {
+    "message": "Искать по $1, $2"
+  },
+  "search_tooltip_fmt": {
+    "message": "$1, $2\n$3 в этом окне ($4 открыто, $5 выгружено, $6 скрыто)"
+  },
+  "fetchingIconsDomain": {
+    "message": "Получение иконок для каждого домена..."
+  },
+  "fetchingIconsPage": {
+    "message": "Получение иконок для каждой страницы..."
+  },
+  "group_dative_one": {
+    "message": "$1 группе"
+  },
+  "group_dative_few": {
+    "message": "$1 группам"
+  },
+  "group_dative_many": {
+    "message": "$1 группам"
+  },
+  "tab_dative_one": {
+    "message": "$1 вкладке"
+  },
+  "tab_dative_few": {
+    "message": "$1 вкладкам"
+  },
+  "tab_dative_many": {
+    "message": "$1 вкладкам"
+  },
+  "openTabsTitle": {
+    "message": "Открытые вкладки"
+  },
+  "unstashedTabsTitle": {
+    "message": "Несохраненные вкладки"
+  },
+  "open_tabs_one": {
+    "message": "$1 открытая вкладка"
+  },
+  "open_tabs_few": {
+    "message": "$1 открытые вкладки"
+  },
+  "open_tabs_many": {
+    "message": "$1 открытых вкладок"
+  },
+  "unstashed_tabs_one": {
+    "message": "$1 несохраненная вкладка"
+  },
+  "unstashed_tabs_few": {
+    "message": "$1 несохраненные вкладки"
+  },
+  "unstashed_tabs_many": {
+    "message": "$1 несохраненных вкладок"
+  },
+  "hideTabsForGroup": {
+    "message": "Скрыть вкладки этой группы"
+  },
+  "stashAllOpenTabsTooltip": {
+    "message": "Сохранить все открытые вкладки в новую группу (удерживайте $1, чтобы оставить вкладки открытыми)"
+  },
+  "stashAllUnstashedTabsTooltip": {
+    "message": "Сохранить все несохраненные вкладки в новую группу (удерживайте $1, чтобы оставить вкладки открытыми)"
+  },
+  "createNewEmptyGroupTooltip": {
+    "message": "Создать новую пустую группу в тайнике"
+  },
+  "showOnlyUnstashedTabsTooltip": {
+    "message": "Показывать только несохраненные вкладки"
+  },
+  "showUnstashedTabsOnlyMenu": {
+    "message": "Показывать только несохраненные вкладки"
+  },
+  "showAllOpenTabsTooltip": {
+    "message": "Показывать все открытые вкладки в окне (кроме закрепленных)"
+  },
+  "showAllOpenTabsMenu": {
+    "message": "Показывать все открытые вкладки"
+  },
+  "closeUnstashedTabsTooltip": {
+    "message": "Закрыть все несохраненные вкладки (кроме закрепленных и скрытых)"
+  },
+  "closeUnstashedTabsInGroupTooltip": {
+    "message": "Закрыть все неотложенные вкладки в группе"
+  },
+  "closeUnstashedTabsMenu": {
+    "message": "Закрыть несохраненные вкладки"
+  },
+  "closeStashedTabsTooltip": {
+    "message": "Закрыть все сохраненные вкладки (кроме закрепленных и скрытых)"
+  },
+  "closeStashedTabsInTabGroupTooltip": {
+    "message": "Закрыть все отложенные вкладки в группе"
+  },
+  "closeStashedTabsMenu": {
+    "message": "Закрыть сохраненные вкладки"
+  },
+  "closeAllOpenTabsTooltip": {
+    "message": "Закрыть все открытые вкладки (кроме закрепленных и скрытых)"
+  },
+  "closeAllOpenTabsMenu": {
+    "message": "Закрыть все открытые вкладки"
+  },
+  "closeTabGroupTooltip": {
+    "message": "Закрыть всю группу вкладок"
+  },
+  "closeTabGroupMenu": {
+    "message": "Закрыть группу"
+  },
+  "closeHiddenTabsTooltip": {
+    "message": "Закрыть все скрытые сохраненные вкладки (освобождает память)"
+  },
+  "closeHiddenTabsMenu": {
+    "message": "Закрыть скрытые вкладки"
+  },
+  "moveItemsToNewGroup_one": {
+    "message": "Переместить $1 объект в новую группу (удерживайте $2 для копирования)"
+  },
+  "moveItemsToNewGroup_few": {
+    "message": "Переместить $1 объекта в новую группу (удерживайте $2 для копирования)"
+  },
+  "moveItemsToNewGroup_many": {
+    "message": "Переместить $1 объектов в новую группу (удерживайте $2 для копирования)"
+  },
+  "openSelectedItems_one": {
+    "message": "Открыть $1 объект"
+  },
+  "openSelectedItems_few": {
+    "message": "Открыть $1 объекта"
+  },
+  "openSelectedItems_many": {
+    "message": "Открыть $1 объектов"
+  },
+  "unstashSelectedItems_one": {
+    "message": "Убрать из сохраненных $1 объект"
+  },
+  "unstashSelectedItems_few": {
+    "message": "Убрать из сохраненных $1 объекта"
+  },
+  "unstashSelectedItems_many": {
+    "message": "Убрать из сохраненных $1 объектов"
+  },
+  "closeTabsConfirm_one": {
+    "message": "Закрыть $1 вкладку"
+  },
+  "closeTabsConfirm_few": {
+    "message": "Закрыть $1 вкладки"
+  },
+  "closeTabsConfirm_many": {
+    "message": "Закрыть $1 вкладок"
+  },
+  "cancelButton": {
+    "message": "Отмена"
+  },
+  "closeTabsWarn_one": {
+    "message": "Вы собираетесь закрыть $1 вкладку за раз."
+  },
+  "closeTabsWarn_few": {
+    "message": "Вы собираетесь закрыть $1 вкладки за раз."
+  },
+  "closeTabsWarn_many": {
+    "message": "Вы собираетесь закрыть $1 вкладок за раз."
+  },
+  "closeTabsIrreversible": {
+    "message": "Браузер может не сохранить столько вкладок в недавней истории, поэтому ЭТО ДЕЙСТВИЕ НЕОБРАТИМО. Вы уверены?"
+  },
+  "toggleCollapsedGroupTooltip": {
+    "message": "Скрыть вкладки этой группы (удерживайте $1, чтобы скрыть вкладки дочерних групп)"
+  },
+  "toggleCollapsedTabGroupTooltip": {
+    "message": "Скрыть вкладки для этой группы"
+  },
+  "stashAllOpenTabsToGroupTooltip": {
+    "message": "Сохранить все (или выделенные) открытые вкладки в эту группу (удерживайте $1, чтобы оставить вкладки открытыми)"
+  },
+  "stashActiveTabToGroupTooltip": {
+    "message": "Сохранить активную вкладку в эту группу (удерживайте $1, чтобы оставить её открытой)"
+  },
+  "openAllTabsInGroupTooltip": {
+    "message": "Открыть все вкладки в этой группе\nУдерживайте $1, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
+  },
+  "openAllTabsAndDeleteGroupTooltip": {
+    "message": "Открыть все вкладки и удалить эту группу\nУдерживайте $1, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
+  },
+  "openAllTabsAndRemoveFromGroupTooltip": {
+    "message": "Открыть все вкладки и удалить их из этой группы\nУдерживайте $1, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
+  },
+  "createNewSubGroupTooltip": {
+    "message": "Создать новую подгруппу в этой группе"
+  },
+  "newChildGroupMenu": {
+    "message": "Создать дочернюю группу"
+  },
+  "stashTabsToNewChildGroupTooltip": {
+    "message": "Сохранить все открытые вкладки в новую дочернюю группу"
+  },
+  "stashTabsToNewChildGroupMenu": {
+    "message": "Сохранить вкладки в новую дочернюю группу"
+  },
+  "stashToGroupMenu": {
+    "message": "Сохранить в «$1»..."
+  },
+  "stashTabToGroupTooltip": {
+    "message": "Сохранить вкладку в эту группу (удерживайте $1, чтобы оставить её открытой)"
+  },
+  "tabStashedInTooltip": {
+    "message": "Эта вкладка сохранена в:\n$1"
+  },
+  "importIntoGroupTooltip": {
+    "message": "Импортировать ссылки и URL в эту группу"
+  },
+  "exportFromGroupTooltip": {
+    "message": "Экспортировать ссылки и URL из этой группы"
+  },
+  "sortByTitleMenu": {
+    "message": "Сортировать по названию"
+  },
+  "sortByUrlMenu": {
+    "message": "Сортировать по URL"
+  },
+  "sortByDateAddedDescMenu": {
+    "message": "Сортировать по дате добавления (сначала новые)"
+  },
+  "sortByDateAddedAscMenu": {
+    "message": "Сортировать по дате добавления (сначала старые)"
+  },
+  "closeStashedTabsInGroupTooltip": {
+    "message": "Закрыть открытые вкладки, сохраненные в этой группе"
+  },
+  "deleteGroupTooltip": {
+    "message": "Удалить всю группу вместе со всеми её вкладками и подгруппами"
+  },
+  "deleteGroupMenu": {
+    "message": "Удалить группу"
+  },
+  "savedAt": {
+    "message": "Сохранено: $1"
+  },
+  "folder_tooltip_fmt": {
+    "message": "$1\n$2, $3 ($4 открыто, $5 выгружено, $6 скрыто)"
+  },
+  "child_group_one": {
+    "message": "$1 группа"
+  },
+  "child_group_few": {
+    "message": "$1 группы"
+  },
+  "child_group_many": {
+    "message": "$1 групп"
+  },
+  "copiedNotification": {
+    "message": "Скопировано"
+  },
+  "restoreURLWarningBold": {
+    "message": "Пожалуйста, убедитесь, что этот URL-адрес выглядит правильно."
+  },
+  "restoreURLWarningText": {
+    "message": "Если всё в порядке, вы можете открыть эту вкладку, скопировав и вставив URL-адрес в адресную строку:"
+  },
+  "importTitle": {
+    "message": "Импорт"
+  },
+  "importLabel": {
+    "message": "Вставьте сюда любой текст, содержащий ссылки или URL-адреса. Ссылки будут извлечены и сохранены как закладки."
+  },
+  "splitTabsOptionLabel": {
+    "message": "Разделять вкладки на группы по:"
+  },
+  "splitParagraphsHeaders": {
+    "message": "Абзацам и заголовкам"
+  },
+  "splitHeaders": {
+    "message": "Заголовкам"
+  },
+  "splitNothing": {
+    "message": "Не разделять [все в одну группу]"
+  },
+  "fetchIconsCheckbox": {
+    "message": "Получать иконки и заголовки для каждого сайта"
+  },
+  "importToFolderButton": {
+    "message": "Импортировать в «$1»"
+  },
+  "importErrorAlert": {
+    "message": "Не удалось получить информацию для следующих URL:\n\n$1\n\nВкладки для этих адресов всё равно были созданы, но вам может потребоваться ввести их заголовки вручную. Приносим извинения за неудобства!"
+  },
+  "exportTitle": {
+    "message": "Экспорт"
+  },
+  "exportFormatLabel": {
+    "message": "Формат:"
+  },
+  "formatHtmlLinks": {
+    "message": "Кликабельные ссылки"
+  },
+  "formatUrlList": {
+    "message": "Список URL"
+  },
+  "formatMarkdown": {
+    "message": "Markdown"
+  },
+  "formatOneTab": {
+    "message": "OneTab"
+  },
+  "selectAllButton": {
+    "message": "Выделить всё"
+  },
+  "copyButton": {
+    "message": "Копировать"
+  },
+  "aboutFormatsLink": {
+    "message": "О форматах..."
+  },
+  "backToTabStashTooltip": {
+    "message": "Назад в Tab Stash"
+  },
+  "searchDeletedItemsLabel": {
+    "message": "Поиск удаленных элементов"
+  },
+  "deletedDateGroupHeader": {
+    "message": "Удалено $1"
+  },
+  "noMatchingDeletedItems": {
+    "message": "Совпадающих элементов не найдено. Возможно, элемент был удален на другом компьютере или вне расширения Tab Stash."
+  },
+  "noDeletedItemsYet": {
+    "message": "Похоже, вы еще ничего не удаляли на этом компьютере."
+  },
+  "deletedItemsNotFoundHelp": {
+    "message": "Не нашли то, что искали? Возможно, элемент был удален на другом компьютере или вне расширения Tab Stash."
+  },
+  "restoreTooltip": {
+    "message": "Восстановить"
+  },
+  "deleteForeverTooltip": {
+    "message": "Удалить навсегда"
+  },
+  "deleteForeverButton": {
+    "message": "Удалить навсегда"
+  },
+  "filteredCountBadge": {
+    "message": "+ $1 отфильтровано"
+  },
+  "restoringLoading": {
+    "message": "Восстановление"
+  },
+  "deletingForeverLoading": {
+    "message": "Удаление навсегда"
+  },
+  "deletedAtTooltip": {
+    "message": "Удалено: $1"
+  },
+  "deletedAtFromTooltip": {
+    "message": "Удалено: $1 из «$2»"
+  },
+  "renameTooltip": {
+    "message": "Переименовать"
+  },
+  "openBookmarkAndDeleteTooltip": {
+    "message": "Открыть вкладку и удалить её из группы (удерживайте $1, чтобы открыть в фоновом режиме)"
+  },
+  "deleteBookmarkTooltip": {
+    "message": "Удалить эту вкладку из группы"
+  },
+  "stashTabTooltip": {
+    "message": "Сохранить эту вкладку (удерживайте $1, чтобы оставить её открытой)"
+  },
+  "closeTabTooltip": {
+    "message": "Закрыть эту вкладку"
+  },
+  "openSelectedTooltip": {
+    "message": "Открыть сохраненные вкладки"
+  },
+  "openSelectedButton": {
+    "message": "Открыть"
+  },
+  "openSelectedIntoTabGroupTooltip_one": {
+    "message": "Открыть $1 выбранный элемент в этой группе вкладок"
+  },
+  "openSelectedIntoTabGroupTooltip_many": {
+    "message": "Открыть $1 выбранных элементов в этой группе вкладок"
+  },
+  "unstashSelectedTooltip": {
+    "message": "Открыть вкладки и удалить их из сохраненных"
+  },
+  "unstashSelectedButton": {
+    "message": "Убрать из сохраненных"
+  },
+  "unstashSelectedIntoTabGroupTooltip_one": {
+    "message": "Восстановить $1 выбранный элемент в эту группу вкладок"
+  },
+  "unstashSelectedIntoTabGroupTooltip_many": {
+    "message": "Восстановить $1 выбранных элементов в эту группу вкладок"
+  },
+  "exportSelectedTooltip": {
+    "message": "Экспортировать выбранные ссылки и URL"
+  },
+  "searchOrCreateGroupPlaceholder": {
+    "message": "Поиск или создание группы"
+  },
+  "deleteSelectedTooltip": {
+    "message": "Удалить сохраненные вкладки и закрыть открытые"
+  },
+  "deleteSelectedButton": {
+    "message": "Удалить или закрыть"
+  },
+  "moveToNewGroupMenu": {
+    "message": "Переместить в новую группу"
+  },
+  "moveToGroupSearchMenu": {
+    "message": "Переместить в «$1»"
+  },
+  "moveToNewGroupTooltip": {
+    "message": "Переместить в новую группу (удерживайте $1, чтобы скопировать)"
+  },
+  "moveToGroupSearchTooltip": {
+    "message": "Переместить в новую группу «$1» (удерживайте $2, чтобы скопировать)"
+  },
+  "moveToFolderTooltip": {
+    "message": "Переместить в «$1» (удерживайте $2, чтобы скопировать)"
+  },
+  "whatsNewTitle": {
+    "message": "Что нового в Tab Stash"
+  },
+  "welcomeTitle": {
+    "message": "Добро пожаловать в Tab Stash!"
+  },
+  "welcomeIntro": {
+    "message": "Привет! Давайте ответим на пару простых вопросов, чтобы начать. Не волнуйтесь — вы сможете изменить свои настройки позже в параметрах Tab Stash."
+  },
+  "setupWhatToSave": {
+    "message": "Что бы вы хотели сохранять при нажатии кнопки на панели инструментов?"
+  },
+  "setupSaveAllOpen": {
+    "message": "Сохранять все открытые вкладки"
+  },
+  "setupSaveActive": {
+    "message": "Сохранять активную вкладку"
+  },
+  "setupCantShowPopupNote": {
+    "message": "Вы не можете одновременно показывать всплывающее окно и сохранять вкладки."
+  },
+  "setupDontSaveAnything": {
+    "message": "Не сохранять вкладки"
+  },
+  "setupChooseShowOptionNote": {
+    "message": "Выберите другой вариант действия при показе, чтобы включить этот параметр"
+  },
+  "setupWhatToSee": {
+    "message": "Что бы вы хотели видеть при нажатии кнопки на панели инструментов?"
+  },
+  "setupShowSidebar": {
+    "message": "Показывать сохраненные вкладки в боковой панели"
+  },
+  "setupShowTab": {
+    "message": "Показывать сохраненные вкладки в отдельной вкладке"
+  },
+  "setupShowPopup": {
+    "message": "Показывать сохраненные вкладки во всплывающем окне"
+  },
+  "setupPopupNote": {
+    "message": "Чтобы использовать всплывающее окно, выберите «Не сохранять вкладки»"
+  },
+  "setupDontShowAnything": {
+    "message": "Ничего не показывать"
+  },
+  "setupChooseSaveOptionNote": {
+    "message": "Выберите другой вариант действия при сохранении, чтобы включить этот параметр"
+  },
+  "setupAddressBarContextStash": {
+    "message": "Если вы сохраняете вкладку через контекстное меню или адресную строку, что вы хотите видеть?"
+  },
+  "setupAllSetNote": {
+    "message": "Всё готово! Вы можете закрыть эту вкладку."
+  },
+  "setupThanksFooter": {
+    "message": "Спасибо, что попробовали Tab Stash. Надеюсь, вам понравится! — Джош"
+  },
+  "restoreLocalFileTitle": {
+    "message": "Восстановление локального файла"
+  },
+  "restoreSuspiciousTitle": {
+    "message": "Подозрительная сохраненная вкладка"
+  },
+  "restoreLocalFileWarning": {
+    "message": "Из соображений безопасности ваш браузер не разрешает Tab Stash открывать локальные файлы на вашем компьютере без вашего участия."
+  },
+  "restorePrivilegedWarning": {
+    "message": "Из соображений безопасности ваш браузер не разрешает Tab Stash открывать привилегированные страницы без вашего участия."
+  },
+  "restoreURLWarning": {
+    "message": "Пожалуйста, убедитесь, что этот URL-адрес выглядит правильно. Если всё в порядке, вы можете открыть эту вкладку, скопировав и вставив URL-адрес в адресную строку:"
+  },
+  "crashRecoverMsg": {
+    "message": "Ой! Что-то пошло не так. Tab Stash попытается восстановиться автоматически."
+  },
+  "crashGetHelpSummary": {
+    "message": "Получить помощь по этому сбою"
+  },
+  "crashOptionsHelp": {
+    "message": "Вот несколько вариантов, которые могут помочь. Подробная информация о сбое приведена ниже — она будет удалена, как только вы закроете это уведомление."
+  },
+  "crashShowTroubleshootingBtn": {
+    "message": "Открыть руководство по устранению неполадок"
+  },
+  "crashSearchGitHubBtn": {
+    "message": "Найти похожие проблемы на GitHub"
+  },
+  "crashReportWarnTooltip": {
+    "message": "Пожалуйста, выполните поиск похожих проблем перед отправкой отчета, чтобы не дублировать существующие темы."
+  },
+  "crashReportBtn": {
+    "message": "Сообщить о сбое"
+  },
+  "crashBrowserLabel": {
+    "message": "Браузер:"
+  },
+  "crashExtensionLabel": {
+    "message": "Расширение:"
+  },
+  "crashHideReportsSummary": {
+    "message": "Скрывать отчеты о сбоях"
+  },
+  "crashHideReportsHelp": {
+    "message": "Если вы видите слишком много сообщений о сбоях, вы можете временно скрыть их:"
+  },
+  "crashHide5Min": {
+    "message": "на 5 минут"
+  },
+  "crashHide1Hour": {
+    "message": "на 1 час"
+  },
+  "crashHide1Day": {
+    "message": "на 1 день"
+  },
+  "crashHide1Week": {
+    "message": "на 1 неделю"
+  },
+  "crashHideSettingsNote": {
+    "message": "Отчеты о сбоях можно включить обратно в настройках."
+  },
+  "stashTabGroup": {
+    "message": "Отложить эту группу вкладок (удерживайте $1, чтобы оставить вкладки открытыми)"
+  },
+  "openTabInGroup": {
+    "message": "Открыть новую вкладку в этой группе"
+  },
+  "moveTabsOutOfGroup": {
+    "message": "Переместить все вкладки из группы"
+  },
+  "ungroup": {
+    "message": "Разгруппировать"
+  },
+  "newTabTooltip": {
+    "message": "Открыть новую вкладку"
+  },
+  "newTabGroupTooltip": {
+    "message": "Создать новую пустую группу вкладок"
+  },
+  "close": {
+    "message": "Закрыть"
+  }
+}

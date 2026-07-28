@@ -32,38 +32,31 @@
         collapse: !collapsed,
         expand: collapsed,
       }"
-      :title="`Hide the tabs for this group (hold ${altKey} to hide tabs for child groups)`"
+      :title="$t('toggleCollapsedGroupTooltip', [altKey])"
       @click.prevent.stop="toggleCollapsed"
     />
     <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
       <a
         class="action stash here"
-        :title="`Stash all (or highlighted) open tabs to this group (hold ${altKey} to keep tabs open)`"
+        :title="$t('stashAllOpenTabsToGroupTooltip', [altKey])"
         @click.prevent.stop="stash"
       />
       <a
         class="action stash one here"
-        :title="
-          `Stash the active tab to this group ` +
-          `(hold ${altKey} to keep tabs open)`
-        "
+        :title="$t('stashActiveTabToGroupTooltip', [altKey])"
         @click.prevent.stop="stashOne"
       />
       <a
         class="action restore"
-        :title="
-          `Open all tabs in this group ` +
-          `(hold ${bgKey} to open in background)`
-        "
+        :title="$t('openAllTabsInGroupTooltip', [bgKey])"
         @click.prevent.stop="restoreAll"
       />
       <a
         class="action restore-remove"
         :title="
-          (folder.$stats.folderCount === 0
-            ? `Open all tabs and delete this group`
-            : `Open all tabs and remove them from this group`) +
-          ` (hold ${bgKey} to open in background)`
+          folder.$stats.folderCount === 0
+            ? $t('openAllTabsAndDeleteGroupTooltip', [bgKey])
+            : $t('openAllTabsAndRemoveFromGroupTooltip', [bgKey])
         "
         @click.prevent.stop="restoreAndRemove"
       />
@@ -73,31 +66,31 @@
       >
         <button
           @click.prevent="newChildFolder"
-          :title="`Create a new sub-group within this group`"
+          :title="$t('createNewSubGroupTooltip')"
         >
           <span class="menu-icon icon icon-new-empty-group"></span>
-          <span>New Child Group</span>
+          <span>{{ $t("newChildGroupMenu") }}</span>
         </button>
 
         <button
           @click.prevent="stashToNewChildFolder"
-          title="Stash all open tabs to a new child group"
+          :title="$t('stashTabsToNewChildGroupTooltip')"
         >
           <span class="menu-icon icon icon-stash" />
-          <span>Stash Tabs to New Child Group</span>
+          <span>{{ $t("stashTabsToNewChildGroupMenu") }}</span>
         </button>
 
         <template v-if="unstashedOrOpenTabs.length > 0">
           <hr />
           <details @click.stop="">
             <summary class="menu-item">
-              <span>Stash to "{{ title }}"...</span>
+              <span>{{ $t("stashToGroupMenu", [title]) }}</span>
             </summary>
             <ul>
               <li v-for="t of unstashedOrOpenTabs" :key="t.tab.id">
                 <a
                   :href="t.tab.url"
-                  :title="`Stash tab to this group (hold ${altKey} to keep tab open)`"
+                  :title="$t('stashTabToGroupTooltip', [altKey])"
                   @click.prevent.stop="stashSpecificTab($event, t.tab)"
                 >
                   <item-icon
@@ -110,7 +103,7 @@
                     v-if="t.stashedIn.length > 0"
                     class="menu-icon icon icon-stashed status-text"
                     :title="
-                      ['This tab is stashed in:', ...t.stashedIn].join('\n')
+                      [$t('tabStashedInTooltip'), ...t.stashedIn].join('\n')
                     "
                   />
                 </a>
@@ -122,58 +115,55 @@
         <hr />
         <button
           @click.prevent="showImportDialog"
-          title="Import links and URLs into this group"
+          :title="$t('importIntoGroupTooltip')"
         >
           <span class="menu-icon icon icon-import" />
-          <span>Import...</span>
+          <span>{{ $t("importMenu") }}</span>
         </button>
 
         <button
           @click.prevent="isShowingExportDialog = true"
-          title="Export links and URLs from this group"
+          :title="$t('exportFromGroupTooltip')"
         >
           <span class="menu-icon icon icon-export" />
-          <span>Export...</span>
+          <span>{{ $t("exportMenu") }}</span>
         </button>
 
         <hr />
 
         <button @click.prevent="sort(sortByTitle)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by Title</span>
+          <span>{{ $t("sortByTitleMenu") }}</span>
         </button>
 
         <button @click.prevent="sort(sortByURL)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by URL</span>
+          <span>{{ $t("sortByUrlMenu") }}</span>
         </button>
 
         <button @click.prevent="sort(sortByDateAddedDescending)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by Date Added (Newest First)</span>
+          <span>{{ $t("sortByDateAddedDescMenu") }}</span>
         </button>
 
         <button @click.prevent="sort(sortByDateAdded)">
           <span class="menu-icon icon icon-sort" />
-          <span>Sort by Date Added (Oldest First)</span>
+          <span>{{ $t("sortByDateAddedAscMenu") }}</span>
         </button>
 
         <hr />
 
         <button
           @click.prevent="closeStashedTabs"
-          :title="`Close any open tabs that are stashed in this group`"
+          :title="$t('closeStashedTabsInGroupTooltip')"
         >
           <span class="menu-icon icon icon-delete-stashed" />
-          <span>Close Stashed Tabs</span>
+          <span>{{ $t("closeStashedTabsMenu") }}</span>
         </button>
         <hr />
-        <button
-          title="Delete the whole group and all its tabs and child groups"
-          @click.prevent="remove"
-        >
+        <button :title="$t('deleteGroupTooltip')" @click.prevent="remove">
           <span class="menu-icon icon icon-delete"></span>
-          <span>Delete Group</span>
+          <span>{{ $t("deleteGroupMenu") }}</span>
         </button>
       </Menu>
     </ButtonBox>
@@ -232,8 +222,8 @@
   >
     <template #item="{item}: {item: Node}">
       <template v-if="isChildVisible(item)">
-        <child-folder v-if="isFolder(item)" :folder="item" />
-        <bookmark v-else-if="isBookmark(item)" :bookmark="item" />
+        <child-folder v-if="item.type === 'folder'" :folder="item" />
+        <bookmark v-else-if="item.type === 'bookmark'" :bookmark="item" />
       </template>
     </template>
   </dnd-list>
@@ -272,6 +262,8 @@ import {
   bgKeyPressed,
   filterMap,
   required,
+  $t,
+  $ts,
 } from "../util/index.js";
 
 import the from "../globals-ui.js";
@@ -280,17 +272,13 @@ import {
   friendlyFolderName,
   genDefaultFolderName,
   getDefaultFolderNameISODate,
-  isBookmark,
-  isFolder,
   sortByDateAdded,
   sortByDateAddedDescending,
-  sortByTitle,
-  sortByURL,
   type Bookmark,
   type Folder,
   type Node,
 } from "../model/bookmarks.js";
-import {copyIf} from "../model/index.js";
+import {copyIf, sortByTitle, sortByURL} from "../model/index.js";
 import type {Tab, Window} from "../model/tabs.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
@@ -391,9 +379,9 @@ export default defineComponent({
       return this.children.map(n => ({
         node: n,
         tabs:
-          isBookmark(n) && n.url
+          n.type === "bookmark" && n.url
             ? Array.from(tab_model.tabsWithURL(n.url)).filter(
-                t => t.position?.parent === this.targetWindow,
+                t => t.flattenedPosition?.parent === this.targetWindow,
               )
             : [],
       }));
@@ -405,7 +393,7 @@ export default defineComponent({
         hidden = 0;
       for (const nwt of this.childrenWithTabs) {
         for (const tab of nwt.tabs) {
-          if (tab.position?.parent !== this.targetWindow) {
+          if (tab.flattenedPosition?.parent !== this.targetWindow) {
             continue;
           }
           if (tab.hidden) {
@@ -442,7 +430,7 @@ export default defineComponent({
       const target_win = the.model.tabs.targetWindow.value;
       if (!target_win) return [];
 
-      return target_win.children
+      return target_win.flattenedChildren
         .filter(
           t =>
             !t.pinned &&
@@ -473,7 +461,9 @@ export default defineComponent({
       if (getDefaultFolderNameISODate(unfiltered.title) !== null) {
         return friendlyFolderName(unfiltered.title);
       } else {
-        return `Saved ${new Date(unfiltered.dateAdded || 0).toLocaleString()}`;
+        return this.$t("savedAt", [
+          new Date(unfiltered.dateAdded || 0).toLocaleString(),
+        ]);
       }
     },
     nonDefaultTitle(): string {
@@ -487,12 +477,17 @@ export default defineComponent({
     tooltip(): string {
       const bm_stats = this.folder.$stats;
       const st = this.childTabStats;
-      const statstip = `${bm_stats.folderCount} child group${
-        bm_stats.folderCount !== 1 ? "s" : ""
-      }, ${bm_stats.bookmarkCount} stashed tab${
-        bm_stats.bookmarkCount != 1 ? "s" : ""
-      } (${st.open} open, ${st.discarded} unloaded, ${st.hidden} hidden)`;
-      return `${this.title}\n${statstip}`;
+      const childGroupsStr = this.$ts(bm_stats.folderCount, "child_group");
+      const stashedTabsStr = this.$ts(bm_stats.bookmarkCount, "stashed_tab");
+
+      return this.$t("folder_tooltip_fmt", [
+        this.title,
+        childGroupsStr,
+        stashedTabsStr,
+        st.open.toString(),
+        st.discarded.toString(),
+        st.hidden.toString(),
+      ]);
     },
 
     children(): Node[] {
@@ -501,7 +496,9 @@ export default defineComponent({
     },
 
     leafChildren(): Bookmark[] {
-      return filterMap(this.children, c => (isBookmark(c) ? c : undefined));
+      return filterMap(this.children, c =>
+        c.type === "bookmark" ? c : undefined,
+      );
     },
 
     selectedCount(): number {
@@ -514,6 +511,8 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
+    $ts,
     sortByTitle,
     sortByURL,
     sortByDateAdded,
@@ -534,9 +533,6 @@ export default defineComponent({
       // loading again anyway.
       await the.model.bookmarks.loaded(this.folder);
     },
-
-    isFolder,
-    isBookmark,
 
     showImportDialog() {
       if (the.view !== "popup") {
@@ -648,6 +644,7 @@ export default defineComponent({
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
         await the.model.restoreTabs(this.leafChildren, {
+          groupTitle: !ev.shiftKey ? this.title : undefined,
           background: bgKeyPressed(ev),
         });
       });
@@ -664,6 +661,7 @@ export default defineComponent({
         const bg = bgKeyPressed(ev);
 
         await the.model.restoreTabs(this.leafChildren, {
+          groupTitle: !ev.shiftKey ? this.title : undefined,
           background: bg,
           beforeClosing: () =>
             this.leafChildren.length === this.folder.children.length
@@ -727,7 +725,7 @@ export default defineComponent({
       index: number,
     ): DNDAcceptedDropPositions {
       if (
-        isFolder(item) &&
+        item.type === "folder" &&
         (item.children.length === 0 ||
           the.model.bookmark_metadata.get(item.id).value?.collapsed ||
           !the.model.filter.info(item).hasMatchInSubtree)
@@ -769,7 +767,7 @@ export default defineComponent({
       the.model.attempt(async () => {
         const items = recvDragData(ev.data, the.model);
         const child = ev.insertInParent;
-        if (!isFolder(child)) {
+        if (child.type !== "folder") {
           throw new Error(
             `Attempt to drop inside non-folder node: ${child?.title} [${child?.id}]`,
           );

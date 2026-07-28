@@ -5,6 +5,7 @@ import browser from "webextension-polyfill";
 import * as events from "../mock/events.js";
 
 import * as M from "./bookmarks.js";
+import {sortByTitle, sortByURL} from "./index.js";
 
 import type {BookmarkFixture} from "./fixtures.testlib.js";
 import {B, make_bookmarks, STASH_ROOT_NAME} from "./fixtures.testlib.js";
@@ -444,7 +445,7 @@ describe("model/bookmarks", () => {
     await model.loadedStash();
     const folder = model.folder(bms.big_stash.id)!;
 
-    let p = model.sort(folder, M.sortByTitle);
+    let p = model.sort(folder, sortByTitle);
     await events.nextN(browser.bookmarks.onMoved, folder.children.length);
     await p;
 
@@ -459,7 +460,7 @@ describe("model/bookmarks", () => {
       bms.two.id,
     ]);
 
-    p = model.sort(folder, M.sortByURL);
+    p = model.sort(folder, sortByURL);
     await events.nextN(browser.bookmarks.onMoved, folder.children.length);
     await p;
 
@@ -482,17 +483,31 @@ describe("model/bookmarks", () => {
     ): M.Node {
       return n.url
         ? ({
+            type: "bookmark",
             id: id as M.NodeID,
             position: undefined,
             title: n.title,
             url: n.url,
             dateAdded: n.dateAdded,
-          } as M.Bookmark)
+          } satisfies M.Bookmark)
         : ({
+            type: "folder",
             id: id as M.NodeID,
             position: undefined,
             title: n.title,
-          } as M.Node);
+            children: [],
+            isLoaded: true,
+            $stats: {
+              bookmarkCount: 0,
+              folderCount: 0,
+              isLoaded: true,
+            },
+            $recursiveStats: {
+              bookmarkCount: 0,
+              folderCount: 0,
+              isLoaded: true,
+            },
+          } satisfies M.Node);
     }
 
     function t(
@@ -511,13 +526,6 @@ describe("model/bookmarks", () => {
         else expect(cmp).to.be.greaterThan(0);
       });
     }
-
-    t(M.sortByTitle, {title: "A"}, "==", {title: "A"});
-    t(M.sortByTitle, {title: "B"}, ">", {title: "A"});
-    t(M.sortByTitle, {title: "A"}, "<", {title: "B"});
-    t(M.sortByTitle, {title: "A"}, "==", {title: "a"});
-    t(M.sortByTitle, {title: "e"}, "==", {title: "é"});
-    t(M.sortByTitle, {title: "[ticket-1234]"}, ">", {title: "[ticket-20]"});
 
     t(M.sortByDateAdded, {title: "a", dateAdded: 10, url: "/a"}, "==", {
       title: "b",
@@ -565,47 +573,6 @@ describe("model/bookmarks", () => {
         url: "/b",
       },
     );
-
-    t(M.sortByURL, {title: "b", url: "http://example.com/a"}, "<", {
-      title: "a",
-      url: "http://example.com/b",
-    });
-
-    t(M.sortByURL, {title: "b", url: "http://example.com/a"}, "==", {
-      title: "a",
-      url: "http://example.com/a",
-    });
-
-    t(M.sortByURL, {title: "a", url: "http://example.com/b"}, ">", {
-      title: "b",
-      url: "http://example.com/a",
-    });
-
-    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo"}, ">", {
-      title: "b",
-      url: "http://b.a.com/foo",
-    });
-
-    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#bar"}, "==", {
-      title: "b",
-      url: "http://a.b.com/foo?a=b#bar",
-    });
-    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#baz"}, ">", {
-      title: "b",
-      url: "http://a.b.com/foo?a=b#bar",
-    });
-    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#baz"}, ">", {
-      title: "b",
-      url: "https://a.b.com/foo?a=b#bar",
-    });
-    t(M.sortByURL, {title: "a", url: "http://a.b.com/foo?a=b#bar"}, "<", {
-      title: "b",
-      url: "https://a.b.com/foo?a=b#bar",
-    });
-    t(M.sortByURL, {title: "a", url: "http://example.com/issues/10"}, ">", {
-      title: "b",
-      url: "http://example.com/issues/2",
-    });
   });
 
   it("makes space for unloaded bookmarks that are moved into loaded folders", async () => {

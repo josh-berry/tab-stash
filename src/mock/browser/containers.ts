@@ -37,6 +37,13 @@ class MockContainers implements CI.Static {
     throw new Error("Method not implemented.");
   }
 
+  async move(
+    cookieStoreIds: string | string[],
+    position: number,
+  ): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+
   async remove(cookieStoreId: string): Promise<CI.ContextualIdentity> {
     throw new Error("Method not implemented.");
   }

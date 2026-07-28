@@ -15,38 +15,40 @@ import {
 } from "../util/index.js";
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
-import {
-  insertNode,
-  isChildInParent,
-  pathTo,
-  placeNode,
-  removeNode,
-  type LoadedTreeParent,
-  type TreeNode,
-  type TreeParent,
-} from "./tree.js";
+import {Tree, type TreePosition} from "./tree.js";
 
 /** A node in the bookmark tree. */
-export interface Node extends TreeNode<Folder, Node> {
+interface NodeBase {
+  position: TreePosition<Folder> | undefined;
   id: NodeID;
   dateAdded?: number;
   title: string;
 }
 
-export interface Folder extends Node, TreeParent<Folder, Node> {
+export interface Folder extends NodeBase {
+  readonly type: "folder";
+  isLoaded: boolean;
+  readonly children: (Node | undefined)[];
   $stats: FolderStats;
   $recursiveStats: FolderStats;
 }
 
-export type LoadedFolder = LoadedTreeParent<Folder, Node>;
+export interface LoadedFolder extends Folder {
+  readonly type: "folder";
+  isLoaded: true;
+  readonly children: Node[];
+}
 
-export interface Bookmark extends Node {
+export interface Bookmark extends NodeBase {
+  readonly type: "bookmark";
   url: string;
 }
 
-export interface Separator extends Node {
-  type: "separator";
+export interface Separator extends NodeBase {
+  readonly type: "separator";
 }
+
+export type Node = Folder | Bookmark | Separator;
 
 export type NodeID = string & {readonly __node_id: unique symbol};
 
@@ -58,15 +60,33 @@ export type FolderStats = {
   isLoaded: boolean;
 };
 
-export function isBookmark(node: Node): node is Bookmark {
-  return "url" in node;
-}
-export function isFolder(node: Node): node is Folder {
-  return "children" in node;
-}
-export function isSeparator(node: Node): node is Separator {
-  return "type" in node && node.type === "separator";
-}
+export const BookmarkTree = new (class extends Tree<
+  never,
+  Folder,
+  Bookmark | Separator
+> {
+  isRootType(_node: Node): _node is never {
+    return false;
+  }
+  isLeafType(node: Node): node is Bookmark | Separator {
+    return node.type === "bookmark" || node.type === "separator";
+  }
+  isLoaded(parent: Folder): boolean {
+    return parent.isLoaded;
+  }
+  positionOf(node: Node): TreePosition<Folder> | undefined {
+    return node.position;
+  }
+  childrenOf(parent: Folder): (Node | undefined)[] {
+    return parent.children;
+  }
+  protected setPosition(
+    node: Node,
+    position: TreePosition<Folder> | undefined,
+  ): void {
+    node.position = position;
+  }
+})();
 
 const trace = trace_fn("bookmarks");
 
@@ -183,8 +203,8 @@ export class Model {
         title: n.title,
         parentId: n.position?.parent?.id,
         index: n.position?.index,
-        ...(isBookmark(n) ? {url: n.url} : {}),
-        ...(isFolder(n) ? {children: n.children.map(state)} : {}),
+        ...(n.type === "bookmark" ? {url: n.url} : {}),
+        ...(n.type === "folder" ? {children: n.children.map(state)} : {}),
       };
     };
     return {
@@ -222,7 +242,7 @@ export class Model {
 
     // Reload hierarchy information for each folder (including the root).
     for (const node of this.by_id.values()) {
-      if (!isFolder(node)) continue;
+      if (node.type !== "folder") continue;
       node.isLoaded = false;
       await this.loaded(node);
     }
@@ -241,7 +261,7 @@ export class Model {
    * does not exist or is not a bookmark. */
   bookmark(id: string): Bookmark | undefined {
     const node = this.node(id);
-    if (node && isBookmark(node)) return node;
+    if (node && node.type === "bookmark") return node;
     return undefined;
   }
 
@@ -251,7 +271,7 @@ export class Model {
    * a LoadedFolder, combine this with `loaded()`. */
   folder(id: string): Folder | undefined {
     const node = this.node(id);
-    if (node && isFolder(node)) return node;
+    if (node?.type === "folder") return node;
     return undefined;
   }
 
@@ -283,7 +303,7 @@ export class Model {
       return (async () => {
         const lf = await this.loaded(folder);
         for (const f of lf.children) {
-          if (isFolder(f)) await this.loadedSubtree(f);
+          if (f.type === "folder") await this.loadedSubtree(f);
         }
         return lf;
       })();
@@ -375,7 +395,7 @@ export class Model {
   isNodeInStashRoot(node: Node): boolean {
     /* c8 ignore next -- we always have a root in tests */
     if (!this.stash_root.value) return false;
-    return isChildInParent(node, this.stash_root.value);
+    return BookmarkTree.isChildInParent(node, this.stash_root.value);
   }
 
   /** Returns true if a particular URL is present in the stash in a bookmark
@@ -404,7 +424,7 @@ export class Model {
       const parent = bm.position?.parent;
       /* c8 ignore next -- bookmarks should never be roots */
       if (!parent) continue;
-      if (!isChildInParent(parent as Node, stash_root)) continue;
+      if (!BookmarkTree.isChildInParent(parent, stash_root)) continue;
       ret.push(parent);
     }
     return ret;
@@ -420,8 +440,8 @@ export class Model {
         if (!c) {
           throw new Error(`BUG: Some children are missing from ${folder.id}`);
         }
-        if (isBookmark(c)) urls.add(c.url);
-        else if (isFolder(c)) urlsInChildren(c);
+        if (c.type === "bookmark") urls.add(c.url);
+        else if (c.type === "folder") urlsInChildren(c);
       }
     };
 
@@ -628,7 +648,9 @@ export class Model {
     if (getDefaultFolderNameISODate(folder.title) === null) return;
     if (folder.children.length > 0) return;
     if (!this.stash_root.value) return;
-    if (!isChildInParent(folder as Node, this.stash_root.value)) return;
+    if (!BookmarkTree.isChildInParent(folder, this.stash_root.value)) {
+      return;
+    }
 
     // NOTE: This will never be recursive because remove() only calls us if
     // we're removing a leaf node, which we are never doing here.
@@ -680,14 +702,14 @@ export class Model {
       // If we don't know about the node's old parent, `node.position` will be
       // undefined. If we don't know about the node's new parent, `parent` will
       // be undefined.
-      if (node.position) removeNode(node.position);
-      if (parent) insertNode(node, {parent, index: info.index});
+      if (node.position) BookmarkTree.removeNode(node.position);
+      if (parent) BookmarkTree.insertNode(node, {parent, index: info.index});
 
       if (this._stash_root_watch.has(node)) this._maybeUpdateStashRoot();
     } else if (parent) {
       // An unloaded node was just moved into a loaded parent; make room for it
       // in the parent and note that the parent is no longer loaded.
-      insertNode(undefined, {parent, index: info.index});
+      BookmarkTree.insertNode(undefined, {parent, index: info.index});
       parent.isLoaded = false;
     }
   }
@@ -700,7 +722,7 @@ export class Model {
 
     // We must remove children before their parents, so that we never have a
     // child referencing a parent that doesn't exist.
-    if (isFolder(node)) {
+    if (node.type === "folder") {
       // Array.from() is needed here, because the removal process itself will
       // alter `node.children`.
       for (const c of Array.from(node.children)) {
@@ -708,10 +730,10 @@ export class Model {
       }
     }
 
-    if (node.position) removeNode(node.position);
+    if (node.position) BookmarkTree.removeNode(node.position);
 
     this.by_id.delete(node.id);
-    if (isBookmark(node)) this._remove_url(node);
+    if (node.type === "bookmark") this._remove_url(node);
 
     if (this._stash_root_watch.has(node)) {
       // We must explicitly remove `node` here because its title is
@@ -781,7 +803,7 @@ export class Model {
     let candidates = filterMap(searched, s => this.folder(s.id));
     const paths = filterMap(candidates, c => ({
       folder: c,
-      path: pathTo<Folder, Node>(c),
+      path: BookmarkTree.pathTo(c),
     }));
 
     // Find the depth of the candidate closest to the root.
@@ -873,10 +895,12 @@ export class Model {
         pos.index !== node.position?.index
       ) {
         if (node.position) {
-          removeNode(node.position);
-          insertNode(node, pos);
+          BookmarkTree.removeNode(node.position);
+          BookmarkTree.insertNode(node, pos);
+        } else if (shiftIfNew) {
+          BookmarkTree.insertNode(node, pos);
         } else {
-          (shiftIfNew ? insertNode : placeNode)(node, pos);
+          BookmarkTree.placeNode(node, pos);
         }
       }
     }
@@ -892,7 +916,7 @@ export class Model {
   private _updateNode(node: Node, btn: Bookmarks.OnChangedChangeInfoType) {
     const titleChanged = btn.title !== undefined && node.title !== btn.title;
     const urlChanged =
-      btn.url !== undefined && isBookmark(node) && node.url !== btn.url;
+      btn.url !== undefined && node.type === "bookmark" && node.url !== btn.url;
 
     trace("_updateNode", node.id, btn.url, urlChanged, btn.title, titleChanged);
 
@@ -904,7 +928,7 @@ export class Model {
       this._add_url(node);
     }
 
-    if (isFolder(node)) {
+    if (node.type === "folder") {
       // Finally, see if this folder is a candidate for being a stash root.
       if (node.title === this.stash_root_name) this._stash_root_watch.add(node);
 
@@ -940,7 +964,7 @@ export class Model {
 /** Given a folder name, check if it's an "default"-shaped folder name (i.e.
  * just a timestamp) and return the timestamp portion of the name if so. */
 export function getDefaultFolderNameISODate(n: string): string | null {
-  let m = n.match(/saved-([-0-9:.T]+Z)/);
+  const m = n.match(/^saved-([-0-9:.T]+Z)$/);
   return m ? m[1] : null;
 }
 
@@ -959,25 +983,6 @@ export function friendlyFolderName(name: string): string {
   return name;
 }
 
-//
-// Public helper functions for sorting nodes
-//
-
-const sortTextCollator = new Intl.Collator(undefined, {
-  usage: "sort",
-  sensitivity: "base",
-  numeric: true,
-});
-const sortURLCollator = new Intl.Collator(undefined, {
-  usage: "sort",
-  sensitivity: "variant",
-  numeric: true,
-});
-
-export function sortByTitle(a: Node, b: Node): number {
-  return sortTextCollator.compare(a.title, b.title);
-}
-
 export function sortByDateAdded(a: Node, b: Node): number {
   const dateA = a.dateAdded ?? 0;
   const dateB = b.dateAdded ?? 0;
@@ -988,44 +993,13 @@ export function sortByDateAddedDescending(a: Node, b: Node): number {
   return sortByDateAdded(b, a);
 }
 
-export function sortByURL(a: Node, b: Node): number {
-  const urlA = new URL((isBookmark(a) && a.url) || "about:blank");
-  const urlB = new URL((isBookmark(b) && b.url) || "about:blank");
-
-  const host_parts = (u: URL) => u.hostname.split(".").reverse();
-
-  const a_parts = host_parts(urlA);
-  const b_parts = host_parts(urlB);
-
-  for (let i = 0; i < Math.min(a_parts.length, b_parts.length); ++i) {
-    const cmp = sortURLCollator.compare(a_parts[i], b_parts[i]);
-    if (cmp !== 0) return cmp;
-  }
-
-  const port_cmp = sortURLCollator.compare(urlA.port || "0", urlB.port || "0");
-  if (port_cmp !== 0) return port_cmp;
-
-  const path_cmp = sortURLCollator.compare(urlA.pathname, urlB.pathname);
-  if (path_cmp !== 0) return path_cmp;
-
-  const query_cmp = sortURLCollator.compare(urlA.search, urlB.search);
-  if (query_cmp !== 0) return query_cmp;
-
-  const hash_cmp = sortURLCollator.compare(urlA.hash, urlB.hash);
-  if (hash_cmp !== 0) return hash_cmp;
-
-  const scheme_cmp = sortURLCollator.compare(urlA.protocol, urlB.protocol);
-  if (scheme_cmp !== 0) return scheme_cmp;
-
-  return 0;
-}
-
 //
 // Helper functions for the model
 //
 
 function makeFolder(nodeId: NodeID): Folder {
   const folder: Folder = reactive({
+    type: "folder",
     id: nodeId,
     position: undefined,
     dateAdded: 0,
@@ -1038,8 +1012,8 @@ function makeFolder(nodeId: NodeID): Folder {
       let folderCount = 0;
       for (const c of folder.children) {
         if (!c) continue;
-        if (isFolder(c)) ++folderCount;
-        if (isBookmark(c)) ++bookmarkCount;
+        if (c.type === "folder") ++folderCount;
+        if (c.type === "bookmark") ++bookmarkCount;
       }
       return {bookmarkCount, folderCount, isLoaded: folder.isLoaded};
     }),
@@ -1049,7 +1023,7 @@ function makeFolder(nodeId: NodeID): Folder {
       let folderCount = folder.$stats.folderCount;
       let isLoaded = folder.isLoaded;
       for (const c of folder.children) {
-        if (!c || !isFolder(c)) continue;
+        if (c?.type !== "folder") continue;
         const stats = c.$recursiveStats;
         bookmarkCount += stats.bookmarkCount;
         folderCount += stats.folderCount;
@@ -1064,16 +1038,17 @@ function makeFolder(nodeId: NodeID): Folder {
 
 function makeSeparator(nodeId: NodeID): Separator {
   return reactive({
+    type: "separator",
     id: nodeId,
     position: undefined,
     dateAdded: 0,
-    type: "separator" as "separator",
     title: "" as "",
   });
 }
 
 function makeBookmark(nodeId: NodeID): Bookmark {
   return reactive({
+    type: "bookmark",
     id: nodeId,
     position: undefined,
     dateAdded: 0,

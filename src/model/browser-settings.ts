@@ -66,7 +66,7 @@ export class Model {
     while (this._event_since_load) {
       this._event_since_load = false;
 
-      const state: State = await resolveNamed({
+      const state = await resolveNamed({
         newtab_url: browser.browserSettings.newTabPageOverride
           .get({})
           .then(s => s.value),
@@ -74,8 +74,12 @@ export class Model {
           .get({})
           .then(s => s.value),
       });
-      this.state.newtab_url = state.newtab_url;
-      this.state.home_url = state.home_url;
+      if (typeof state.newtab_url === "string") {
+        this.state.newtab_url = state.newtab_url;
+      }
+      if (typeof state.home_url === "string") {
+        this.state.home_url = state.home_url;
+      }
     }
   });
 
@@ -106,11 +110,13 @@ export class Model {
   // Events from the browser
   //
 
-  whenNewTabPageChanged(setting: {value: string}) {
+  whenNewTabPageChanged(setting: {value: unknown}) {
+    if (typeof setting.value !== "string") return;
     this.state.newtab_url = setting.value;
   }
 
-  whenHomepageChanged(setting: {value: string}) {
+  whenHomepageChanged(setting: {value: unknown}) {
+    if (typeof setting.value !== "string") return;
     this.state.home_url = setting.value;
   }
 }

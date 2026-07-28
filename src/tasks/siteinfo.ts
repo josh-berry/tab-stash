@@ -49,7 +49,7 @@ export function fetchInfoForSites(
     while (urls.length > 0) {
       const url = urls.pop()!;
       tm.status = url;
-      for (let retry_count = 3; retry_count > 0; ) {
+      for (let retry_count = 3; retry_count > 0;) {
         try {
           chan.send(await fetchSiteInfo(url));
           break;

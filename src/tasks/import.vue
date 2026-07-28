@@ -6,22 +6,21 @@
     @close="$emit('close')"
     show-close-button
   >
-    <template #title>Import</template>
+    <template #title>{{ $t("importTitle") }}</template>
 
     <label for="data">
-      Paste anything containing links or URLs here. Links and URLs will be
-      extracted and converted into bookmarks in your stash.
+      {{ $t("importLabel") }}
     </label>
 
     <div ref="data" contenteditable="true" id="data" class="input" />
 
     <section>
       <label for="splitOn">
-        <span>Split tabs into different groups on:</span>
+        <span>{{ $t("splitTabsOptionLabel") }}</span>
         <select id="splitOn" v-model="splitOn">
-          <option value="p+h">Paragraphs and Headers</option>
-          <option value="h">Headers</option>
-          <option value="">Nothing [all in one group]</option>
+          <option value="p+h">{{ $t("splitParagraphsHeaders") }}</option>
+          <option value="h">{{ $t("splitHeaders") }}</option>
+          <option value="">{{ $t("splitNothing") }}</option>
         </select>
       </label>
     </section>
@@ -33,7 +32,7 @@
           id="fetchIconsAndTitles"
           v-model="fetchIconsAndTitles"
         />
-        <span>Fetch icons and titles from each site</span>
+        <span>{{ $t("fetchIconsCheckbox") }}</span>
       </label>
     </section>
 
@@ -41,8 +40,10 @@
       <button class="clickme" @click="start">
         {{
           props.toFolder
-            ? `Import to "${friendlyFolderName(props.toFolder.title)}"`
-            : "Import"
+            ? $t("importToFolderButton", [
+                friendlyFolderName(props.toFolder.title),
+              ])
+            : $t("importTitle")
         }}
       </button>
     </template>
@@ -53,7 +54,7 @@
 import {onMounted, ref} from "vue";
 
 import the from "../globals-ui.js";
-import {TaskMonitor, type Progress} from "../util/index.js";
+import {TaskMonitor, type Progress, $t} from "../util/index.js";
 import {importURLs, parse, type ParseOptions} from "./import.js";
 
 import Dialog from "../components/dialog.vue";
@@ -102,13 +103,7 @@ function start() {
       progress.value = task.progress;
       const failures = await task;
       if (failures.sites.length > 0) {
-        alert(
-          `Info for the following URLs could not be fetched:
-
-${failures.urls.join("\n")}
-
-Stashed tabs for these URLs have been created anyway, but you may need to set their titles manually. Sorry about that!`,
-        );
+        alert($t("importErrorAlert", [failures.urls.join("\n")]));
       }
     } finally {
       cancel.value = undefined;

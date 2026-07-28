@@ -1,5 +1,5 @@
 import {computed, reactive, ref, watch, type Ref} from "vue";
-import type {Tabs, Windows} from "webextension-polyfill";
+import type {TabGroups, Tabs, Windows} from "webextension-polyfill";
 import browser from "webextension-polyfill";
 
 import {trace_fn} from "../util/debug.js";
@@ -15,20 +15,46 @@ import {
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
 
-import {
-  insertNode,
-  removeNode,
-  type TreeNode,
-  type TreeParent,
-} from "./tree.js";
+import {Tree, type TreePosition} from "./tree.js";
 
-export interface Window extends TreeParent<Window, Tab> {
+export interface Window {
+  readonly type: "window";
   readonly id: WindowID;
-  readonly position: undefined;
+  readonly children: (TabGroupExtent | Tab)[];
+  readonly flattenedChildren: Tab[];
+}
+
+/** A TabGroup is a logical grouping of tabs. The TabGroup itself keeps track of
+ * only attributes that apply to the group itself. Tab membership and position
+ * within the group (and the group's parent window) is tracked by
+ * TabGroupExtent. */
+export interface TabGroup {
+  // No type property since this isn't part of the model tree
+  readonly id: TabGroupID;
+  title: string;
+  color: TabGroups.Color;
+  collapsed: boolean;
+}
+
+/** A TabGroupExtent is a run of contiguous tabs that belong to the same tab
+ * group.
+ *
+ * This is distinct from a TabGroup, because even though the browser itself
+ * doesn't support discontiguous tabs in a group, they can happen in the Tab
+ * Stash model transiently, while the browser is sending us events updating tab
+ * positions and group membership. Most of the time, there should only be one
+ * extent per group, but this is never a safe assumption. */
+export interface TabGroupExtent {
+  readonly type: "tab-group";
+  readonly group: TabGroup;
+  position: TreePosition<Window> | undefined;
   readonly children: Tab[];
 }
 
-export interface Tab extends TreeNode<Window, Tab> {
+export interface Tab {
+  readonly type: "tab";
+  position: TreePosition<Window | TabGroupExtent> | undefined;
+  flattenedPosition: TreePosition<Window> | undefined;
   id: TabID;
   status: Tabs.TabStatus;
   title: string;
@@ -43,7 +69,64 @@ export interface Tab extends TreeNode<Window, Tab> {
 }
 
 export type WindowID = number & {readonly __window_id: unique symbol};
+export type TabGroupID = number & {readonly __tab_group_id: unique symbol};
 export type TabID = number & {readonly __tab_id: unique symbol};
+
+export const WindowTree = new (class extends Tree<Window, TabGroupExtent, Tab> {
+  isRootType(node: Window | TabGroupExtent | Tab): node is Window {
+    return node.type === "window";
+  }
+  isLeafType(node: Window | TabGroupExtent | Tab): node is Tab {
+    return node.type === "tab";
+  }
+
+  isLoaded(parent: Window | TabGroupExtent): boolean {
+    return parent.children.every(child =>
+      "children" in child ? this.isLoaded(child) : child.status === "complete",
+    );
+  }
+  positionOf(
+    node: TabGroupExtent | Tab,
+  ): TreePosition<Window | TabGroupExtent> | undefined {
+    return node.position;
+  }
+  childrenOf(parent: Window): (TabGroupExtent | Tab | undefined)[] {
+    return parent.children;
+  }
+  protected setPosition(
+    node: TabGroupExtent | Tab,
+    position: TreePosition<Window | TabGroupExtent> | undefined,
+  ): void {
+    node.position = position;
+  }
+})();
+
+export const FlattenedWindowTree = new (class extends Tree<Window, never, Tab> {
+  isRootType(node: Window | Tab): node is Window {
+    return node.type === "window";
+  }
+  isLeafType(node: Window | Tab): node is Tab {
+    return node.type === "tab";
+  }
+
+  isLoaded(parent: Window): boolean {
+    return parent.flattenedChildren.every(
+      child => child?.status === "complete",
+    );
+  }
+  positionOf(node: Tab): TreePosition<Window> | undefined {
+    return node.flattenedPosition;
+  }
+  childrenOf(parent: Window): (Tab | undefined)[] {
+    return parent.flattenedChildren;
+  }
+  protected setPosition(
+    node: Tab,
+    position: TreePosition<Window> | undefined,
+  ): void {
+    node.flattenedPosition = position;
+  }
+})();
 
 const trace = trace_fn("tabs");
 
@@ -67,6 +150,7 @@ const MAX_LOADING_TABS = navigator.hardwareConcurrency ?? 4;
  */
 export class Model {
   private readonly windows = new Map<WindowID, Window>();
+  private readonly tab_groups = new Map<TabGroupID, TabGroup>();
   private readonly tabs = new Map<TabID, Tab>();
   private readonly tabs_by_url = new Map<OpenableURL, Set<Tab>>();
 
@@ -133,6 +217,12 @@ export class Model {
     wiring.listen(browser.windows.onCreated, this.whenWindowCreated);
     wiring.listen(browser.windows.onFocusChanged, this.whenWindowFocusChanged);
     wiring.listen(browser.windows.onRemoved, this.whenWindowRemoved);
+    if (browser.tabGroups) {
+      wiring.listen(browser.tabGroups.onCreated, this.whenTabGroupCreated);
+      wiring.listen(browser.tabGroups.onUpdated, this.whenTabGroupUpdated);
+      wiring.listen(browser.tabGroups.onMoved, this.whenTabGroupMoved);
+      wiring.listen(browser.tabGroups.onRemoved, this.whenTabGroupRemoved);
+    }
     wiring.listen(browser.tabs.onCreated, this.whenTabCreated);
     wiring.listen(browser.tabs.onUpdated, this.whenTabUpdated);
     wiring.listen(browser.tabs.onAttached, this.whenTabAttached);
@@ -145,20 +235,32 @@ export class Model {
 
   /* c8 ignore start -- for manual debugging only */
   dumpState() {
+    const dump_tab = (t: Tab) => ({
+      id: t.id,
+      status: t.status,
+      title: t.title,
+      url: t.url,
+      cookieStoreId: t.cookieStoreId,
+      pinned: t.pinned,
+      hidden: t.hidden,
+      active: t.active,
+      highlighted: t.highlighted,
+      discarded: t.discarded,
+    });
+
+    const dump_group = (g: TabGroupExtent) => ({
+      id: g.group.id,
+      title: g.group.title,
+      color: g.group.color,
+      collapsed: g.group.collapsed,
+      children: g.children.map(dump_tab),
+    });
+
     const windows = Array.from(this.windows.entries()).map(([id, w]) => ({
       id,
-      children: w.children.map(t => ({
-        id: t.id,
-        status: t.status,
-        title: t.title,
-        url: t.url,
-        cookieStoreId: t.cookieStoreId,
-        pinned: t.pinned,
-        hidden: t.hidden,
-        active: t.active,
-        highlighted: t.highlighted,
-        discarded: t.discarded,
-      })),
+      children: w.children.map(c =>
+        c.type === "tab" ? dump_tab(c) : dump_group(c),
+      ),
     }));
 
     const tabs = windows.flatMap(w => w.children);
@@ -192,6 +294,11 @@ export class Model {
       tabs = tabs.sort((a, b) => a.index - b.index);
       for (const t of tabs) this.whenTabCreated(t);
 
+      if (browser.tabGroups) {
+        const groups = await browser.tabGroups.query({});
+        for (const g of groups) this.whenTabGroupCreated(g);
+      }
+
       // Clean up any old tabs/windows that don't exist anymore.
       const old_tabs = new Set(this.tabs.keys());
       const old_windows = new Set(this.windows.keys());
@@ -217,11 +324,14 @@ export class Model {
   }
 
   allTabs(): Tab[] {
-    return this.allWindows().flatMap(w => w.children);
+    return this.allWindows().flatMap(w => w.flattenedChildren);
   }
 
   window(id: number): Window | undefined {
     return this.windows.get(id as WindowID);
+  }
+  group(id: number): TabGroup | undefined {
+    return this.tab_groups.get(id as TabGroupID);
   }
   tab(id: number): Tab | undefined {
     return this.tabs.get(id as TabID);
@@ -233,7 +343,7 @@ export class Model {
     if (window === undefined) window = this.targetWindow.value;
     if (window === undefined) return undefined;
 
-    return window.children.filter(t => t.active)[0];
+    return window.flattenedChildren.filter(t => t.active)[0];
   }
 
   /** Returns a reactive set of tabs with the specified URL. */
@@ -252,21 +362,98 @@ export class Model {
       tab.id,
       SK_HIDDEN_BY_TAB_STASH,
     );
-    return res ?? false;
+    if (typeof res !== "boolean") return false;
+    return res;
   }
 
   //
   // User-level operations on tabs
   //
 
+  /** Creates a new tab group at the specified position, and creates tabs within
+   * the group with the specified URLs and titles. Returns the TabGroupExtent
+   * for the new group once it appears in the model. */
+  async createGroup(options: {
+    atParent: Window;
+    atIndex: number;
+    title?: string;
+    tabs: {title?: string; url: OpenableURL}[];
+    active?: boolean;
+  }): Promise<TabGroupExtent> {
+    if (options.atIndex > options.atParent.children.length) {
+      // Needed so the shortPoll() below looks for the right index
+      options.atIndex = options.atParent.children.length;
+    }
+
+    trace("creating tab group with tabs", options.title, options.tabs);
+    trace("parent window", options.atParent.id, "index", options.atIndex);
+
+    let next_index = options.atIndex;
+    const tabs: Tab[] = [];
+    for (const t of options.tabs) {
+      tabs.push(
+        await this.create({
+          atParent: options.atParent,
+          atIndex: next_index,
+          url: t.url,
+          title: t.title,
+          active: options.active,
+        }),
+      );
+      ++next_index;
+    }
+
+    const gid = await browser.tabs.group({
+      tabIds: tabs.map(t => t.id),
+      createProperties: {windowId: options.atParent.id},
+    });
+    if (options.title) {
+      await browser.tabGroups.update(gid, {title: options.title});
+    }
+
+    return await shortPoll(() => {
+      const extent = options.atParent.children[options.atIndex];
+      if (!extent) tryAgain();
+      if (extent.type !== "tab-group") tryAgain();
+      if (extent.group.id !== gid) tryAgain();
+      for (let i = 0; i < extent.children.length; ++i) {
+        if (extent.children[i] !== tabs[i]) tryAgain();
+      }
+      return extent;
+    });
+  }
+
   /** Creates a new tab and waits for the model to reflect its existence.
    *
    * Note that creation of non-discarded is rate-limited, to avoid
    * overwhelming the user's system with a lot of loading tabs. */
-  async create(tab: browser.Tabs.CreateCreatePropertiesType): Promise<Tab> {
-    const create_tab = Object.assign({}, tab);
+  async create(options: {
+    atParent: Window | TabGroupExtent;
+    atIndex: number;
+    url: OpenableURL;
+    title?: string;
+    cookieStoreId?: string;
+    pinned?: boolean;
+    discarded?: boolean;
+    active?: boolean;
+  }): Promise<Tab> {
+    const flat_pos = _flatPositionFor(options.atParent, options.atIndex);
+    const create_tab = {
+      url: options.url !== "" ? options.url : undefined,
+      title: options.title,
+      cookieStoreId: options.cookieStoreId,
+      pinned: options.pinned,
+      discarded: options.discarded,
+      active: options.active,
+      windowId: flat_pos.parent.id,
+      index: flat_pos.index,
+    };
 
-    if (!browser.tabs.hide || !tab.url || tab.url.startsWith("about:")) {
+    if (
+      !browser.tabs.hide ||
+      !options.url ||
+      options.url.startsWith("about:")
+    ) {
       // This is Chrome; it doesn't support discarded tabs, so we can only load
       // so many at once.  This is a little awkward because to the user, it will
       // look like there is a big delay in opening tabs.
@@ -279,6 +466,12 @@ export class Model {
         await this._safe_to_load_another_tab();
         trace("creating tab", create_tab);
         const t = await browser.tabs.create(create_tab);
+        if (options.atParent.type === "tab-group") {
+          await browser.tabs.group({
+            groupId: options.atParent.group.id,
+            tabIds: [t.id!],
+          });
+        }
         return await shortPoll(
           () => this.tabs.get(t.id as TabID) || tryAgain(),
         );
@@ -293,12 +486,18 @@ export class Model {
     // Create the tab and find its equivalent in the model
     trace("creating tab", create_tab);
     const t = await browser.tabs.create(create_tab);
+    if (options.atParent.type === "tab-group") {
+      await browser.tabs.group({
+        groupId: options.atParent.group.id,
+        tabIds: [t.id!],
+      });
+    }
     const m = await shortPoll(() => this.tabs.get(t.id as TabID) || tryAgain());
 
     // If the caller requested that we load the tab, do so as soon as we
     // can--but don't try to load too many at once so we don't overwhelm the
     // user's machine.
-    if (!tab.discarded) {
+    if (!options.discarded) {
       this._loading_queue.run(async () => {
         await this._safe_to_load_another_tab();
         if (this.tabs.get(m.id) !== m) return; // Tab was closed
@@ -316,20 +515,103 @@ export class Model {
     return m;
   }
 
-  /** Moves a tab such that it precedes the item with index `toIndex` in
-   * the destination window.  (You can pass an index `>=` the length of the
+  /** Moves a tab group from one window to another. Note that the index
+   * specified is relative to `toParent.children` (not `flattenedChildren`).
+   * Returns the new TabGroupExtent that was created. */
+  async moveGroup(
+    group: TabGroupExtent,
+    toParent: Window,
+    toIndex: number,
+  ): Promise<TabGroupExtent> {
+    const flat_pos = _flatPositionFor(toParent, toIndex);
+
+    // If we are moving the group forward in the same window it was in before,
+    // we have to adjust flat_pos, because Firefox removes then inserts the
+    // group.
+    if (toParent === group.position?.parent && toIndex > group.position.index) {
+      flat_pos.index -= group.children.length;
+      toIndex--;
+    }
+
+    // Save the children to check against shortPoll() later.
+    const children = Array.from(group.children);
+
+    await browser.tabGroups.move(group.group.id, {
+      windowId: flat_pos.parent.id,
+      index: flat_pos.index,
+    });
+
+    // Wait for a new TabGroupExtent to show up in the right place, and for all
+    // the tabs in the old extent to move to the new one.  Otherwise the
+    // caller's indexes might be off.
+    return await shortPoll(() => {
+      const extent = toParent.children[toIndex];
+      if (!extent) tryAgain("no child at position");
+      if (extent.type !== "tab-group") tryAgain("wrong type");
+      if (extent.group !== group.group) tryAgain("wrong group");
+
+      // We wait on all the children in the extent, because we expect to see a
+      // bunch of individual tabMoved events for each tab.
+      for (let i = 0; i < children.length; ++i) {
+        if (extent.children[i] !== children[i]) tryAgain(`wrong child ${i}`);
+      }
+      return extent;
+    });
+  }
+
+  /** Moves a tab and updates its group membership, if necessary, such that the
+   * tab precedes the item with index `toIndex` in the destination window or
+   * group. You can pass an index `>=` the length of the destination's children
+   * to move the item to the end of the destination. */
+  async move(
+    tab: Tab,
+    toParent: Window | TabGroupExtent,
+    toIndex: number,
+  ): Promise<void> {
+    const flat_pos = _flatPositionFor(toParent, toIndex);
+
+    // Move first, then update group membership. We do things in this order
+    // because updating group membership first might cause the tab to move,
+    // whereas if we put the tab in the correct position, its group membership
+    // may automatically update, but it won't move when we try to group or
+    // ungroup it.
+    await this.flattenedMove(tab, flat_pos.parent, flat_pos.index);
+
+    if (toParent.type === "window") {
+      await browser.tabs.ungroup(tab.id);
+    } else {
+      await browser.tabs.group({
+        groupId: toParent.group.id,
+        tabIds: [tab.id],
+      });
+    }
+
+    // We don't bother polling the model for position here, because
+    // flattenedMove() has already done it for us. We only care about seeing the
+    // group update.
+    await shortPoll(() => {
+      if (tab.position?.parent !== toParent) tryAgain();
+    });
+  }
+
+  /** Moves a tab such that it precedes the item with flattened index `toIndex`
+   * in the destination window.  (You can pass an index `>=` the length of the
    * windows's tab list to move the item to the end of the window.) */
-  async move(tab: Tab, toWindow: Window, toIndex: number): Promise<void> {
+  async flattenedMove(
+    tab: Tab,
+    toWindow: Window,
+    toIndex: number,
+  ): Promise<void> {
     // This method mainly exists to provide consistent behavior between
     // bookmarks.move() and tabs.move(). Unlike browser.bookmarks.move(),
     // browser.tabs.move() behaves the same on both Firefox and Chrome.
-    const pos = tab.position;
+    const pos = tab.flattenedPosition;
     if (pos?.parent === toWindow && toIndex > pos.index) toIndex--;
 
     trace("moving tab", tab, {toWindow, toIndex});
     await browser.tabs.move(tab.id, {windowId: toWindow.id, index: toIndex});
     await shortPoll(() => {
-      const pos = tab.position;
+      const pos = tab.flattenedPosition;
       if (!pos) tryAgain();
       if (pos.parent !== toWindow || pos.index !== toIndex) tryAgain();
     });
@@ -337,7 +619,7 @@ export class Model {
 
   /** Shows a tab that was previously hidden. */
   async show(tab: Tab): Promise<void> {
-    await browser.tabs.show(tab.id);
+    if (!!browser.tabs.show) await browser.tabs.show(tab.id);
     // We expect SK_HIDDEN_BY_TAB_STASH to be cleared automatically by
     // whenTabUpdated().  We do it there, instead of here, because some other
     // extension or the user could have un-hid the tab without going thru us.
@@ -350,6 +632,7 @@ export class Model {
    * them), so pinned tabs are unpinned first, then hidden like any other
    * tab. */
   async hide(tabs: Tab[], discard?: "discard"): Promise<void> {
+    if (tabs.length === 0) return;
     if (!!browser.tabs.hide) {
       const pinned = tabs.filter(t => t.pinned);
       if (pinned.length > 0) {
@@ -367,6 +650,7 @@ export class Model {
       await this.refocusAwayFromTabs(tabs);
 
       await browser.tabs.hide(tids);
+      await browser.tabs.ungroup(tids);
       if (discard) await browser.tabs.discard(tids);
 
       for (const t of tabs) {
@@ -412,13 +696,16 @@ export class Model {
     // NOTE: We expect there to be at most one active tab per window.
     for (const active_tab of active_tabs) {
       const pos = expect(
-        active_tab.position,
+        active_tab.flattenedPosition,
         () => `Couldn't find position of active tab ${active_tab.id}`,
       );
       const win = pos.parent;
-      const visible_tabs = win.children.filter(t => !t.hidden && !t.pinned);
+      const visible_tabs = win.flattenedChildren.filter(
+        t => !t.hidden && !t.pinned,
+      );
       const closing_tabs_in_window = tabs.filter(
-        t => t.position?.parent === active_tab.position?.parent,
+        t =>
+          t.flattenedPosition?.parent === active_tab.flattenedPosition?.parent,
       );
 
       if (closing_tabs_in_window.length >= visible_tabs.length) {
@@ -448,13 +735,13 @@ export class Model {
         // from, to mimic the browser's behavior when closing the front
         // tab.
 
-        let candidates = win.children.slice(pos.index + 1);
+        let candidates = win.flattenedChildren.slice(pos.index + 1);
         let focus_tab = candidates.find(
           c =>
             c.id !== undefined && !c.hidden && !c.pinned && !tabs.includes(c),
         );
         if (!focus_tab) {
-          candidates = win.children.slice(0, pos.index).reverse();
+          candidates = win.flattenedChildren.slice(0, pos.index).reverse();
           focus_tab = candidates.find(
             c =>
               c.id !== undefined && !c.hidden && !c.pinned && !tabs.includes(c),
@@ -486,9 +773,12 @@ export class Model {
     let window = this.windows.get(wid);
     if (!window) {
       window = reactive({
+        type: "window",
         id: wid,
         position: undefined,
         children: [],
+        flattenedPosition: undefined,
+        flattenedChildren: [],
         isLoaded: true,
       } as Window);
       this.windows.set(wid, window);
@@ -536,8 +826,43 @@ export class Model {
     }
 
     // We clone the array to avoid disturbances while iterating
-    for (const t of Array.from(win.children)) this.whenTabRemoved(t.id);
+    for (const t of Array.from(win.flattenedChildren))
+      this.whenTabRemoved(t.id);
     this.windows.delete(winId as WindowID);
+  }
+
+  whenTabGroupCreated(group: TabGroups.TabGroup): TabGroup {
+    trace("event tabGroupCreated", group.id, group);
+    return this.whenTabGroupUpdated(group);
+  }
+
+  whenTabGroupUpdated(group: TabGroups.TabGroup): TabGroup {
+    trace("event tabGroupUpdated", group.id, group);
+    let g = this.group(group.id);
+    if (!g) {
+      g = reactive({
+        id: group.id as TabGroupID,
+        title: group.title,
+        color: group.color,
+        collapsed: group.collapsed,
+      } as TabGroup);
+      this.tab_groups.set(g.id, g);
+    } else {
+      g.title = group.title ?? "";
+      g.color = group.color;
+      g.collapsed = group.collapsed;
+    }
+    return g;
+  }
+
+  whenTabGroupMoved(group: TabGroups.TabGroup) {
+    trace("event tabGroupMoved", group.id, group);
+    this.whenTabGroupUpdated(group);
+  }
+
+  whenTabGroupRemoved(group: TabGroups.TabGroup) {
+    trace("event tabGroupRemoved", group.id, group);
+    this.tab_groups.delete(group.id as TabGroupID);
   }
 
   whenTabCreated(tab: Tabs.Tab) {
@@ -545,6 +870,7 @@ export class Model {
       "event tabCreated",
       "window",
       tab.windowId,
+      tab.groupId,
       "tab",
       tab.id,
       tab.url,
@@ -554,7 +880,9 @@ export class Model {
     if (!t) {
       // CAST: Tabs.Tab says the id should be optional, but it isn't...
       t = reactive({
+        type: "tab",
         position: undefined,
+        flattenedPosition: undefined,
         id: tab.id as TabID,
         status: (tab.status as Tabs.TabStatus) ?? "loading",
         title: tab.title ?? "",
@@ -604,10 +932,9 @@ export class Model {
     // win.children.length + 1`, resulting in a crash.  Avoid the crash by
     // clamping tab.index to the window length if the window is fully-loaded.
     // See #537.
-    if (win.isLoaded) tab.index = Math.min(tab.index, win.children.length);
+    tab.index = Math.min(tab.index, win.flattenedChildren.length);
 
-    if (t.position) removeNode(t.position);
-    insertNode(t, {parent: win, index: tab.index});
+    this._move_tab(t, {parent: win, index: tab.index}, tab.groupId);
 
     // Insert the tab in its index
     this._add_url(t);
@@ -659,6 +986,10 @@ export class Model {
       t.hidden = info.hidden;
     }
     if (info.discarded !== undefined) t.discarded = info.discarded;
+
+    if (info.groupId !== undefined) {
+      this._move_tab(t, t.flattenedPosition, info.groupId);
+    }
   }
 
   whenTabAttached(id: number, info: Tabs.OnAttachedAttachInfoType) {
@@ -697,8 +1028,7 @@ export class Model {
     }
     /* c8 ignore stop */
 
-    if (t.position) removeNode(t.position);
-    insertNode(t, {parent: newWindow, index: info.toIndex});
+    this._move_tab(t, {parent: newWindow, index: info.toIndex}, undefined);
   }
 
   whenTabReplaced(newId: number, oldId: number) {
@@ -727,7 +1057,7 @@ export class Model {
     // Chrome doesn't tell us which tab was deactivated, so we have to
     // find it and mark it deactivated ourselves...
     const win = this.window(info.windowId as WindowID);
-    if (win) for (const t of win.children) t.active = false;
+    if (win) for (const t of win.flattenedChildren) t.active = false;
 
     tab.active = true;
   }
@@ -741,7 +1071,7 @@ export class Model {
       return;
     }
 
-    for (const t of win.children) {
+    for (const t of win.flattenedChildren) {
       t.highlighted = info.tabIds.findIndex(id => id === t.id) !== -1;
     }
   }
@@ -751,10 +1081,18 @@ export class Model {
     const t = this.tabs.get(tabId as TabID);
     if (!t) return; // tab is already removed
 
+    const flatPos = t.flattenedPosition;
+    if (flatPos) FlattenedWindowTree.removeNode(flatPos);
     const pos = t.position;
-    if (pos) removeNode(pos);
+    if (pos) {
+      const parent = pos.parent;
+      WindowTree.removeNode(pos);
+      if (parent.type === "tab-group" && parent.children.length === 0) {
+        if (parent.position) WindowTree.removeNode(parent.position);
+      }
+    }
 
-    trace("event ...tabRemoved", tabId, pos);
+    trace("event ...tabRemoved", tabId, flatPos);
 
     this.tabs.delete(t.id);
     this._remove_url(t);
@@ -772,6 +1110,244 @@ export class Model {
     index.delete(t);
   }
 
+  private _move_tab(
+    t: Tab,
+    newFlattenedPosition: TreePosition<Window> | undefined,
+    newGroupId: number | undefined,
+  ) {
+    const oldWindow = t.flattenedPosition?.parent;
+
+    // Move the tab in the flattened tree first, then we'll figure out its
+    // position in the grouped tree based on the new group ID and its new
+    // flattened position.
+    if (
+      t.flattenedPosition?.parent !== newFlattenedPosition?.parent ||
+      t.flattenedPosition?.index !== newFlattenedPosition?.index
+    ) {
+      if (t.flattenedPosition) {
+        FlattenedWindowTree.removeNode(t.flattenedPosition);
+      }
+      if (newFlattenedPosition) {
+        FlattenedWindowTree.insertNode(t, newFlattenedPosition);
+      }
+    }
+
+    // Then figure out the position of the tab in the grouped tree. Our general
+    // approach is to find or create a TabGroupExtent in the right position,
+    // based on where the tab is in the flattened tree and what its group ID is.
+
+    // First, figure out the group the tab should belong to (which may be its
+    // current group).
+    let newGroup: TabGroup | undefined;
+    if (newGroupId !== undefined) {
+      // We know the new group of the tab. Find or create the group.
+      newGroup = this.group(newGroupId);
+      if (!newGroup && newGroupId !== -1) {
+        newGroup = reactive({
+          id: newGroupId as TabGroupID,
+          title: "",
+          color: "grey",
+          collapsed: false,
+        } as TabGroup);
+        this.tab_groups.set(newGroup.id, newGroup);
+      }
+    } else {
+      // newGroupId is not provided, meaning the group membership may or may not
+      // be changing. The heuristics for guessing at this are stupidly
+      // complicated, because Firefox isn't always consistent about sending us
+      // tabs.onUpdated events when the group changes--so there are a few
+      // corner-case situations where we just have to guess.
+
+      // Most of the time, we can just keep the tab's existing group:
+      const parent = t.position?.parent;
+      newGroup = parent && "group" in parent ? parent.group : undefined;
+
+      // However, if we're moving between windows, things get more complicated:
+      if (newFlattenedPosition?.parent !== oldWindow) {
+        // Firefox will not send a tabs.onUpdated event if the tab is being
+        // moved into a group; it assumes the extension already knows the group
+        // is there and so doesn't tell us the tab's groupId is changing.
+        // However, it WILL send one if a tab's being moved to just outside the
+        // beginning of the group, to explicitly tell us the tab is NOT in the
+        // adjacent group.
+        //
+        // In either situation, we have to guess at the destination group based
+        // on the group of the tab currently at the destination index (if any).
+        // If the destination group doesn't match, we should see a subsequent
+        // tabs.onUpdated event that corrects it.
+        const newChildren = newFlattenedPosition?.parent.flattenedChildren;
+        const displacingTab = newChildren
+          ? newChildren[newFlattenedPosition?.index + 1 /* b/c already moved */]
+          : undefined;
+        if (displacingTab) {
+          newGroup =
+            displacingTab.position?.parent.type === "tab-group"
+              ? displacingTab.position.parent.group
+              : undefined;
+        } else {
+          newGroup = undefined;
+        }
+      }
+    }
+
+    // Now that we know the current group (if any), we can safely remove the tab
+    // from its old position in the group tree, if any.
+    if (t.position) {
+      const oldPos = t.position;
+
+      WindowTree.removeNode(t.position);
+
+      if (
+        oldPos.parent &&
+        oldPos.parent.type === "tab-group" &&
+        oldPos.parent.position
+      ) {
+        const oldParentPos = oldPos.parent.position;
+        // If the tab previously belonged to a TabGroupExtent that becomes
+        // empty, we need to remove it too.
+        if (oldPos.parent.children.length === 0) {
+          WindowTree.removeNode(oldParentPos);
+        }
+
+        // If the removal created two adjacent TabGroupExtents with the same
+        // group, we should merge them.
+        const prevSibling =
+          oldParentPos.parent.children[oldParentPos.index - 1];
+        const nextSibling = oldParentPos.parent.children[oldParentPos.index];
+        if (
+          prevSibling &&
+          nextSibling &&
+          "group" in prevSibling &&
+          "group" in nextSibling &&
+          prevSibling.group === nextSibling.group
+        ) {
+          WindowTree.mergeIntoLeftFromRight(prevSibling, nextSibling);
+        }
+      }
+    }
+
+    // At this point, the tab has been moved to the correct position in the
+    // flattened tree, and is entirely absent from the grouped tree. Any
+    // inconsistencies from removing the tab (e.g. empty extents, adjacent
+    // extents with the same group) have been resolved.
+
+    // If it doesn't have a new position in the flattened tree, we're done;
+    // there's nowhere to insert in the grouped tree.
+    if (!t.flattenedPosition) return;
+    const newWindow = t.flattenedPosition.parent;
+
+    // We also know the parent it should have in the grouped tree--either the
+    // window itself or the tab's group. However, we still need to figure out:
+    //
+    // - If there's an existing TabGroupExtent for the group in the right
+    //   position, if we need to create a new one, or if we're directly
+    //   inserting into the parent (and possibly splitting an existing extent in
+    //   the process).
+    // - What index to insert in the grouped tree
+    //
+    // In both cases, we can look at the tab's neighbors in the flattened tree.
+    const prevSibling = newWindow.flattenedChildren[
+      t.flattenedPosition.index - 1
+    ] as Tab | undefined;
+    const nextSibling = newWindow.flattenedChildren[
+      t.flattenedPosition.index + 1
+    ] as Tab | undefined;
+    const prevGroupExt =
+      prevSibling?.position?.parent.type === "tab-group"
+        ? prevSibling.position.parent
+        : undefined;
+    let nextGroupExt =
+      nextSibling?.position?.parent.type === "tab-group"
+        ? nextSibling.position.parent
+        : undefined;
+
+    // Figure out if we need to split an extent, or if we can insert into an
+    // existing extent or directly into the window itself.
+    if (prevGroupExt && prevGroupExt === nextGroupExt) {
+      if (prevGroupExt.group === newGroup) {
+        // We're moving into the middle of an existing group. Just put the tab
+        // into its new position and we're done.
+        WindowTree.insertNode(t, {
+          parent: nextGroupExt,
+          index: nextSibling!.position!.index,
+        });
+        return;
+      }
+
+      // We need to split the extent for prevGroup/nextGroup into two. The split
+      // point is between prevSibling and nextSibling, so we can just move all
+      // the tabs after prevSibling into a new extent.
+      nextGroupExt = reactive({
+        type: "tab-group",
+        group: nextGroupExt.group,
+        children: [] as Tab[],
+        position: undefined,
+      } as TabGroupExtent);
+      WindowTree.splitParentAtIndexIntoNode(
+        prevGroupExt,
+        nextSibling!.position!.index,
+        nextGroupExt,
+      );
+    }
+
+    // We're either at a group boundary (prevGroupExt !== nextGroupExt) or we're
+    // inserting directly into the window. Let's see if either the prev or next
+    // group is the one we want.
+    if (prevGroupExt && prevGroupExt.group === newGroup) {
+      // The group before the insertion point matches the tab's group; insert as
+      // the last element of that group.
+      WindowTree.insertNode(t, {
+        parent: prevGroupExt,
+        index: prevSibling!.position!.index + 1,
+      });
+
+      // We need to do one more check for merging here, to handle the case where
+      // a tab is being reassigned to a group that has two extents on either
+      // side of it.
+      if (nextGroupExt && nextGroupExt.group === prevGroupExt.group) {
+        WindowTree.mergeIntoLeftFromRight(prevGroupExt, nextGroupExt);
+      }
+      return;
+    } else if (nextGroupExt && nextGroupExt.group === newGroup) {
+      // The group after the insertion point matches the tab's group; insert as
+      // the first element of that group.
+      WindowTree.insertNode(t, {
+        parent: nextGroupExt,
+        index: 0,
+      });
+      return;
+    }
+
+    // If we get here, we need to insert directly into the window.
+    const newIndex = nextGroupExt
+      ? nextGroupExt.position!.index
+      : nextSibling
+        ? nextSibling!.position!.index
+        : newWindow.children.length;
+
+    if (newGroup === undefined) {
+      WindowTree.insertNode(t, {
+        parent: newWindow,
+        index: newIndex,
+      });
+    } else {
+      const newGroupExt = reactive({
+        type: "tab-group",
+        group: newGroup,
+        children: [] as Tab[],
+        position: undefined,
+      } as TabGroupExtent);
+      WindowTree.insertNode(newGroupExt, {
+        parent: newWindow,
+        index: newIndex,
+      });
+      WindowTree.insertNode(t, {
+        parent: newGroupExt,
+        index: 0,
+      });
+    }
+  }
+
   /** Wait until the number of tabs being loaded concurrently drops below a
    * reasonable threshold.  This prevents us from opening so many tabs at once
    * that we lock up the user's whole machine. :/ */
@@ -786,4 +1362,32 @@ export class Model {
       check();
     });
   }
+}
+
+/** Given a regular position in the window, compute and return the equivalent
+ * flattened position to use for insertion. This is useful for figuring out
+ * where to move a tab to or where to create a tab. */
+function _flatPositionFor(
+  parent: Window | TabGroupExtent,
+  index: number,
+): TreePosition<Window> {
+  const toWindow = parent.type === "window" ? parent : parent.position!.parent;
+
+  let displacingChild = parent.children[index];
+  let flatIndex;
+
+  if (!displacingChild && parent.type === "tab-group") {
+    displacingChild = toWindow.children[parent.position!.index + 1];
+  }
+
+  if (displacingChild) {
+    if (displacingChild.type === "tab-group") {
+      displacingChild = displacingChild.children[0];
+    }
+    flatIndex = displacingChild.flattenedPosition!.index;
+  } else {
+    flatIndex = toWindow.flattenedChildren.length;
+  }
+
+  return {parent: toWindow, index: flatIndex};
 }

@@ -30,7 +30,7 @@ import {defineComponent, type PropType} from "vue";
 import {required} from "../util/index.js";
 
 import the from "../globals-ui.js";
-import {isFolder, type Folder, type Node} from "../model/bookmarks.js";
+import {type Folder, type Node} from "../model/bookmarks.js";
 
 import DndList, {
   type ListDragEvent,
@@ -57,13 +57,11 @@ export default defineComponent({
   },
 
   methods: {
-    isFolder,
-
     isVisible(f: Node): f is Folder {
       const fi = the.model.filter.info(f);
       const si = the.model.selection.info(f);
       return (
-        isFolder(f) &&
+        f.type === "folder" &&
         (fi.isMatching || fi.hasMatchInSubtree || si.hasSelectionInSubtree)
       );
     },
@@ -116,7 +114,7 @@ export default defineComponent({
         const items = recvDragData(ev.data, the.model);
 
         const folder = ev.insertInParent;
-        if (!isFolder(folder)) {
+        if (folder.type !== "folder") {
           throw new Error(`${folder.title}: Not a folder [${folder.id}]`);
         }
 

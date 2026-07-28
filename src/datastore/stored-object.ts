@@ -48,12 +48,7 @@ export type StorableDefEntry<T extends StorableValue> = {
 // Allowed types (for each "is" property in the map above) are based on MDN's
 // documentation (and experimentation with Firefox).
 export type StorableValue =
-  | undefined
-  | null
-  | boolean
-  | number
-  | string
-  | StorableValue[];
+  undefined | null | boolean | number | string | StorableValue[];
 
 // Storable types are set in the "is" property of a StorableDef, and are
 // expressed as functions which convert from arbitrary/undefined values the

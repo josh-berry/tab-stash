@@ -17,7 +17,7 @@ async function kvs_factory(): Promise<Client<string, string>> {
 describe("datastore/kvs/client", function () {
   describe("implements KeyValueStore", () => tests(kvs_factory));
 
-  let clock: FakeTimers.InstalledClock | undefined;
+  let clock: FakeTimers.Clock | undefined;
   let kvs: Client<string, string>;
   let port: MockServicePort;
 

@@ -2,14 +2,13 @@ import {expect} from "chai";
 import {computed, nextTick} from "vue";
 
 import {TreeSelection} from "./tree-selection.js";
-import {insertNode, removeNode} from "./tree.js";
-import {isTestParent, makeDefaultTree, type TestNode} from "./tree.test.js";
+import {makeDefaultTree, type TestNode, TestTree} from "./tree.test.js";
 
 describe("model/tree-selection", () => {
-  let [topRoot, topParents, topNodes] = makeDefaultTree();
-  let [bottomRoot, _bottomParents, bottomNodes] = makeDefaultTree();
+  let [topRoot, topParents, topLeaves] = makeDefaultTree();
+  let [bottomRoot, bottomParents, bottomLeaves] = makeDefaultTree();
   let sel = new TreeSelection(
-    isTestParent,
+    TestTree,
     computed(() => [topRoot, bottomRoot]),
   );
 
@@ -35,22 +34,22 @@ describe("model/tree-selection", () => {
 
   beforeEach(() => {
     sel = new TreeSelection(
-      isTestParent,
+      TestTree,
       computed(() => [topRoot, bottomRoot]),
     );
   });
 
   it("counts selected items across models", async () => {
-    sel.info(topNodes.a).isSelected = true;
-    sel.info(bottomNodes.a).isSelected = true;
-    sel.info(bottomNodes.b).isSelected = true;
-    await expectSelectedItems([topNodes.a], [bottomNodes.a, bottomNodes.b]);
+    sel.info(topLeaves.a).isSelected = true;
+    sel.info(bottomLeaves.a).isSelected = true;
+    sel.info(bottomParents.b).isSelected = true;
+    await expectSelectedItems([topLeaves.a], [bottomLeaves.a, bottomParents.b]);
   });
 
   it("clears all selections", async () => {
-    sel.info(topNodes.a).isSelected = true;
-    sel.info(bottomNodes.a).isSelected = true;
-    sel.info(bottomNodes.b).isSelected = true;
+    sel.info(topLeaves.a).isSelected = true;
+    sel.info(bottomLeaves.a).isSelected = true;
+    sel.info(bottomParents.b).isSelected = true;
     await nextTick();
     expect(sel.selectedCount.value).to.equal(3);
 
@@ -59,171 +58,183 @@ describe("model/tree-selection", () => {
   });
 
   it("updates counts when nodes move", async () => {
-    sel.info(topNodes.c1a).isSelected = true;
-    sel.info(topNodes.c2b2).isSelected = true;
-    sel.info(topNodes.c2b4).isSelected = true;
+    sel.info(topLeaves.c1a).isSelected = true;
+    sel.info(topLeaves.c2b2).isSelected = true;
+    sel.info(topLeaves.c2b4).isSelected = true;
     await nextTick();
-    expect(sel.info(topNodes.c1).selectedCount, "c1 before").to.equal(1);
-    expect(sel.info(topNodes.c2b).selectedCount, "c2b before").to.equal(2);
-    expect(sel.info(topNodes.c2).selectedCount, "c2 before").to.equal(2);
-    expect(sel.info(topNodes.c).selectedCount, "c before").to.equal(3);
-    expect(sel.info(topNodes.e).selectedCount, "e before").to.equal(0);
-    expect(sel.info(topNodes.root).selectedCount, "root before").to.equal(3);
-    await expectSelectedItems([topNodes.c1a, topNodes.c2b2, topNodes.c2b4], []);
+    expect(sel.info(topParents.c1).selectedCount, "c1 before").to.equal(1);
+    expect(sel.info(topParents.c2b).selectedCount, "c2b before").to.equal(2);
+    expect(sel.info(topParents.c2).selectedCount, "c2 before").to.equal(2);
+    expect(sel.info(topParents.c).selectedCount, "c before").to.equal(3);
+    expect(sel.info(topParents.e).selectedCount, "e before").to.equal(0);
+    expect(sel.info(topRoot).selectedCount, "root before").to.equal(3);
+    await expectSelectedItems(
+      [topLeaves.c1a, topLeaves.c2b2, topLeaves.c2b4],
+      [],
+    );
 
-    removeNode(topNodes.c2.position!);
-    insertNode(topNodes.c2, {parent: topParents.e, index: 0});
+    TestTree.removeNode(topParents.c2.position!);
+    TestTree.insertNode(topParents.c2, {parent: topParents.e, index: 0});
     await nextTick();
-    expect(sel.info(topNodes.c1).selectedCount, "c1 after").to.equal(1);
-    expect(sel.info(topNodes.c2b).selectedCount, "c2b after").to.equal(2);
-    expect(sel.info(topNodes.c2).selectedCount, "c2 after").to.equal(2);
-    expect(sel.info(topNodes.c).selectedCount, "c after").to.equal(1);
-    expect(sel.info(topNodes.e).selectedCount, "e after").to.equal(2);
-    expect(sel.info(topNodes.root).selectedCount, "root after").to.equal(3);
-    await expectSelectedItems([topNodes.c1a, topNodes.c2b2, topNodes.c2b4], []);
+    expect(sel.info(topParents.c1).selectedCount, "c1 after").to.equal(1);
+    expect(sel.info(topParents.c2b).selectedCount, "c2b after").to.equal(2);
+    expect(sel.info(topParents.c2).selectedCount, "c2 after").to.equal(2);
+    expect(sel.info(topParents.c).selectedCount, "c after").to.equal(1);
+    expect(sel.info(topParents.e).selectedCount, "e after").to.equal(2);
+    expect(sel.info(topRoot).selectedCount, "root after").to.equal(3);
+    await expectSelectedItems(
+      [topLeaves.c1a, topLeaves.c2b2, topLeaves.c2b4],
+      [],
+    );
   });
 
   describe("toggleSelectOne()", () => {
     it("selects a single item when no other items are selected", async () => {
-      sel.toggleSelectOne(topNodes.c);
-      await expectSelectedItems([topNodes.c], []);
+      sel.toggleSelectOne(topParents.c);
+      await expectSelectedItems([topParents.c], []);
     });
 
     it("replaces the selection when selecting an unselected item", async () => {
-      sel.info(topNodes.a).isSelected = true;
-      sel.info(bottomNodes.a).isSelected = true;
-      sel.info(bottomNodes.b).isSelected = true;
-      await expectSelectedItems([topNodes.a], [bottomNodes.a, bottomNodes.b]);
+      sel.info(topLeaves.a).isSelected = true;
+      sel.info(bottomLeaves.a).isSelected = true;
+      sel.info(bottomParents.b).isSelected = true;
+      await expectSelectedItems(
+        [topLeaves.a],
+        [bottomLeaves.a, bottomParents.b],
+      );
 
-      sel.toggleSelectOne(topNodes.c);
-      await expectSelectedItems([topNodes.c], []);
+      sel.toggleSelectOne(topParents.c);
+      await expectSelectedItems([topParents.c], []);
     });
 
     it("replaces the selection when selecting an already-selected item", async () => {
-      sel.info(topNodes.a).isSelected = true;
-      sel.info(bottomNodes.a).isSelected = true;
-      sel.info(bottomNodes.b).isSelected = true;
-      await expectSelectedItems([topNodes.a], [bottomNodes.a, bottomNodes.b]);
+      sel.info(topLeaves.a).isSelected = true;
+      sel.info(bottomLeaves.a).isSelected = true;
+      sel.info(bottomParents.b).isSelected = true;
+      await expectSelectedItems(
+        [topLeaves.a],
+        [bottomLeaves.a, bottomParents.b],
+      );
 
-      sel.toggleSelectOne(topNodes.a);
-      await expectSelectedItems([topNodes.a], []);
+      sel.toggleSelectOne(topLeaves.a);
+      await expectSelectedItems([topLeaves.a], []);
     });
 
     it("toggles the selection if the same item is selected again", async () => {
-      sel.info(topNodes.a).isSelected = true;
-      await expectSelectedItems([topNodes.a], []);
+      sel.info(topLeaves.a).isSelected = true;
+      await expectSelectedItems([topLeaves.a], []);
 
-      sel.toggleSelectOne(topNodes.a);
+      sel.toggleSelectOne(topLeaves.a);
       await expectSelectedItems([], []);
     });
   });
 
   describe("toggleSelectScattered()", async () => {
     it("selects a de-selected item", async () => {
-      sel.toggleSelectScattered(topNodes.c);
-      await expectSelectedItems([topNodes.c], []);
+      sel.toggleSelectScattered(topParents.c);
+      await expectSelectedItems([topParents.c], []);
     });
 
     it("de-selects a selected item", async () => {
-      sel.toggleSelectScattered(topNodes.c);
-      await expectSelectedItems([topNodes.c], []);
+      sel.toggleSelectScattered(topParents.c);
+      await expectSelectedItems([topParents.c], []);
 
-      sel.toggleSelectScattered(topNodes.c);
+      sel.toggleSelectScattered(topParents.c);
       await expectSelectedItems([], []);
     });
 
     it("selects a de-selected item while other items are selected", async () => {
-      sel.toggleSelectScattered(topNodes.c);
-      await expectSelectedItems([topNodes.c], []);
+      sel.toggleSelectScattered(topParents.c);
+      await expectSelectedItems([topParents.c], []);
 
-      sel.toggleSelectScattered(topNodes.a);
-      await expectSelectedItems([topNodes.a, topNodes.c], []);
+      sel.toggleSelectScattered(topLeaves.a);
+      await expectSelectedItems([topLeaves.a, topParents.c], []);
 
-      sel.toggleSelectScattered(bottomNodes.b);
-      await expectSelectedItems([topNodes.a, topNodes.c], [bottomNodes.b]);
+      sel.toggleSelectScattered(bottomParents.b);
+      await expectSelectedItems([topLeaves.a, topParents.c], [bottomParents.b]);
     });
 
     it("de-selects a selected item while other items are selected", async () => {
-      sel.toggleSelectScattered(topNodes.c);
-      await expectSelectedItems([topNodes.c], []);
+      sel.toggleSelectScattered(topParents.c);
+      await expectSelectedItems([topParents.c], []);
 
-      sel.toggleSelectScattered(topNodes.a);
-      await expectSelectedItems([topNodes.a, topNodes.c], []);
+      sel.toggleSelectScattered(topLeaves.a);
+      await expectSelectedItems([topLeaves.a, topParents.c], []);
 
-      sel.toggleSelectScattered(bottomNodes.b);
-      await expectSelectedItems([topNodes.a, topNodes.c], [bottomNodes.b]);
+      sel.toggleSelectScattered(bottomParents.b);
+      await expectSelectedItems([topLeaves.a, topParents.c], [bottomParents.b]);
 
-      sel.toggleSelectScattered(topNodes.c);
-      await expectSelectedItems([topNodes.a], [bottomNodes.b]);
+      sel.toggleSelectScattered(topParents.c);
+      await expectSelectedItems([topLeaves.a], [bottomParents.b]);
     });
   });
 
   describe("toggleSelectRange()", () => {
     it("selects items in a range", async () => {
-      sel.toggleSelectRange(topNodes.b);
-      sel.toggleSelectRange(topNodes.e);
+      sel.toggleSelectRange(topParents.b);
+      sel.toggleSelectRange(topParents.e);
       await expectSelectedItems(
-        [topNodes.b, topNodes.c, topNodes.d, topNodes.e],
+        [topParents.b, topParents.c, topLeaves.d, topParents.e],
         [],
       );
     });
 
     it("selects items in a range, in reverse", async () => {
-      sel.toggleSelectRange(topNodes.e);
-      sel.toggleSelectRange(topNodes.b);
+      sel.toggleSelectRange(topParents.e);
+      sel.toggleSelectRange(topParents.b);
       await expectSelectedItems(
-        [topNodes.b, topNodes.c, topNodes.d, topNodes.e],
+        [topParents.b, topParents.c, topLeaves.d, topParents.e],
         [],
       );
     });
 
     it("adjusts a previously-selected range", async () => {
-      sel.toggleSelectScattered(topNodes.b);
-      sel.toggleSelectRange(topNodes.e);
-      sel.toggleSelectRange(topNodes.d);
-      await expectSelectedItems([topNodes.b, topNodes.c, topNodes.d], []);
+      sel.toggleSelectScattered(topParents.b);
+      sel.toggleSelectRange(topParents.e);
+      sel.toggleSelectRange(topLeaves.d);
+      await expectSelectedItems([topParents.b, topParents.c, topLeaves.d], []);
     });
 
     it("adjusts a previously-selected range, in reverse", async () => {
-      sel.toggleSelectScattered(topNodes.e);
-      sel.toggleSelectRange(topNodes.b);
-      sel.toggleSelectRange(topNodes.c);
-      await expectSelectedItems([topNodes.c, topNodes.d, topNodes.e], []);
+      sel.toggleSelectScattered(topParents.e);
+      sel.toggleSelectRange(topParents.b);
+      sel.toggleSelectRange(topParents.c);
+      await expectSelectedItems([topParents.c, topLeaves.d, topParents.e], []);
     });
 
     it("clears previously-selected items in a range", async () => {
-      sel.toggleSelectScattered(topNodes.a);
-      sel.toggleSelectRange(topNodes.f);
-      sel.toggleSelectScattered(topNodes.c);
-      sel.toggleSelectRange(topNodes.e);
-      await expectSelectedItems([topNodes.a, topNodes.b, topNodes.f], []);
+      sel.toggleSelectScattered(topLeaves.a);
+      sel.toggleSelectRange(topLeaves.f);
+      sel.toggleSelectScattered(topParents.c);
+      sel.toggleSelectRange(topParents.e);
+      await expectSelectedItems([topLeaves.a, topParents.b, topLeaves.f], []);
     });
 
     it("adjusts a previously-cleared range", async () => {
-      sel.toggleSelectScattered(topNodes.a);
-      sel.toggleSelectRange(topNodes.f);
-      sel.toggleSelectScattered(topNodes.c);
-      sel.toggleSelectRange(topNodes.e);
-      sel.toggleSelectRange(topNodes.d);
+      sel.toggleSelectScattered(topLeaves.a);
+      sel.toggleSelectRange(topLeaves.f);
+      sel.toggleSelectScattered(topParents.c);
+      sel.toggleSelectRange(topParents.e);
+      sel.toggleSelectRange(topLeaves.d);
       await expectSelectedItems(
-        [topNodes.a, topNodes.b, topNodes.e, topNodes.f],
+        [topLeaves.a, topParents.b, topParents.e, topLeaves.f],
         [],
       );
     });
 
     it("falls back to scattered selection if the range is invalid", async () => {
-      sel.toggleSelectRange(bottomNodes.c);
-      sel.toggleSelectRange(bottomNodes.c1a);
-      await expectSelectedItems([], [bottomNodes.c, bottomNodes.c1a]);
+      sel.toggleSelectRange(bottomParents.c);
+      sel.toggleSelectRange(bottomLeaves.c1a);
+      await expectSelectedItems([], [bottomParents.c, bottomLeaves.c1a]);
     });
 
     it("allows range selection in the new range after a disjoint selection", async () => {
-      sel.toggleSelectRange(bottomNodes.c);
-      sel.toggleSelectRange(bottomNodes.c1a);
-      sel.toggleSelectRange(bottomNodes.c1c);
+      sel.toggleSelectRange(bottomParents.c);
+      sel.toggleSelectRange(bottomLeaves.c1a);
+      sel.toggleSelectRange(bottomLeaves.c1c);
       await expectSelectedItems(
         [],
-        [bottomNodes.c, bottomNodes.c1a, bottomNodes.c1b, bottomNodes.c1c],
+        [bottomParents.c, bottomLeaves.c1a, bottomLeaves.c1b, bottomLeaves.c1c],
       );
     });
   });

@@ -22,20 +22,32 @@
           collapse: !collapsed,
           expand: collapsed,
         }"
-        title="Hide the tabs for this group"
+        :title="$t('hideTabsForGroup')"
         @click.prevent.stop="collapsed = !collapsed"
       />
       <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
         <a
           class="action stash"
-          :title="`Stash all ${
-            showStashedTabs ? 'open tabs' : 'unstashed tabs'
-          } to a new group (hold ${altKey} to keep tabs open)`"
+          :title="
+            showStashedTabs
+              ? $t('stashAllOpenTabsTooltip', [altKey])
+              : $t('stashAllUnstashedTabsTooltip', [altKey])
+          "
           @click.prevent.stop="stash"
         />
         <a
+          class="action stash newtab"
+          :title="$t('newTabTooltip')"
+          @click.prevent.stop="newTab"
+        />
+        <a
+          class="action stash newtabgroup"
+          :title="$t('newTabGroupTooltip')"
+          @click.prevent.stop="newTabGroup"
+        />
+        <a
           class="action stash newgroup"
-          title="Create a new empty group"
+          :title="$t('createNewEmptyGroupTooltip')"
           @click.prevent.stop="newGroup"
         />
 
@@ -44,7 +56,7 @@
           h-position="right"
         >
           <button
-            title="Show only unstashed tabs"
+            :title="$t('showOnlyUnstashedTabsTooltip')"
             @click.prevent="setMode('unstashed')"
             :disabled="!showStashedTabs"
           >
@@ -56,10 +68,10 @@
                 'icon-select-selected': !showStashedTabs,
               }"
             />
-            <span>Show Unstashed Tabs Only</span>
+            <span>{{ $t("showUnstashedTabsOnlyMenu") }}</span>
           </button>
           <button
-            title="Show all open tabs in the window (excluding pinned tabs)"
+            :title="$t('showAllOpenTabsTooltip')"
             @click.prevent="setMode('all')"
             :disabled="showStashedTabs"
           >
@@ -71,41 +83,41 @@
                 'icon-select-selected': showStashedTabs,
               }"
             />
-            <span>Show All Open Tabs</span>
+            <span>{{ $t("showAllOpenTabsMenu") }}</span>
           </button>
 
           <hr />
 
           <button
-            :title="`Close all unstashed tabs (except pinned and hidden)`"
+            :title="$t('closeUnstashedTabsTooltip')"
             @click.prevent="removeUnstashed"
           >
             <span class="menu-icon icon icon-delete" />
-            <span>Close Unstashed Tabs</span>
+            <span>{{ $t("closeUnstashedTabsMenu") }}</span>
           </button>
           <button
-            :title="`Close all stashed tabs (except pinned and hidden)`"
+            :title="$t('closeStashedTabsTooltip')"
             @click.prevent="removeStashed"
           >
             <span class="menu-icon icon icon-delete-stashed" />
-            <span>Close Stashed Tabs</span>
+            <span>{{ $t("closeStashedTabsMenu") }}</span>
           </button>
           <button
-            :title="`Close all open tabs (except pinned and hidden)`"
+            :title="$t('closeAllOpenTabsTooltip')"
             @click.prevent="removeOpen"
           >
             <span class="menu-icon icon icon-delete-opened" />
-            <span>Close All Open Tabs</span>
+            <span>{{ $t("closeAllOpenTabsMenu") }}</span>
           </button>
 
           <hr />
 
           <button
-            :title="`Close any stashed tabs that are hidden (may reclaim memory)`"
+            :title="$t('closeHiddenTabsTooltip')"
             @click.prevent="removeHidden"
           >
             <span class="menu-icon icon icon-delete-opened" />
-            <span>Close Hidden Tabs</span>
+            <span>{{ $t("closeHiddenTabsMenu") }}</span>
           </button>
         </Menu>
       </nav>
@@ -113,19 +125,25 @@
       <nav v-else class="action-group forest-toolbar">
         <a
           class="action stash newgroup"
-          :title="`Move ${selectedCount} tab(s) to a new group (hold ${altKey} to copy)`"
+          :title="$ts(selectedCount, 'moveItemsToNewGroup', [altKey])"
           @click.prevent.stop="moveToNewGroup"
         />
         <a
           v-if="selectedCount > 0"
+          class="action restore newtabgroup"
+          :title="`Restore ${selectedCount} item(s) to a new group (hold ${altKey} to copy)`"
+          @click.prevent.stop="putInNewTabGroup"
+        />
+        <a
+          v-if="selectedCount > 0"
           class="action restore"
-          :title="`Open ${selectedCount} tab(s)`"
+          :title="$ts(selectedCount, 'openSelectedItems')"
           @click.prevent.stop="copyToWindow"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore-remove"
-          :title="`Unstash ${selectedCount} tab(s)`"
+          :title="$ts(selectedCount, 'unstashSelectedItems')"
           @click.prevent.stop="moveToWindow"
         />
       </nav>
@@ -137,14 +155,21 @@
       :class="{'forest-children': true, collapsed}"
       orientation="vertical"
       v-model="targetWindow.children"
-      :item-key="(item: Tab) => item.id"
+      :item-key="
+        (item: TabGroupExtent | Tab) =>
+          item.type === 'tab' ? item.id : `g-${item.group.id}`
+      "
       :item-accepts="itemAccepts"
       :list-accepts="_ => false"
       @drag="drag"
       @drop="drop"
+      @drop-inside="dropInside"
     >
-      <template #item="{item}: {item: Tab}">
-        <tab v-if="isVisible(item)" :tab="item" />
+      <template #item="{item}: {item: TabGroupExtent | Tab}">
+        <template v-if="isVisible(item)">
+          <tab v-if="item.type === 'tab'" :tab="item" />
+          <tab-group v-else :group="item" @close="closeTabs" />
+        </template>
       </template>
     </dnd-list>
 
@@ -159,15 +184,14 @@
 
     <confirm-dialog
       v-if="confirmCloseTabs > 0"
-      :confirm="`Close ${confirmCloseTabs} tabs`"
-      cancel="Cancel"
+      :confirm="$ts(confirmCloseTabs, 'closeTabsConfirm')"
+      :cancel="$t('cancelButton')"
       @answer="confirmCloseTabsThen($event)"
     >
-      <p>You're about to close {{ confirmCloseTabs }} tabs at once.</p>
+      <p>{{ $ts(confirmCloseTabs, "closeTabsWarn") }}</p>
 
       <p>
-        Your browser may not keep this many tabs in its recent history, so THIS
-        IS IRREVERSIBLE. Are you sure?
+        {{ $t("closeTabsIrreversible") }}
       </p>
     </confirm-dialog>
   </li>
@@ -177,13 +201,13 @@
 import {defineComponent, ref, type PropType, type Directive} from "vue";
 import browser from "webextension-polyfill";
 
-import {altKeyName, required} from "../util/index.js";
+import {altKeyName, required, $t, $ts} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
 import {copyIf} from "../model/index.js";
 import type {SyncState} from "../model/options.js";
-import type {Tab, Window} from "../model/tabs.js";
+import type {Tab, TabGroupExtent, Window} from "../model/tabs.js";
 
 import ConfirmDialog, {
   type ConfirmDialogEvent,
@@ -191,10 +215,12 @@ import ConfirmDialog, {
 import DndList, {
   type ListDragEvent,
   type ListDropEvent,
+  type ListDropInsideEvent,
 } from "../components/dnd-list.vue";
 import ShowFilteredItem from "../components/show-filtered-item.vue";
 import Menu from "../components/menu.vue";
 import Bookmark from "./bookmark.vue";
+import TabGroup from "./tab-group.vue";
 import TabVue from "./tab.vue";
 
 import type {FilterInfo} from "../model/tree-filter.js";
@@ -209,8 +235,9 @@ import {vDroppable} from "../components/dnd-directives.js";
 export default defineComponent({
   components: {
     ConfirmDialog,
-    DndList: DndList<Tab>,
+    DndList: DndList<TabGroupExtent | Tab>,
     Menu,
+    TabGroup,
     Tab: TabVue,
     Bookmark,
     ShowFilteredItem,
@@ -261,21 +288,20 @@ export default defineComponent({
       },
     },
 
-    tabs(): Tab[] {
-      return this.targetWindow.children;
-    },
-
     showStashedTabs(): boolean {
       return the.model.options.sync.state.show_open_tabs === "all";
     },
 
     title(): string {
-      if (this.showStashedTabs) return "Open Tabs";
-      return "Unstashed Tabs";
+      if (this.showStashedTabs) return this.$t("openTabsTitle");
+      return this.$t("unstashedTabsTitle");
     },
 
     tooltip(): string {
-      return `${this.displayCount} ${this.title}`;
+      return this.$ts(
+        this.displayCount,
+        this.showStashedTabs ? "open_tabs" : "unstashed_tabs",
+      );
     },
 
     collapsed: {
@@ -290,7 +316,7 @@ export default defineComponent({
     // How many tabs are visible in the list, ignoring the filter?
     displayCount(): number {
       let count = 0;
-      for (const c of this.targetWindow.children) {
+      for (const c of this.targetWindow.flattenedChildren) {
         if (this.isValidChild(c)) ++count;
       }
       return count;
@@ -325,6 +351,8 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
+    $ts,
     attempt(fn: () => Promise<void>) {
       the.model.attempt(fn);
     },
@@ -336,16 +364,23 @@ export default defineComponent({
       });
     },
 
-    isVisible(t: Tab): boolean {
+    isVisible(t: TabGroupExtent | Tab): boolean {
+      if (!this.isValidChild(t)) return false;
+      if (this.showFiltered) return true;
+
       const f = the.model.filter.info(t);
+      if (f.isMatching) return true;
+      if (f.hasMatchInSubtree) return true;
+
       const s = the.model.selection.info(t);
-      return (
-        this.isValidChild(t) &&
-        (this.showFiltered || f.isMatching || s.isSelected)
-      );
+      if (s.isSelected) return true;
+      if (s.hasSelectionInSubtree) return true;
+
+      return false;
     },
 
-    isValidChild(t: Tab): boolean {
+    isValidChild(t: TabGroupExtent | Tab): boolean {
+      if (t.type === "tab-group") return true;
       if (t.hidden || t.pinned) return false;
       return (
         this.showStashedTabs ||
@@ -357,6 +392,29 @@ export default defineComponent({
     async newGroup() {
       this.attempt(async () => {
         await the.model.createStashFolder();
+      });
+    },
+
+    newTab() {
+      this.attempt(async () => {
+        await browser.tabs.create({
+          windowId: the.model.tabs.targetWindow.value!.id,
+          active: true,
+        });
+      });
+    },
+
+    newTabGroup() {
+      this.attempt(async () => {
+        const win = the.model.tabs.targetWindow.value;
+        if (!win) return;
+
+        await the.model.putItemsInNewTabGroup({
+          title: the.model.searchText.value || "Untitled",
+          items: [{url: ""}],
+          toWindow: win,
+          toIndex: win.children.length,
+        });
       });
     },
 
@@ -379,48 +437,53 @@ export default defineComponent({
     },
 
     async removeUnstashed() {
-      this.attempt(async () => {
-        const to_remove = this.tabs.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
             // Keep the active tab if it's the Tab Stash tab
             (!t.active || the.model.isURLStashable(t.url)) &&
             !the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.tabs.remove(to_remove);
-      });
+        ),
+      );
     },
 
     async removeStashed() {
-      this.attempt(async () => {
-        const to_remove = this.tabs.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             !t.hidden &&
             !t.pinned &&
             the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        if (!(await this.confirmRemove(to_remove.length))) return;
-        await the.model.hideOrCloseStashedTabs(to_remove);
-      });
+        ),
+      );
     },
 
     removeOpen() {
-      this.attempt(async () => {
-        // Closes ALL open tabs (stashed and unstashed).
-        //
-        // For performance, we will try to identify stashed tabs the
-        // user might want to keep, and hide instead of close them.
-        //
-        // (Just as in remove(), we keep the active tab if it's a
-        // new-tab page or the Tab Stash page.)
-        const tabs = this.tabs.filter(
+      this.closeTabs(
+        this.targetWindow.flattenedChildren.filter(
           t =>
             (!t.active || the.model.isURLStashable(t.url)) &&
             !t.hidden &&
             !t.pinned,
+        ),
+      );
+    },
+
+    removeHidden() {
+      this.attempt(async () => {
+        const tabs = this.targetWindow.flattenedChildren.filter(
+          t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
         );
+        await the.model.tabs.remove(tabs);
+      });
+    },
+
+    closeTabs(tabs: Tab[]) {
+      this.attempt(async () => {
+        if (!(await this.confirmRemove(tabs.length))) return;
+
         const hide_tabs = tabs.filter(t =>
           the.model.bookmarks.isURLLoadedInStash(t.url),
         );
@@ -428,21 +491,10 @@ export default defineComponent({
           .filter(t => !the.model.bookmarks.isURLLoadedInStash(t.url))
           .map(t => t.id);
 
-        if (!(await this.confirmRemove(tabs.length))) return;
-
         await the.model.tabs.refocusAwayFromTabs(tabs);
 
         the.model.hideOrCloseStashedTabs(hide_tabs).catch(console.log);
         browser.tabs.remove(close_tabs).catch(console.log);
-      });
-    },
-
-    removeHidden() {
-      this.attempt(async () => {
-        const tabs = this.tabs.filter(
-          t => t.hidden && the.model.bookmarks.isURLLoadedInStash(t.url),
-        );
-        await the.model.tabs.remove(tabs);
       });
     },
 
@@ -464,6 +516,21 @@ export default defineComponent({
       this.attempt(() => the.model.putSelectedInWindow({copy: true}));
     },
 
+    putInNewTabGroup(ev: MouseEvent | KeyboardEvent) {
+      this.attempt(async () => {
+        const items = copyIf(
+          ev.altKey,
+          Array.from(the.model.selection.selectedItems()),
+        );
+        console.log(items);
+        await the.model.putItemsInNewTabGroup({
+          items,
+          toWindow: this.targetWindow,
+          toIndex: this.targetWindow.children.length,
+        });
+      });
+    },
+
     moveToWindow() {
       this.attempt(() => the.model.putSelectedInWindow({copy: false}));
     },
@@ -480,17 +547,26 @@ export default defineComponent({
 
     itemAccepts(
       data: DataTransfer,
-      item: Tab,
+      item: TabGroupExtent | Tab,
       index: number,
     ): DNDAcceptedDropPositions {
-      return this.listAccepts(data) ? "before-after" : null;
+      const type = dragDataType(data);
+      switch (type) {
+        case undefined:
+          return null;
+        case "items":
+          if (item.type === "tab-group") return "before-inside-after";
+          return "before-after";
+        default:
+          return "before-after";
+      }
     },
 
     listAccepts(data: DataTransfer): boolean {
-      return dragDataType(data) === "items";
+      return dragDataType(data) !== null;
     },
 
-    drag(ev: ListDragEvent<Tab>) {
+    drag(ev: ListDragEvent<TabGroupExtent | Tab>) {
       const items = the.model.selection.info(ev.item).isSelected
         ? Array.from(the.model.selection.selectedItems())
         : [ev.item];
@@ -498,7 +574,7 @@ export default defineComponent({
     },
 
     parentDrop({data}: DropEvent) {
-      this.drop({data, insertBeforeIndex: this.tabs.length});
+      this.drop({data, insertBeforeIndex: this.targetWindow.children.length});
     },
 
     drop(ev: ListDropEvent) {
@@ -507,7 +583,25 @@ export default defineComponent({
       the.model.attempt(() =>
         the.model.putItemsInWindow({
           items,
+          toParent: this.targetWindow,
           toIndex: ev.insertBeforeIndex,
+        }),
+      );
+    },
+
+    dropInside(ev: ListDropInsideEvent<TabGroupExtent | Tab>) {
+      const parent = ev.insertInParent;
+      if (parent.type === "tab") {
+        console.warn(`Attempt to drop items inside a tab`, parent);
+        return;
+      }
+
+      const items = recvDragData(ev.data, the.model);
+      the.model.attempt(() =>
+        the.model.putItemsInWindow({
+          items,
+          toParent: parent,
+          toIndex: parent.children.length,
         }),
       );
     },

@@ -10,7 +10,7 @@ import * as M from "./deleted-items.js";
 const DATASET_SIZE = 50;
 
 describe("model/deleted-items", () => {
-  let clock: FakeTimers.InstalledClock | undefined;
+  let clock: FakeTimers.Clock | undefined;
   let source: M.Source;
   let model: M.Model;
 
