@@ -416,9 +416,10 @@ export class Model {
 
   /** Returns a list of tabs in a given window which should be stashed.
    *
-   * This will exclude things like pinned and hidden tabs, or tabs with
-   * privileged URLs.  If a window has multiple selected tabs (i.e. the user
-   * has made an explicit choice about what to stash), only the selected tabs
+   * This will exclude hidden tabs and tabs with privileged URLs.  Pinned
+   * tabs are also excluded, unless the stash_include_pinned option is
+   * enabled.  If a window has multiple selected tabs (i.e. the user has
+   * made an explicit choice about what to stash), only the selected tabs
    * will be returned.
    */
   stashableTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
