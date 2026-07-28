@@ -351,7 +351,7 @@ describe("model", () => {
         expect(env.model.tabs.tab(env.tabs.right_doug.id)).to.be.undefined;
       });
 
-      it("closes pinned tabs even when set to hide, since Firefox can't hide pinned tabs", async () => {
+      it("unpins and hides pinned tabs, since Firefox can't hide pinned tabs", async () => {
         await env.model.options.local.set({after_stashing_tab: "hide"});
         await events.next(browser.storage.onChanged);
         await events.next(browser.storage.local.onChanged);
@@ -360,18 +360,23 @@ describe("model", () => {
         const p = env.model.hideOrCloseStashedTabs([
           env.model.tabs.tab(env.tabs.real_paul.id)!,
         ]);
-        await events.next(browser.tabs.onRemoved);
+        await events.next(browser.tabs.onUpdated); // unpinned
+        await events.next(browser.tabs.onUpdated); // hidden
         await p;
 
-        await browser.tabs.get(env.tabs.real_paul.id).then(
-          /* c8 ignore next -- bug-checking */
-          () => expect.fail("browser.tabs.get did not throw"),
-          () => {},
-        );
-        expect(env.model.tabs.tab(env.tabs.real_paul.id)).to.be.undefined;
+        expect(await browser.tabs.get(env.tabs.real_paul.id)).to.deep.include({
+          url: env.tabs.real_paul.url,
+          pinned: false,
+          hidden: true,
+        });
+        expect(env.model.tabs.tab(env.tabs.real_paul.id)).to.deep.include({
+          url: env.tabs.real_paul.url,
+          pinned: false,
+          hidden: true,
+        });
       });
 
-      it("closes pinned tabs and hides normal tabs in the same batch", async () => {
+      it("unpins and hides pinned tabs alongside normal tabs in the same batch", async () => {
         await env.model.options.local.set({after_stashing_tab: "hide"});
         await events.next(browser.storage.onChanged);
         await events.next(browser.storage.local.onChanged);
@@ -381,11 +386,16 @@ describe("model", () => {
           env.model.tabs.tab(env.tabs.real_paul.id)!,
           env.model.tabs.tab(env.tabs.right_doug.id)!,
         ]);
+        await events.next(browser.tabs.onUpdated); // real_paul unpinned
+        await events.next(browser.tabs.onUpdated); // real_paul hidden
         await events.next(browser.tabs.onUpdated); // right_doug hidden
-        await events.next(browser.tabs.onRemoved); // real_paul closed
         await p;
 
-        expect(env.model.tabs.tab(env.tabs.real_paul.id)).to.be.undefined;
+        expect(env.model.tabs.tab(env.tabs.real_paul.id)).to.deep.include({
+          url: env.tabs.real_paul.url,
+          pinned: false,
+          hidden: true,
+        });
         expect(env.model.tabs.tab(env.tabs.right_doug.id)).to.deep.include({
           url: env.tabs.right_doug.url,
           hidden: true,
