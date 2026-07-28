@@ -56,6 +56,12 @@
   "dontShowStashOption": {
     "message": "Don't show the stash"
   },
+  "whenStashingAllTabs": {
+    "message": "When stashing all tabs in a window:"
+  },
+  "includePinnedTabs": {
+    "message": "Include pinned tabs"
+  },
   "whenStashingSingleTab": {
     "message": "When stashing a single tab:"
   },

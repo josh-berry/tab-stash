@@ -126,7 +126,7 @@
     </section>
 
     <section>
-      <label>When stashing all tabs in a window:</label>
+      <label>{{ $t("whenStashingAllTabs") }}</label>
       <ul>
         <li>
           <label for="stash_include_pinned">
@@ -135,7 +135,7 @@
               id="stash_include_pinned"
               v-model="sync.stash_include_pinned"
             />
-            Include pinned tabs
+            {{ $t("includePinnedTabs") }}
           </label>
         </li>
       </ul>

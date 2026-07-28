@@ -711,7 +711,6 @@ class MockTabs implements T.Static {
 
     const tab = this._state.tab(tabId);
 
-    notImplemented("pinned");
     notImplemented("muted");
     notImplemented("openerTabId");
     notImplemented("loadReplace");
@@ -746,6 +745,25 @@ class MockTabs implements T.Static {
         this._state.activate_tab(tab);
       } /* c8 ignore next 3 -- not implemented */ else {
         throw new Error(`De-activating tabs is not implemented`);
+      }
+    }
+    if (options.pinned !== undefined && options.pinned !== tab.pinned) {
+      // Pinning/unpinning moves the tab to the boundary between pinned and
+      // unpinned tabs, just like in real Firefox.
+      const win = this._state.win(tab.windowId);
+      const oldIndex = tab.index;
+      win.tabs.splice(oldIndex, 1);
+      const newIndex = win.tabs.filter(t => t.pinned).length;
+      win.tabs.splice(newIndex, 0, tab);
+      tab.pinned = options.pinned;
+      this._state.fixup_tab_indices(win);
+      dirty.pinned = options.pinned;
+      if (oldIndex !== tab.index) {
+        this.onMoved.send(tabId, {
+          windowId: win.id,
+          fromIndex: oldIndex,
+          toIndex: tab.index,
+        });
       }
     }
 

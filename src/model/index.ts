@@ -444,7 +444,7 @@ export class Model {
 
   /** Returns a list of pinned tabs in a given window that can be stashed. */
   pinnedTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
-    return window.children.filter(
+    return window.flattenedChildren.filter(
       t => !t.hidden && t.pinned && this.isURLStashable(t.url),
     );
   }

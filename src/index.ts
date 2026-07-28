@@ -203,8 +203,8 @@ logErrorsFrom(async () => {
 
     async stash_pinned(tab?: Tab) {
       show_something(model.options.sync.state.open_stash_in);
-      if (!tab || tab.position === undefined) return;
-      const pinnedTabs = model.pinnedTabsInWindow(tab.position.parent);
+      if (!tab || tab.flattenedPosition === undefined) return;
+      const pinnedTabs = model.pinnedTabsInWindow(tab.flattenedPosition.parent);
       if (pinnedTabs.length === 0) return;
       await model.putItemsInFolder({
         items: pinnedTabs,
