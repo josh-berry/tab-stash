@@ -416,9 +416,10 @@ export class Model {
 
   /** Returns a list of tabs in a given window which should be stashed.
    *
-   * This will exclude things like pinned and hidden tabs, or tabs with
-   * privileged URLs.  If a window has multiple selected tabs (i.e. the user
-   * has made an explicit choice about what to stash), only the selected tabs
+   * This will exclude hidden tabs and tabs with privileged URLs.  Pinned
+   * tabs are also excluded, unless the stash_include_pinned option is
+   * enabled.  If a window has multiple selected tabs (i.e. the user has
+   * made an explicit choice about what to stash), only the selected tabs
    * will be returned.
    */
   stashableTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
@@ -438,7 +439,15 @@ export class Model {
     // because otherwise the user might have a pinned tab focused, and highlight
     // a single specific tab they want stashed (in addition to the active
     // pinned tab), and then ALL tabs would unexpectedly get stashed. [#61]
-    return selected.filter(t => !t.pinned);
+    const includePinned = this.options.sync.state.stash_include_pinned;
+    return selected.filter(t => includePinned || !t.pinned);
+  }
+
+  /** Returns a list of pinned tabs in a given window that can be stashed. */
+  pinnedTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
+    return window.flattenedChildren.filter(
+      t => !t.hidden && t.pinned && this.isURLStashable(t.url),
+    );
   }
 
   /** Create a new folder in the stash (creating the stash root itself if it

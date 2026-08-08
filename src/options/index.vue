@@ -125,6 +125,22 @@
       </ul>
     </section>
 
+    <section>
+      <label>{{ $t("whenStashingAllTabs") }}</label>
+      <ul>
+        <li>
+          <label for="stash_include_pinned">
+            <input
+              type="checkbox"
+              id="stash_include_pinned"
+              v-model="sync.stash_include_pinned"
+            />
+            {{ $t("includePinnedTabs") }}
+          </label>
+        </li>
+      </ul>
+    </section>
+
     <section class="advanced">
       <label>{{ $t("whenStashingSingleTab") }}</label>
       <ul>

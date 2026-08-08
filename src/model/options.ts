@@ -76,6 +76,10 @@ export const SYNC_DEF = {
     is: anEnum("system", "light", "dark"),
   },
 
+  // Include pinned tabs when "Stash Tabs" is invoked (e.g. from the context
+  // menu).  By default, pinned tabs are excluded from stashing.
+  stash_include_pinned: {default: false, is: aBoolean},
+
   // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
   // If the most recent unnamed folder is older than <X> minutes ago, we will
   // create a new folder instead of appending to the existing one.

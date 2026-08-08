@@ -626,10 +626,25 @@ export class Model {
   }
 
   /** Hides the specified tabs, optionally discarding them (to free up memory).
-   * If the browser does not support hiding tabs, closes them instead. */
+   * If the browser does not support hiding tabs, closes them instead.
+   *
+   * Firefox refuses to hide pinned tabs (browser.tabs.hide() silently skips
+   * them), so pinned tabs are unpinned first, then hidden like any other
+   * tab. */
   async hide(tabs: Tab[], discard?: "discard"): Promise<void> {
     if (tabs.length === 0) return;
     if (!!browser.tabs.hide) {
+      const pinned = tabs.filter(t => t.pinned);
+      if (pinned.length > 0) {
+        trace("unpinning pinned tabs before hiding", pinned);
+        await Promise.all(
+          pinned.map(t => browser.tabs.update(t.id, {pinned: false})),
+        );
+        await shortPoll(() => {
+          if (pinned.find(t => t.pinned) !== undefined) tryAgain();
+        });
+      }
+
       const tids = tabs.map(t => t.id);
       trace("hiding tabs", tabs);
       await this.refocusAwayFromTabs(tabs);
