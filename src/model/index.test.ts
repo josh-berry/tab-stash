@@ -1277,6 +1277,51 @@ describe("model", () => {
         f.children.map(c => c && c.type === "bookmark" && c.url),
       ).to.deep.equal([`${B}#estelle`, `${B}#francis`]);
     });
+
+    it("ignores hidden tabs within a group", async () => {
+      const win = env.model.tabs.window(env.windows.real.id)!;
+      const ef = win.children[6] as TabGroupExtent;
+      expect(ef.type).to.equal("tab-group");
+      expect(ef.group.id).to.equal(env.groups.ef.id);
+
+      await browser.tabs.hide(env.tabs.real_estelle.id);
+      await events.next(browser.tabs.onUpdated);
+
+      const p = env.model.putItemsInFolder({
+        items: [ef],
+        toFolder: env.model.bookmarks.stash_root.value!,
+        toIndex: 0,
+      });
+      await events.nextN(browser.bookmarks.onCreated, 2);
+      await events.nextN(browser.tabs.onUpdated, 1); // tabs hidden
+      await events.nextN(browser.tabs.onUpdated, 1); // tabs removed from group
+      const res = await p;
+
+      expect(tabStructureOf(win.children)).to.deep.equal([
+        `${B}#patricia`,
+        `${B}#paul`,
+        `${B}`,
+        `${B}#bob`,
+        `${B}#doug`,
+        `${B}#doug`,
+        {title: "EF Group", children: [`${B}#estelle`]},
+        `${B}#francis`,
+        `${B}#harry`,
+        `${B}#unstashed`,
+        `${B}#helen`,
+      ]);
+
+      expect(env.model.tabs.tab(env.tabs.real_estelle.id)!.hidden).to.be.true;
+      expect(env.model.tabs.tab(env.tabs.real_francis.id)!.hidden).to.be.true;
+
+      expect(res.length).to.equal(1);
+      expect(res[0].title).to.equal("EF Group");
+      expect(res[0].type).to.equal("folder");
+      const f = res[0] as Folder;
+      expect(
+        f.children.map(c => c && c.type === "bookmark" && c.url),
+      ).to.deep.equal([`${B}#francis`]);
+    });
   });
 
   describe("puts items in windows", () => {

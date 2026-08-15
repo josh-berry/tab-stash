@@ -852,8 +852,8 @@ export class Model {
       }
       if (isTabGroupExtent(item)) {
         // We need to check stashability of the children.
-        const stashable_children = item.children.filter(c =>
-          this.isURLStashable(c.url),
+        const stashable_children = item.children.filter(
+          c => !c.hidden && this.isURLStashable(c.url),
         );
         if (stashable_children.length === 0) continue;
 
@@ -917,6 +917,7 @@ export class Model {
             for (const c of item.children) {
               if (c === undefined) continue;
               if ("url" in c && !this.isURLStashable(c.url)) continue;
+              if (isTab(c) && c.hidden) continue;
               await createTree(c, node.id, idx);
               ++idx;
             }
