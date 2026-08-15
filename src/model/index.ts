@@ -365,9 +365,6 @@ export class Model {
     // Things without URLs are not stashable.
     if (!url_str) return false;
 
-    // New-tab URLs, homepages and the like are never stashable.
-    if (this.browser_settings.isNewTabURL(url_str)) return false;
-
     // Invalid URLs are not stashable.
     try {
       new URL(url_str);
@@ -765,7 +762,8 @@ export class Model {
   }
 
   /** Moves or copies items (bookmarks, tabs, and/or external items) to a
-   * particular location in a particular bookmark folder.
+   * particular location in a particular bookmark folder, excluding URLs which
+   * are not `isURLStashable()`.
    *
    * If the source item contains an ID and is a bookmark, it will be moved
    * directly (so the ID remains the same).  If it contains an ID and is a
@@ -823,7 +821,9 @@ export class Model {
     ) {
       const item = items[i];
 
-      // If it's a bookmark node, just move it directly.
+      // If it's a bookmark node, just move it directly. We can skip the
+      // stashability check because it's already in the bookmarks (and thus
+      // can be moved into or within the stash).
       if (isNode(item)) {
         const pos = item.position;
         await this.bookmarks.move(item, to_folder, to_index);
@@ -841,11 +841,24 @@ export class Model {
         continue;
       }
 
-      // If it's a tab or group, mark it for closure.
-      if (isTab(item)) close_tabs.push(item);
+      // If it's a tab or group, check if it's actually stashable and mark it
+      // for closure if so; otherwise exclude it.
+      if (isTab(item)) {
+        if (this.isURLStashable(item.url)) {
+          close_tabs.push(item);
+        } else {
+          continue;
+        }
+      }
       if (isTabGroupExtent(item)) {
+        // We need to check stashability of the children.
+        const stashable_children = item.children.filter(c =>
+          this.isURLStashable(c.url),
+        );
+        if (stashable_children.length === 0) continue;
+
         // The group itself will be implicitly deleted once all its tabs close.
-        close_tabs.splice(close_tabs.length, 0, ...item.children);
+        close_tabs.splice(close_tabs.length, 0, ...stashable_children);
       }
 
       // Otherwise, if we're not allowing duplicates, check if there's a
@@ -903,11 +916,8 @@ export class Model {
             let idx = 0;
             for (const c of item.children) {
               if (c === undefined) continue;
-              if (typeof c === "string") {
-                await this.bookmarks.move(c, node as Bookmarks.Folder, idx);
-              } else {
-                await createTree(c, node.id, idx);
-              }
+              if ("url" in c && !this.isURLStashable(c.url)) continue;
+              await createTree(c, node.id, idx);
               ++idx;
             }
           }

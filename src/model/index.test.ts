@@ -220,10 +220,11 @@ describe("model", () => {
       );
     });
 
-    it("chooses all non-hidden, non-pinned and non-privileged tabs", () => {
+    it("chooses all non-hidden, non-pinned tabs", () => {
       const win = env.model.tabs.window(env.windows.real.id)!;
       expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
         [
+          env.tabs.real_blank.id,
           env.tabs.real_bob.id,
           env.tabs.real_doug.id,
           env.tabs.real_estelle.id,
@@ -266,6 +267,7 @@ describe("model", () => {
         [
           env.tabs.real_patricia.id,
           env.tabs.real_paul.id,
+          env.tabs.real_blank.id,
           env.tabs.real_bob.id,
           env.tabs.real_doug.id,
           env.tabs.real_estelle.id,
