@@ -539,15 +539,23 @@ export default defineComponent({
 
     putInNewTabGroup(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const items = copyIf(
-          ev.altKey,
-          Array.from(the.model.selection.selectedItems()),
-        );
-        console.log(items);
+        const items = Array.from(the.model.selection.selectedItems());
+        let toIndex = this.targetWindow.children.length;
+
+        // If we've got a tab in the targetWindow selected, we should position
+        // the new tab group at the location of the first tab. Otherwise we'll
+        // default to the end of the window.
+        const first_tab_in_target_win = items.find(
+          i => i.type === "tab" && i.position?.parent === this.targetWindow,
+        ) as Tab | undefined;
+        if (first_tab_in_target_win?.position?.index !== undefined) {
+          toIndex = first_tab_in_target_win.position?.index;
+        }
+
         await the.model.putItemsInNewTabGroup({
-          items,
+          items: copyIf(ev.altKey, items),
           toWindow: this.targetWindow,
-          toIndex: this.targetWindow.children.length,
+          toIndex,
         });
       });
     },
