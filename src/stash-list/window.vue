@@ -353,13 +353,7 @@ export default defineComponent({
       if (this.showStashedTabs) return 0;
       let count = 0;
       for (const c of this.targetWindow.children) {
-        if (
-          c.type === "tab" &&
-          !c.pinned &&
-          !c.hidden &&
-          the.model.isURLStashable(c.url) &&
-          the.model.bookmarks.isURLLoadedInStash(c.url)
-        ) {
+        if (c.type === "tab" && the.model.isTabVisibleAndStashed(c)) {
           ++count;
         }
       }
@@ -481,11 +475,8 @@ export default defineComponent({
 
     async removeStashed() {
       this.closeTabs(
-        this.targetWindow.flattenedChildren.filter(
-          t =>
-            !t.hidden &&
-            !t.pinned &&
-            the.model.bookmarks.isURLLoadedInStash(t.url),
+        this.targetWindow.flattenedChildren.filter(t =>
+          the.model.isTabVisibleAndStashed(t),
         ),
       );
     },

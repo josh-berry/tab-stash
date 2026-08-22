@@ -250,12 +250,7 @@ const hiddenStashedCount = computed(() => {
 
   let count = 0;
   for (const c of props.group.children) {
-    if (
-      !c.pinned &&
-      !c.hidden &&
-      the.model.isURLStashable(c.url) &&
-      the.model.bookmarks.isURLLoadedInStash(c.url)
-    ) {
+    if (the.model.isTabVisibleAndStashed(c)) {
       ++count;
     }
   }
@@ -299,11 +294,11 @@ const isShowingExportDialog = ref(false);
 //
 
 function isVisible(tab: Tab): boolean {
+  if (tab.hidden) return false;
   if (!showStashedChildren.value) {
     if (!the.model.isURLStashable(tab.url)) return false;
     if (the.model.bookmarks.isURLLoadedInStash(tab.url)) return false;
   }
-  if (tab.hidden) return false;
   if (showFilteredChildren.value) return true;
   const f = the.model.filter.info(tab);
   if (f.isMatching) return true;

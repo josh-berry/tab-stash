@@ -376,6 +376,21 @@ export class Model {
     return !url_str.startsWith(browser.runtime.getURL("stash-list.html"));
   }
 
+  /** Should this tab be visible in the UI, and is its URL in the stash
+   * (excluding the Tab Stash tab and invalid tabs)?
+   *
+   * This is commonly used for targeting operations against "stashed" open tabs,
+   * counting stashed tabs, etc.
+   */
+  isTabVisibleAndStashed(t: Tabs.Tab): boolean {
+    return (
+      !t.hidden &&
+      !t.pinned &&
+      this.isURLStashable(t.url) &&
+      this.bookmarks.isURLLoadedInStash(t.url)
+    );
+  }
+
   /** Returns the "default" folder into which newly-stashed tabs should be
    * placed, if one exists.  Used to determine where to place single bookmarks
    * we are trying to stash, if we don't already know where they should go. */
