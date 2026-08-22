@@ -585,7 +585,10 @@
     "message": "Delete Forever"
   },
   "filteredCountBadge": {
-    "message": "+ $1 filtered"
+    "message": "$1 filtered"
+  },
+  "stashedCountBadge": {
+    "message": "$1 stashed"
   },
   "restoringLoading": {
     "message": "Restoring"

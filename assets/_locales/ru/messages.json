@@ -620,6 +620,9 @@
   "filteredCountBadge": {
     "message": "+ $1 отфильтровано"
   },
+  "stashedCountBadge": {
+    "message": "+ $1 сохранено"
+  },
   "restoringLoading": {
     "message": "Восстановление"
   },

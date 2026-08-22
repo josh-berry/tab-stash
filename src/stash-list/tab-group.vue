@@ -169,6 +169,19 @@
   </dnd-list>
 
   <ul
+    v-if="hiddenStashedCount > 0"
+    :class="{'forest-children': true, collapsed: props.group.group.collapsed}"
+  >
+    <li>
+      <show-filtered-item
+        v-model:visible="showStashedChildren"
+        :count="hiddenStashedCount"
+        label="stashedCountBadge"
+      />
+    </li>
+  </ul>
+
+  <ul
     v-if="filteredCount > 0"
     :class="{'forest-children': true, collapsed: props.group.group.collapsed}"
   >
@@ -225,9 +238,41 @@ const selectedCount = computed(() => the.model.selection.selectedCount.value);
 const selectionInfo = computed(() => the.model.selection.info(props.group));
 const filterInfo = computed(() => the.model.filter.info(props.group));
 
-const nonHiddenChildren = computed(() =>
-  props.group.children.filter(t => !t.hidden),
-);
+const showStashedChildren = computed({
+  get: () => the.model.options.sync.state.show_open_tabs !== "unstashed",
+  set: v => {
+    the.model.options.sync.set({show_open_tabs: v ? "all" : "unstashed"});
+  },
+});
+
+const hiddenStashedCount = computed(() => {
+  if (showStashedChildren.value) return 0;
+
+  let count = 0;
+  for (const c of props.group.children) {
+    if (
+      !c.pinned &&
+      !c.hidden &&
+      the.model.isURLStashable(c.url) &&
+      the.model.bookmarks.isURLLoadedInStash(c.url)
+    ) {
+      ++count;
+    }
+  }
+  return count;
+});
+
+const nonHiddenChildren = computed(() => {
+  let children = props.group.children.filter(t => !t.hidden);
+  if (!showStashedChildren.value) {
+    children = children.filter(
+      t =>
+        the.model.isURLStashable(t.url) &&
+        !the.model.bookmarks.isURLLoadedInStash(t.url),
+    );
+  }
+  return children;
+});
 
 const filteredCount = computed(() => {
   // We can't use nonMatchingCount because it ignores whether tabs are visible
@@ -254,6 +299,10 @@ const isShowingExportDialog = ref(false);
 //
 
 function isVisible(tab: Tab): boolean {
+  if (!showStashedChildren.value) {
+    if (!the.model.isURLStashable(tab.url)) return false;
+    if (the.model.bookmarks.isURLLoadedInStash(tab.url)) return false;
+  }
   if (tab.hidden) return false;
   if (showFilteredChildren.value) return true;
   const f = the.model.filter.info(tab);

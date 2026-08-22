@@ -175,6 +175,19 @@
       </template>
     </dnd-list>
 
+    <ul
+      v-if="hiddenStashedCount > 0"
+      :class="{'forest-children': true, collapsed}"
+    >
+      <li>
+        <show-filtered-item
+          v-model:visible="showStashedTabs"
+          :count="hiddenStashedCount"
+          label="stashedCountBadge"
+        />
+      </li>
+    </ul>
+
     <ul v-if="filteredCount > 0" :class="{'forest-children': true, collapsed}">
       <li>
         <show-filtered-item
@@ -290,8 +303,13 @@ export default defineComponent({
       },
     },
 
-    showStashedTabs(): boolean {
-      return the.model.options.sync.state.show_open_tabs === "all";
+    showStashedTabs: {
+      get(): boolean {
+        return the.model.options.sync.state.show_open_tabs !== "unstashed";
+      },
+      set(v: boolean) {
+        the.model.options.sync.set({show_open_tabs: v ? "all" : "unstashed"});
+      },
     },
 
     title(): string {
@@ -331,6 +349,23 @@ export default defineComponent({
       for (const c of this.targetWindow.children) {
         const i = the.model.filter.info(c);
         if (this.isValidChild(c) && !i.isMatching) ++count;
+      }
+      return count;
+    },
+
+    hiddenStashedCount(): number {
+      if (this.showStashedTabs) return 0;
+      let count = 0;
+      for (const c of this.targetWindow.children) {
+        if (
+          c.type === "tab" &&
+          !c.pinned &&
+          !c.hidden &&
+          the.model.isURLStashable(c.url) &&
+          the.model.bookmarks.isURLLoadedInStash(c.url)
+        ) {
+          ++count;
+        }
       }
       return count;
     },
