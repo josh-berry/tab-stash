@@ -131,7 +131,9 @@
         <a
           v-if="selectedCount > 0"
           class="action restore newtabgroup"
-          :title="`Restore ${selectedCount} item(s) to a new group (hold ${altKey} to copy)`"
+          :title="
+            $ts(selectedCount, 'openSelectedIntoNewTabGroupTooltip', [altKey])
+          "
           @click.prevent.stop="putInNewTabGroup"
         />
         <a

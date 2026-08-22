@@ -838,5 +838,14 @@
   },
   "close": {
     "message": "Закрыть"
+  },
+  "openSelectedIntoNewTabGroupTooltip_one": {
+    "message": "Открыть $1 выбранный элемент в новой группе вкладок (удерживайте $2 для копирования)"
+  },
+  "openSelectedIntoNewTabGroupTooltip_few": {
+    "message": "Открыть $1 выбранных элемента в новой группе вкладок (удерживайте $2 для копирования)"
+  },
+  "openSelectedIntoNewTabGroupTooltip_many": {
+    "message": "Открыть $1 выбранных элементов в новой группе вкладок (удерживайте $2 для копирования)"
   }
 }

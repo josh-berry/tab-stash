@@ -805,5 +805,11 @@
   },
   "close": {
     "message": "Close"
+  },
+  "openSelectedIntoNewTabGroupTooltip_one": {
+    "message": "Open $1 selected item into a new tab group (hold $2 to copy)"
+  },
+  "openSelectedIntoNewTabGroupTooltip_many": {
+    "message": "Open $1 selected items into a new tab group (hold $2 to copy)"
   }
 }
