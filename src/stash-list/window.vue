@@ -28,11 +28,7 @@
       <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
         <a
           class="action stash"
-          :title="
-            showStashedTabs
-              ? $t('stashAllOpenTabsTooltip', [altKey])
-              : $t('stashAllUnstashedTabsTooltip', [altKey])
-          "
+          :title="$t('stashAllOpenTabsTooltip', [altKey])"
           @click.prevent.stop="stash"
         />
         <a
@@ -457,17 +453,14 @@ export default defineComponent({
 
     async stash(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        // NOTE: isValidChild() is slightly different from
-        // stashableTabsInWindow()--we need to check both, because
-        // isValidChild() will exclude already-stashed tabs if the user is in
-        // "Unstashed Tabs" mode (i.e. ! this.showStashedTabs).
-        const stashable_children = the.model
-          .stashableTabsInWindow(this.targetWindow)
-          .filter(t => this.isValidChild(t));
+        let to_stash = this.targetWindow.children;
+        if (!the.model.options.sync.state.stash_include_pinned) {
+          to_stash = to_stash.filter(t => t.type !== "tab" || !t.pinned);
+        }
 
-        if (stashable_children.length === 0) return;
+        if (to_stash.length === 0) return;
         await the.model.putItemsInFolder({
-          items: copyIf(ev.altKey, stashable_children),
+          items: copyIf(ev.altKey, to_stash),
           toFolder: await the.model.createStashFolder(),
         });
       });

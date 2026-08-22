@@ -215,23 +215,27 @@ describe("model", () => {
 
   describe("choosing stashable tabs in a window", () => {
     it("throws when an invalid window is selected", () => {
-      expect(() => env.model.stashableTabsInWindow("asdf" as any)).to.throw(
+      expect(() => env.model.stashableItemsInWindow("asdf" as any)).to.throw(
         Error,
       );
     });
 
-    it("chooses all non-hidden, non-pinned tabs", () => {
+    it("chooses all non-pinned tabs", () => {
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
-        [
-          env.tabs.real_blank.id,
-          env.tabs.real_bob.id,
-          env.tabs.real_doug.id,
-          env.tabs.real_estelle.id,
-          env.tabs.real_francis.id,
-          env.tabs.real_unstashed.id,
-        ],
-      );
+      expect(
+        env.model
+          .stashableItemsInWindow(win)
+          .map(t => (t.type === "tab" ? t.id : `g-${t.group.id}`)),
+      ).to.deep.equal([
+        env.tabs.real_blank.id,
+        env.tabs.real_bob.id,
+        env.tabs.real_doug.id,
+        env.tabs.real_doug_2.id,
+        `g-${env.groups.ef.id}`,
+        env.tabs.real_harry.id,
+        env.tabs.real_unstashed.id,
+        env.tabs.real_helen.id,
+      ]);
     });
 
     it("allows user selection to override the default choice", async () => {
@@ -242,18 +246,20 @@ describe("model", () => {
       await events.nextN(browser.tabs.onHighlighted, 4);
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
-        [
-          // was previously active and therefore explicitly selected
-          env.tabs.real_blank.id,
-          // explicitly selected
-          env.tabs.real_bob.id,
-          // explicitly selected
-          env.tabs.real_doug.id,
-          // paul is always excluded because he's pinned
-          // harry is always excluded because he's hidden
-        ],
-      );
+      expect(
+        env.model
+          .stashableItemsInWindow(win)
+          .map(t => (t.type === "tab" ? t.id : `g-${t.group.id}`)),
+      ).to.deep.equal([
+        // was previously active and therefore explicitly selected
+        env.tabs.real_blank.id,
+        // explicitly selected
+        env.tabs.real_bob.id,
+        // explicitly selected
+        env.tabs.real_doug.id,
+        // paul is always excluded because he's pinned
+        // harry is always excluded because he's hidden
+      ]);
     });
 
     it("includes pinned tabs when the stash_include_pinned option is enabled", async () => {
@@ -263,18 +269,22 @@ describe("model", () => {
       await events.next(env.model.options.sync.onChanged);
 
       const win = env.model.tabs.window(env.windows.real.id)!;
-      expect(env.model.stashableTabsInWindow(win).map(t => t.id)).to.deep.equal(
-        [
-          env.tabs.real_patricia.id,
-          env.tabs.real_paul.id,
-          env.tabs.real_blank.id,
-          env.tabs.real_bob.id,
-          env.tabs.real_doug.id,
-          env.tabs.real_estelle.id,
-          env.tabs.real_francis.id,
-          env.tabs.real_unstashed.id,
-        ],
-      );
+      expect(
+        env.model
+          .stashableItemsInWindow(win)
+          .map(t => (t.type === "tab" ? t.id : `g-${t.group.id}`)),
+      ).to.deep.equal([
+        env.tabs.real_patricia.id,
+        env.tabs.real_paul.id,
+        env.tabs.real_blank.id,
+        env.tabs.real_bob.id,
+        env.tabs.real_doug.id,
+        env.tabs.real_doug_2.id,
+        `g-${env.groups.ef.id}`,
+        env.tabs.real_harry.id,
+        env.tabs.real_unstashed.id,
+        env.tabs.real_helen.id,
+      ]);
     });
   });
 

@@ -411,33 +411,38 @@ export class Model {
     return topmost;
   }
 
-  /** Returns a list of tabs in a given window which should be stashed.
+  /** Returns a list of tabs in a given window which should be stashed. This may
+   * be the entire window, or it may be a subset of tabs if the user has
+   * highlighted more than one tab in the Firefox UI.
    *
-   * This will exclude hidden tabs and tabs with privileged URLs.  Pinned
-   * tabs are also excluded, unless the stash_include_pinned option is
-   * enabled.  If a window has multiple selected tabs (i.e. the user has
-   * made an explicit choice about what to stash), only the selected tabs
-   * will be returned.
+   * Note that pinned tabs may be included according to the users preferences.
+   * Hidden tabs are also included, since they are expected to be filtered out
+   * by subsequent uses of the returned list if desired.
    */
-  stashableTabsInWindow(window: Tabs.Window): Tabs.Tab[] {
-    const tabs = window.flattenedChildren.filter(t => !t.hidden);
+  stashableItemsInWindow(
+    window: Tabs.Window,
+  ): (Tabs.TabGroupExtent | Tabs.Tab)[] {
+    let selected = window.flattenedChildren.filter(
+      t => t.highlighted && !t.hidden,
+    );
 
-    let selected = tabs.filter(t => t.highlighted);
-    if (selected.length <= 1) {
-      // If the user didn't specifically select a set of tabs to be
-      // stashed, we ignore tabs which should not be included in the stash
-      // for whatever reason (e.g. the new tab page).  If the user DID
-      // explicitly select such tabs, however, we should include them (and
-      // they will be restored using the privileged-tabs approach).
-      selected = tabs.filter(t => this.isURLStashable(t.url));
+    // Two different paths, depending on whether the user has highlighted
+    // multiple tabs in the Firefox UI:
+    if (selected.length > 1) {
+      // The user has highlighted multiple tabs, meaning they intended to stash
+      // precisely those tabs (not tab groups).
+      if (!this.options.sync.state.stash_include_pinned) {
+        selected = selected.filter(t => !t.pinned);
+      }
+      return selected.filter(t => this.isURLStashable(t.url));
     }
 
-    // We filter out pinned tabs AFTER checking how many tabs are selected
-    // because otherwise the user might have a pinned tab focused, and highlight
-    // a single specific tab they want stashed (in addition to the active
-    // pinned tab), and then ALL tabs would unexpectedly get stashed. [#61]
-    const includePinned = this.options.sync.state.stash_include_pinned;
-    return selected.filter(t => includePinned || !t.pinned);
+    // Else the user only has one tab highlighted. Stash everything in the
+    // window, excluding pinned tabs depending on the user's preference.
+    if (!this.options.sync.state.stash_include_pinned) {
+      return window.children.filter(t => t.type !== "tab" || !t.pinned);
+    }
+    return window.children;
   }
 
   /** Returns a list of pinned tabs in a given window that can be stashed. */
@@ -522,11 +527,11 @@ export class Model {
       parent?: Bookmarks.Folder;
     },
   ) {
-    const tabs = this.stashableTabsInWindow(window);
-    if (tabs.length === 0) return;
+    const items = this.stashableItemsInWindow(window);
+    if (items.length === 0) return;
 
     await this.putItemsInFolder({
-      items: copyIf(!!options.copy, tabs),
+      items: copyIf(!!options.copy, items),
       toFolder: await this.createStashFolder(undefined, options.parent),
     });
   }
@@ -762,8 +767,8 @@ export class Model {
   }
 
   /** Moves or copies items (bookmarks, tabs, and/or external items) to a
-   * particular location in a particular bookmark folder, excluding URLs which
-   * are not `isURLStashable()`.
+   * particular location in a particular bookmark folder, excluding hidden tabs
+   * and URLs which are not `isURLStashable()`.
    *
    * If the source item contains an ID and is a bookmark, it will be moved
    * directly (so the ID remains the same).  If it contains an ID and is a
@@ -844,7 +849,7 @@ export class Model {
       // If it's a tab or group, check if it's actually stashable and mark it
       // for closure if so; otherwise exclude it.
       if (isTab(item)) {
-        if (this.isURLStashable(item.url)) {
+        if (!item.hidden && this.isURLStashable(item.url)) {
           close_tabs.push(item);
         } else {
           continue;

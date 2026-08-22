@@ -323,9 +323,6 @@
   "stashAllOpenTabsTooltip": {
     "message": "Stash all open tabs to a new group (hold $1 to keep tabs open)"
   },
-  "stashAllUnstashedTabsTooltip": {
-    "message": "Stash all unstashed tabs to a new group (hold $1 to keep tabs open)"
-  },
   "createNewEmptyGroupTooltip": {
     "message": "Create a new empty group in the stash"
   },
@@ -420,7 +417,7 @@
     "message": "Hide the tabs for this group"
   },
   "stashAllOpenTabsToGroupTooltip": {
-    "message": "Stash all (or highlighted) open tabs to this group (hold $1 to keep tabs open)"
+    "message": "Stash all open tabs to this group (hold $1 to keep tabs open)"
   },
   "stashActiveTabToGroupTooltip": {
     "message": "Stash the active tab to this group (hold $1 to keep tabs open)"

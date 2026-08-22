@@ -601,7 +601,7 @@ export default defineComponent({
       the.model.attempt(
         async () =>
           await the.model.putItemsInFolder({
-            items: copyIf(ev.altKey, the.model.stashableTabsInWindow(win)),
+            items: copyIf(ev.altKey, win.children),
             toFolder: this.folder,
           }),
       );
