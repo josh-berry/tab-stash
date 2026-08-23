@@ -63,35 +63,28 @@
      id="path8"
      d="m 27,60 c -3.999998,0 -3.999998,6 0,6 h 42 c 4,0 4,-6 0,-6 z"
      inkscape:connector-curvature="0"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1"
+     style="fill:#808080"
      sodipodi:nodetypes="sssss" />
   <path
      id="path10"
      d="m 6,54 v 18 c 0,12 6,18 18,18 H 72 C 84,90 90,84 90,72 V 54 c 0,0 0,-6 -3,-6 -3,0 -3,6 -3,6 v 18 c 0,6 -6,12 -12,12 H 24 C 18,84 12,78 12,72 V 54 c 0,0 0,-6 -3,-6 -3,0 -3,6 -3,6 z"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="csssscscsssscsc"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1" />
+     style="fill:#808080" />
   <path
      d="m 33,72 c -3.999998,0 -3.999998,6 0,6 h 30 c 4,0 4,-6 0,-6 z"
      id="path3702"
      inkscape:connector-curvature="0"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1"
+     style="fill:#808080"
      sodipodi:nodetypes="sssss" />
   <path
      d="m 21,48 c -3.999998,0 -3.999998,6 0,6 h 54 c 4,0 4,-6 0,-6 z"
      id="path832"
      inkscape:connector-curvature="0"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1"
+     style="fill:#808080"
      sodipodi:nodetypes="sssss" />
-  <g
-     id="path69581"
-     style="stroke:none;stroke-opacity:1;fill:#808080;fill-opacity:1" />
   <path
-     style="color:#000000;fill:#808080;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     style="fill:#808080"
      d="m 20.824219,6.0058594 a 3,3 0 0 0 -2.066407,1.0019531 3,3 0 0 0 0.25,4.2343755 l 27,23.999999 a 3.0003,3.0003 0 0 0 3.984375,0 l 27,-23.999999 a 3,3 0 0 0 0.25,-4.2343755 3,3 0 0 0 -4.234375,-0.25 L 48,28.986328 22.992187,6.7578125 A 3,3 0 0 0 20.824219,6.0058594 Z"
      id="path396" />
 </svg>

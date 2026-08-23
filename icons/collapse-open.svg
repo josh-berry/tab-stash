@@ -59,10 +59,9 @@
        empspacing="2" />
   </sodipodi:namedview>
   <path
-     fill="context-fill"
      d="M 48,57 27,36 c -6,-6 -12,-3 -6,3 l 18,18 c 3,3 6,6 9.000001,6 C 51,63 54,60 57,57 L 75,39 c 6,-6 0,-9 -6,-3 z"
      id="path2"
      inkscape:connector-curvature="0"
-     style="opacity:0.994;fill:#808080;fill-opacity:1;stroke-width:6.0483"
+     style="fill:#808080"
      sodipodi:nodetypes="ccccscccc" />
 </svg>

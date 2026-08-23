@@ -66,7 +66,7 @@
   <defs
      id="defs14" />
   <path
-     style="color:#000000;opacity:0.994;fill:#808080;fill-opacity:1;stroke-linecap:round;stroke-linejoin:round;-inkscape-stroke:none"
+     style="fill:#808080"
      d="m 33,24 c -12,0 -21,12 -21,24 0,6 0,12 0,18 0,3 -3,6 -6,6 -6,0 -6,6 0,6 h 84 c 6,0 6,-6 0,-6 -3,0 -6,-3 -6,-6 0,-6 0,-12 0,-18 C 84,36 75,24 63,24 Z m 0,6 h 30 c 9,0 15,9 15,18 0,6 0,13.5 0,18 0,3 -3,6 -6,6 l -48,10e-7 C 21,72 18,69 18,66 18,61.5 18,54 18,48 18,39 24,30 33,30 Z"
      id="rect480-5"
      sodipodi:nodetypes="cccccccccccccccccccc" />
@@ -75,6 +75,5 @@
      id="path815"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="cccscccscccscccsc"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1" />
+     style="fill:#808080" />
 </svg>

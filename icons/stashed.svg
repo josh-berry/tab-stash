@@ -96,13 +96,11 @@
      d="m 12,33 v 18 c 0,12 6,18 18,18 H 66 C 78,69 84,63 84,51 V 33 c 0,0 0,-6 -3,-6 -3,0 -3,6 -3,6 v 18 c 0,6 -6,12 -12,12 H 30 C 24,63 18,57 18,51 V 33 c 0,0 0,-6 -3,-6 -3,0 -3,6 -3,6 z"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="csssscscsssscsc"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1" />
+     style="fill:#808080" />
   <path
      d="m 33,51 c -3.999998,0 -3.999998,6 0,6 h 30 c 4,0 4,-6 0,-6 z"
      id="path3702-0"
      inkscape:connector-curvature="0"
-     fill="context-fill"
-     style="fill:#808080;fill-opacity:1"
+     style="fill:#808080"
      sodipodi:nodetypes="sssss" />
 </svg>
