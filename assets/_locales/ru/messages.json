@@ -56,6 +56,12 @@
   "dontShowStashOption": {
     "message": "Не показывать список"
   },
+  "whenStashingAllTabs": {
+    "message": "При сохранении всех вкладок в окне:"
+  },
+  "includePinnedTabs": {
+    "message": "Включая закрепленные вкладки"
+  },
   "whenStashingSingleTab": {
     "message": "При сохранении одной вкладки:"
   },
