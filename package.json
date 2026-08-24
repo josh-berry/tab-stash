@@ -27,6 +27,7 @@
     "mocha": "^10.0",
     "prettier": "^3.9",
     "prettier-plugin-organize-imports": "^4.0",
+    "svgo": "^4.0.2",
     "ts-node": "^10",
     "typescript": "^6.0",
     "vite": "^8.1",

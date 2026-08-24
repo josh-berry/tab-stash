@@ -167,6 +167,7 @@ dist/tab-stash.css: node_modules $(wildcard styles/*.less) $(wildcard styles/*/*
 DARK_ICONS = $(patsubst icons/%,dist/icons/dark/%,$(wildcard icons/*.svg))
 LIGHT_ICONS = $(patsubst icons/%,dist/icons/light/%,$(wildcard icons/*.svg))
 LOGO_ICONS = dist/icons/logo.svg \
+  dist/icons/stash-one.svg \
 	dist/icons/warning.svg \
 	$(foreach size,16 32 48 64 96 128,dist/icons/logo-$(size).png)
 TOOLBAR_ICONS = dist/icons/stash-one.svg \
@@ -182,7 +183,7 @@ dist/icons/dark/%.svg: icons/%.svg
 
 dist/icons/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)
-	sed 's%style="[^"]*"%style="fill:#808080"%g' <$< >$@
+	node process-icon.js $< >$@
 
 dist/icons/light/%.svg: icons/%.svg
 	@mkdir -p $(dir $@)

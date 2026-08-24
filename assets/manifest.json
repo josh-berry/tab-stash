@@ -16,7 +16,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "tab-stash@condordes.net",
-      "strict_min_version": "139.0"
+      "strict_min_version": "150.0"
     }
   },
   "permissions": [
@@ -45,18 +45,18 @@
     },
     "theme_icons": [
       {
-        "light": "icons/dark/logo-16.png",
-        "dark": "icons/light/logo-16.png",
+        "light": "icons/dark/logo.svg",
+        "dark": "icons/light/logo.svg",
         "size": 16
       },
       {
-        "light": "icons/dark/logo-32.png",
-        "dark": "icons/light/logo-32.png",
+        "light": "icons/dark/logo.svg",
+        "dark": "icons/light/logo.svg",
         "size": 32
       },
       {
-        "light": "icons/dark/logo-64.png",
-        "dark": "icons/light/logo-64.png",
+        "light": "icons/dark/logo.svg",
+        "dark": "icons/light/logo.svg",
         "size": 64
       }
     ],
@@ -64,28 +64,7 @@
   },
   "page_action": {
     "default_title": "__MSG_stashThisTab__",
-    "default_icon": {
-      "16": "icons/light/stash-one.svg",
-      "32": "icons/light/stash-one.svg",
-      "64": "icons/light/stash-one.svg"
-    },
-    "theme_icons": [
-      {
-        "light": "icons/dark/stash-one.svg",
-        "dark": "icons/light/stash-one.svg",
-        "size": 16
-      },
-      {
-        "light": "icons/dark/stash-one.svg",
-        "dark": "icons/light/stash-one.svg",
-        "size": 32
-      },
-      {
-        "light": "icons/dark/stash-one.svg",
-        "dark": "icons/light/stash-one.svg",
-        "size": 64
-      }
-    ],
+    "default_icon": "icons/stash-one.svg",
     "browser_style": false,
     "show_matches": ["<all_urls>"]
   },
