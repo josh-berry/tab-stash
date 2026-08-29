@@ -36,5 +36,7 @@
     "web-ext": "^10.5",
     "webextension-polyfill": "^0.12"
   },
-  "scripts": {}
+  "scripts": {
+    "build-for-amo": "./install-deps.sh && make rel"
+  }
 }
