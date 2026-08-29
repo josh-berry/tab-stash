@@ -63,19 +63,28 @@
       display: none;
     }
 
-    // Hide the collapse button unless the item is collapsed or being hovered
+    // Fade the collapse button unless the item is collapsed or being hovered
     // over
     &:not(:hover):not(:focus-within)
       > .forest-item:not(.collapsed)
       > .forest-collapse {
-      display: none;
+      opacity: 0.2;
     }
   }
 }
 
+.forest-children > li {
+  // We apply margins to <li> itself so that we leave a little room on either
+  // side of the child for drag-and-drop into the parent. The left margin
+  // needs to be at least --collapse-btn-size because the collapse button
+  // therefore "hangs over" the left side of the item.
+  margin-left: var(--collapse-btn-size);
+  margin-right: var(--page-pw);
+}
+
 .forest-children {
   .forest-children {
-    margin-left: var(--item-indent-w);
+    margin-left: calc(var(--item-indent-w) - var(--collapse-btn-size));
 
     // Show an indent guide
     border-left: var(--indent-guide-w) solid var(--indent-guide-border-clr);
@@ -131,8 +140,7 @@
   align-items: center;
 
   padding: 0;
-  margin-left: var(--collapse-btn-size); // As above, make room for collapse btn
-  margin-right: var(--page-pw);
+  margin: 0; // Handled by the enclosing <li>
   height: var(--item-h);
 
   border-radius: var(--ctrl-border-radius);
@@ -141,7 +149,8 @@
     grid-row: 1;
     grid-column: 1;
     width: var(--collapse-btn-size);
-    margin-left: calc(var(--collapse-btn-size) * -1); // Matches margin above
+    // Matches margin on the containing <li>
+    margin-left: calc(var(--collapse-btn-size) * -1);
   }
 
   & > .forest-icon {
