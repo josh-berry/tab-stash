@@ -14,7 +14,7 @@ try {
  * Returns a localized string for the given key.
  * If the key is not found or translation fails, returns the key itself.
  */
-export function $t(key: MessageKey, substitutions?: string | string[]): string {
+export function $t(key: MessageKey, ...substitutions: string[]): string {
   try {
     const val = browser.i18n.getMessage(key, substitutions);
     return val || key;
@@ -30,7 +30,7 @@ export function $t(key: MessageKey, substitutions?: string | string[]): string {
 export function $ts(
   keyBase: string,
   n: number,
-  substitutions: string[] = [],
+  ...substitutions: string[]
 ): string {
   try {
     const category = pluralRules

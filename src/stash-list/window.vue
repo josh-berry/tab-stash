@@ -28,7 +28,7 @@
       <nav v-if="selectedCount === 0" class="action-group forest-toolbar">
         <a
           class="action stash"
-          :title="$t('stashAllOpenTabsTooltip', [altKey])"
+          :title="$t('stashAllOpenTabsTooltip', altKey)"
           @click.prevent.stop="stash"
         />
         <a
@@ -121,14 +121,14 @@
       <nav v-else class="action-group forest-toolbar">
         <a
           class="action stash newgroup"
-          :title="$ts('moveItemsToNewGroup', selectedCount, [altKey])"
+          :title="$ts('moveItemsToNewGroup', selectedCount, altKey)"
           @click.prevent.stop="moveToNewGroup"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore newtabgroup"
           :title="
-            $ts('openSelectedIntoNewTabGroupTooltip', selectedCount, [altKey])
+            $ts('openSelectedIntoNewTabGroupTooltip', selectedCount, altKey)
           "
           @click.prevent.stop="putInNewTabGroup"
         />
@@ -179,7 +179,7 @@
         <show-filtered-item
           v-model:visible="showStashedTabs"
           :count="hiddenStashedCount"
-          :label="n => $t('stashedCountBadge', [`${n}`])"
+          :label="n => $t('stashedCountBadge', `${n}`)"
         />
       </li>
     </ul>

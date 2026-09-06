@@ -32,31 +32,31 @@
         collapse: !collapsed,
         expand: collapsed,
       }"
-      :title="$t('toggleCollapsedGroupTooltip', [altKey])"
+      :title="$t('toggleCollapsedGroupTooltip', altKey)"
       @click.prevent.stop="toggleCollapsed"
     />
     <ButtonBox v-if="!isRenaming && selectedCount === 0" class="forest-toolbar">
       <a
         class="action stash here"
-        :title="$t('stashAllOpenTabsToGroupTooltip', [altKey])"
+        :title="$t('stashAllOpenTabsToGroupTooltip', altKey)"
         @click.prevent.stop="stash"
       />
       <a
         class="action stash one here"
-        :title="$t('stashActiveTabToGroupTooltip', [altKey])"
+        :title="$t('stashActiveTabToGroupTooltip', altKey)"
         @click.prevent.stop="stashOne"
       />
       <a
         class="action restore"
-        :title="$t('openAllTabsInGroupTooltip', [bgKey])"
+        :title="$t('openAllTabsInGroupTooltip', bgKey)"
         @click.prevent.stop="restoreAll"
       />
       <a
         class="action restore-remove"
         :title="
           folder.$stats.folderCount === 0
-            ? $t('openAllTabsAndDeleteGroupTooltip', [bgKey])
-            : $t('openAllTabsAndRemoveFromGroupTooltip', [bgKey])
+            ? $t('openAllTabsAndDeleteGroupTooltip', bgKey)
+            : $t('openAllTabsAndRemoveFromGroupTooltip', bgKey)
         "
         @click.prevent.stop="restoreAndRemove"
       />
@@ -84,13 +84,13 @@
           <hr />
           <details @click.stop="">
             <summary class="menu-item">
-              <span>{{ $t("stashToGroupMenu", [title]) }}</span>
+              <span>{{ $t("stashToGroupMenu", title) }}</span>
             </summary>
             <ul>
               <li v-for="t of unstashedOrOpenTabs" :key="t.tab.id">
                 <a
                   :href="t.tab.url"
-                  :title="$t('stashTabToGroupTooltip', [altKey])"
+                  :title="$t('stashTabToGroupTooltip', altKey)"
                   @click.prevent.stop="stashSpecificTab($event, t.tab)"
                 >
                   <item-icon
@@ -461,9 +461,10 @@ export default defineComponent({
       if (getDefaultFolderNameISODate(unfiltered.title) !== null) {
         return friendlyFolderName(unfiltered.title);
       } else {
-        return this.$t("savedAt", [
+        return this.$t(
+          "savedAt",
           new Date(unfiltered.dateAdded || 0).toLocaleString(),
-        ]);
+        );
       }
     },
     nonDefaultTitle(): string {
@@ -480,14 +481,15 @@ export default defineComponent({
       const childGroupsStr = this.$ts("child_group", bm_stats.folderCount);
       const stashedTabsStr = this.$ts("stashed_tab", bm_stats.bookmarkCount);
 
-      return this.$t("folder_tooltip_fmt", [
+      return this.$t(
+        "folder_tooltip_fmt",
         this.title,
         childGroupsStr,
         stashedTabsStr,
         st.open.toString(),
         st.discarded.toString(),
         st.hidden.toString(),
-      ]);
+      );
     },
 
     children(): Node[] {

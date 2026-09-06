@@ -59,7 +59,7 @@
       <div class="forest-item disabled">
         <span class="forest-icon icon" />
         <span class="forest-title status-text hidden-count">
-          {{ $t("filteredCountBadge", [item.filtered_count.toString()]) }}
+          {{ $t("filteredCountBadge", item.filtered_count.toString()) }}
         </span>
       </div>
     </li>
@@ -106,9 +106,9 @@ const deletedAt = computed(() => props.deletion.deleted_at.toLocaleString());
 const tooltip = computed(() => {
   const t = `${item.value.title}\n`;
   if (props.deletion.deleted_from) {
-    return `${t}${$t("deletedAtFromTooltip", [deletedAt.value, props.deletion.deleted_from.title])}`;
+    return `${t}${$t("deletedAtFromTooltip", deletedAt.value, props.deletion.deleted_from.title)}`;
   } else {
-    return `${t}${$t("deletedAtTooltip", [deletedAt.value])}`;
+    return `${t}${$t("deletedAtTooltip", deletedAt.value)}`;
   }
 });
 

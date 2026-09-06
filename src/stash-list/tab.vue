@@ -42,14 +42,14 @@
     <span
       v-if="stashedIn.length > 0"
       class="forest-badge icon icon-stashed"
-      :title="$t('tabStashedInTooltip', [stashedIn.join('\n')])"
+      :title="$t('tabStashedInTooltip', stashedIn.join('\n'))"
     />
 
     <nav class="action-group forest-toolbar">
       <a
         v-if="isStashable"
         class="action stash one"
-        :title="$t('stashTabTooltip', [altKey])"
+        :title="$t('stashTabTooltip', altKey)"
         @click.prevent.stop="stash"
       />
       <a

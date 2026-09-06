@@ -26,7 +26,7 @@ const SINGULAR_CALL_RE = /\$t[ \t\r\n]*\([ \t\r\n]*(["'])([a-zA-Z0-9_]+)\1/g;
 const PLURAL_CALL_RE = /\$ts[ \t\r\n]*\([ \t\r\n]*(["'])([a-zA-Z0-9_]+)\1/g;
 
 // An dynamic usage of $t or $ts, which is not allowed.
-const DYNAMIC_CALL_RE = /\$ts?[ \t\r\n]*\([ \t\r\n]*[^"']+/g;
+const DYNAMIC_CALL_RE = /\$ts?[ \t\r\n]*\([ \t\r\n]*[^"' \t\r\n]/g;
 
 //
 // State this program keeps.

@@ -26,7 +26,7 @@
       <li v-for="group of filter_results" :key="group.title" class="folder">
         <div class="forest-item">
           <span class="forest-title disabled">{{
-            $t("deletedDateGroupHeader", [group.title])
+            $t("deletedDateGroupHeader", group.title)
           }}</span>
         </div>
         <ul class="forest-children">

@@ -18,7 +18,7 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        {{ $t("whatsNewNotification", [my_version]) }}
+        {{ $t("whatsNewNotification", my_version) }}
       </Notification>
       <Notification
         key="new-fixes"
@@ -26,7 +26,7 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        {{ $t("whatsNewNotification", [my_version]) }}
+        {{ $t("whatsNewNotification", my_version) }}
       </Notification>
       <Notification
         key="stash-root-warning"
@@ -41,10 +41,10 @@
         @activate="onDeleteNotifActivated"
       >
         <span v-if="typeof recently_deleted === 'object'">
-          {{ $t("deletedItemUndo", [recentlyDeletedTitle || ""]) }}
+          {{ $t("deletedItemUndo", recentlyDeletedTitle || "") }}
         </span>
         <span v-else>
-          {{ $t("deletedItemsShow", [recently_deleted.toString()]) }}
+          {{ $t("deletedItemsShow", recently_deleted.toString()) }}
         </span>
       </Notification>
     </transition-group>
@@ -270,10 +270,11 @@ export default defineComponent({
       const loading = counts.isLoaded ? "" : "+";
       const groupsStr = this.$ts("group_dative", counts.folderCount);
       const tabsStr = this.$ts("tab_dative", counts.bookmarkCount);
-      return this.$t("search_placeholder_fmt", [
+      return this.$t(
+        "search_placeholder_fmt",
         `${counts.folderCount}${loading} ${groupsStr.replace(/^\d+\s*/, "")}`,
         `${counts.bookmarkCount}${loading} ${tabsStr.replace(/^\d+\s*/, "")}`,
-      ]);
+      );
     },
 
     tabStats(): {open: number; discarded: number; hidden: number} {
@@ -300,14 +301,15 @@ export default defineComponent({
       const stashedTabsStr = this.$ts("stashed_tab", this.counts.bookmarkCount);
       const tabsInWindowStr = this.$ts("tab", tabs_sum);
 
-      return this.$t("search_tooltip_fmt", [
+      return this.$t(
+        "search_tooltip_fmt",
         groupsStr,
         stashedTabsStr,
         tabsInWindowStr,
         st.open.toString(),
         st.discarded.toString(),
         st.hidden.toString(),
-      ]);
+      );
     },
 
     curWindowMetadata(): BookmarkMetadataEntry {

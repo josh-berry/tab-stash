@@ -40,9 +40,10 @@
       <button class="clickme" @click="start">
         {{
           props.toFolder
-            ? $t("importToFolderButton", [
+            ? $t(
+                "importToFolderButton",
                 friendlyFolderName(props.toFolder.title),
-              ])
+              )
             : $t("importTitle")
         }}
       </button>
@@ -103,7 +104,7 @@ function start() {
       progress.value = task.progress;
       const failures = await task;
       if (failures.sites.length > 0) {
-        alert($t("importErrorAlert", [failures.urls.join("\n")]));
+        alert($t("importErrorAlert", failures.urls.join("\n")));
       }
     } finally {
       cancel.value = undefined;

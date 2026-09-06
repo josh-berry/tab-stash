@@ -62,7 +62,7 @@
       :folder="stashRoot"
       :filter="nodeFilterFn"
       :tooltips="
-        f => $t('moveToFolderTooltip', [friendlyFolderName(f.title), altKey])
+        f => $t('moveToFolderTooltip', friendlyFolderName(f.title), altKey)
       "
       :button-classes="f => ({}) /* TODO selection */"
       @select="moveTo"
@@ -148,13 +148,13 @@ export default defineComponent({
 
     createTitle(): string {
       if (this.searchText === "") return $t("moveToNewGroupMenu");
-      return $t("moveToGroupSearchMenu", [this.searchText]);
+      return $t("moveToGroupSearchMenu", this.searchText);
     },
 
     createTooltip(): string {
       if (this.searchText === "")
-        return $t("moveToNewGroupTooltip", [this.altKey]);
-      return $t("moveToGroupSearchTooltip", [this.searchText, this.altKey]);
+        return $t("moveToNewGroupTooltip", this.altKey);
+      return $t("moveToGroupSearchTooltip", this.searchText, this.altKey);
     },
   },
 

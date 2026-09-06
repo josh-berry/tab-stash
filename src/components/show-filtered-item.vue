@@ -16,7 +16,7 @@
     <span class="forest-title status-text">{{
       props.label
         ? props.label(props.count)
-        : $t("filteredCountBadge", [`${props.count}`])
+        : $t("filteredCountBadge", `${props.count}`)
     }}</span>
   </div>
 </template>

@@ -67,7 +67,7 @@
       />
       <a
         class="action restore-remove"
-        :title="$t('openBookmarkAndDeleteTooltip', [bgKey])"
+        :title="$t('openBookmarkAndDeleteTooltip', bgKey)"
         @click.prevent.stop="openRemove"
       />
       <a
