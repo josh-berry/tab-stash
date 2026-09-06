@@ -519,6 +519,7 @@ class MockTabs implements T.Static {
   >;
 
   readonly TAB_ID_NONE: -1 = -1;
+  readonly SPLIT_VIEW_ID_NONE: -1 = -1;
 
   private readonly _state: State;
 

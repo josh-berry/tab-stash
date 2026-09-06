@@ -118,6 +118,10 @@ export default (() => {
         ): Promise<Runtime.ExtensionContext[]> {
           throw "unimplemented";
         },
+        getDocumentId(target: unknown): string {
+          throw new Error("Function not implemented.");
+        },
+
         async openOptionsPage() {
           throw "unimplemented";
         },
