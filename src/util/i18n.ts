@@ -28,8 +28,8 @@ export function $t(key: MessageKey, substitutions?: string | string[]): string {
  * E.g. keyBase = "group" -> keyBase_one, keyBase_few (if language has few), keyBase_many
  */
 export function $ts(
-  n: number,
   keyBase: string,
+  n: number,
   substitutions: string[] = [],
 ): string {
   try {

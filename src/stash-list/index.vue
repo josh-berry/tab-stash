@@ -268,8 +268,8 @@ export default defineComponent({
     search_placeholder(): string {
       const counts = this.counts;
       const loading = counts.isLoaded ? "" : "+";
-      const groupsStr = this.$ts(counts.folderCount, "group_dative");
-      const tabsStr = this.$ts(counts.bookmarkCount, "tab_dative");
+      const groupsStr = this.$ts("group_dative", counts.folderCount);
+      const tabsStr = this.$ts("tab_dative", counts.bookmarkCount);
       return this.$t("search_placeholder_fmt", [
         `${counts.folderCount}${loading} ${groupsStr.replace(/^\d+\s*/, "")}`,
         `${counts.bookmarkCount}${loading} ${tabsStr.replace(/^\d+\s*/, "")}`,
@@ -296,9 +296,9 @@ export default defineComponent({
     searchTooltip(): string {
       const st = this.tabStats;
       const tabs_sum = st.open + st.discarded + st.hidden;
-      const groupsStr = this.$ts(this.counts.folderCount, "group");
-      const stashedTabsStr = this.$ts(this.counts.bookmarkCount, "stashed_tab");
-      const tabsInWindowStr = this.$ts(tabs_sum, "tab");
+      const groupsStr = this.$ts("group", this.counts.folderCount);
+      const stashedTabsStr = this.$ts("stashed_tab", this.counts.bookmarkCount);
+      const tabsInWindowStr = this.$ts("tab", tabs_sum);
 
       return this.$t("search_tooltip_fmt", [
         groupsStr,
@@ -506,7 +506,7 @@ export default defineComponent({
             if (iter) iter.cancel();
           };
 
-          tm.status = "Fetching icons for each domain...";
+          tm.status = $t("fetchingIconsDomain");
           iter = tm.wspawn_iter(domains_to_fetch.size, tm =>
             fetchInfoForSites(new Set(domains_to_fetch.values()), tm),
           );
@@ -514,7 +514,7 @@ export default defineComponent({
 
           if (tm.cancelled) return;
 
-          tm.status = "Fetching icons for each page...";
+          tm.status = $t("fetchingIconsPage");
           iter = tm.wspawn_iter(urls_to_fetch.size, tm =>
             fetchInfoForSites(urls_to_fetch, tm),
           );

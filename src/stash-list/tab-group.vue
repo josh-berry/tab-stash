@@ -131,7 +131,7 @@
         <a
           class="action restore"
           :title="
-            $ts(selectedCount, 'openSelectedIntoTabGroupTooltip', [
+            $ts('openSelectedIntoTabGroupTooltip', selectedCount, [
               `${selectedCount}`,
             ])
           "
@@ -140,7 +140,7 @@
         <a
           class="action restore-remove"
           :title="
-            $ts(selectedCount, 'unstashSelectedIntoTabGroupTooltip', [
+            $ts('unstashSelectedIntoTabGroupTooltip', selectedCount, [
               `${selectedCount}`,
             ])
           "
@@ -176,7 +176,7 @@
       <show-filtered-item
         v-model:visible="showStashedChildren"
         :count="hiddenStashedCount"
-        label="stashedCountBadge"
+        :label="n => $t('stashedCountBadge', [`${n}`])"
       />
     </li>
   </ul>

@@ -477,8 +477,8 @@ export default defineComponent({
     tooltip(): string {
       const bm_stats = this.folder.$stats;
       const st = this.childTabStats;
-      const childGroupsStr = this.$ts(bm_stats.folderCount, "child_group");
-      const stashedTabsStr = this.$ts(bm_stats.bookmarkCount, "stashed_tab");
+      const childGroupsStr = this.$ts("child_group", bm_stats.folderCount);
+      const stashedTabsStr = this.$ts("stashed_tab", bm_stats.bookmarkCount);
 
       return this.$t("folder_tooltip_fmt", [
         this.title,

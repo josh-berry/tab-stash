@@ -350,9 +350,6 @@
   "closeStashedTabsTooltip": {
     "message": "Close all stashed tabs (except pinned and hidden)"
   },
-  "closeStashedTabsInTabGroupTooltip": {
-    "message": "Close all stashed tabs in the group"
-  },
   "closeStashedTabsMenu": {
     "message": "Close Stashed Tabs"
   },
@@ -733,9 +730,6 @@
   },
   "restorePrivilegedWarning": {
     "message": "For security reasons, your browser won't allow Tab Stash to restore privileged tabs without your intervention."
-  },
-  "restoreURLWarning": {
-    "message": "Please make sure this URL looks right. If it looks okay, you can restore the tab by copying and pasting the URL into the address bar:"
   },
   "crashRecoverMsg": {
     "message": "Oops! Something went wrong. Tab Stash will try to recover automatically."

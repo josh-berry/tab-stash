@@ -26,12 +26,13 @@ DIST_PKG = $(RELEASE_DIR)/$(PACKAGE)-$(FULL_VERSION).zip
 # automatically fixed.
 debug:
 	$(MAKE) check-types
+	$(MAKE) check-i18n
 	$(MAKE) build-dbg build-chrome-dbg
 	$(MAKE) check-tests
 	$(MAKE) check-style || ( $(MAKE) fix-style && $(MAKE) debug )
 .PHONY: debug
 
-check: check-types check-tests check-style
+check: check-types check-tests check-style check-i18n
 .PHONY: check
 
 check-types: node_modules
@@ -45,6 +46,10 @@ check-tests: node_modules
 check-style: node_modules
 	./node_modules/.bin/prettier --ignore-path .gitignore --check .
 .PHONY: check-style
+
+check-i18n: node_modules check-i18n.js
+	node check-i18n.js
+.PHONY: check-i18n
 
 fix-style: node_modules
 	./node_modules/.bin/prettier --ignore-path .gitignore --write .

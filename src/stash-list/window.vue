@@ -121,27 +121,27 @@
       <nav v-else class="action-group forest-toolbar">
         <a
           class="action stash newgroup"
-          :title="$ts(selectedCount, 'moveItemsToNewGroup', [altKey])"
+          :title="$ts('moveItemsToNewGroup', selectedCount, [altKey])"
           @click.prevent.stop="moveToNewGroup"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore newtabgroup"
           :title="
-            $ts(selectedCount, 'openSelectedIntoNewTabGroupTooltip', [altKey])
+            $ts('openSelectedIntoNewTabGroupTooltip', selectedCount, [altKey])
           "
           @click.prevent.stop="putInNewTabGroup"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore"
-          :title="$ts(selectedCount, 'openSelectedItems')"
+          :title="$ts('openSelectedItems', selectedCount)"
           @click.prevent.stop="copyToWindow"
         />
         <a
           v-if="selectedCount > 0"
           class="action restore-remove"
-          :title="$ts(selectedCount, 'unstashSelectedItems')"
+          :title="$ts('unstashSelectedItems', selectedCount)"
           @click.prevent.stop="moveToWindow"
         />
       </nav>
@@ -179,7 +179,7 @@
         <show-filtered-item
           v-model:visible="showStashedTabs"
           :count="hiddenStashedCount"
-          label="stashedCountBadge"
+          :label="n => $t('stashedCountBadge', [`${n}`])"
         />
       </li>
     </ul>
@@ -195,11 +195,11 @@
 
     <confirm-dialog
       v-if="confirmCloseTabs > 0"
-      :confirm="$ts(confirmCloseTabs, 'closeTabsConfirm')"
+      :confirm="$ts('closeTabsConfirm', confirmCloseTabs)"
       :cancel="$t('cancelButton')"
       @answer="confirmCloseTabsThen($event)"
     >
-      <p>{{ $ts(confirmCloseTabs, "closeTabsWarn") }}</p>
+      <p>{{ $ts("closeTabsWarn", confirmCloseTabs) }}</p>
 
       <p>
         {{ $t("closeTabsIrreversible") }}
@@ -314,10 +314,9 @@ export default defineComponent({
     },
 
     tooltip(): string {
-      return this.$ts(
-        this.displayCount,
-        this.showStashedTabs ? "open_tabs" : "unstashed_tabs",
-      );
+      return this.showStashedTabs
+        ? this.$ts("open_tabs", this.displayCount)
+        : this.$ts("unstashed_tabs", this.displayCount);
     },
 
     collapsed: {

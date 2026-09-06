@@ -1,7 +1,7 @@
 <template>
   <div v-if="loading" class="forest-item deleted loading">
     <span class="forest-icon icon spinner size-icon" />
-    <span class="forest-title status-text">{{ $t(loading as any) }}...</span>
+    <span class="forest-title status-text">{{ loading }}...</span>
   </div>
 
   <div
@@ -123,10 +123,12 @@ async function run(what: string, f: () => Promise<void>) {
 }
 
 const restore = () =>
-  run("restoringLoading", () => the.model.undelete(props.deletion, props.path));
+  run($t("restoringLoading"), () =>
+    the.model.undelete(props.deletion, props.path),
+  );
 
 const remove = () =>
-  run("deletingForeverLoading", () =>
+  run($t("deletingForeverLoading"), () =>
     the.model.deleted_items.drop(props.deletion.key, props.path),
   );
 </script>

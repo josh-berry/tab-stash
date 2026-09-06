@@ -14,20 +14,22 @@
       :aria-label="props.visible ? 'Showing' : 'Hiding'"
     />
     <span class="forest-title status-text">{{
-      $t(props.label || "filteredCountBadge", [`${props.count}`])
+      props.label
+        ? props.label(props.count)
+        : $t("filteredCountBadge", [`${props.count}`])
     }}</span>
   </div>
 </template>
 
 <script lang="ts">
-import {type MessageKey, $t} from "../util/i18n.js";
+import {$t} from "../util/i18n.js";
 </script>
 
 <script setup lang="ts">
 const props = defineProps<{
   visible: boolean;
   count: number;
-  label?: MessageKey;
+  label?: (count: number) => string;
 }>();
 
 const emit = defineEmits<{
