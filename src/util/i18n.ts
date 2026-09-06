@@ -25,7 +25,10 @@ export function $t(key: MessageKey, ...substitutions: string[]): string {
 
 /**
  * Returns a pluralized localized string.
- * E.g. keyBase = "group" -> keyBase_one, keyBase_few (if language has few), keyBase_many
+ *
+ * Which string to use is selected by Intl.PluralRules based on the given
+ * number.  If the key is not found or translation fails, returns a fallback
+ * string in the format: "{n} {keyBase}".
  */
 export function $ts(
   keyBase: string,
@@ -38,21 +41,16 @@ export function $ts(
       : n === 1
         ? "one"
         : "other";
-    let key = `${keyBase}_many`;
 
-    if (category === "one") {
-      key = `${keyBase}_one`;
-    } else if (category === "few") {
-      key = `${keyBase}_few`;
-    } else if (category === "two") {
-      key = `${keyBase}_two`;
-    } else if (category === "zero") {
-      key = `${keyBase}_zero`;
-    }
+    const val = browser.i18n.getMessage(`${keyBase}.${category}`, [
+      n.toString(),
+      ...substitutions,
+    ]);
 
-    const val = browser.i18n.getMessage(key, [n.toString(), ...substitutions]);
-    return val || `${n} ${keyBase}`;
+    if (val) return val;
+    else console.warn(`Missing translation for key: ${keyBase}.${category}`);
   } catch (e) {
-    return `${n} ${keyBase}`;
+    console.warn(e);
   }
+  return `${n} ${keyBase}`;
 }

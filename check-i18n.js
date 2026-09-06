@@ -37,6 +37,7 @@ const passes = [];
 
 // Errors discovered by each pass.
 const errors = [];
+const more_info = new Set();
 
 //
 // Utility functions.
@@ -97,7 +98,7 @@ function readAllMessages(tree) {
  * "", "zero", "one", "two", "few", "many", or "other".
  */
 function splitMsgKey(key) {
-  const match = key.match(/^(.*?)(?:_(zero|one|two|few|many|other))?$/);
+  const match = key.match(/^(.*?)(?:\.(zero|one|two|few|many|other))?$/);
   if (!match) {
     throw new Error(`Invalid message key: ${key}`);
   }
@@ -224,9 +225,6 @@ passes.push(checkInconsistentPlurality);
 
 /** Checks for plural form definitions which are consistent with the language's
  * plural rules.
- *
- * @note This pass is disabled until I've had a chance to make the plural
- * conventions consistent with how PluralRules actually works.
  */
 function checkIncorrectPluralityForLanguage(allLocales, keyIndex) {
   for (const [key, locales] of keyIndex) {
@@ -245,11 +243,14 @@ function checkIncorrectPluralityForLanguage(allLocales, keyIndex) {
         errors.push(
           `Incorrect plural forms for key "${key}" in locale "${locale}":\n  Expected: ${[...expectedPlurals].join(", ")}\n  Actual: ${[...actualPlurals].join(", ")}`,
         );
+        more_info.add(
+          `To find out how each plural form is used, look at the "Category" rows that are defined for your language here:\n  https://www.unicode.org/cldr/charts/48/supplemental/language_plural_rules.html`,
+        );
       }
     }
   }
 }
-// passes.push(checkIncorrectPluralityForLanguage);
+passes.push(checkIncorrectPluralityForLanguage);
 
 /** Mega-pass which checks all usage sites for i18n keys, and looks for a few things:
  *
@@ -360,6 +361,10 @@ for (const pass of passes) {
 if (errors.length > 0) {
   for (const error of errors) {
     console.error(`${error}\n`);
+  }
+
+  for (const info of more_info) {
+    console.warn(`${info}\n`);
   }
   process.exit(1);
 }

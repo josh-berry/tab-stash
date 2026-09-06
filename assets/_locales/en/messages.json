@@ -257,22 +257,22 @@
   "deletedItemsShow": {
     "message": "Deleted $1 items. Show what was deleted?"
   },
-  "group_one": {
+  "group.one": {
     "message": "$1 group"
   },
-  "group_many": {
+  "group.other": {
     "message": "$1 groups"
   },
-  "tab_one": {
+  "tab.one": {
     "message": "$1 tab"
   },
-  "tab_many": {
+  "tab.other": {
     "message": "$1 tabs"
   },
-  "stashed_tab_one": {
+  "stashed_tab.one": {
     "message": "$1 stashed tab"
   },
-  "stashed_tab_many": {
+  "stashed_tab.other": {
     "message": "$1 stashed tabs"
   },
   "search_placeholder_fmt": {
@@ -287,16 +287,16 @@
   "fetchingIconsPage": {
     "message": "Fetching icons for each page..."
   },
-  "group_dative_one": {
+  "group_dative.one": {
     "message": "$1 group"
   },
-  "group_dative_many": {
+  "group_dative.other": {
     "message": "$1 groups"
   },
-  "tab_dative_one": {
+  "tab_dative.one": {
     "message": "$1 tab"
   },
-  "tab_dative_many": {
+  "tab_dative.other": {
     "message": "$1 tabs"
   },
   "openTabsTitle": {
@@ -305,16 +305,16 @@
   "unstashedTabsTitle": {
     "message": "Unstashed Tabs"
   },
-  "open_tabs_one": {
+  "open_tabs.one": {
     "message": "$1 open tab"
   },
-  "open_tabs_many": {
+  "open_tabs.other": {
     "message": "$1 open tabs"
   },
-  "unstashed_tabs_one": {
+  "unstashed_tabs.one": {
     "message": "$1 unstashed tab"
   },
-  "unstashed_tabs_many": {
+  "unstashed_tabs.other": {
     "message": "$1 unstashed tabs"
   },
   "hideTabsForGroup": {
@@ -371,37 +371,37 @@
   "closeHiddenTabsMenu": {
     "message": "Close Hidden Tabs"
   },
-  "moveItemsToNewGroup_one": {
+  "moveItemsToNewGroup.one": {
     "message": "Move $1 item to a new group (hold $2 to copy)"
   },
-  "moveItemsToNewGroup_many": {
+  "moveItemsToNewGroup.other": {
     "message": "Move $1 items to a new group (hold $2 to copy)"
   },
-  "openSelectedItems_one": {
+  "openSelectedItems.one": {
     "message": "Open $1 item"
   },
-  "openSelectedItems_many": {
+  "openSelectedItems.other": {
     "message": "Open $1 items"
   },
-  "unstashSelectedItems_one": {
+  "unstashSelectedItems.one": {
     "message": "Unstash $1 item"
   },
-  "unstashSelectedItems_many": {
+  "unstashSelectedItems.other": {
     "message": "Unstash $1 items"
   },
-  "closeTabsConfirm_one": {
+  "closeTabsConfirm.one": {
     "message": "Close $1 tab"
   },
-  "closeTabsConfirm_many": {
+  "closeTabsConfirm.other": {
     "message": "Close $1 tabs"
   },
   "cancelButton": {
     "message": "Cancel"
   },
-  "closeTabsWarn_one": {
+  "closeTabsWarn.one": {
     "message": "You're about to close $1 tab at once."
   },
-  "closeTabsWarn_many": {
+  "closeTabsWarn.other": {
     "message": "You're about to close $1 tabs at once."
   },
   "closeTabsIrreversible": {
@@ -482,10 +482,10 @@
   "folder_tooltip_fmt": {
     "message": "$1\n$2, $3 ($4 open, $5 unloaded, $6 hidden)"
   },
-  "child_group_one": {
+  "child_group.one": {
     "message": "$1 group"
   },
-  "child_group_many": {
+  "child_group.other": {
     "message": "$1 groups"
   },
   "copiedNotification": {
@@ -617,10 +617,10 @@
   "openSelectedButton": {
     "message": "Open"
   },
-  "openSelectedIntoTabGroupTooltip_one": {
+  "openSelectedIntoTabGroupTooltip.one": {
     "message": "Open $1 selected item into this tab group"
   },
-  "openSelectedIntoTabGroupTooltip_many": {
+  "openSelectedIntoTabGroupTooltip.other": {
     "message": "Open $1 selected items into this tab group"
   },
   "unstashSelectedTooltip": {
@@ -629,10 +629,10 @@
   "unstashSelectedButton": {
     "message": "Unstash"
   },
-  "unstashSelectedIntoTabGroupTooltip_one": {
+  "unstashSelectedIntoTabGroupTooltip.one": {
     "message": "Unstash $1 selected item into this tab group"
   },
-  "unstashSelectedIntoTabGroupTooltip_many": {
+  "unstashSelectedIntoTabGroupTooltip.other": {
     "message": "Unstash $1 selected items into this tab group"
   },
   "exportSelectedTooltip": {
@@ -800,10 +800,10 @@
   "close": {
     "message": "Close"
   },
-  "openSelectedIntoNewTabGroupTooltip_one": {
+  "openSelectedIntoNewTabGroupTooltip.one": {
     "message": "Open $1 selected item into a new tab group (hold $2 to copy)"
   },
-  "openSelectedIntoNewTabGroupTooltip_many": {
+  "openSelectedIntoNewTabGroupTooltip.other": {
     "message": "Open $1 selected items into a new tab group (hold $2 to copy)"
   }
 }
