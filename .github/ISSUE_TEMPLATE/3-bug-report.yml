@@ -26,7 +26,7 @@ body:
     id: browser-version
     attributes:
       label: Browser Version
-      description: What browser/browser version were you using when the problem happened?
+      description: "What browser/browser version were you using when the problem happened? **Note: Non-Firefox browsers generally do not work. You are still welcome to report the crash, however the chance we can fix your problem is very slim, as the problem is more often than not in the browser itself.**"
       placeholder: e.g. Firefox 104.0
     validations:
       required: true

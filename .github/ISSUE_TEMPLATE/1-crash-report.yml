@@ -7,7 +7,29 @@ body:
       value: |
         Sorry to hear you're having trouble, and thanks for taking the time to report a crash!
 
+        - **Don't have crash details provided by Tab Stash itself?** Please [report a bug](https://github.com/josh-berry/tab-stash/issues/new?assignees=&labels=&projects=&template=3-bug-report.yml) instead.
+
+        - **Freezing, slowness, or high CPU/RAM issue?** Please [report a performance problem](https://github.com/josh-berry/tab-stash/issues/new?assignees=&labels=&projects=&template=2-perf-report.yml) instead.
+
         If you're not sure whether you have one problem or multiple problems, it's better to err on the side of opening separate reports for each potential problem, since it's much easier to close duplicates than split a single issue into multiple issues.
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Which operating system were you using when the problem happened?
+      placeholder: e.g. Windows 11, macOS 13, ...
+    validations:
+      required: true
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser Version
+      description: "What browser/browser version were you using when the problem happened? **Note: Non-Firefox browsers generally do not work. You are still welcome to report the bug, however the chance we can fix your problem is very slim, as the problem is more often than not in the browser itself.**"
+      placeholder: e.g. Firefox 104.0
+    validations:
+      required: true
 
   - type: textarea
     id: crash-details
@@ -15,7 +37,7 @@ body:
       label: Crash Details
       render: text
       description: |
-        Paste crash details from Tab Stash here.  (If you don't have crash details, please use the "Report a Bug" option instead.)
+        Paste crash details from Tab Stash here.  (If you don't have crash details, please [report a bug](https://github.com/josh-berry/tab-stash/issues/new?assignees=&labels=&projects=&template=3-bug-report.yml) instead.)
       placeholder: |
         Browser: Mozilla Firefox ...
         Extension: Tab Stash ...
