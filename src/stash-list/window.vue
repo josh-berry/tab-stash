@@ -84,6 +84,18 @@
 
           <hr />
 
+          <button @click.prevent="sort(sortByTitle)">
+            <span class="menu-icon icon icon-sort" />
+            <span>{{ $t("sortByTitleMenu") }}</span>
+          </button>
+
+          <button @click.prevent="sort(sortByURL)">
+            <span class="menu-icon icon icon-sort" />
+            <span>{{ $t("sortByUrlMenu") }}</span>
+          </button>
+
+          <hr />
+
           <button
             :title="$t('closeUnstashedTabsTooltip')"
             @click.prevent="removeUnstashed"
@@ -216,7 +228,7 @@ import {altKeyName, required, $t, $ts} from "../util/index.js";
 
 import the from "../globals-ui.js";
 import type {BookmarkMetadataEntry} from "../model/bookmark-metadata.js";
-import {copyIf} from "../model/index.js";
+import {copyIf, sortByTitle, sortByURL} from "../model/index.js";
 import type {SyncState} from "../model/options.js";
 import type {Tab, TabGroupExtent, Window} from "../model/tabs.js";
 
@@ -379,6 +391,9 @@ export default defineComponent({
   methods: {
     $t,
     $ts,
+    sortByTitle,
+    sortByURL,
+
     attempt(fn: () => Promise<void>) {
       the.model.attempt(fn);
     },
@@ -569,6 +584,36 @@ export default defineComponent({
         await the.model.putSelectedInFolder({
           copy: ev.altKey,
           toFolder: folder,
+        });
+      });
+    },
+
+    sort(sorter: (a: TabGroupExtent | Tab, b: TabGroupExtent | Tab) => number) {
+      the.model.attempt(async () => {
+        // We ignore pinned tabs because we don't want to mix them in (and the
+        // browser won't let us anyway).
+        const isNotPinned = (t: TabGroupExtent | Tab) =>
+          t.type !== "tab" || !t.pinned;
+
+        // We ignore hidden tabs because moving them will un-hide them.
+        const isNotHidden = (t: TabGroupExtent | Tab) =>
+          t.type !== "tab" || !t.hidden;
+
+        // We look for the index of the first unpinned item and use that as the
+        // insertion point, so we don't disturb pinned items.
+        const toIndex = this.targetWindow.children.findIndex(isNotPinned);
+        if (toIndex === -1) {
+          // There's nothing to sort, because everything is pinned.
+          return;
+        }
+
+        await the.model.putItemsInWindow({
+          items: this.targetWindow.children
+            .filter(isNotPinned)
+            .filter(isNotHidden)
+            .sort(sorter),
+          toParent: this.targetWindow,
+          toIndex,
         });
       });
     },
