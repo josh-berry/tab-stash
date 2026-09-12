@@ -48,15 +48,19 @@
       />
       <a
         class="action restore"
-        :title="$t('openAllTabsInGroupTooltip', bgKey)"
+        :title="
+          $t('openAllTabsInGroupTooltip', bgKey) + '\n' + holdShiftMessage
+        "
         @click.prevent.stop="restoreAll"
       />
       <a
         class="action restore-remove"
         :title="
-          folder.$stats.folderCount === 0
+          (folder.$stats.folderCount === 0
             ? $t('openAllTabsAndDeleteGroupTooltip', bgKey)
-            : $t('openAllTabsAndRemoveFromGroupTooltip', bgKey)
+            : $t('openAllTabsAndRemoveFromGroupTooltip', bgKey)) +
+          '\n' +
+          holdShiftMessage
         "
         @click.prevent.stop="restoreAndRemove"
       />
@@ -251,6 +255,20 @@
     :items="[folder]"
     @close="isShowingExportDialog = false"
   />
+
+  <choose-dialog
+    v-if="waitingForRestoreBehavior"
+    class="restore-choice"
+    :choices="[
+      {text: $t('directlyIntoTheWindow'), choice: 'target-window'},
+      {text: $t('aNewTabGroup'), choice: 'tab-groups'},
+    ]"
+    :default-index="1"
+    @answer="waitingForRestoreBehavior"
+  >
+    <p>{{ $t("askWhereToRestore") }}</p>
+    <p class="status-text">{{ $t("restoreWillSaveSettings") }}</p>
+  </choose-dialog>
 </template>
 
 <script lang="ts">
@@ -283,6 +301,10 @@ import type {Tab, Window} from "../model/tabs.js";
 
 import AsyncTextInput from "../components/async-text-input.vue";
 import ButtonBox from "../components/button-box.vue";
+import ChooseDialog, {
+  type CancelEvent,
+  type ChooseEvent,
+} from "../components/choose-dialog.vue";
 import DndList, {
   type ListDragEvent,
   type ListDropEvent,
@@ -305,12 +327,16 @@ type NodeWithTabs = {
   tabs: Tab[];
 };
 
+type RestoreFoldersInto =
+  (typeof the)["model"]["options"]["sync"]["state"]["restore_folders_into"];
+
 export default defineComponent({
   name: "child-folder",
 
   components: {
     AsyncTextInput,
     ButtonBox,
+    ChooseDialog: ChooseDialog<RestoreFoldersInto>,
     DndList: DndList<Node>,
     Bookmark: BookmarkVue,
     ItemIcon,
@@ -330,6 +356,8 @@ export default defineComponent({
     isVisible: false,
     isShowingImportDialog: false,
     isShowingExportDialog: false,
+    waitingForRestoreBehavior: undefined as
+      undefined | ((ev: ChooseEvent<RestoreFoldersInto> | CancelEvent) => void),
   }),
 
   computed: {
@@ -510,6 +538,18 @@ export default defineComponent({
     canMoveIntoFolder(): boolean {
       return !the.model.selection.isSelfOrParentSelected(this.folder);
     },
+
+    holdShiftMessage(): string {
+      // Holding "Shift" inverts this setting, which is why the user messages
+      // are backwards from what the enum says.
+      switch (the.model.options.sync.state.restore_folders_into) {
+        default:
+        case "tab-groups":
+          return $t("holdShiftToOpenInTargetWindow");
+        case "target-window":
+          return $t("holdShiftToOpenInTabGroup");
+      }
+    },
   },
 
   methods: {
@@ -645,8 +685,10 @@ export default defineComponent({
 
     restoreAll(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
+        if (!(await this.ensureRestoreBehaviorChosen())) return;
+
         await the.model.restoreTabs(this.leafChildren, {
-          groupTitle: !ev.shiftKey ? this.title : undefined,
+          groupTitle: shouldRestoreToTabGroup(ev) ? this.title : undefined,
           background: bgKeyPressed(ev),
         });
       });
@@ -660,11 +702,11 @@ export default defineComponent({
 
     restoreAndRemove(ev: MouseEvent | KeyboardEvent) {
       this.attempt(async () => {
-        const bg = bgKeyPressed(ev);
+        if (!(await this.ensureRestoreBehaviorChosen())) return;
 
         await the.model.restoreTabs(this.leafChildren, {
-          groupTitle: !ev.shiftKey ? this.title : undefined,
-          background: bg,
+          groupTitle: shouldRestoreToTabGroup(ev) ? this.title : undefined,
+          background: bgKeyPressed(ev),
           beforeClosing: () =>
             this.leafChildren.length === this.folder.children.length
               ? the.model.deleteBookmarkTree(this.folder)
@@ -782,8 +824,35 @@ export default defineComponent({
         });
       });
     },
+
+    ensureRestoreBehaviorChosen(): Promise<boolean> {
+      if (the.model.options.sync.state.restore_folders_into !== undefined) {
+        return Promise.resolve(true);
+      }
+
+      return new Promise(resolve => {
+        this.waitingForRestoreBehavior = ev => {
+          the.model.attempt(async () => {
+            if ("choice" in ev) {
+              await the.model.options.sync.set({
+                restore_folders_into: ev.choice,
+              });
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+            this.waitingForRestoreBehavior = undefined;
+          });
+        };
+      });
+    },
   },
 });
-</script>
 
-<style></style>
+function shouldRestoreToTabGroup(ev: MouseEvent | KeyboardEvent): boolean {
+  return (
+    (the.model.options.sync.state.restore_folders_into === "tab-groups") !==
+    ev.shiftKey
+  );
+}
+</script>

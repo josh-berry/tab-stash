@@ -25,6 +25,7 @@
 }
 
 .clickme,
+.choose-dialog-default,
 .confirm-dialog-default {
   box-shadow: 0 0 4px 0px var(--userlink-fg);
   background-color: var(--userlink-fg);
@@ -153,6 +154,11 @@
       }
     }
   }
+}
+
+// The dialog which asks the user whether to restore to a window or tab group
+.dialog.restore-choice {
+  max-width: 30rem;
 }
 
 // Tabs (stashed or unstashed) within the stash list

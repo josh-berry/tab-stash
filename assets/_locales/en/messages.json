@@ -420,13 +420,19 @@
     "message": "Stash the active tab to this group (hold $1 to keep tabs open)"
   },
   "openAllTabsInGroupTooltip": {
-    "message": "Open all tabs in this group\nHold $1 to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs in this group\nHold $1 to open in background"
   },
   "openAllTabsAndDeleteGroupTooltip": {
-    "message": "Open all tabs and delete this group\nHold $1 to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs and delete this group\nHold $1 to open in background"
   },
   "openAllTabsAndRemoveFromGroupTooltip": {
-    "message": "Open all tabs and remove them from this group\nHold $1 to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs and remove them from this group\nHold $1 to open in background"
+  },
+  "holdShiftToOpenInTabGroup": {
+    "message": "Hold Shift to open into a tab group"
+  },
+  "holdShiftToOpenInTargetWindow": {
+    "message": "Hold Shift to open directly into the window"
   },
   "createNewSubGroupTooltip": {
     "message": "Create a new sub-group within this group"
@@ -805,5 +811,26 @@
   },
   "openSelectedIntoNewTabGroupTooltip.other": {
     "message": "Open $1 selected items into a new tab group (hold $2 to copy)"
+  },
+  "whenRestoringGroups": {
+    "message": "When restoring a stashed group:"
+  },
+  "restoreGroupsIntoTabGroups": {
+    "message": "Create a new tab group for the restored tabs"
+  },
+  "restoreGroupsIntoTargetWindow": {
+    "message": "Restore tabs directly into the window"
+  },
+  "directlyIntoTheWindow": {
+    "message": "Directly Into the Window"
+  },
+  "aNewTabGroup": {
+    "message": "A New Tab Group"
+  },
+  "askWhereToRestore": {
+    "message": "Where do you want to restore your tabs?"
+  },
+  "restoreWillSaveSettings": {
+    "message": "Tab Stash will remember your choice, but you can change it later in the options, or you can temporarily override it by holding the Shift key."
   }
 }
