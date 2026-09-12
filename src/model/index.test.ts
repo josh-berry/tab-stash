@@ -1650,6 +1650,53 @@ describe("model", () => {
           updates: [{tab: "real_doug_2", u: {hidden: false}}],
         }),
       );
+
+      it("re-sorts an existing tab group backward in the window", async () => {
+        const win = env.model.tabs.window(env.windows.real.id)!;
+        const extent = win.children.find(
+          c => c.type === "tab-group" && c.group.id === env.groups.ef.id,
+        ) as TabGroupExtent;
+        expect(extent).to.not.be.undefined;
+
+        // The EF group starts at children index 6 (after real_doug_2). We
+        // move it back to index 4 (after real_blank), with other items both
+        // before and after it in the list. This verifies putItemsInWindow()'s
+        // index tracking when a tab group moves backward within the same
+        // window (regression test: the group used to drift to the end of the
+        // window, with every later item landing before it).
+        const i = events.ignore([
+          browser.tabs.onMoved,
+          browser.tabGroups.onMoved,
+        ]);
+        await env.model.putItemsInWindow({
+          items: [
+            env.model.tabs.tab(env.tabs.real_bob.id)!, // 3 -> 2
+            env.model.tabs.tab(env.tabs.real_blank.id)!, // 2 -> 3
+            extent, // 6 -> 4 (backward, within the same window)
+            env.model.tabs.tab(env.tabs.real_doug.id)!, // 4 -> 5
+            env.model.tabs.tab(env.tabs.real_unstashed.id)!, // 8 -> 7
+          ],
+          toParent: win,
+          toIndex: 2,
+        });
+        i.cancel();
+
+        // The hidden tabs (real_doug_2, real_harry, real_helen) are not
+        // reordered, so they stay in place.
+        await check_window("real", [
+          "real_patricia",
+          "real_paul",
+          "real_bob",
+          "real_blank",
+          "real_estelle",
+          "real_francis",
+          "real_doug",
+          "real_unstashed",
+          "real_doug_2",
+          "real_harry",
+          "real_helen",
+        ]);
+      });
     });
 
     // Probably works, but not a thing we care about right now, since the

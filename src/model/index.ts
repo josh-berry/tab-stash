@@ -1205,8 +1205,13 @@ export class Model {
 
       const isSelected = this.selection.info(item).isSelected;
 
+      // Tabs.moveGroup() lands a group moved forward within the same window
+      // one index earlier than requested (it adjusts for Firefox's
+      // remove-then-insert behavior), so we have to account for that in the
+      // caller's index tracking. A backward move lands exactly at to_index, so
+      // it needs no adjustment.
       const adjust_index =
-        item.position?.parent === to_parent && to_index < item.position?.index
+        item.position?.parent === to_parent && to_index > item.position?.index
           ? -1
           : 0;
       const new_extent = await this.tabs.moveGroup(item, to_parent, to_index);
