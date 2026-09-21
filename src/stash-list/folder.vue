@@ -640,10 +640,15 @@ export default defineComponent({
       const win = the.model.tabs.targetWindow.value;
       if (!win) return;
 
+      let items = win.children;
+      if (!the.model.options.sync.state.stash_include_pinned) {
+        items = items.filter(item => item.type !== "tab" || !item.pinned);
+      }
+
       the.model.attempt(
         async () =>
           await the.model.putItemsInFolder({
-            items: copyIf(ev.altKey, win.children),
+            items: copyIf(ev.altKey, items),
             toFolder: this.folder,
           }),
       );
