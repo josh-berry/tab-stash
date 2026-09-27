@@ -11,15 +11,27 @@ try {
 }
 
 /**
+ * Helper to fetch localized messages. Converts '.' to '_' in key names
+ * for Chrome compatibility.
+ */
+function getMessage(
+  key: MessageKey | string,
+  substitutions?: string | string[],
+): string {
+  const sanitizedKey = String(key).replace(/\./g, "_");
+  return browser.i18n.getMessage(sanitizedKey, substitutions);
+}
+
+/**
  * Returns a localized string for the given key.
  * If the key is not found or translation fails, returns the key itself.
  */
 export function $t(key: MessageKey, ...substitutions: string[]): string {
   try {
-    const val = browser.i18n.getMessage(key, substitutions);
-    return val || key;
+    const val = getMessage(key, substitutions);
+    return val || String(key);
   } catch (e) {
-    return key;
+    return String(key);
   }
 }
 
@@ -27,7 +39,7 @@ export function $t(key: MessageKey, ...substitutions: string[]): string {
  * Returns a pluralized localized string.
  *
  * Which string to use is selected by Intl.PluralRules based on the given
- * number.  If the key is not found or translation fails, returns a fallback
+ * number. If the key is not found or translation fails, returns a fallback
  * string in the format: "{n} {keyBase}".
  */
 export function $ts(
@@ -42,7 +54,7 @@ export function $ts(
         ? "one"
         : "other";
 
-    const val = browser.i18n.getMessage(`${keyBase}.${category}`, [
+    const val = getMessage(`${keyBase}.${category}`, [
       n.toString(),
       ...substitutions,
     ]);
