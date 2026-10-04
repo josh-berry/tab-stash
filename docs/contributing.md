@@ -88,7 +88,7 @@ Here's how to get a build with your changes loaded into Chrome so you can try
 them out:
 
 1. Clone Tab Stash's source code from
-   [GitHub](https://github.com/perplexedpigmy/tab-stash/).
+   [GitHub](https://github.com/pipolarbear/tab-stash/).
 
 2. Follow the instructions in the [README] to build Tab Stash for development.
    You should see that all the tests are passing.
@@ -120,7 +120,7 @@ them out:
    if/when everything looks good, I'll merge it and it will become part of the
    next Tab Stash release!
 
-[readme]: https://github.com/perplexedpigmy/tab-stash/blob/master/README.md
+[readme]: https://github.com/pipolarbear/tab-stash/blob/master/README.md
 [visual studio code]: https://code.visualstudio.com/
 
 ### Learning Your Way Around the Code

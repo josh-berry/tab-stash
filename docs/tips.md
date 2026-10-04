@@ -3,7 +3,7 @@
 _Find more usage tips and troubleshooting info, or add your own tips, on the
 [Tab Stash wiki][wiki]._
 
-[wiki]: https://github.com/perplexedpigmy/tab-stash/wiki
+[wiki]: https://github.com/pipolarbear/tab-stash/wiki
 
 ## Easy Access to the Side Panel
 
@@ -40,7 +40,7 @@ your Chrome toolbar.
 
 You can customize these shortcuts---[here's how][wiki-shortcuts].
 
-[wiki-shortcuts]: https://github.com/perplexedpigmy/tab-stash/wiki/Changing-Keyboard-Shortcuts
+[wiki-shortcuts]: https://github.com/pipolarbear/tab-stash/wiki/Changing-Keyboard-Shortcuts
 
 On **Mac**:
 
@@ -95,4 +95,4 @@ There are two ways to get your saved tabs out of Tab Stash:
 You can find detailed instructions for exporting your stashed tabs
 [on the wiki][export].
 
-[export]: https://github.com/perplexedpigmy/tab-stash/wiki/Exporting-Your-Stash
+[export]: https://github.com/pipolarbear/tab-stash/wiki/Exporting-Your-Stash

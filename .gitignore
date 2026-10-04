@@ -1,4 +1,4 @@
-# Large image files for the AMO listing
+# Large image files for the store listing
 marketing
 
 # Website
@@ -16,6 +16,7 @@ coverage
 releases/tab-stash-src-*
 releases/tab-stash-*.zip
 releases/tab-stash-src-*.tar.gz
+tab-stash-chrome.zip
 
 # Data related to issues on GitHub
 issues

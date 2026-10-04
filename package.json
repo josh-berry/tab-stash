@@ -1,9 +1,9 @@
 {
   "name": "tab-stash",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Tab Stash (Chrome) - save and organize batches of tabs as bookmarks",
   "author": "Joshua J. Berry <des@voidborn.io>",
-  "repository": "https://github.com/perplexedpigmy/tab-stash",
+  "repository": "https://github.com/pipolarbear/tab-stash",
   "license": "MPL-2.0",
   "type": "module",
   "engines": {

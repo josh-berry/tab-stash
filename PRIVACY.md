@@ -83,7 +83,7 @@ Tab Stash requests the following permissions, for the following purposes only:
 ## Contact
 
 The source code is available at
-<https://github.com/perplexedpigmy/tab-stash>. If you have questions or
+<https://github.com/pipolarbear/tab-stash>. If you have questions or
 concerns about this policy, please open an issue on that repository.
 
 _This policy applies to the Chrome version of Tab Stash._

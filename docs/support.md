@@ -8,7 +8,7 @@ easy to hard:
 1. If the problem is with the side panel or stash list, close and open the side
    panel (or Tab Stash tab). This often resolves temporary UI issues and glitches.
 2. Check the [list of extensions that are known to have problems working with
-   Tab Stash](https://github.com/perplexedpigmy/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions)
+   Tab Stash](https://github.com/pipolarbear/tab-stash/wiki/Known-Incompatibilities-with-Other-Extensions)
    to make sure the issue is not caused by another extension.
 3. Restart your browser.
 4. Restart your browser, discarding any saved session data.
@@ -17,19 +17,19 @@ easy to hard:
 
 If none of the above helps, or if your problem keeps recurring, you have a couple options:
 
-1. [Search GitHub](https://github.com/perplexedpigmy/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
+1. [Search GitHub](https://github.com/pipolarbear/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
    to see if someone else has run into your problem, and if it's been solved
    already. The most
-   [frequently-asked questions](https://github.com/perplexedpigmy/tab-stash/issues?q=label%3AA-FAQ)
+   [frequently-asked questions](https://github.com/pipolarbear/tab-stash/issues?q=label%3AA-FAQ)
    are tagged so they can be found easily.
-2. [Open a new issue](https://github.com/perplexedpigmy/tab-stash/issues/new/choose)
+2. [Open a new issue](https://github.com/pipolarbear/tab-stash/issues/new/choose)
    on GitHub. While I can't promise to get to your issue in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
    like they may be more serious.
 
 If you're technically savvy and you'd like to try troubleshooting the issue
 further on your own,
-[here's how to collect error logs](https://github.com/perplexedpigmy/tab-stash/wiki/Collect-Error-Logs).
+[here's how to collect error logs](https://github.com/pipolarbear/tab-stash/wiki/Collect-Error-Logs).
 Depending on the problem, including error logs with your report may help solve
 it more quickly.
 
@@ -38,7 +38,7 @@ it more quickly.
 I love to hear your suggestions because it helps me decide what to work on next!
 Before you submit a new suggestion, please make sure someone else hasn't
 submitted it already by
-[checking GitHub](https://github.com/perplexedpigmy/tab-stash/issues?q=is%3Aopen+label%3Ai-enhancement+sort%3Areactions-%2B1-desc).
+[checking GitHub](https://github.com/pipolarbear/tab-stash/issues?q=is%3Aopen+label%3Ai-enhancement+sort%3Areactions-%2B1-desc).
 
 If your idea is already filed as an issue, feel free to participate in the
 discussion, and **be sure to up-vote it** by leaving a thumbs-up reaction on the
@@ -47,19 +47,19 @@ When I'm planning future releases, I look at which issues have seen the most
 up-votes to help me learn what people are most interested in.
 
 If you don't see your idea in the list,
-[file a new feature request](https://github.com/perplexedpigmy/tab-stash/issues/new/choose).
+[file a new feature request](https://github.com/pipolarbear/tab-stash/issues/new/choose).
 
 ## I Have a Question
 
 Here are a few ways to get your question answered:
 
 1. Check out [the tips page](tips.md).
-2. [Check the wiki](https://github.com/perplexedpigmy/tab-stash/wiki) to see if it's
+2. [Check the wiki](https://github.com/pipolarbear/tab-stash/wiki) to see if it's
    a frequently-asked question.
-3. [Check GitHub](https://github.com/perplexedpigmy/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
+3. [Check GitHub](https://github.com/pipolarbear/tab-stash/issues?utf8=%E2%9C%93&q=is%3Aissue)
    to see if someone else has asked your question, and if it's been solved
    already.
-4. [Open a new issue](https://github.com/perplexedpigmy/tab-stash/issues/new/choose)
+4. [Open a new issue](https://github.com/pipolarbear/tab-stash/issues/new/choose)
    on GitHub. While I can't promise to get to your question in any particular
    timeframe, I do my best to respond quickly, especially for issues which look
    like they may be more serious.
