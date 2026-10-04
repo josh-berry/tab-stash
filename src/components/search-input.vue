@@ -7,7 +7,7 @@
           $search = s as HTMLInputElement;
         }
       "
-      :aria-label="ariaLabel ?? 'Search'"
+      :aria-label="ariaLabel ?? $t('search')"
       :title="props.tooltip"
       :placeholder="props.placeholder"
       v-model="searchContent"
@@ -17,8 +17,8 @@
     <button
       v-if="searchContent !== ''"
       class="clear"
-      aria-label="Clear Search"
-      title="Clear search"
+      :aria-label="$t('clearSearch')"
+      :title="$t('clearSearch')"
       tabindex="-1"
       @click.prevent.stop="clear"
     />
@@ -27,7 +27,7 @@
 
 <script lang="ts">
 import {ref, watch, watchEffect} from "vue";
-import {onceRefHasValue} from "../util/index.js";
+import {onceRefHasValue, $t} from "../util/index.js";
 </script>
 
 <script setup lang="ts">

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "__MSG_extensionName__",
-  "version": "3.4.1",
+  "version": "3.5",
   "description": "__MSG_extensionDescription__",
   "homepage_url": "https://github.com/pipolarbear/tab-stash",
   "icons": {

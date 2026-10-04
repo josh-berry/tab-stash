@@ -24,7 +24,7 @@
   <component
     :is="selectable ? 'a' : 'span'"
     :class="{'item-icon': true, selectable, selected}"
-    :title="selectable ? (selected ? 'Deselect' : 'Select') : undefined"
+    :title="selectable ? (selected ? $t('deselect') : $t('select')) : undefined"
   >
     <img
       v-if="src"
@@ -39,6 +39,8 @@
 </template>
 
 <script setup lang="ts">
+import {$t} from "../util/i18n.js";
+
 defineProps<{
   defaultIcon: string;
   src?: string;

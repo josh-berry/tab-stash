@@ -10,7 +10,7 @@
       <a
         class="action cancel"
         name="Dismiss"
-        title="Dismiss notification"
+        :title="$t('dismissNotification')"
         @click.prevent.stop="dismiss"
       />
     </ButtonBox>
@@ -19,6 +19,8 @@
 
 <script lang="ts">
 import {defineComponent} from "vue";
+
+import {$t} from "../util/i18n.js";
 
 import ButtonBox from "./button-box.vue";
 
@@ -36,6 +38,8 @@ export default defineComponent({
   }),
 
   methods: {
+    $t,
+
     activate(ev: MouseEvent) {
       this.$emit("activate");
     },

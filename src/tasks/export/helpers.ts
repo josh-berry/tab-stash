@@ -7,7 +7,7 @@ import {
   type StashLeaf,
   type StashParent,
 } from "../../model/index.js";
-import {filterMap} from "../../util/index.js";
+import {filterMap, $t} from "../../util/index.js";
 import {friendlyFolderName} from "../../model/bookmarks.js";
 
 export interface Renderers {
@@ -33,7 +33,7 @@ export function getParentInfo(folder: StashParent): {
       ? folder.group.title
       : "title" in folder
         ? folder.title
-        : "Untitled",
+        : $t("untitled"),
   );
   const {leaves, parents} = splitItems(folder.children);
   return {title, leaves, parents};

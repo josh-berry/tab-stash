@@ -40,6 +40,7 @@ export const mochaHooks: RootHookObject = {
   beforeEach() {
     (<any>globalThis).indexedDB = new IDBFactory();
     events.beforeTest();
+    mock_browser.i18n.reset();
     mock_browser.runtime.reset();
     mock_browser.storage.reset();
     mock_browser.bookmarks.reset();

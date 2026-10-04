@@ -80,6 +80,16 @@ export const SYNC_DEF = {
   // menu).  By default, pinned tabs are excluded from stashing.
   stash_include_pinned: {default: false, is: aBoolean},
 
+  // Where we should put the tabs we are restoring from a tab group (by default)
+  // - tab-groups - Create a new tab group to hold the tabs
+  // - target-window - Place tabs directly in the target window
+  //
+  // If undefined, the user hasn't made a choice yet and we need to ask them.
+  restore_folders_into: {
+    default: undefined,
+    is: maybeUndef(anEnum("tab-groups", "target-window")),
+  },
+
   // If we're stashing to a "recent" unnamed folder, how recent is "recent"?
   // If the most recent unnamed folder is older than <X> minutes ago, we will
   // create a new folder instead of appending to the existing one.

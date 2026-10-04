@@ -3,7 +3,7 @@ import browser from "webextension-polyfill";
 
 import {trace_fn} from "../util/debug.js";
 import type {Task} from "../util/index.js";
-import {AsyncChannel, TaskMonitor} from "../util/index.js";
+import {AsyncChannel, TaskMonitor, $t} from "../util/index.js";
 
 const trace = trace_fn("siteinfo");
 
@@ -40,7 +40,7 @@ export function fetchInfoForSites(
   const chan = new AsyncChannel<SiteInfo>();
 
   const max = urls.length;
-  tm.status = "Fetching site info...";
+  tm.status = $t("fetchingSiteInfo");
   tm.max = max;
 
   const parent_tm = tm; // Hack to allow checking for cancellation

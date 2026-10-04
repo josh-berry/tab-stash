@@ -5,12 +5,9 @@
     </section>
 
     <section>
-      <label
-        for="ask_next_time"
-        title="If you change your mind, you can turn this confirmation on again in the options."
-      >
+      <label for="ask_next_time" :title="$t('askNextTimeTooltip')">
         <input type="checkbox" id="ask_next_time" v-model="confirmNextTime" />
-        Ask me again next time
+        {{ $t("askNextTime") }}
       </label>
     </section>
 
@@ -46,6 +43,8 @@
 import {onMounted, ref} from "vue";
 
 import Dialog from "./dialog.vue";
+
+import {$t} from "../util/i18n.js";
 
 // Users typically don't expect that toggling the "Confirm next time" option
 // will take effect if they cancel the whole dialog.  Thus we only report

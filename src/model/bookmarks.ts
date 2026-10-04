@@ -12,6 +12,7 @@ import {
   tryAgain,
   urlToOpen,
   type OpenableURL,
+  $t,
 } from "../util/index.js";
 import {logErrorsFrom} from "../util/oops.js";
 import {EventWiring} from "../util/wiring.js";
@@ -841,10 +842,7 @@ export class Model {
     if (candidates.length > 1) {
       trace("_findRoots", "found multiple stash_root candidates");
       this.stash_root_warning.value = {
-        text:
-          `You have multiple "${this.stash_root_name}" bookmark ` +
-          `folders, and Tab Stash isn't sure which one to use.  ` +
-          `Click here to find out how to resolve the issue.`,
+        text: $t("multipleStashRootsWarning", this.stash_root_name),
         /* istanbul ignore next */
         help: () => browser.tabs.create({active: true, url: ROOT_FOLDER_HELP}),
       };

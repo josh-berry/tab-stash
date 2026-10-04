@@ -18,7 +18,7 @@
       @input="set"
     />
     <button @click="reset" :disabled="modelValue === default_value">
-      Reset
+      {{ $t("resetButton") }}
     </button>
     <div><slot /></div>
   </section>
@@ -26,6 +26,9 @@
 
 <script lang="ts">
 import {defineComponent} from "vue";
+
+import {$t} from "../util/i18n.js";
+
 export default defineComponent({
   emits: ["update:modelValue"],
 
@@ -37,6 +40,8 @@ export default defineComponent({
   },
 
   methods: {
+    $t,
+
     set(ev: Event) {
       this.$emit("update:modelValue", (<HTMLInputElement>ev.target).checked);
     },

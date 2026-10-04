@@ -5,6 +5,9 @@
   "extensionDescription": {
     "message": "A no-fuss way to save and restore batches of tabs as bookmarks."
   },
+  "stashThisTab": {
+    "message": "Stash this tab"
+  },
   "showAdvancedSettings": {
     "message": "Show advanced settings"
   },
@@ -246,7 +249,7 @@
     "message": "What's New"
   },
   "whatsNewNotification": {
-    "message": "Tab Stash $1 has new sorting options and a refreshed look to match the browser's new sidebar styling. See what else is new!"
+    "message": "Tab Stash $1 now supports native tab groups. See what else is new!"
   },
   "deletedItemUndo": {
     "message": "Deleted \"$1\". Undo?"
@@ -417,13 +420,19 @@
     "message": "Stash the active tab to this group (hold $1 to keep tabs open)"
   },
   "openAllTabsInGroupTooltip": {
-    "message": "Open all tabs in this group\nHold $1 to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs in this group\nHold $1 to open in background"
   },
   "openAllTabsAndDeleteGroupTooltip": {
-    "message": "Open all tabs and delete this group\nHold $1 to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs and delete this group\nHold $1 to open in background"
   },
   "openAllTabsAndRemoveFromGroupTooltip": {
-    "message": "Open all tabs and remove them from this group\nHold $1 to open in background\nHold Shift to open directly in the window"
+    "message": "Open all tabs and remove them from this group\nHold $1 to open in background"
+  },
+  "holdShiftToOpenInTabGroup": {
+    "message": "Hold Shift to open into a tab group"
+  },
+  "holdShiftToOpenInTargetWindow": {
+    "message": "Hold Shift to open directly into the window"
   },
   "createNewSubGroupTooltip": {
     "message": "Create a new sub-group within this group"
@@ -805,5 +814,134 @@
   },
   "openSidePanelCommandDescription": {
     "message": "Open Tab Stash side panel"
+  },
+  "whenRestoringGroups": {
+    "message": "When restoring a stashed group:"
+  },
+  "restoreGroupsIntoTabGroups": {
+    "message": "Create a new tab group for the restored tabs"
+  },
+  "restoreGroupsIntoTargetWindow": {
+    "message": "Restore tabs directly into the window"
+  },
+  "directlyIntoTheWindow": {
+    "message": "Directly Into the Window"
+  },
+  "aNewTabGroup": {
+    "message": "A New Tab Group"
+  },
+  "askWhereToRestore": {
+    "message": "Where do you want to restore your tabs?"
+  },
+  "restoreWillSaveSettings": {
+    "message": "Tab Stash will remember your choice, but you can change it later in the options, or you can temporarily override it by holding the Shift key."
+  },
+  "showStashedTabsInTabMenu": {
+    "message": "Show Stashed Tabs in a Tab"
+  },
+  "showStashedTabsMenu": {
+    "message": "Show Stashed Tabs"
+  },
+  "showStashedTabsInSidebarMenu": {
+    "message": "Show Stashed Tabs in Sidebar"
+  },
+  "stashTabsMenu": {
+    "message": "Stash Tabs"
+  },
+  "stashPinnedTabsMenu": {
+    "message": "Stash Pinned Tabs"
+  },
+  "stashThisTabMenu": {
+    "message": "Stash This Tab"
+  },
+  "stashThisTabToNewGroupMenu": {
+    "message": "Stash This Tab to a New Group"
+  },
+  "copyTabsToStashMenu": {
+    "message": "Copy Tabs to Stash"
+  },
+  "copyThisTabToStashMenu": {
+    "message": "Copy This Tab to Stash"
+  },
+  "setupTabTitle": {
+    "message": "Tab Stash - Setup"
+  },
+  "showStashedTabsTooltip": {
+    "message": "Show stashed tabs"
+  },
+  "setUpTabStashTooltip": {
+    "message": "Set up Tab Stash"
+  },
+  "deletedItemsPageTitle": {
+    "message": "Deleted Items — Tab Stash"
+  },
+  "optionsPageTitle": {
+    "message": "Tab Stash: Options"
+  },
+  "restorePageTitle": {
+    "message": "Restore Privileged Tab"
+  },
+  "moveSelectionToGroupTooltip_one": {
+    "message": "Move $1 selected item to this group (hold $2 to copy)"
+  },
+  "moveSelectionToGroupTooltip_other": {
+    "message": "Move $1 selected items to this group (hold $2 to copy)"
+  },
+  "moveSelectionToNewChildGroupTooltip_one": {
+    "message": "Move $1 selected item to a new child group (hold $2 to copy)"
+  },
+  "moveSelectionToNewChildGroupTooltip_other": {
+    "message": "Move $1 selected items to a new child group (hold $2 to copy)"
+  },
+  "untitled": {
+    "message": "Untitled"
+  },
+  "noTitle": {
+    "message": "<no title>"
+  },
+  "multipleStashRootsWarning": {
+    "message": "You have multiple \"$1\" bookmark folders, and Tab Stash isn't sure which one to use.  Click here to find out how to resolve the issue."
+  },
+  "search": {
+    "message": "Search"
+  },
+  "clearSearch": {
+    "message": "Clear search"
+  },
+  "select": {
+    "message": "Select"
+  },
+  "deselect": {
+    "message": "Deselect"
+  },
+  "dismissNotification": {
+    "message": "Dismiss notification"
+  },
+  "askNextTimeTooltip": {
+    "message": "If you change your mind, you can turn this confirmation on again in the options."
+  },
+  "askNextTime": {
+    "message": "Ask me again next time"
+  },
+  "showing": {
+    "message": "Showing"
+  },
+  "hiding": {
+    "message": "Hiding"
+  },
+  "resetButton": {
+    "message": "Reset"
+  },
+  "importingTabs": {
+    "message": "Importing tabs..."
+  },
+  "creatingStashFolders": {
+    "message": "Creating stash folders..."
+  },
+  "updatingBookmarks": {
+    "message": "Updating bookmarks..."
+  },
+  "fetchingSiteInfo": {
+    "message": "Fetching site info..."
   }
 }

@@ -11,7 +11,7 @@
         'icon-filtered-hidden': !props.visible,
         'status-text': true,
       }"
-      :aria-label="props.visible ? 'Showing' : 'Hiding'"
+      :aria-label="props.visible ? $t('showing') : $t('hiding')"
     />
     <span class="forest-title status-text">{{
       props.label

@@ -6,6 +6,7 @@ import {
   filterMap,
   TaskMonitor,
   urlToOpen,
+  $t,
 } from "../util/index.js";
 
 import * as BM from "../model/bookmarks.js";
@@ -194,7 +195,7 @@ export async function importURLs(options: {
   fetchIconsAndTitles: boolean;
   task: TaskMonitor;
 }): Promise<ImportFailures> {
-  options.task.status = "Importing tabs...";
+  options.task.status = $t("importingTabs");
   options.task.max = 100;
 
   // For top-level imports, we reverse the order of groups, because the
@@ -224,7 +225,7 @@ export async function importURLs(options: {
 
   // Task: Creating bookmarks
   const create_bms_p = options.task.wspawn(25, async tm => {
-    tm.status = "Creating stash folders...";
+    tm.status = $t("creatingStashFolders");
     tm.max = groups.length;
     const bm_groups: {folder: BM.Folder; bookmarks: BM.Node[]}[] = [];
 
@@ -272,7 +273,7 @@ export async function importURLs(options: {
   // Task: Updating bookmarks with site info.  This task awaits the other two
   // tasks and brings their results together.
   const update_p = options.task.wspawn(25, async tm => {
-    tm.status = "Updating bookmarks...";
+    tm.status = $t("updatingBookmarks");
 
     const {bookmarks, folderIds} = await create_bms_p;
     const bms_by_url = new Map<string, browser.Bookmarks.BookmarkTreeNode[]>();

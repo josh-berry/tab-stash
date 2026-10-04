@@ -10,6 +10,75 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.5">
+        <L
+          v="New:"
+          :issue="553"
+          :subtext="
+            `I am happy this is finally done, after more than a year of ` +
+            `development. It is probably the biggest change I've ever made ` +
+            `to Tab Stash.`
+          "
+          >Support for Firefox's native tab groups:</L
+        >
+
+        <ul>
+          <li>
+            Create, rename, close and export tab groups from within Tab Stash
+          </li>
+          <li>Save tab groups to the stash</li>
+          <li>Restore stashes into their own tab groups</li>
+        </ul>
+
+        <L v="Added" :issue="130" thanks="Nikitamce"
+          >Russian translations. Additional languages are now easier to add, so
+          open a GitHub issue for your language if you'd like to help!</L
+        >
+
+        <L v="New:" :issue="670">Sort open tabs by title or URL.</L>
+
+        <L v="New:" :issue="139" :pr="712" thanks="nerdCopter"
+          >Stash only your pinned tabs from the context menu, or enable the
+          "Include pinned tabs" setting to include them when using the regular
+          "Stash Tabs" commands. (Pinned tabs are still restored as regular
+          tabs.)</L
+        >
+
+        <L v="Improved:" :issue="171"
+          >Blank tabs can be stashed again (though the Tab Stash UI itself is
+          never stashed), which makes them useful as separators within a
+          group.</L
+        >
+
+        <L v="Improved"
+          >how drag-and-drop operates: it's now easier to drag items out of a
+          group into a parent group or the top level.</L
+        >
+
+        <L
+          v="Fixed:"
+          :subtext="
+            `Firefox changed how these icons work, so the hack I was ` +
+            `using before stopped working.`
+          "
+          :issue="716"
+          >The Tab Stash icon is once again visible in the address bar when
+          Firefox uses dark colors.</L
+        >
+
+        <L v="Fixed" :pr="[699, 702]" thanks="chuanjin-su"
+          >various issues when using Tab Stash's highly-experimental Chromium
+          port, including a broken options page and issues stashing tabs from
+          the popup view.</L
+        >
+
+        <L v="Removed" :issue="200"
+          >the "Re-open recently closed tabs" experimental feature. It was
+          plagued by Firefox bugs and created additional complications for tab
+          groups.</L
+        >
+      </Version>
+
       <Version v="3.4">
         <L v="New:" :issue="194"
           >Sort tabs within a group by title, URL, or date added. URL sorting

@@ -275,7 +275,7 @@ const showFilteredChildren = ref(false);
 
 const tooltip = computed(
   () =>
-    `${props.group.group.title}\n${nonHiddenChildren.value.length} tab${nonHiddenChildren.value.length === 1 ? "" : "s"}`,
+    `${props.group.group.title}\n${$ts("tab", nonHiddenChildren.value.length)}`,
 );
 
 const isRenaming = ref(false);
@@ -325,11 +325,9 @@ function rename(title: string): Promise<void> {
 
 function sort(sorter: (a: Tab, b: Tab) => number) {
   the.model.attempt(async () => {
-    // We deliberately pick up hidden children here as well, so that if they're
-    // ever un-hidden by another extension, they're still sorted correctly.
-    const sorted = [...props.group.children].sort(sorter);
     await the.model.putItemsInWindow({
-      items: sorted,
+      // We ignore hidden tabs here, because moving them will un-hide them.
+      items: [...props.group.children].filter(t => !t.hidden).sort(sorter),
       toParent: props.group,
       toIndex: 0,
     });

@@ -10,7 +10,13 @@ import {copyIf} from "./model/index.js";
 import type {ShowWhatOpt, StashWhatOpt} from "./model/options.js";
 import type {Tab} from "./model/tabs.js";
 import service_model from "./service-model.js";
-import {backingOff, filterMap, nonReentrant, urlToOpen} from "./util/index.js";
+import {
+  backingOff,
+  filterMap,
+  nonReentrant,
+  urlToOpen,
+  $t,
+} from "./util/index.js";
 import {registry} from "./util/nanoservice/index.js";
 import {logErrorsFrom} from "./util/oops.js";
 
@@ -69,9 +75,9 @@ function menu(
 
 const has_side_ui = !!browser.sidebarAction || !!(browser as any).sidePanel;
 const SHOW_TAB_NAME = has_side_ui
-  ? "Show Stashed Tabs in a Tab"
-  : "Show Stashed Tabs";
-const SHOW_SIDE_NAME = "Show Stashed Tabs in Side Panel";
+  ? $t("showStashedTabsInTabMenu")
+  : $t("showStashedTabsMenu");
+const SHOW_SIDE_NAME = $t("showStashedTabsInSidebarMenu");
 
 menu(
   "1:",
@@ -80,15 +86,15 @@ menu(
     ["show_tab", SHOW_TAB_NAME],
     ...(has_side_ui ? [["show_side_panel", SHOW_SIDE_NAME]] : []),
     ["", ""],
-    ["stash_all", "Stash Tabs"],
-    ["stash_pinned", "Stash Pinned Tabs"],
-    ["stash_one", "Stash This Tab"],
-    ["stash_one_newgroup", "Stash This Tab to a New Group"],
+    ["stash_all", $t("stashTabsMenu")],
+    ["stash_pinned", $t("stashPinnedTabsMenu")],
+    ["stash_one", $t("stashThisTabMenu")],
+    ["stash_one_newgroup", $t("stashThisTabToNewGroupMenu")],
     ["", ""],
-    ["copy_all", "Copy Tabs to Stash"],
-    ["copy_one", "Copy This Tab to Stash"],
+    ["copy_all", $t("copyTabsToStashMenu")],
+    ["copy_one", $t("copyThisTabToStashMenu")],
     ["", ""],
-    ["options", "Options..."],
+    ["options", $t("optionsMenu")],
   ],
 );
 
@@ -100,9 +106,9 @@ menu(
     ["show_tab", SHOW_TAB_NAME],
     ...(has_side_ui ? [["show_side_panel", SHOW_SIDE_NAME]] : []),
     ["", ""],
-    ["stash_all", "Stash Tabs"],
-    ["stash_pinned", "Stash Pinned Tabs"],
-    ["copy_all", "Copy Tabs to Stash"],
+    ["stash_all", $t("stashTabsMenu")],
+    ["stash_pinned", $t("stashPinnedTabsMenu")],
+    ["copy_all", $t("copyTabsToStashMenu")],
   ],
 );
 
@@ -252,7 +258,7 @@ function makeCommands(model: Model) {
       model.restoreTabs(
         [
           {
-            title: "Tab Stash - Setup",
+            title: $t("setupTabTitle"),
             url: browser.runtime.getURL("setup.html"),
           },
         ],
@@ -580,13 +586,13 @@ modelReady
         function getTitle(stash?: StashWhatOpt): string {
           switch (stash) {
             case "all":
-              return "Stash all (or selected) tabs";
+              return $t("stashAllTabs");
             case "single":
-              return "Stash this tab";
+              return $t("stashThisTab");
             case "none":
-              return "Show stashed tabs";
+              return $t("showStashedTabsTooltip");
             default:
-              return "Set up Tab Stash";
+              return $t("setUpTabStashTooltip");
           }
         }
 

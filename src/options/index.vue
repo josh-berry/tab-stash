@@ -162,6 +162,36 @@
       </ul>
     </section>
 
+    <section>
+      <label>{{ $t("whenRestoringGroups") }}</label>
+      <ul>
+        <li>
+          <label for="restore_folders_into_tab_groups">
+            <input
+              type="radio"
+              name="restore_folders_into"
+              id="restore_folders_into_tab_groups"
+              v-model="sync.restore_folders_into"
+              value="tab-groups"
+            />
+            {{ $t("restoreGroupsIntoTabGroups") }}
+          </label>
+        </li>
+        <li>
+          <label for="restore_folders_into_target_window">
+            <input
+              type="radio"
+              name="restore_folders_into"
+              id="restore_folders_into_target_window"
+              v-model="sync.restore_folders_into"
+              value="target-window"
+            />
+            {{ $t("restoreGroupsIntoTargetWindow") }}
+          </label>
+        </li>
+      </ul>
+    </section>
+
     <hr />
 
     <h4>{{ $t("appearanceTitle") }}</h4>

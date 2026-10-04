@@ -5,6 +5,9 @@
   "extensionDescription": {
     "message": "Простой способ сохранять и восстанавливать группы вкладок в виде закладок."
   },
+  "stashThisTab": {
+    "message": "Сохранить эту вкладку"
+  },
   "showAdvancedSettings": {
     "message": "Показывать дополнительные настройки"
   },
@@ -246,7 +249,7 @@
     "message": "Что нового"
   },
   "whatsNewNotification": {
-    "message": "В Tab Stash $1 появились новые параметры сортировки и обновленный внешний вид под стиль боковой панели браузера. Посмотрите, что еще нового!"
+    "message": "Tab Stash $1 теперь поддерживает нативные группы вкладок. Узнайте, что еще нового!"
   },
   "deletedItemUndo": {
     "message": "Удалено: \"$1\". Отменить?"
@@ -489,13 +492,19 @@
     "message": "Сохранить активную вкладку в эту группу (удерживайте $1, чтобы оставить её открытой)"
   },
   "openAllTabsInGroupTooltip": {
-    "message": "Открыть все вкладки в этой группе\nУдерживайте $1, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
+    "message": "Открыть все вкладки в этой группе\nУдерживайте $1, чтобы открыть в фоновом режиме"
   },
   "openAllTabsAndDeleteGroupTooltip": {
-    "message": "Открыть все вкладки и удалить эту группу\nУдерживайте $1, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
+    "message": "Открыть все вкладки и удалить эту группу\nУдерживайте $1, чтобы открыть в фоновом режиме"
   },
   "openAllTabsAndRemoveFromGroupTooltip": {
-    "message": "Открыть все вкладки и удалить их из этой группы\nУдерживайте $1, чтобы открыть в фоновом режиме\nУдерживайте Shift, чтобы открыть прямо в окне"
+    "message": "Открыть все вкладки и удалить их из этой группы\nУдерживайте $1, чтобы открыть в фоновом режиме"
+  },
+  "holdShiftToOpenInTabGroup": {
+    "message": "Удерживайте Shift, чтобы открыть в группе вкладок"
+  },
+  "holdShiftToOpenInTargetWindow": {
+    "message": "Удерживайте Shift, чтобы открыть непосредственно в окне"
   },
   "createNewSubGroupTooltip": {
     "message": "Создать новую подгруппу в этой группе"
@@ -901,5 +910,146 @@
   },
   "openSidePanelCommandDescription": {
     "message": "Открыть боковую панель Tab Stash"
+  },
+  "whenRestoringGroups": {
+    "message": "При восстановлении скрытой группы:"
+  },
+  "restoreGroupsIntoTabGroups": {
+    "message": "Создать новую группу вкладок для восстановленных вкладок"
+  },
+  "restoreGroupsIntoTargetWindow": {
+    "message": "Восстановить вкладки прямо в окно"
+  },
+  "directlyIntoTheWindow": {
+    "message": "Прямо в окно"
+  },
+  "aNewTabGroup": {
+    "message": "В новую группу вкладок"
+  },
+  "askWhereToRestore": {
+    "message": "Куда вы хотите восстановить вкладки?"
+  },
+  "restoreWillSaveSettings": {
+    "message": "Tab Stash запомнит ваш выбор, но вы сможете изменить его позже в настройках или временно переопределить, удерживая клавишу Shift."
+  },
+  "showStashedTabsInTabMenu": {
+    "message": "Показывать отложенные вкладки во вкладке"
+  },
+  "showStashedTabsMenu": {
+    "message": "Показать отложенные вкладки"
+  },
+  "showStashedTabsInSidebarMenu": {
+    "message": "Показывать отложенные вкладки в боковой панели"
+  },
+  "stashTabsMenu": {
+    "message": "Отложить вкладки"
+  },
+  "stashPinnedTabsMenu": {
+    "message": "Отложить закрепленные вкладки"
+  },
+  "stashThisTabMenu": {
+    "message": "Отложить эту вкладку"
+  },
+  "stashThisTabToNewGroupMenu": {
+    "message": "Отложить эту вкладку в новую группу"
+  },
+  "copyTabsToStashMenu": {
+    "message": "Копировать вкладки в отложенные"
+  },
+  "copyThisTabToStashMenu": {
+    "message": "Копировать эту вкладку в отложенные"
+  },
+  "setupTabTitle": {
+    "message": "Tab Stash — Настройка"
+  },
+  "showStashedTabsTooltip": {
+    "message": "Показать отложенные вкладки"
+  },
+  "setUpTabStashTooltip": {
+    "message": "Настроить Tab Stash"
+  },
+  "deletedItemsPageTitle": {
+    "message": "Удаленные элементы — Tab Stash"
+  },
+  "optionsPageTitle": {
+    "message": "Tab Stash: Настройки"
+  },
+  "restorePageTitle": {
+    "message": "Восстановить привилегированную вкладку"
+  },
+  "moveSelectionToGroupTooltip_few": {
+    "message": "Переместить $1 выбранных элемента в эту группу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToGroupTooltip_many": {
+    "message": "Переместить $1 выбранных элементов в эту группу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToGroupTooltip_one": {
+    "message": "Переместить $1 выбранный элемент в эту группу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToGroupTooltip_other": {
+    "message": "Переместить $1 выбранных элементов в эту группу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToNewChildGroupTooltip_few": {
+    "message": "Переместить $1 выбранных элемента в новую подгруппу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToNewChildGroupTooltip_many": {
+    "message": "Переместить $1 выбранных элементов в новую подгруппу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToNewChildGroupTooltip_one": {
+    "message": "Переместить $1 выбранный элемент в новую подгруппу (удерживайте $2 для копирования)"
+  },
+  "moveSelectionToNewChildGroupTooltip_other": {
+    "message": "Переместить $1 выбранных элементов в новую подгруппу (удерживайте $2 для копирования)"
+  },
+  "untitled": {
+    "message": "Без названия"
+  },
+  "noTitle": {
+    "message": "<без заголовка>"
+  },
+  "multipleStashRootsWarning": {
+    "message": "У вас несколько папок закладок «$1», и Tab Stash не знает, какую из них использовать. Нажмите здесь, чтобы узнать, как решить эту проблему."
+  },
+  "search": {
+    "message": "Поиск"
+  },
+  "clearSearch": {
+    "message": "Очистить поиск"
+  },
+  "select": {
+    "message": "Выбрать"
+  },
+  "deselect": {
+    "message": "Снять выделение"
+  },
+  "dismissNotification": {
+    "message": "Закрыть уведомление"
+  },
+  "askNextTimeTooltip": {
+    "message": "Если вы передумаете, вы сможете снова включить это подтверждение в настройках."
+  },
+  "askNextTime": {
+    "message": "Спросить меня в следующий раз"
+  },
+  "showing": {
+    "message": "Отображение"
+  },
+  "hiding": {
+    "message": "Скрытие"
+  },
+  "resetButton": {
+    "message": "Сбросить"
+  },
+  "importingTabs": {
+    "message": "Импорт вкладок..."
+  },
+  "creatingStashFolders": {
+    "message": "Создание папок для хранения..."
+  },
+  "updatingBookmarks": {
+    "message": "Обновление закладок..."
+  },
+  "fetchingSiteInfo": {
+    "message": "Получение информации о сайте..."
   }
 }
