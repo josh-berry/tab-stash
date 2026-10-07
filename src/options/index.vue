@@ -225,6 +225,12 @@
         <option value="expanded">{{ $t("expanded") }}</option>
         <option value="collapsed">{{ $t("collapsed") }}</option>
       </select>
+
+      <label for="wrap_item_titles">Wrap item titles</label>
+      <select id="wrap_item_titles" v-model="sync.wrap_item_titles">
+        <option :value="false">Don't wrap</option>
+        <option :value="true">Wrap</option>
+      </select>
     </section>
 
     <hr />

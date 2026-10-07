@@ -255,6 +255,22 @@
   }
 }
 
+html[data-view="sidebar"][data-wrap-item-titles="false"] {
+  .forest-item {
+    height: auto;
+    min-height: var(--item-h);
+
+    & > .forest-title {
+      height: auto;
+      line-height: normal;
+      white-space: normal;
+      text-overflow: unset;
+      overflow: visible;
+      overflow-wrap: break-word;
+    }
+  }
+}
+
 .forest-badge {
   height: var(--item-h);
   line-height: var(--item-h);

@@ -39,6 +39,8 @@ export default function launch<
     function updateStyle(opts: Options.SyncModel) {
       document.documentElement.dataset!.metrics = opts.state.ui_metrics;
       document.documentElement.dataset!.theme = opts.state.ui_theme;
+      document.documentElement.dataset!.wrapItemTitles =
+        `${opts.state.wrap_item_titles}`;
     }
     updateStyle(the.model.options.sync);
     the.model.options.sync.onChanged.addListener(updateStyle);
