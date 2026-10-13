@@ -58,9 +58,14 @@
       display: none;
     }
 
-    // Hide the toolbar unless the item is being hovered over
-    &:not(:hover):not(:focus-within) > .forest-item > .forest-toolbar {
-      display: none;
+    // Hide the toolbar unless this item is hovered/focused. A parent list item
+    // also matches :hover while the pointer is over its descendants, so suppress
+    // the parent toolbar while its child list is being interacted with.
+    &:not(:hover):not(:focus-within) > .forest-item > .forest-toolbar,
+    &:has(> .forest-children:hover) > .forest-item > .forest-toolbar {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     // Fade the collapse button unless the item is collapsed or being hovered
@@ -120,6 +125,7 @@
 }
 
 .forest-item {
+  position: relative;
   display: grid;
 
   // The column layout.  This is tweaked in the top-level .forest-item overrides
@@ -169,8 +175,29 @@
   }
 
   & > .forest-toolbar {
-    grid-row: 1;
-    grid-column: 5;
+    position: absolute;
+    // Inset far enough to keep the full toolbar surface within the title's
+    // rounded right boundary, including its action buttons.
+    right: calc(var(--item-gap-w) / 2 + var(--ctrl-border-radius));
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+
+    // Soft glass surface: let the title show through while keeping controls legible.
+    background-color: color-mix(in srgb, var(--group-bg) 52%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--ephemeral-hover-shadow-metrics) var(--ctrl-border-clr);
+    border-radius: var(--item-border-radius, 6px);
+
+    // Fade in/out smoothly instead of appearing instantly.
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease;
   }
 
   &.selectable {
@@ -255,7 +282,14 @@
   }
 }
 
-html[data-view="sidebar"][data-wrap-item-titles="false"] {
+
+// Only top-level group toolbars need the additional inset to sit inside the
+// rounded group-title surface. Nested tab/page toolbars keep their normal edge.
+.forest > li > .forest-item > .forest-toolbar {
+  right: calc(var(--item-gap-w) / 2 + var(--ctrl-border-radius) + 12px);
+}
+
+html[data-view="sidebar"][data-wrap-item-titles="true"] {
   .forest-item {
     height: auto;
     min-height: var(--item-h);
@@ -325,7 +359,8 @@ html[data-view="sidebar"][data-wrap-item-titles="false"] {
 
       // Undo the weird margin hack we do for sub-items for the collapse button.
       // We want the entire top part of the group to be filled in when selected.
-      grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr 0fr;
+      // The toolbar is absolutely positioned and must not reserve a grid column.
+      grid-template-columns: var(--collapse-btn-size) 0fr 1fr 0fr;
       margin: 0;
       padding-top: var(--group-ph);
       padding-bottom: var(--group-ph);
