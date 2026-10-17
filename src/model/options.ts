@@ -70,6 +70,9 @@ export const SYNC_DEF = {
     is: anEnum("normal", "compact"),
   },
 
+  // Should item titles be wrapped?
+  wrap_item_titles: {default: false, is: aBoolean},
+
   // What color scheme should the UI use?
   ui_theme: {
     default: "system",
