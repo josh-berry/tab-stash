@@ -110,7 +110,7 @@ body:
       description: Please check the box below so GitHub will tell everyone how to vote for your issue—sorry, I know it's an unnecessary step, but that's the only way GitHub will allow me to include this message in the issue itself.
       options:
         - label: |
-            _Readers: If you are also experiencing this problem, please vote for it by giving the ORIGINAL POST a thumbs-up using the :smiley: button below.  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system._
+            _Readers: If you are also experiencing this problem, please vote for it by clicking the smiley-face button (☺︎) right below and giving the post a thumbs-up (👍).  You are welcome to leave comments and discuss the issue if you have more details to add, but "Me too!" comments are not counted by the voting system._
           required: true
     validations:
       required: true
