@@ -96,7 +96,7 @@ const trace = trace_fn("bookmarks");
 const STASH_ROOT = "Tab Stash";
 
 const ROOT_FOLDER_HELP =
-  "https://github.com/josh-berry/tab-stash/wiki/Problems-Locating-the-Tab-Stash-Bookmark-Folder";
+  "https://github.com/josh-berry/tab-stash/wiki/Tabs-Gone-Missing-%E2%80%90-Problems-Locating-the-Tab-Stash-Bookmark-Folder";
 
 /** A Vue model for the state of the browser bookmark tree.
  *
