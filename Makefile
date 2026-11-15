@@ -112,6 +112,7 @@ pkg-source: clean-working-tree
 	git clone -b v$(VERSION) . $(RELEASE_DIR)/$(SRCPKG_DIR)
 	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) fetch -f origin
 	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) gc --aggressive
+	find $(RELEASE_DIR)/$(SRCPKG_DIR) -type l -exec rm '{}' ';'
 	tar -C $(RELEASE_DIR) -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
 
