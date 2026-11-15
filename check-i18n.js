@@ -98,7 +98,7 @@ function readAllMessages(tree) {
  * "", "zero", "one", "two", "few", "many", or "other".
  */
 function splitMsgKey(key) {
-  const match = key.match(/^(.*?)(?:\.(zero|one|two|few|many|other))?$/);
+  const match = key.match(/^(.*?)(?:\$(zero|one|two|few|many|other))?$/);
   if (!match) {
     throw new Error(`Invalid message key: ${key}`);
   }
@@ -163,6 +163,21 @@ function buildKeyIndex(messages) {
   }
   return index;
 }
+
+/** Make sure all identifiers in messages.json are well-formed JS identifiers.
+ * This isn't needed for Firefox but is required for Chrome compatibility. */
+function checkWellFormedKeys(_allLocales, _keyIndex, messages) {
+  for (const [locale, localeMessages] of messages.entries()) {
+    for (const [key, value] of Object.entries(localeMessages)) {
+      if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
+        errors.push(
+          `Key "${key}" is not a well-formed JS identifier. It must start with a letter or underscore, and contain only letters, digits, and underscores.`,
+        );
+      }
+    }
+  }
+}
+passes.push(checkWellFormedKeys);
 
 /** Pass to check for keys which are missing in some locales. */
 function checkMissingLocales(allLocales, keyIndex) {
@@ -355,7 +370,7 @@ const messages = readAllMessages(MESSAGES_PATH);
 const keyIndex = buildKeyIndex(messages);
 
 for (const pass of passes) {
-  pass([...messages.keys()], keyIndex);
+  pass([...messages.keys()], keyIndex, messages);
 }
 
 if (errors.length > 0) {

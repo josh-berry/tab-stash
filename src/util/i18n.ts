@@ -42,13 +42,13 @@ export function $ts(
         ? "one"
         : "other";
 
-    const val = browser.i18n.getMessage(`${keyBase}.${category}`, [
+    const val = browser.i18n.getMessage(`${keyBase}$${category}`, [
       n.toString(),
       ...substitutions,
     ]);
 
     if (val) return val;
-    else console.warn(`Missing translation for key: ${keyBase}.${category}`);
+    else console.warn(`Missing translation for key: ${keyBase}$${category}`);
   } catch (e) {
     console.warn(e);
   }
