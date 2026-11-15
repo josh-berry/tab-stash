@@ -10,6 +10,14 @@
     </header>
 
     <ul class="forest one-column">
+      <Version v="3.5.1">
+        <L v="Fixed:" :issue="749" :pr="732"
+          >Pinned tabs are no longer stashed by mistake when stashing all tabs
+          into a particular group and the "Stash pinned tabs" setting is
+          disabled.</L
+        >
+      </Version>
+
       <Version v="3.5">
         <L
           v="New:"
