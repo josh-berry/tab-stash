@@ -251,6 +251,9 @@
   "whatsNewNotification": {
     "message": "Tab Stash $1 now supports Firefox's native tab groups. See what else is new!"
   },
+  "whatsNewNotificationFixes": {
+    "message": "Tab Stash $1 improves stability and/or performance. See what's new!"
+  },
   "deletedItemUndo": {
     "message": "Deleted \"$1\". Undo?"
   },

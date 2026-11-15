@@ -251,6 +251,9 @@
   "whatsNewNotification": {
     "message": "Tab Stash $1 теперь поддерживает нативные группы вкладок Firefox и был переведен на русский язык. Узнайте, что еще нового!"
   },
+  "whatsNewNotificationFixes": {
+    "message": "Tab Stash $1 повышает стабильность и/или производительность. Узнайте, что нового!"
+  },
   "deletedItemUndo": {
     "message": "Удалено: \"$1\". Отменить?"
   },

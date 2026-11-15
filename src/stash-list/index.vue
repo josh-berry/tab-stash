@@ -26,7 +26,7 @@
         @activate="go('whats-new.html')"
         @dismiss="hideWhatsNew"
       >
-        {{ $t("whatsNewNotification", my_version) }}
+        {{ $t("whatsNewNotificationFixes", my_version) }}
       </Notification>
       <Notification
         key="stash-root-warning"
