@@ -112,7 +112,12 @@ pkg-source: clean-working-tree
 	git clone -b v$(VERSION) . $(RELEASE_DIR)/$(SRCPKG_DIR)
 	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) fetch -f origin
 	git -C $(RELEASE_DIR)/$(SRCPKG_DIR) gc --aggressive
-	find $(RELEASE_DIR)/$(SRCPKG_DIR) -type l -exec rm '{}' ';'
+	if [ ! -z "$(find $(RELEASE_DIR)/$(SRCPKG_DIR) -type l)" ]; then \
+		echo "!!!" >&2; \
+		echo "!!! The source package contains symlinks, which is not allowed." >&2; \
+		echo "!!!" >&2; \
+		exit 1; \
+	fi
 	tar -C $(RELEASE_DIR) -czf $(SRC_PKG) $(SRCPKG_DIR)
 .PHONY: pkg-source
 
